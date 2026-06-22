@@ -1,0 +1,2 @@
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS correo TEXT;

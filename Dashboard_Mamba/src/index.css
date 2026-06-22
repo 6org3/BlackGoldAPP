@@ -1,0 +1,71 @@
+:root {
+  --black-mate: #121212;
+  --black-surface: #1e1e1e;
+  --gold-primary: #FFD700;
+  --gold-dim: #b89c00;
+  --danger-red: #8B0000;
+  --text-primary: #ffffff;
+  --text-secondary: #aaaaaa;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--black-mate);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  background-color: var(--black-surface);
+  padding: 2rem;
+  border-right: 2px solid var(--gold-primary);
+}
+
+.sidebar h1 {
+  color: var(--gold-primary);
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.main-content {
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background-color: var(--black-surface);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+  border: 1px solid #333;
+}
+
+.card h3 {
+  margin-top: 0;
+  color: var(--gold-primary);
+}
+
+.mamba-score {
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--gold-primary);
+  margin: 0;
+}
+
+.danger {
+  color: var(--danger-red);
+}

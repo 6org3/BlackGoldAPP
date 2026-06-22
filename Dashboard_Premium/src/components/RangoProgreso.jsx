@@ -1,0 +1,75 @@
+import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { getXPProgress } from '../lib/xpProgress';
+
+// ─── Dynamic Tailwind color mapping ─────────────────────────
+const RANGO_HEX = {
+  rookie:   '#6b7280', // gray-500
+  prospecto:'#f97316', // orange-500
+  desarrollo:'#3b82f6', // blue-500
+  elite:    '#FFD700',
+  leyenda_mamba: '#a855f7', // purple-500
+};
+
+export default function RangoProgreso({ xpTotal }) {
+  const progress = useMemo(
+    () => getXPProgress(xpTotal),
+    [xpTotal]
+  );
+
+  const currentRango = progress.currentRango;
+  const barColor = RANGO_HEX[currentRango?.id] || '#FFD700';
+
+  return (
+    <div className="w-full max-w-[200px] select-none">
+      {/* Current rank label */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="flex items-center gap-1">
+          <span className="text-sm leading-none">{currentRango?.emoji}</span>
+          <span
+            className={`text-[10px] font-black uppercase tracking-widest ${currentRango?.color || 'text-gray-400'}`}
+          >
+            {currentRango?.nombre}
+          </span>
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden border border-white/5 relative">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${progress.percentage}%` }}
+          transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="h-full rounded-full"
+          style={{
+            background: `linear-gradient(90deg, ${barColor}88, ${barColor})`,
+            boxShadow: `0 0 8px ${barColor}66`,
+          }}
+        />
+      </div>
+
+      {/* Stats text */}
+      <div className="flex items-center justify-between mt-1.5">
+        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+          XP:{' '}
+          <span className="text-white">
+            {progress.current.toLocaleString()}
+            {progress.nextLevelName !== 'MAX' && (
+              <span className="text-gray-600"> / {progress.required.toLocaleString()}</span>
+            )}
+          </span>
+        </span>
+        <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">
+          {progress.nextLevelName !== 'MAX' ? (
+            <>
+              Sig:{' '}
+              <span className="text-gray-400">{progress.nextLevelName}</span>
+            </>
+          ) : (
+            <span className="text-[#FFD700]">MAX</span>
+          )}
+        </span>
+      </div>
+    </div>
+  );
+}

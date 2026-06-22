@@ -1,0 +1,39 @@
+# Dependencias y compilados
+**/node_modules/
+**/dist/
+**/dev-dist/
+**/.gstack/
+.gstack/
+
+# Archivos de entorno y credenciales
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Logs
+**/logs/
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editores e IDEs
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Notas de Obsidian (puedes subir la carpeta docs, pero ignoramos el workspace local)
+**/.obsidian/workspace.json
+**/.obsidian/workspace-mobile.json
+**/.obsidian/backups/
+
+# Archivos de datos / Excel locales (por privacidad de datos sensibles de atletas)
+*.xlsx
+*.csv
