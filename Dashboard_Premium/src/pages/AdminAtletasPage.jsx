@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import AdminAtletas from '../components/AdminAtletas';
-import { fetchTodosLosAtletas } from '../api/sheetsService';
+import { fetchTodosLosAtletas } from '../api/atletasService';
 import { useAuth } from '../AuthContext';
 
 export default function AdminAtletasPage() {

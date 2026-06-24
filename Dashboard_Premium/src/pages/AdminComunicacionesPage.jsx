@@ -1,7 +1,7 @@
 import AdminComunicaciones from './AdminComunicaciones';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../AuthContext';
-import { fetchTodosLosAtletas } from '../api/sheetsService';
+import { fetchTodosLosAtletas } from '../api/atletasService';
 import { useState, useEffect, useCallback } from 'react';
 
 export default function AdminComunicacionesPage() {

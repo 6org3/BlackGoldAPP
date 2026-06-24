@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Target, X, Check, Search, Plus, Save } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
-import { asignarMisionAAtleta } from '../api/sheetsService';
+import { asignarMisionAAtleta } from '../api/misionesService';
 
 export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
   const { user } = useAuth();

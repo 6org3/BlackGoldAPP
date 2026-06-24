@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Moon, Droplets, Loader2, X } from 'lucide-react';
-import { guardarReadinessDiario } from '../api/sheetsService';
+import { guardarReadinessDiario } from '../api/readinessService';
 
 const URINE_COLORS = [
   { value: 1, color: '#FDFBE3', label: 'Excelente' },

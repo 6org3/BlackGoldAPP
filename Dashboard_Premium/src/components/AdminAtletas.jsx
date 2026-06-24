@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
-import { calcularEdad, calcularCategoriaFEB } from '../api/sheetsService';
+import { calcularEdad, calcularCategoriaFEB } from '../api/utilsAtletas';
 import {
   UserPlus, Save, X, ArrowLeft, Pencil, Trash2, Download,
   LayoutGrid, List, Search, Filter, ChevronDown, ChevronUp,
@@ -60,7 +60,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
 
   const emptyForm = {
     cedula: '', nombre: '', correo: '', fecha_nacimiento: '', posicion: 'N/A',
-    categoria: '', nivel_desarrollo: '', genero: 'Masculino',
+    categoria: '', nivel_desarrollo: '', genero: 'Masculino', club: '',
     // Parent fields (optional)
     padre_nombre: '', padre_telefono: '', padre_correo: ''
   };
@@ -131,7 +131,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
   const handleEdit = async (atleta) => {
     const { data: dataUsuario } = await supabase
       .from('usuarios')
-      .select('correo, fecha_nacimiento, genero')
+      .select('correo, fecha_nacimiento, genero, club')
       .eq('cedula', atleta.cedula)
       .single();
     const generoValue = dataUsuario?.genero || 'Masculino';
@@ -145,6 +145,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
       categoria: atleta.categoria || '',
       nivel_desarrollo: atleta.nivel_desarrollo || '',
       genero: generoValue,
+      club: dataUsuario?.club || '',
       padre_nombre: '', padre_telefono: '', padre_correo: ''
     });
     setEditingId(atleta.atleta_id);
@@ -165,9 +166,13 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     try {
       if (editingId) {
         // EDITAR existente
+        const updateData = { nombre: form.nombre, categoria: form.categoria, correo: safeCorreo, fecha_nacimiento: safeFecha, genero: form.genero };
+        if (user?.rol === 'superadmin' && form.club) {
+          updateData.club = form.club;
+        }
         const { error: userErr } = await supabase
           .from('usuarios')
-          .update({ nombre: form.nombre, categoria: form.categoria, correo: safeCorreo, fecha_nacimiento: safeFecha, genero: form.genero })
+          .update(updateData)
           .eq('cedula', form.cedula);
         if (userErr) throw userErr;
 
@@ -201,13 +206,15 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         setSuccess(`\u2705 ${form.nombre} actualizado correctamente.`);
       } else {
         // CREAR nuevo
+        const resolvedClub = user?.rol === 'superadmin' ? (form.club || 'Black Gold') : (user?.club || 'Black Gold');
+        
         const { data: newUser, error: userErr } = await supabase
           .from('usuarios')
           .insert({
             cedula: form.cedula,
             nombre: form.nombre,
             rol: 'atleta',
-            club: 'Black Gold',
+            club: resolvedClub,
             categoria: form.categoria || null,
             correo: safeCorreo,
             fecha_nacimiento: safeFecha,
@@ -255,7 +262,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
                   correo: form.padre_correo || null,
                   telefono: form.padre_telefono.trim(),
                   rol: 'padre',
-                  club: 'Black Gold'
+                  club: resolvedClub
                 })
                 .select()
                 .single();
@@ -456,6 +463,9 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
                 optionLabels={['— Por Asignar —', 'Micro', 'Desarrollo', 'Elite']}
                 onChange={v => handleChange('nivel_desarrollo', v)}
               />
+              {user?.rol === "superadmin" && (
+                <InputField label="Club (Admin)" value={form.club} onChange={v => handleChange("club", v)} placeholder="Ej. Black Gold" />
+              )}
             </div>
 
             {/* Toggle padre (solo crear y si es menor) */}

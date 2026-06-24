@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar';
 import AtletaCard from './components/AtletaCard';
 import AthleteGridCard from './components/AthleteGridCard';
 import MisionesPanel from './components/MisionesPanel';
-import { fetchTodosLosAtletas } from './api/sheetsService';
+import { fetchTodosLosAtletas } from './api/atletasService';
 import { useAuth } from './AuthContext';
 import { Loader2, LogOut, LayoutGrid, ArrowUpDown, X, Search, Menu, Target, ListFilter, Shield, User } from 'lucide-react';
 import MicroCard from './components/MicroCard';
@@ -13,7 +13,7 @@ import AsignadorMisiones from './components/AsignadorMisiones';
 import ReadinessModal from './components/ReadinessModal';
 import EditarPerfilModal from './components/EditarPerfilModal';
 import { useNavigate } from 'react-router-dom';
-import { calcularCategoriaFEB } from './api/sheetsService';
+import { calcularCategoriaFEB } from './api/utilsAtletas';
 
 const FASE_ORDEN = { 'Micro': 0, 'Desarrollo': 1, 'Elite': 2 };
 
@@ -84,7 +84,7 @@ function App() {
     if (user.rol === 'atleta' && user.atleta_id) {
       const horaActual = new Date().getHours();
       if (horaActual >= 6) {
-        import('./api/sheetsService').then(({ fetchReadinessHoy }) => {
+        import('./api/readinessService').then(({ fetchReadinessHoy }) => {
           fetchReadinessHoy(user.atleta_id).then(data => {
             if (!data) {
               setShowReadinessModal(true);

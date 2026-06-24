@@ -79,8 +79,8 @@ async function testAIFlow() {
       console.error(`Error insertando evaluación para ${athlete.nombres}:`, evalError);
     } else {
       console.log(`Evaluación insertada. El Webhook debería dispararse ahora en Supabase.`);
-      console.log(`Esperando 5 segundos para que la IA responda...`);
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      console.log(`Esperando 10 segundos para que la IA responda...`);
+      await new Promise(resolve => setTimeout(resolve, 10000));
       
       // 3. Check the misiones table for the AI generated mission
       const { data: misiones, error: missionError } = await supabase

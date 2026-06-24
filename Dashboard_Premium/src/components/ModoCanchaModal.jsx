@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Star, X, Check, Activity, Target, Flame, Zap as ZapIcon, MessageCircle, Snowflake, Users, User, ArrowRight, ClipboardList, ChevronLeft, Play } from 'lucide-react';
-import { fetchTodosLosAtletas, insertarObservacion, crearSesionEntrenamiento } from '../api/sheetsService';
+import { fetchTodosLosAtletas } from '../api/atletasService';
+import { insertarObservacion } from '../api/observacionesService';
+import { crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 

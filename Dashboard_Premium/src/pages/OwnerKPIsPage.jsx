@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ArrowLeft, Users, TrendingUp, Target, BarChart3, CalendarCheck, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
-import { fetchTodosLosAtletas } from '../api/sheetsService';
+import { fetchTodosLosAtletas } from '../api/atletasService';
 import { supabase } from '../api/supabaseClient';
 import { getSubPilarScores } from '../lib/radarCalc';
 
@@ -62,11 +62,16 @@ export default function OwnerKPIsPage() {
   // Load attendance for last 7 days
   useEffect(() => {
     const loadAsistencia = async () => {
+      if (!atletas.length) {
+        setAsistenciaPct(0);
+        return;
+      }
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const { data, error } = await supabase
         .from('asistencia')
         .select('estado')
+        .in('atleta_id', atletas.map(a => a.id))
         .gte('fecha', sevenDaysAgo.toISOString().split('T')[0]);
 
       if (!error && data && data.length > 0) {
@@ -77,14 +82,19 @@ export default function OwnerKPIsPage() {
       }
     };
     loadAsistencia();
-  }, []);
+  }, [atletas]);
 
   // Load completed missions count
   useEffect(() => {
     const loadMisiones = async () => {
+      if (!atletas.length) {
+        setMisionesCompletadas(0);
+        return;
+      }
       const { count, error } = await supabase
         .from('progreso_misiones')
         .select('*', { count: 'exact', head: true })
+        .in('atleta_id', atletas.map(a => a.id))
         .eq('completada', true);
 
       if (!error) {
@@ -94,7 +104,7 @@ export default function OwnerKPIsPage() {
       }
     };
     loadMisiones();
-  }, []);
+  }, [atletas]);
 
   // Compute aggregate metrics
   const promedioIntegral = useMemo(() => {

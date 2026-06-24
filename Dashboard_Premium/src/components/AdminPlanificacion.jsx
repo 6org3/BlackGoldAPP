@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
-import { fetchTodosLosAtletas, fetchSesionesAtleta, crearSesionEntrenamiento } from '../api/sheetsService';
+import { fetchTodosLosAtletas } from '../api/atletasService';
+import { fetchSesionesAtleta, crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
 import { evaluateSessionRules } from '../lib/trainingRules';
 import { ArrowLeft, Save, FlaskConical, ShieldAlert, AlertTriangle, Info, Activity, Clock, Zap, Dumbbell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

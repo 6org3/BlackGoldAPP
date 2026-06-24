@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MessageCircle, FileText, Calendar, TrendingUp, AlertTriangle, CheckCircle, CreditCard, Activity } from 'lucide-react';
-import { fetchNotasCoach } from '../api/sheetsService';
+import { fetchNotasCoach } from '../api/notasCoachService';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 

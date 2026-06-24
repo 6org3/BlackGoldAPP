@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
-import { fetchTodosLosAtletas, aprobarMision, rechazarMision } from '../api/sheetsService';
+import { fetchTodosLosAtletas } from '../api/atletasService';
+import { aprobarMision, rechazarMision } from '../api/misionesService';
 import { ArrowLeft, Plus, Save, X, Play, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';

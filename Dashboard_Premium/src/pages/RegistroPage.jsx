@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight, User, Phone, Loader2, CheckCircle2 } from 'lucide-react';
-import { registrarDesdeFormularioPublico, calcularEdad } from '../api/sheetsService';
+import { registrarDesdeFormularioPublico } from '../api/registroPublicoService';
+import { calcularEdad } from '../api/utilsAtletas';
 
 export default function RegistroPage() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function RegistroPage() {
     telefono: '',
     fecha_nacimiento: '',
     posicion: 'N/A',
-    club: 'Black Gold',
+    club: '',
     genero: 'Masculino'
   });
 
@@ -32,7 +33,7 @@ export default function RegistroPage() {
   const esMenorEdad = edadAtleta !== null && edadAtleta < 18;
 
   const posiciones = ['N/A', 'Generador', 'Alero Físico', 'Ancla Fuerte', 'Escolta', 'Ala-Pívot'];
-  const clubes = ['Black Gold', 'Club Leones', 'Independiente del Valle']; // Ejemplo de clubes
+  const clubes = ['Black Gold', 'Club Leones', 'Club Montoya', 'Club Federación'];
 
   const handleAtletaChange = (e) => setDatosAtleta({ ...datosAtleta, [e.target.name]: e.target.value });
   const handlePadreChange = (e) => setDatosPadre({ ...datosPadre, [e.target.name]: e.target.value });

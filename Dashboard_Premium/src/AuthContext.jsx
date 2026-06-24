@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { loginUsuario, fetchUsuarioCompleto } from './api/sheetsService';
+import { loginUsuario, fetchUsuarioCompleto } from './api/authService';
 import { supabase } from './api/supabaseClient';
 
 const AuthContext = createContext(null);

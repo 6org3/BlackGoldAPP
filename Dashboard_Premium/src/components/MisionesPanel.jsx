@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fetchMisiones, completarMision, fetchSesionesAtleta } from '../api/sheetsService';
+import { fetchMisiones, completarMision } from '../api/misionesService';
+import { fetchSesionesAtleta } from '../api/sesionesEntrenamientoService';
 import { supabase } from '../api/supabaseClient';
 import VideoPlayer from './VideoPlayer';
 import QuizModal from './QuizModal';
