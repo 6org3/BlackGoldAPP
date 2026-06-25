@@ -23,7 +23,7 @@ export const fetchMisiones = async (atletaId) => {
         id,
         titulo,
         descripcion,
-        tipo,
+        pilar,
         video_url,
         xp_recompensa,
         quiz
@@ -41,7 +41,7 @@ export const fetchMisiones = async (atletaId) => {
     progreso_id: p.id,
     titulo: p.misiones.titulo,
     descripcion: p.misiones.descripcion,
-    tipo: p.misiones.tipo,
+    pilar: p.misiones.pilar,
     videoUrl: p.misiones.video_url,
     xpRecompensa: p.misiones.xp_recompensa,
     quiz: p.misiones.quiz || [],

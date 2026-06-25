@@ -4,6 +4,7 @@ import { supabase } from '../api/supabaseClient';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { aprobarMision, rechazarMision } from '../api/misionesService';
 import { ArrowLeft, Plus, Save, X, Play, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
+import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
@@ -25,7 +26,7 @@ export default function AdminMisiones() {
   });
 
   const emptyForm = {
-    titulo: '', descripcion: '', tipo: 'youtube', video_url: '',
+    titulo: '', descripcion: '', pilar: 'youtube', video_url: '',
     xp_recompensa: 50, categoria_objetivo: 'Sub18',
     quiz: [{ pregunta: '', opciones: ['', '', '', ''], correcta: 0 }],
     asignar_a: [],
@@ -111,7 +112,7 @@ export default function AdminMisiones() {
         .insert({
           titulo: form.titulo,
           descripcion: form.descripcion,
-          tipo: form.tipo,
+          pilar: form.pilar,
           video_url: form.video_url,
           xp_recompensa: parseInt(form.xp_recompensa),
           quiz: form.quiz.filter(q => q.pregunta.trim() !== ''),
@@ -219,10 +220,21 @@ export default function AdminMisiones() {
               <textarea value={form.descripcion} onChange={e => handleChange('descripcion', e.target.value)} rows={2}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50 resize-none" placeholder="Instrucciones para el atleta..." />
             </div>
-            <div>
-              <label className="block text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">URL del Video (YouTube)</label>
-              <input value={form.video_url} onChange={e => handleChange('video_url', e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" placeholder="https://www.youtube.com/watch?v=..." />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">Pilar</label>
+                <select value={form.pilar} onChange={e => handleChange('pilar', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50 appearance-none cursor-pointer">
+                  {PILARES_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value} className="bg-[#121214]">{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">URL del Video (YouTube)</label>
+                <input value={form.video_url} onChange={e => handleChange('video_url', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" placeholder="https://www.youtube.com/watch?v=..." />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -231,7 +243,7 @@ export default function AdminMisiones() {
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
               </div>
               <div>
-                <label className="block text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">Categoría</label>
+                <label className="block text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">Categoría Objetivo</label>
                 <select value={form.categoria_objetivo} onChange={e => handleChange('categoria_objetivo', e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50 appearance-none cursor-pointer">
                   {['Sub12', 'Sub15', 'Sub18', 'Femenino', 'Senior', 'Todos'].map(c => <option key={c} value={c} className="bg-[#121214]">{c}</option>)}
@@ -358,7 +370,7 @@ export default function AdminMisiones() {
               <div>
                 <p className="text-sm font-bold text-white">{mision.titulo}</p>
                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                  +{mision.xp_recompensa} XP · {mision.categoria_objetivo} · {(mision.quiz || []).length} preguntas
+                  +{mision.xp_recompensa} XP · {PILAR_LABELS[mision.pilar] || mision.pilar} · {mision.categoria_objetivo} · {(mision.quiz || []).length} preguntas
                 </p>
               </div>
             </div>

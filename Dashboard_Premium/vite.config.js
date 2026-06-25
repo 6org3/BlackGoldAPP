@@ -12,6 +12,9 @@ export default defineConfig({
       devOptions: {
         enabled: true
       },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MB
+      },
       manifest: {
         name: 'Black Gold Premium',
         short_name: 'Black Gold',

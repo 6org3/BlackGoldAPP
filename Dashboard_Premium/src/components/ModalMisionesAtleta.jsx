@@ -4,6 +4,7 @@ import { Target, X, Check, Search, Plus, Save } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 import { asignarMisionAAtleta } from '../api/misionesService';
+import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
 
 export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
   const { user } = useAuth();
@@ -18,7 +19,7 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
   const [form, setForm] = useState({
     titulo: '',
     descripcion: '',
-    tipo: 'Técnica',
+    pilar: 'youtube',
     video_url: '',
     xp_recompensa: 50,
     categoria_objetivo: 'Todas'
@@ -37,10 +38,10 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
 
     // Fetch assigned missions
     const { data: asignadas, error: asignadasErr } = await supabase
-      .from('misiones_atletas')
+      .from('progreso_misiones')
       .select('mision_id')
       .eq('atleta_id', targetAtletaId);
-      
+
     if (!asignadasErr && asignadas) {
       setMisionesAsignadas(asignadas.map(a => a.mision_id));
     }
@@ -67,8 +68,13 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
       const { data: newMision, error: mErr } = await supabase
         .from('misiones')
         .insert({
-          ...form,
-          quiz: [], // Simplificado por ahora
+          titulo: form.titulo,
+          descripcion: form.descripcion,
+          pilar: form.pilar,
+          video_url: form.video_url,
+          xp_recompensa: parseInt(form.xp_recompensa),
+          categoria_objetivo: form.categoria_objetivo,
+          quiz: [],
           autor_id: user.id
         })
         .select()
@@ -141,7 +147,7 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
                         <div key={m.id} className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between items-center hover:bg-white/10 transition-colors">
                           <div>
                             <h4 className="font-bold text-white text-sm">{m.titulo}</h4>
-                            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{m.tipo} • {m.xp_recompensa} XP</p>
+                            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{PILAR_LABELS[m.pilar] || m.pilar} • {m.xp_recompensa} XP</p>
                           </div>
                           {misionesAsignadas.includes(m.id) ? (
                             <button disabled className="px-4 py-2 bg-gray-800 text-gray-500 font-bold uppercase tracking-widest text-[10px] rounded-lg cursor-not-allowed">
@@ -175,12 +181,11 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
                       <input type="number" required value={form.xp_recompensa} onChange={e => setForm({...form, xp_recompensa: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 outline-none" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tipo</label>
-                      <select value={form.tipo} onChange={e => setForm({...form, tipo: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 outline-none">
-                        <option value="Técnica">Técnica</option>
-                        <option value="Táctica">Táctica</option>
-                        <option value="Nutrición">Nutrición</option>
-                        <option value="Psicología">Psicología</option>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Pilar</label>
+                      <select value={form.pilar} onChange={e => setForm({...form, pilar: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 outline-none">
+                        {PILARES_OPTIONS.map(({ value, label }) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
