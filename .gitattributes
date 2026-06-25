@@ -1,0 +1,45 @@
+# ============================================================
+# .gitattributes — Black Gold
+# Normaliza fin de línea para evitar diffs masivos CRLF<->LF
+# entre Windows/OneDrive y otros entornos.
+# ============================================================
+
+# Por defecto: Git decide qué es texto y lo guarda con LF en el repo.
+* text=auto eol=lf
+
+# Código y configuración (texto, siempre LF en el repo)
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.mjs   text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.scss  text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.sql   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.svg   text eol=lf
+
+# Scripts específicos de plataforma (forzar su fin de línea correcto)
+*.sh    text eol=lf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binarios: nunca tocar / nunca hacer diff de texto
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.xlsx  binary
+*.zip   binary
