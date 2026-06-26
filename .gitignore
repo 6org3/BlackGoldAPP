@@ -37,3 +37,6 @@ lerna-debug.log*
 # Archivos de datos / Excel locales (por privacidad de datos sensibles de atletas)
 *.xlsx
 *.csv
+
+# Artefactos del montaje FUSE / sandbox
+**/.fuse_hidden*

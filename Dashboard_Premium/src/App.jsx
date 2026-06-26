@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import AtletaCard from './components/AtletaCard';
 import AthleteGridCard from './components/AthleteGridCard';
 import MisionesPanel from './components/MisionesPanel';
+import AthleteLayout from './components/AthleteLayout';
 import { fetchTodosLosAtletas } from './api/atletasService';
 import { useAuth } from './AuthContext';
 import { Loader2, LogOut, LayoutGrid, ArrowUpDown, X, Search, Menu, Target, ListFilter, Shield, User } from 'lucide-react';
@@ -145,12 +146,29 @@ function App() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
+  // Vista exclusiva para atletas — layout propio con sidebar + tabs
+  if (!loading && user.rol === 'atleta') {
+    const atleta = atletasOrdenados[0] || null;
+    return (
+      <>
+        <AthleteLayout atleta={atleta} todosLosAtletas={atletas} />
+        {showReadinessModal && (
+          <ReadinessModal
+            atletaId={user.atleta_id}
+            onClose={() => setShowReadinessModal(false)}
+            onComplete={() => console.log('Readiness guardado')}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-[#09090b] overflow-hidden text-white selection:bg-[#FFD700] selection:text-black">
       {user.rol !== 'atleta' && (
-        <Sidebar 
-          filtros={filtros} 
-          onFiltroChange={handleFiltroChange} 
+        <Sidebar
+          filtros={filtros}
+          onFiltroChange={handleFiltroChange}
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
@@ -299,40 +317,25 @@ function App() {
         ) : (
           <>
             <div className="mb-12 relative z-10">
-              {user.rol === 'atleta' ? (
-                <div className="max-w-xl mx-auto">
-                  {atletasOrdenados.map((atleta, index) => (
-                    <AtletaCard key={atleta.id} atleta={atleta} index={index} todosLosAtletas={atletas} />
-                  ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {atletasPaginados.map(atleta => (
+                  <AthleteGridCard key={atleta.id} atleta={atleta} onClick={() => setSelectedAtleta(atleta)} />
+                ))}
+              </div>
+              {currentHasMore && (
+                <div className="mt-8 flex justify-center">
+                  <button
+                    onClick={loadMore}
+                    className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[#FFD700]/10 hover:border-[#FFD700]/30 hover:text-[#FFD700] text-gray-400 font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                  >
+                    Cargar Más
+                  </button>
                 </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {atletasPaginados.map(atleta => (
-                      <AthleteGridCard key={atleta.id} atleta={atleta} onClick={() => setSelectedAtleta(atleta)} />
-                    ))}
-                  </div>
-                  {currentHasMore && (
-                    <div className="mt-8 flex justify-center">
-                      <button
-                        onClick={loadMore}
-                        className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-[#FFD700]/10 hover:border-[#FFD700]/30 hover:text-[#FFD700] text-gray-400 font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                      >
-                        Cargar Más
-                      </button>
-                    </div>
-                  )}
-                </>
               )}
             </div>
             {atletasFiltrados.length === 0 && (
               <div className="text-center py-20 relative z-10">
                 <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">No hay atletas con esos filtros</p>
-              </div>
-            )}
-            {user.rol === 'atleta' && (
-              <div className="max-w-xl mx-auto">
-                <MisionesPanel atletaId={user.id} />
               </div>
             )}
           </>

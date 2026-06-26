@@ -8,8 +8,6 @@ import {
   Shield, Eye, Dumbbell, Users, AlertCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import ScoutingReportTemplate from './ScoutingReportTemplate';
 import AntropometriaModal from './AntropometriaModal';
 
@@ -313,6 +311,10 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     setTimeout(async () => {
       if (!reportRef.current) return;
       try {
+        const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+          import('html2canvas'),
+          import('jspdf'),
+        ]);
         const canvas = await html2canvas(reportRef.current, {
           scale: 2, useCORS: true, backgroundColor: '#09090b',
         });

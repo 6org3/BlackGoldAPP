@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchMisiones, completarMision } from '../api/misionesService';
 import { fetchSesionesAtleta } from '../api/sesionesEntrenamientoService';
 import { supabase } from '../api/supabaseClient';
 import VideoPlayer from './VideoPlayer';
 import QuizModal from './QuizModal';
+import LevelUpAnimation from './LevelUpAnimation';
 import { Target, CheckCircle2, Play, Clock, XCircle, ChevronDown, ChevronUp, Sparkles, Brain } from 'lucide-react';
 import { PILAR_LABELS } from '../constants/pilares';
 import { evaluarDeficits } from '../lib/didacticEngine';
@@ -93,6 +94,61 @@ export default function MisionesPanel({ atletaId }) {
   const [atletaData, setAtletaData] = useState(null);
   const [observacionHoy, setObservacionHoy] = useState(null);
   const [isRpeLocked, setIsRpeLocked] = useState(false);
+  const [levelUpRango, setLevelUpRango] = useState(null);
+  const lastXPRef = useRef(null);
+
+  // ── Realtime: detectar subida de XP / level-up ──
+  useEffect(() => {
+    let channel;
+
+    const subscribe = async () => {
+      const { data: atletaRow } = await supabase
+        .from('atletas')
+        .select('id')
+        .eq('usuario_id', atletaId)
+        .single();
+
+      if (!atletaRow) return;
+
+      channel = supabase
+        .channel(`xp-watch-${atletaRow.id}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'atletas',
+          filter: `id=eq.${atletaRow.id}`,
+        }, (payload) => {
+          const newXP = payload.new?.xp_total ?? 0;
+          const oldXP = lastXPRef.current ?? 0;
+
+          if (newXP > oldXP) {
+            const oldRango = getXPProgress(oldXP).currentRango;
+            const newRango = getXPProgress(newXP).currentRango;
+
+            if (newRango.id !== oldRango.id) {
+              setLevelUpRango(newRango);
+            }
+
+            // Actualizar XP local + recargar misiones (pueden haber pasado a 'aprobada')
+            setAtletaData(prev => prev ? { ...prev, xp_total: newXP } : prev);
+            fetchMisiones(atletaId).then(setMisiones);
+          }
+
+          lastXPRef.current = newXP;
+        })
+        .subscribe();
+    };
+
+    subscribe();
+    return () => { if (channel) supabase.removeChannel(channel); };
+  }, [atletaId]);
+
+  // Inicializar ref cuando carguen los datos
+  useEffect(() => {
+    if (atletaData && lastXPRef.current === null) {
+      lastXPRef.current = atletaData.xp_total || 0;
+    }
+  }, [atletaData]);
 
   // ── Carga datos del atleta ──────────────
   useEffect(() => {
@@ -501,6 +557,14 @@ export default function MisionesPanel({ atletaId }) {
           xpRecompensa={showQuiz.xpRecompensa}
           onPass={() => handleQuizPass(showQuiz.id)}
           onClose={() => setShowQuiz(null)}
+        />
+      )}
+
+      {/* ── Level Up Animation ───────────── */}
+      {levelUpRango && (
+        <LevelUpAnimation
+          rango={levelUpRango}
+          onComplete={() => setLevelUpRango(null)}
         />
       )}
     </div>

@@ -129,6 +129,7 @@ export default function AdminMisiones() {
         const assignments = form.asignar_a.map(atletaId => ({
           atleta_id: atletaId,
           mision_id: newMision.id,
+          estado: 'pendiente',
           completada: false,
         }));
 
