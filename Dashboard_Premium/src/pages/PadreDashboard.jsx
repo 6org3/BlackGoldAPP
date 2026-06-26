@@ -3,14 +3,13 @@ import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
-import { LogOut, Bell, FileText, CheckCircle, ShieldAlert, Sparkles, User, Calendar, MessageSquare, TrendingUp, Target, ArrowRight, Brain } from 'lucide-react';
+import { LogOut, Bell, FileText, CheckCircle, ShieldAlert, Sparkles, User, Calendar, CalendarDays, MessageSquare, TrendingUp, Target, ArrowRight, Brain, Check, X, HelpCircle, MapPin, Clock } from 'lucide-react';
 import { fetchPadreData } from '../api/padreService';
+import { fetchConvocatoriasAtleta, responderRSVP, TIPO_EVENTO_LABEL } from '../api/eventosService';
 import { fetchNotasCoach } from '../api/notasCoachService';
 import { fetchMisiones } from '../api/misionesService';
 import { NIVELES_BAREMO } from '../lib/baremosEngine';
 import { getXPProgress } from '../lib/xpProgress';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import ScoutingReportTemplate from '../components/ScoutingReportTemplate';
 import { Download } from 'lucide-react';
 import { evaluarDeficits } from '../lib/didacticEngine';
@@ -26,6 +25,7 @@ export default function PadreDashboard() {
   const [selectedHijoIndex, setSelectedHijoIndex] = useState(0);
   const [notas, setNotas] = useState([]);
   const [misiones, setMisiones] = useState([]);
+  const [convocatorias, setConvocatorias] = useState([]);
   const reportRef = React.useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -34,6 +34,10 @@ export default function PadreDashboard() {
     if (!reportRef.current || !hijoActual) return;
     setIsExporting(true);
     try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
       const canvas = await html2canvas(reportRef.current, {
         scale: 2,
         useCORS: true,
@@ -76,6 +80,8 @@ export default function PadreDashboard() {
         setNotas(n);
         const m = await fetchMisiones(hijoActual.id);
         setMisiones(m);
+        const conv = await fetchConvocatoriasAtleta([hijoActual.atleta_id]);
+        setConvocatorias(conv);
       };
       loadHijoData();
     }
@@ -84,6 +90,17 @@ export default function PadreDashboard() {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleRSVP = async (convocadoId, estado) => {
+    // Optimista
+    setConvocatorias((prev) => prev.map((c) => c.id === convocadoId ? { ...c, estado_rsvp: estado } : c));
+    try {
+      await responderRSVP(convocadoId, estado, user.id);
+    } catch (e) {
+      console.error('Error al confirmar asistencia:', e);
+      alert('No se pudo registrar tu respuesta. Intenta de nuevo.');
+    }
   };
 
   if (loading) {
@@ -377,7 +394,58 @@ export default function PadreDashboard() {
 
           {/* Columna Centro/Derecha: Historial y Anuncios */}
           <div className="lg:col-span-2 space-y-6">
-            
+
+            {/* Convocatorias a eventos */}
+            {convocatorias.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-6 rounded-2xl border border-blue-500/30 bg-blue-500/5">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-blue-300 mb-4 flex items-center"><CalendarDays className="mr-2 w-4 h-4" /> Convocatorias</h3>
+                <div className="space-y-4">
+                  {convocatorias.map((c) => {
+                    const ev = c.eventos || {};
+                    const fecha = ev.fecha_evento ? new Date(ev.fecha_evento) : null;
+                    const opciones = [
+                      { val: 'asiste', label: 'Confirmar', icon: <Check size={14} />, on: 'bg-emerald-500 text-black border-emerald-500', off: 'text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10' },
+                      { val: 'duda', label: 'Tal vez', icon: <HelpCircle size={14} />, on: 'bg-amber-500 text-black border-amber-500', off: 'text-amber-400 border-amber-500/30 hover:bg-amber-500/10' },
+                      { val: 'no_asiste', label: 'No puedo', icon: <X size={14} />, on: 'bg-red-500 text-white border-red-500', off: 'text-red-400 border-red-500/30 hover:bg-red-500/10' },
+                    ];
+                    return (
+                      <div key={c.id} className="bg-black/40 p-4 rounded-xl border border-white/10">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700]">
+                            {TIPO_EVENTO_LABEL[ev.tipo] || ev.tipo}
+                          </span>
+                          {fecha && (
+                            <span className="text-[9px] text-gray-400 flex items-center gap-1">
+                              <Clock size={10} />{fecha.toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-white">{ev.titulo}{ev.rival ? ` vs ${ev.rival}` : ''}</h4>
+                        {ev.sede && <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5"><MapPin size={10} />{ev.sede}</p>}
+                        {ev.descripcion && <p className="text-xs text-gray-400 mt-2">{ev.descripcion}</p>}
+
+                        <div className="grid grid-cols-3 gap-2 mt-3">
+                          {opciones.map((o) => (
+                            <button key={o.val} onClick={() => handleRSVP(c.id, o.val)}
+                              className={`flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all ${
+                                c.estado_rsvp === o.val ? o.on : `bg-transparent ${o.off}`
+                              }`}>
+                              {o.icon}{o.label}
+                            </button>
+                          ))}
+                        </div>
+                        {c.estado_rsvp !== 'pendiente' && (
+                          <p className="text-[9px] text-gray-500 text-center mt-2 uppercase tracking-widest">
+                            Tu respuesta: {c.estado_rsvp === 'asiste' ? 'Asiste' : c.estado_rsvp === 'duda' ? 'Tal vez' : 'No asiste'}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
             {/* Anuncios Globales */}
             {data.anuncios.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6 rounded-2xl border border-[#FFD700]/30 bg-[#FFD700]/5">

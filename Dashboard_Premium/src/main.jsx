@@ -1,24 +1,34 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import { AuthProvider, useAuth } from './AuthContext'
 import './index.css'
-import App from './App.jsx'
 import Login from './components/Login.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
-import AdminAtletasPage from './pages/AdminAtletasPage.jsx'
-import AdminMisionesPage from './pages/AdminMisionesPage.jsx'
-import AdminPagosPage from './pages/AdminPagosPage.jsx'
-import AdminComunicacionesPage from './pages/AdminComunicacionesPage.jsx'
-import PadreDashboard from './pages/PadreDashboard.jsx'
-import RegistroPage from './pages/RegistroPage.jsx'
-import OwnerKPIsPage from './pages/OwnerKPIsPage.jsx'
+
+// Carga diferida: cada vista se descarga solo cuando se navega a ella.
+const App = lazy(() => import('./App.jsx'))
+const AdminAtletasPage = lazy(() => import('./pages/AdminAtletasPage.jsx'))
+const AdminMisionesPage = lazy(() => import('./pages/AdminMisionesPage.jsx'))
+const AdminPagosPage = lazy(() => import('./pages/AdminPagosPage.jsx'))
+const AdminComunicacionesPage = lazy(() => import('./pages/AdminComunicacionesPage.jsx'))
+const AdminEventosPage = lazy(() => import('./pages/AdminEventosPage.jsx'))
+const PadreDashboard = lazy(() => import('./pages/PadreDashboard.jsx'))
+const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
+const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-zinc-950">
+    <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+  </div>
+)
 
 const PrivateRoute = ({ children, roles }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
-  
+
   if (roles && !roles.includes(user.rol)) {
     // Redirigir al dashboard correspondiente
     if (user.rol === 'padre') return <Navigate to="/padre" />;
@@ -32,6 +42,7 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <AuthProvider>
       <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<RegistroPage />} />
@@ -84,6 +95,14 @@ createRoot(document.getElementById('root')).render(
             }
           />
           <Route
+            path="/admin/eventos"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
+                <AdminEventosPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/admin/kpis"
             element={
               <PrivateRoute roles={['superadmin', 'owner']}>
@@ -93,6 +112,7 @@ createRoot(document.getElementById('root')).render(
           />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
       </AuthProvider>
     </ErrorBoundary>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Users, ShieldAlert, Cross, Sparkles, Plus, Filter, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3 } from 'lucide-react';
+import { Activity, Users, ShieldAlert, Cross, Sparkles, Plus, Filter, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaModal from './ModoCanchaModal';
@@ -131,6 +131,14 @@ export default function Sidebar({ filtros, onFiltroChange, isMobileMenuOpen, set
             label="Comunicaciones"
             active={location.pathname === '/admin/comunicaciones'}
             onClick={() => navigate('/admin/comunicaciones')}
+          />
+        )}
+        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+          <NavItem
+            icon={<CalendarDays size={18} />}
+            label="Eventos"
+            active={location.pathname === '/admin/eventos'}
+            onClick={() => navigate('/admin/eventos')}
           />
         )}
         {(user.rol === 'owner' || user.rol === 'superadmin') && (

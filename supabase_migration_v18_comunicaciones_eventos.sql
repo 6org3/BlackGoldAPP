@@ -283,31 +283,30 @@ $$;
 
 
 -- ------------------------------------------------------------
--- 9. RLS (Row Level Security) — política base
+-- 9. RLS (Row Level Security)
 -- ------------------------------------------------------------
--- NOTA: ajustar a la convención de auth del proyecto. Se asume que
--- el rol del usuario autenticado está disponible. Aquí se habilita
--- RLS y se dejan políticas permisivas de lectura para destinatarios;
--- afinar escritura a coach/owner/superadmin antes de producción.
+-- IMPORTANTE: esta app usa autenticación PROPIA con la anon key de
+-- Supabase (login por correo/cédula/teléfono contra `usuarios`), NO
+-- Supabase Auth. Por lo tanto `auth.uid()` es NULL y cualquier política
+-- basada en él bloquearía a toda la app. Igual que el resto del proyecto,
+-- las políticas son permisivas y la seguridad se aplica por ROL en la UI.
 
 ALTER TABLE eventos              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evento_convocados    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evento_recordatorios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE atleta_grupo         ENABLE ROW LEVEL SECURITY;
 
--- Lectura de eventos publicados para usuarios autenticados
-DROP POLICY IF EXISTS eventos_read ON eventos;
-CREATE POLICY eventos_read ON eventos
-  FOR SELECT USING (estado <> 'borrador' OR creado_por = auth.uid());
+DROP POLICY IF EXISTS eventos_all ON eventos;
+CREATE POLICY eventos_all ON eventos FOR ALL USING (true) WITH CHECK (true);
 
--- Un convocado puede ver y actualizar SOLO su propio RSVP
-DROP POLICY IF EXISTS convocados_self ON evento_convocados;
-CREATE POLICY convocados_self ON evento_convocados
-  FOR ALL USING (
-    rsvp_por = auth.uid()
-    OR atleta_id IN (SELECT id FROM atletas WHERE usuario_id = auth.uid())
-    OR atleta_id IN (SELECT atleta_id FROM padres_atletas WHERE padre_id = auth.uid())
-  );
+DROP POLICY IF EXISTS convocados_all ON evento_convocados;
+CREATE POLICY convocados_all ON evento_convocados FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS recordatorios_all ON evento_recordatorios;
+CREATE POLICY recordatorios_all ON evento_recordatorios FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS atleta_grupo_all ON atleta_grupo;
+CREATE POLICY atleta_grupo_all ON atleta_grupo FOR ALL USING (true) WITH CHECK (true);
 
 
 -- ------------------------------------------------------------
