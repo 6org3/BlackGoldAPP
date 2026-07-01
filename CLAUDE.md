@@ -9,7 +9,7 @@ Black Gold — un ecosistema de club de baloncesto para el club en Sucumbíos (E
 - `Dashboard_Premium/` — la app principal. React + Vite (PWA), backend en Supabase. Aquí ocurre el desarrollo activo.
 - `blackgold-mcp/` — servidor MCP del proyecto (proceso Node por stdio que se conecta a Supabase y expone herramientas analíticas como `analyze_athlete_pillars`). Objetivo: evolucionar hacia una **capa de analítica compartida** (extraer las reglas de análisis —pilares, baremos, etc.— a un módulo común que usen tanto la web app como el MCP, sin duplicar lógica).
 - `docs/` — notas de metodología y estrategia del club (entrenamiento, táctica, mentalidad, corporativo, comunicaciones). En español.
-- `supabase_migration_v*.sql` (raíz) — migraciones SQL ordenadas, aplicadas a mano en el SQL Editor de Supabase.
+- `Dashboard_Premium/supabase/migrations/` — migraciones SQL versionadas con la convención de Supabase CLI (`<timestamp>_descripcion.sql`), consolidadas ahí desde julio 2026 (antes vivían sueltas en la raíz del repo y de `Dashboard_Premium/`).
 
 ## Stack técnico (Dashboard_Premium)
 
@@ -24,7 +24,8 @@ Black Gold — un ecosistema de club de baloncesto para el club en Sucumbíos (E
 - El texto de la UI y el lenguaje de dominio están en **español** (categoría, atleta, grupo, convocatoria). Mantenerlo así para los textos de cara al producto.
 - La categoría del atleta se deriva de la fecha de nacimiento con `calcularCategoriaFEB()` en `src/api/utilsAtletas.js` (Premini Sub-9 … Mayores). Existe un gemelo en SQL, `calcular_categoria_feb()` (migración v18) — mantener ambos sincronizados si cambian los rangos.
 - Roles: `superadmin`, `owner`, `coach`, `atleta`, `padre`.
-- Las migraciones de base de datos están numeradas y son aditivas (`ALTER TABLE ... IF NOT EXISTS`). Agregar un nuevo `supabase_migration_vN_*.sql` en lugar de editar uno ya aplicado. Última: v18 (comunicaciones segmentadas + eventos deportivos).
+- Las migraciones de base de datos son aditivas (`ALTER TABLE ... IF NOT EXISTS`). Agregar un nuevo archivo en `Dashboard_Premium/supabase/migrations/` con timestamp nuevo (`npx supabase migration new <descripcion>` genera el nombre correcto) en lugar de editar uno ya aplicado. Última: v19 (auth_user_id + resolver_email_login, ver `docs/plan_remediacion_seguridad.md` Fase 1). Aplicar con `npx supabase db push` (proyecto ya vinculado, ver `supabase/.temp/project-ref`) en vez de pegar el SQL a mano en el editor web — así el historial de migraciones aplicadas queda registrado server-side.
+- El esquema real de las tablas base (`usuarios`, `atletas`, `evaluaciones_pruebas`, `padres_atletas`, `asistencia`, `pagos`, `misiones`, `recompensas`…) todavía no tiene una migración baseline versionada — solo existen como el acumulado de ALTERs aplicados a mano a lo largo del tiempo. Falta ejecutar `npx supabase db dump --schema public -f supabase/migrations/00000000000000_baseline.sql` (requiere `supabase login` del usuario) para capturarlo. Al menos una columna conocida (`misiones.autor_id`) se aplicó a mano y no quedó en ningún archivo del repo — ver `20260622000007_migracion_fase1_stub_autor_id.sql`.
 
 ## Secretos
 
@@ -39,3 +40,5 @@ Black Gold — un ecosistema de club de baloncesto para el club en Sucumbíos (E
 ## Documentos de diseño
 
 - `docs/comunicaciones_eventos.md` — diseño de las comunicaciones segmentadas y el módulo de eventos deportivos (convocatorias/RSVP, recordatorios, resultados), más la capacidad futura de campeonatos + planilla de juego digital. Acompaña a la migración v18.
+- `docs/evaluacion_ingenieria_producto.md` — evaluación de ingeniería del producto (2026-07-01): arquitectura, seguridad, calidad de código y roadmap P0/P1/P2.
+- `docs/plan_remediacion_seguridad.md` — plan de remediación fase por fase derivado de la evaluación anterior; es la fuente de verdad sobre qué fase de seguridad/deuda técnica está en curso o pendiente.

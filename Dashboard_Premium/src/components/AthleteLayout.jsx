@@ -128,6 +128,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
           <button
             onClick={handleLogout}
             className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-500/5 transition-all border border-transparent text-left"
+            data-testid="btn-logout"
           >
             <LogOut size={16} className="text-gray-600" />
             <span className="text-[11px] font-black uppercase tracking-widest">Cerrar Sesión</span>

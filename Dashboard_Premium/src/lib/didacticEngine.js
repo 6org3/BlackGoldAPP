@@ -7,16 +7,23 @@
 // =====================================================
 
 import { getSubPilarScores } from './radarCalc';
+import { categoriaABucketBaremo } from './baremosEngine';
 
 /**
  * Mapea la categoría del atleta a su fase biológica de desarrollo.
  * Esto determina el enfoque pedagógico predominante.
  *
- * @param {string} categoria - Categoría del atleta (Sub12, Sub15, Sub18, Senior, Femenino)
+ * `categoria` llega como categoría FEB (ej. "Menores (Sub-14)"), no como bucket de
+ * baremos, así que primero se traduce con `categoriaABucketBaremo` (ver baremosEngine.js
+ * para el porqué: antes este switch nunca coincidía con una categoría FEB real y todo
+ * caía al default 'TECNICA').
+ *
+ * @param {string} categoria - Categoría FEB del atleta (ej. "Menores (Sub-14)")
  * @returns {string} Fase biológica: PSICOMOTRIZ, TECNICA, o BIOMECANICA
  */
 export function getFaseBiologica(categoria) {
-  switch (categoria) {
+  const bucket = categoriaABucketBaremo(categoria) || categoria;
+  switch (bucket) {
     case 'Sub12':
       return 'PSICOMOTRIZ';
     case 'Sub15':

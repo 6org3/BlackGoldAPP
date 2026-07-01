@@ -218,10 +218,11 @@ function App() {
                 <User size={16} className="text-gray-400 group-hover:text-white transition-colors" />
                 <span className="hidden sm:inline text-xs font-bold text-gray-400 group-hover:text-white uppercase tracking-widest">Editar Perfil</span>
               </button>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="group p-3 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-all duration-300"
                 title="Cerrar sesión"
+                data-testid="btn-logout"
               >
                 <LogOut size={16} className="text-gray-400 group-hover:text-red-400 transition-colors" />
               </button>

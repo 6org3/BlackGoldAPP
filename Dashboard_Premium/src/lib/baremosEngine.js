@@ -339,6 +339,38 @@ const TIRO_WEIGHTS = {
 };
 
 // ===================================================================
+// MAPEO CATEGORÍA FEB → BUCKET DE BAREMOS
+// ===================================================================
+// `calcularCategoriaFEB()` (src/api/utilsAtletas.js) devuelve 6 categorías con
+// guión ("Premini (Sub-9)", "Menores (Sub-14)", "Juvenil (Sub-18)"...), pero los
+// BAREMOS de este archivo solo tienen 4 buckets de edad: Sub12, Sub15, Sub18, Senior.
+// Este mapa hace explícita esa correspondencia. Antes de existir, `normalizarValor`
+// buscaba `categoria.includes('Sub12'|'Sub15'|'Sub18'|'Senior')`, pero como ninguna
+// categoría FEB real contiene esas subcadenas exactas (llevan guión: "Sub-9", "Sub-14"),
+// la búsqueda nunca coincidía y TODOS los atletas caían al fallback fijo 'Sub15' sin
+// importar su edad real.
+//
+// Mapeo por "techo" (ceiling): se usa el bucket de baremos más chico cuyo número sea
+// mayor o igual a la edad máxima de la categoría FEB.
+// PENDIENTE: validar esta correspondencia con el cuerpo técnico del club.
+const CATEGORIA_FEB_A_BUCKET_BAREMO = {
+  'Premini (Sub-9)': 'Sub12',
+  'Mini (Sub-11)': 'Sub12',
+  'Menores (Sub-14)': 'Sub15',
+  'Prejuvenil (Sub-16)': 'Sub18',
+  'Juvenil (Sub-18)': 'Sub18',
+  'Mayores': 'Senior',
+};
+
+/**
+ * Traduce una categoría FEB (calcularCategoriaFEB) al bucket de edad que usan los
+ * BAREMOS (Sub12/Sub15/Sub18/Senior). Devuelve null si no hay correspondencia conocida.
+ */
+export function categoriaABucketBaremo(categoriaFEB) {
+  return CATEGORIA_FEB_A_BUCKET_BAREMO[categoriaFEB] || null;
+}
+
+// ===================================================================
 // FUNCIONES PRINCIPALES
 // ===================================================================
 
@@ -376,7 +408,9 @@ export function normalizarValor(baremoObj, valorCrudo, categoria, genero = 'Masc
 
   // Buscar género y categoría exacta o fallback
   const thresholdsByGender = baremo.thresholds[genero] || baremo.thresholds['Masculino'] || baremo.thresholds;
-  const catKey = Object.keys(thresholdsByGender).find(k => categoria.includes(k)) || 'Sub15';
+  const catKey = categoriaABucketBaremo(categoria)
+    || Object.keys(thresholdsByGender).find(k => categoria.includes(k))
+    || 'Sub15';
   
   // Soporte para pruebas antiguas que no tienen géneros anidados, o pruebas nuevas
   const thresholds = thresholdsByGender[catKey] || baremo.thresholds[catKey];

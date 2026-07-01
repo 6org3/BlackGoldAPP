@@ -162,7 +162,7 @@ export default function PadreDashboard() {
           <button onClick={() => setShowEditProfile(true)} className="flex items-center space-x-2 text-xs text-gray-400 hover:text-white transition-colors uppercase font-bold tracking-widest bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg border border-white/10">
             <User size={14} /><span className="hidden sm:inline">Editar Perfil</span>
           </button>
-          <button onClick={handleLogout} className="flex items-center space-x-2 text-xs text-red-400 hover:text-red-300 transition-colors uppercase font-bold tracking-widest bg-red-400/10 px-4 py-2 rounded-lg border border-red-400/20">
+          <button onClick={handleLogout} className="flex items-center space-x-2 text-xs text-red-400 hover:text-red-300 transition-colors uppercase font-bold tracking-widest bg-red-400/10 px-4 py-2 rounded-lg border border-red-400/20" data-testid="btn-logout">
             <LogOut size={14} /><span className="hidden sm:inline">Desconectar</span>
           </button>
         </div>

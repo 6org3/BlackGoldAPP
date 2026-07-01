@@ -2,7 +2,7 @@
 // Supabase Auth (auth.users), preservando la contraseña que el usuario
 // ya conoce hoy, y vincula usuarios.auth_user_id al nuevo auth.users.id.
 //
-// Requiere la migración v19 (supabase_migration_v19_auth.sql) ya aplicada
+// Requiere la migración v19 (supabase/migrations/20260701121100_v19_auth.sql) ya aplicada
 // y una SUPABASE_SERVICE_ROLE_KEY válida agregada a mano en
 // Dashboard_Premium/.env.local (el mismo archivo que usa `npm run dev`,
 // ya gitignored) — esta key nunca debe pegarse en un chat ni commitearse.

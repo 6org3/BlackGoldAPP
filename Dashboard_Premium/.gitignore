@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 .gstack/
 .env
+
+# Cypress: credenciales locales y artefactos de ejecución
+cypress.env.json
+cypress/screenshots
+cypress/videos
