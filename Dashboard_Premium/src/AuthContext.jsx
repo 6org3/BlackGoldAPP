@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { loginUsuario, fetchUsuarioCompleto } from './api/authService';
+import { loginUsuario, fetchUsuarioPorAuthId } from './api/authService';
 import { supabase } from './api/supabaseClient';
 
 const AuthContext = createContext(null);
@@ -8,55 +8,55 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Intentar cargar la sesión guardada al iniciar la app y revalidar con BD
+  // La sesión real (JWT + refresh token) la persiste supabase-js por su
+  // cuenta; acá solo reaccionamos a sus cambios y resolvemos el perfil
+  // de `usuarios` asociado a la sesión de Supabase Auth vigente.
   useEffect(() => {
-    const initSession = async () => {
-      const savedUserStr = localStorage.getItem('bg_session');
-      if (savedUserStr) {
-        const savedUser = JSON.parse(savedUserStr);
-        setUser(savedUser); // Optimistic UI
-        
-        // Revalidar en background
-        try {
-          const { data: usuarioBasico } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('id', savedUser.id)
-            .single();
-            
-          if (usuarioBasico) {
-            const usuarioFresco = await fetchUsuarioCompleto(usuarioBasico);
-            setUser(usuarioFresco);
-            localStorage.setItem('bg_session', JSON.stringify(usuarioFresco));
-          } else {
-             // Si el usuario fue borrado de la BD
-             setUser(null);
-             localStorage.removeItem('bg_session');
-          }
-        } catch (error) {
-          console.error("Error revalidando sesión:", error);
-        }
+    let activo = true;
+
+    const cargarPerfil = async (session) => {
+      if (!session) {
+        if (activo) setUser(null);
+        return;
       }
-      setLoading(false);
+      try {
+        const usuarioFresco = await fetchUsuarioPorAuthId(session.user.id);
+        if (activo) setUser(usuarioFresco);
+      } catch (error) {
+        console.error('Error cargando perfil de usuario:', error);
+        if (activo) setUser(null);
+      }
     };
 
-    initSession();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      cargarPerfil(session).finally(() => {
+        if (activo) setLoading(false);
+      });
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      cargarPerfil(session);
+    });
+
+    return () => {
+      activo = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (correo, password) => {
+  const login = async (identificador, password) => {
     try {
-      const userData = await loginUsuario(correo, password);
+      const userData = await loginUsuario(identificador, password);
       setUser(userData);
-      localStorage.setItem('bg_session', JSON.stringify(userData));
       return { success: true, user: userData };
     } catch (error) {
       return { success: false, error: error.message };
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('bg_session');
   };
 
   return (

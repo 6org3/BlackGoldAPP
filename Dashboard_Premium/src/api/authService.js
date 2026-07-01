@@ -16,47 +16,46 @@ export const calculateRank = (atleta) => {
 };
 
 // ============================
-// AUTENTICACIÓN (Supabase)
+// AUTENTICACIÓN (Supabase Auth)
 // ============================
 
 export const loginUsuario = async (identificador, password) => {
-  // Buscar usuario por correo, teléfono o cédula
-  // Es importante sanitizar los espacios y usar comillas dobles en Supabase .or()
   const cleanId = identificador.trim();
-  const { data: usuario, error } = await supabase
-    .from('usuarios')
-    .select('*')
-    .or(`correo.eq."${cleanId}",telefono.eq."${cleanId}",cedula.eq."${cleanId}"`)
-    .maybeSingle();
 
-  if (error || !usuario) {
+  // El login histórico acepta correo, teléfono o cédula; Supabase Auth
+  // solo entiende email, así que primero traducimos el identificador
+  // al email real (o sintético) vinculado a esa cuenta.
+  const { data: email, error: errResolver } = await supabase
+    .rpc('resolver_email_login', { p_identificador: cleanId });
+
+  if (errResolver || !email) {
     throw new Error('Credenciales (correo, teléfono o cédula) no encontradas en el sistema.');
   }
 
-  // Validar contraseña según el rol
-  let isValid = false;
-  if (usuario.rol === 'atleta') {
-    isValid = (password === usuario.cedula);
-  } else if (usuario.rol === 'padre') {
-    // La contraseña del padre debe coincidir con la cédula de al menos uno de sus hijos
-    const { data: vinculos, error: errVinculos } = await supabase
-      .from('padres_atletas')
-      .select('atletas!inner(usuarios!atletas_usuario_id_fkey!inner(cedula))')
-      .eq('padre_id', usuario.id);
+  const { data: authData, error: errAuth } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (!errVinculos && vinculos && vinculos.length > 0) {
-      isValid = vinculos.some(v => v.atletas.usuarios.cedula === password);
-    }
-  } else {
-    // Staff: coach, owner, superadmin
-    isValid = (password === usuario.contrasena_hash);
-  }
-
-  if (!isValid) {
+  if (errAuth || !authData.user) {
     throw new Error('Contraseña incorrecta.');
   }
 
-  return fetchUsuarioCompleto(usuario);
+  return fetchUsuarioPorAuthId(authData.user.id);
+};
+
+export const fetchUsuarioPorAuthId = async (authUserId) => {
+  const { data: usuarioBase, error } = await supabase
+    .from('usuarios')
+    .select('*')
+    .eq('auth_user_id', authUserId)
+    .single();
+
+  if (error || !usuarioBase) {
+    throw new Error('No se encontró un perfil de usuario vinculado a esta cuenta.');
+  }
+
+  return fetchUsuarioCompleto(usuarioBase);
 };
 
 export const fetchUsuarioCompleto = async (usuarioBase) => {

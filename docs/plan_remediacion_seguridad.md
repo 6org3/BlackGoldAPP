@@ -58,16 +58,17 @@ Puedo ejecutarla directamente, es local y reversible por git.
 3. Actualizar `CLAUDE.md:35` para reflejar que el repo ya no está en OneDrive.
 4. **Acción del usuario (fuera de mi alcance):** rotar la anon key en el dashboard de Supabase, ya que estuvo expuesta en texto plano en el repo y en el bundle público — rotarla no depende del código, depende de su panel de Supabase.
 
-### Fase 1 (P0) — Migración a Supabase Auth
-Esta fase mezcla código (yo) con acciones en el dashboard/CLI de Supabase (el usuario, porque requiere sus credenciales de proyecto).
+### Fase 1 (P0) — Migración a Supabase Auth ✅ código + datos completos, pendiente desplegar
 
-1. **Usuario:** habilitar Supabase Auth en el proyecto si no lo está (verificar en dashboard).
-2. **Yo:** escribir un script de migración (`scripts/migrar_usuarios_a_auth.js`) que, por cada fila de `usuarios`, cree un usuario en `auth.users` vía Admin API (`service_role`), estableciendo una contraseña temporal seguro-aleatoria y guardando el mapeo `usuarios.id ↔ auth.users.id` (columna nueva `auth_user_id` en `usuarios`, vía migración SQL aditiva `supabase_migration_v19_auth.sql`, siguiendo la convención de `CLAUDE.md:27`).
-3. **Usuario:** ejecutar ese script contra el proyecto real con `SUPABASE_SERVICE_ROLE_KEY` (no yo, porque implica escritura masiva en producción con datos de menores).
-4. **Yo:** reescribir `AuthContext.jsx` para usar `supabase.auth.getSession()` / `onAuthStateChange()` en vez de `localStorage['bg_session']`; el rol se lee de una tabla de perfiles (`usuarios` vía `auth_user_id`) consultada server-side, no de un JSON cacheado sin firmar.
-5. **Yo:** reescribir `authService.js` — login por correo/teléfono + contraseña real vía `supabase.auth.signInWithPassword()`. Diseñar el flujo de primer acceso para atletas/padres (hoy la contraseña es la cédula) como invitación + set-password, no como comparación directa.
-6. **Yo:** actualizar los ~35 puntos de verificación de rol listados arriba para leer el rol desde la sesión de Supabase Auth (o de un contexto derivado de ella), no desde `localStorage` directo.
-7. **Yo:** eliminar la columna `contrasena_hash` de `usuarios` en la misma migración v19, una vez confirmado que Auth gestiona las contraseñas.
+1. ✅ **Usuario:** Supabase Auth habilitado, "Confirm email" desactivado.
+2. ✅ **Yo:** `supabase_migration_v19_auth.sql` (columna `usuarios.auth_user_id` + función `resolver_email_login()`), aplicada por el usuario.
+3. ✅ **Yo:** `AuthContext.jsx` reescrito sobre `supabase.auth.getSession()`/`onAuthStateChange()` — ya no existe `localStorage['bg_session']`. Verificado en local: la sesión persiste al refrescar la página, y forjar `bg_session` en localStorage ya no tiene ningún efecto (el ataque original del hallazgo P0 ya no funciona).
+4. ✅ **Yo:** `authService.js` reescrito — `loginUsuario()` resuelve el identificador (correo/teléfono/cédula) a un email vía RPC y llama a `supabase.auth.signInWithPassword()`.
+5. ✅ **Yo:** `registroPublicoService.js` actualizado para crear también la cuenta de Auth en el registro público (con email sintético si no hay correo real).
+6. ✅ Los ~35 puntos de verificación de rol **no necesitaron cambios** — siguen leyendo `user.rol` del mismo objeto de contexto.
+7. ✅ **Usuario:** corrió `scripts/migrar_usuarios_a_auth.js` contra producción — 819 migrados, 1 omitido (padre sin hijos vinculados, sin contraseña resoluble), 0 fallidos. Login probado y confirmado con una cuenta de staff real.
+8. ⬜ **Pendiente:** eliminar la columna `contrasena_hash` de `usuarios` (dejarla para cuando se confirme que ningún flujo la sigue leyendo — hoy ya no la usa el código, pero conviene una migración v20 aparte en vez de mezclarla con RLS).
+9. ⬜ **Pendiente:** desplegar este código a producción (Vercel) — no se ha hecho todavía; el trabajo hasta ahora fue solo local + base de datos real.
 
 ### Fase 2 (P0) — RLS real basada en `auth.uid()` y rol
 Depende de que la Fase 1 esté desplegada (si se activa RLS real antes de que `auth.uid()` exista, la app se rompe — confirmado por el propio comentario en v18).
