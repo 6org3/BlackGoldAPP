@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
 
 dotenv.config();
 
@@ -29,14 +30,22 @@ server.tool(
   },
   async ({ athlete_id }) => {
     try {
-      // Obtener el atleta
+      // Obtener el atleta. `athlete_id` es atletas.id (la misma FK que usa
+      // evaluaciones_pruebas.atleta_id más abajo) — se hace join a usuarios para el
+      // nombre y la fecha de nacimiento. La categoría se deriva con
+      // calcularCategoriaFEB() (packages/analytics-core, compartido con la web app) en
+      // vez de leer una columna usuarios.categoria_actual que no existe en el esquema
+      // (el resto del repo usa usuarios.categoria) — esa columna inexistente hacía que
+      // esta consulta fallara siempre con un error de Postgres.
       const { data: atleta, error: atletaError } = await supabase
-        .from("usuarios")
-        .select("nombre, categoria_actual, posicion")
+        .from("atletas")
+        .select("usuarios!inner!atletas_usuario_id_fkey(nombre, fecha_nacimiento)")
         .eq("id", athlete_id)
         .single();
-      
+
       if (atletaError) throw new Error("Atleta no encontrado: " + atletaError.message);
+
+      const categoria = calcularCategoriaFEB(atleta.usuarios.fecha_nacimiento) || "Sin categoría";
 
       // Obtener evaluaciones recientes
       const { data: evaluaciones, error: evalError } = await supabase
@@ -60,7 +69,7 @@ server.tool(
         if (ev.notas) notasSubjetivas.push(`[${ev.sub_pilar}] ${ev.notas}`);
       });
 
-      let promptInfo = `Atleta: ${atleta.nombre} (${atleta.categoria_actual || 'Sin categoría'})\n`;
+      let promptInfo = `Atleta: ${atleta.usuarios.nombre} (${categoria})\n`;
       promptInfo += "--- RESULTADOS POR SUB-PILAR ---\n";
       for (const pilar in pilarStats) {
         let avg = Math.round(pilarStats[pilar].sumScore / pilarStats[pilar].count);
