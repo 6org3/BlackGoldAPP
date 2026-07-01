@@ -18,15 +18,16 @@ const METRIC_LABELS = {
   resiliencia: 'Resiliencia',
 };
 
+// Claves alineadas con calcularCategoriaFEB() (src/api/utilsAtletas.js). Antes estas
+// claves ('Sub-6', 'Senior', 'Femenino'...) no coincidían con ninguna categoría FEB
+// real, así que el desglose por categoría siempre caía al color gris por defecto.
 const CATEGORY_COLORS = {
-  'Sub-6': '#10b981',   // emerald
-  'Sub-8': '#06b6d4',   // cyan
-  'Sub-10': '#3b82f6',  // blue
-  'Sub-12': '#FFD700',  // gold
-  'Sub-15': '#a855f7',  // purple
-  'Sub-18': '#ec4899',  // pink
-  'Senior': '#ffffff',  // white
-  'Femenino': '#f97316', // orange
+  'Premini (Sub-9)': '#10b981',      // emerald
+  'Mini (Sub-11)': '#06b6d4',        // cyan
+  'Menores (Sub-14)': '#3b82f6',     // blue
+  'Prejuvenil (Sub-16)': '#FFD700',  // gold
+  'Juvenil (Sub-18)': '#a855f7',     // purple
+  'Mayores': '#ec4899',              // pink
 };
 
 const CustomTooltip = ({ active, payload, label }) => {

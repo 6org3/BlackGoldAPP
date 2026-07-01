@@ -3,13 +3,11 @@ import { motion } from 'framer-motion';
 import { Ruler, TrendingUp, Star, Heart, Droplets } from 'lucide-react';
 import { getSubPilarScores } from '../lib/radarCalc';
 
+// MicroCard solo se renderiza para Premini/Mini (ver App.jsx), así que solo esas dos
+// categorías FEB reales necesitan color; el resto usa el fallback gris de abajo.
 const CATEGORY_COLORS = {
-  'Sub-6': 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-  'Sub-8': 'text-blue-400 border-blue-500/30 bg-blue-500/10',
-  'Sub-10': 'text-orange-400 border-orange-500/30 bg-orange-500/10',
-  'Sub6': 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-  'Sub8': 'text-blue-400 border-blue-500/30 bg-blue-500/10',
-  'Sub10': 'text-orange-400 border-orange-500/30 bg-orange-500/10',
+  'Premini (Sub-9)': 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
+  'Mini (Sub-11)': 'text-blue-400 border-blue-500/30 bg-blue-500/10',
 };
 
 function calcularIndiceCormica(atleta) {

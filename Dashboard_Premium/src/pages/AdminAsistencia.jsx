@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, FileText, AlertTriangle, Search, Calendar, Users, Save, ClipboardList } from 'lucide-react';
 import { fetchAsistenciaPorFecha, upsertAsistencia } from '../api/asistenciaService';
 
-const CATEGORIAS = ['Todas', 'Sub6', 'Sub8', 'Sub10', 'Sub12', 'Sub15', 'Sub18'];
+const CATEGORIAS = ['Todas', 'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)', 'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores'];
 
 const ESTADO_CONFIG = {
   Presente:    { color: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10', icon: CheckCircle2,    label: 'Presente' },

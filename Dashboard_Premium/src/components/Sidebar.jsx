@@ -11,7 +11,6 @@ export default function Sidebar({ filtros, onFiltroChange, isMobileMenuOpen, set
   const location = useLocation();
   const [showFiltros, setShowFiltros] = useState(true);
 
-  const categorias = ['Todas', 'Sub6', 'Sub8', 'Sub10', 'Sub12', 'Sub15', 'Sub18', 'Femenino', 'Senior'];
   const posiciones = ['Todas', 'Generador', 'Alero Físico', 'Ancla Fuerte', 'Escolta', 'Ala-Pívot'];
   const nivelesDesarrollo = [
     'Todos',

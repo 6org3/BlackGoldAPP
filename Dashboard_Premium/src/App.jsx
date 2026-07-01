@@ -353,7 +353,7 @@ function App() {
               <span className="text-[10px] font-bold uppercase tracking-widest text-red-100">Cerrar</span>
             </button>
             <div className="relative w-full max-w-xl my-8 mt-16 md:mt-8">
-              {['Sub6','Sub8','Sub10','Sub-6','Sub-8','Sub-10'].includes(selectedAtleta.categoria)
+              {['Premini (Sub-9)', 'Mini (Sub-11)'].includes(selectedAtleta.categoria)
                 ? <MicroCard atleta={selectedAtleta} />
                 : <AtletaCard atleta={selectedAtleta} index={0} todosLosAtletas={atletas} />
               }

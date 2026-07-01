@@ -41,4 +41,3 @@ lerna-debug.log*
 # Artefactos del montaje FUSE / sandbox
 **/.fuse_hidden*
 .vercel
-.env*
