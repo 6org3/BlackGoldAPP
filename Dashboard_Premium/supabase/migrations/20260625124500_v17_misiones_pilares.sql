@@ -1,3 +1,8 @@
+-- Migración consolidada desde supabase_migration_v17_misiones_pilares.sql (raíz del repo) (Fase 4 del plan de remediación de seguridad).
+-- Contenido original sin modificar salvo este encabezado. Orden reconstruido a partir de
+-- fechas de commit y dependencias declaradas entre archivos, no de un registro server-side
+-- (las migraciones se aplicaron a mano en el SQL Editor de Supabase).
+--
 -- ============================================================
 -- MIGRACIÓN v17 — Pilares en Misiones + Grupos Personalizados
 -- Ejecutar en: Supabase → SQL Editor

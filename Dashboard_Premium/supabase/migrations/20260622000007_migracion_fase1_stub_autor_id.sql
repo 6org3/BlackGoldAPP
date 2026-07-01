@@ -1,0 +1,10 @@
+-- Migración consolidada desde Dashboard_Premium/migracion_fase1.sql (Fase 4 del plan de remediación de seguridad).
+-- ADVERTENCIA: el archivo original es un stub incompleto (solo un comentario, sin ALTER TABLE
+-- real) y estaba codificado en UTF-16. La columna misiones.autor_id SÍ existe y se usa en
+-- producción (ver src/api/misionesService.js, AdminMisiones.jsx, AsignadorMisiones.jsx y otros),
+-- pero el ALTER TABLE que la creó nunca quedó guardado en ningún archivo de este repo -- se aplicó
+-- a mano en el SQL Editor y se perdió el registro. Pendiente: capturar esta columna (tipo,
+-- nullability, FK si tiene) en la línea base de esquema real vía `supabase db dump`.
+--
+-- Contenido original (verbatim):
+-- -- 1. Agregar autor_id a misiones

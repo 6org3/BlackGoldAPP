@@ -1,3 +1,8 @@
+-- Migración consolidada desde Dashboard_Premium/supabase_migration_v16_carga_sueno.sql (Fase 4 del plan de remediación de seguridad).
+-- Contenido original sin modificar salvo este encabezado. Orden reconstruido a partir de
+-- fechas de commit y dependencias declaradas entre archivos, no de un registro server-side
+-- (las migraciones se aplicaron a mano en el SQL Editor de Supabase).
+--
 -- Insertar el test de recuperación en la tabla catalogo_ejercicios si no existe
 INSERT INTO catalogo_ejercicios (
   nombre, 

@@ -1,0 +1,12 @@
+-- Migración consolidada desde Dashboard_Premium/fix_rls.sql (Fase 4 del plan de remediación de seguridad).
+-- ADVERTENCIA: el archivo original tenía sintaxis SQL inválida (comilla mal cerrada en el nombre
+-- de la política) y estaba codificado en UTF-16, no UTF-8 -- probablemente nunca se ejecutó tal
+-- cual desde este archivo. Se conserva sin corregir, solo como registro histórico de que en algún
+-- momento se intentó una política de solo-lectura sobre estas dos tablas.
+-- NO ejecutar este archivo como está: la Fase 2 (RLS real) debe verificar directamente en el
+-- dashboard de Supabase si evaluaciones_pruebas / padres_atletas ya tienen alguna política
+-- aplicada, en vez de asumir el contenido de aquí.
+--
+-- Contenido original (verbatim, sintaxis inválida incluida, comentado para que no sea ejecutable):
+-- CREATE POLICY " Allow read for all\ ON public.evaluaciones_pruebas FOR SELECT USING (true);
+-- CREATE POLICY " Allow read for all\ ON public.padres_atletas FOR SELECT USING (true);
