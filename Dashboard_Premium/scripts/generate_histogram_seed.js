@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 // Simple manual .env parser
 function loadEnv() {
-  const envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '.env');
+  const envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env');
   if (fs.existsSync(envPath)) {
     const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
     lines.forEach(line => {

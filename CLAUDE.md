@@ -32,7 +32,8 @@ Black Gold — un ecosistema de club de baloncesto para el club en Sucumbíos (E
 
 ## Problemas conocidos / detalles a tener en cuenta
 
-- **El repo vive dentro de OneDrive.** Esto causa dos problemas recurrentes: (1) un vaivén constante de CRLF↔LF que hace que todo el árbol parezca "modificado", y (2) errores de bloqueo/permiso en `.git` (no se puede eliminar `index.lock`) cuando git se ejecuta desde herramientas en sandbox. Hay un `.gitattributes` (`* text=auto eol=lf`) para (1); ejecutar `git add --renormalize .` una vez para asentarlo. A largo plazo, conviene mover la copia de trabajo **fuera de** OneDrive para evitar que la sincronización corrompa `.git`.
+- **El repo ya no vive en OneDrive** (vive en `~/dev/BlackGoldAPP`). Sigue pudiendo aparecer un `index.lock` stale en `.git` cuando git se ejecuta desde herramientas en sandbox; si no hay ningún proceso git corriendo, es seguro borrar ese archivo y reintentar.
+- Los scripts operativos de un solo uso viven en `Dashboard_Premium/scripts/` (no en la raíz de `Dashboard_Premium/`), leen credenciales solo de `.env` (nunca hardcodeadas) y varios escriben/borran datos reales — revisar cada uno antes de ejecutarlo, especialmente `limpiar_base_datos.js`.
 - No existía una tabla de pertenencia atleta↔grupo de entrenamiento; la migración v18 agrega `atleta_grupo`. Debe poblarse para que funcionen las funciones basadas en grupos.
 
 ## Documentos de diseño

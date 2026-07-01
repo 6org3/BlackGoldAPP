@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const baremosPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'src', 'lib', 'baremosEngine.js');
+const baremosPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'lib', 'baremosEngine.js');
 const fileContent = fs.readFileSync(baremosPath, 'utf8');
 
 // Use simple eval to extract the BAREMOS object (since it's a local trusted file)

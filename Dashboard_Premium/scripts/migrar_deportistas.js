@@ -9,8 +9,8 @@ const SIMULAR = true;
 
 // Resolver rutas
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const envPath = path.resolve(__dirname, './.env');
-const excelPath = path.resolve(__dirname, '../Deportistas_SUCUMBIOS_BALONCESTO pa george.xlsx');
+const envPath = path.resolve(__dirname, '../.env');
+const excelPath = path.resolve(__dirname, '../../Deportistas_SUCUMBIOS_BALONCESTO pa george.xlsx');
 
 // 1. Cargar variables de entorno manualmente
 function loadEnv() {
@@ -326,7 +326,7 @@ async function run() {
   
   if (SIMULAR) {
     console.log('\n[SIMULACIÓN] No se realizaron cambios en la base de datos.');
-    console.log('Para subir los datos realmente, edita el archivo migrar_deportistas.js y cambia "const SIMULAR = true" a "const SIMULAR = false", y vuelve a ejecutarlo.');
+    console.log('Para subir los datos realmente, edita scripts/migrar_deportistas.js y cambia "const SIMULAR = true" a "const SIMULAR = false", y vuelve a ejecutarlo.');
     return;
   }
   

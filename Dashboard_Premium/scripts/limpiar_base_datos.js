@@ -1,3 +1,11 @@
+// ADVERTENCIA: borra permanentemente TODOS los atletas, padres y sus vínculos
+// (padres_atletas) en el proyecto Supabase apuntado por .env. Sin confirmación,
+// sin dry-run. Pensado solo para resetear un entorno de desarrollo/staging;
+// nunca ejecutar contra el proyecto de producción con datos reales de atletas.
+// ADVERTENCIA: borra permanentemente TODOS los atletas, padres y sus vínculos
+// (padres_atletas) en el proyecto Supabase apuntado por .env. Sin confirmación,
+// sin dry-run. Pensado solo para resetear un entorno de desarrollo/staging;
+// nunca ejecutar contra el proyecto de producción con datos reales de atletas.
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';

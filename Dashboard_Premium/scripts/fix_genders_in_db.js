@@ -5,8 +5,8 @@ import XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const envPath = path.resolve(__dirname, './.env');
-const excelPath = path.resolve(__dirname, '../Deportistas_SUCUMBIOS_BALONCESTO pa george.xlsx');
+const envPath = path.resolve(__dirname, '../.env');
+const excelPath = path.resolve(__dirname, '../../Deportistas_SUCUMBIOS_BALONCESTO pa george.xlsx');
 
 // Load environment variables manually
 function loadEnv() {
