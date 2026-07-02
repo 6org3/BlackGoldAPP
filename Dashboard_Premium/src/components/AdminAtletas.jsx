@@ -40,8 +40,9 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     atletasFiltrados,
     atletasAgrupados,
     filtrosActivos,
+    loadingFiltrados,
     clearFilters,
-  } = useAdminAtletasFiltros(atletas);
+  } = useAdminAtletasFiltros(user);
 
   // ─── View State ───────────────────────────────────────────
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
@@ -165,6 +166,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
       {/* ═══════════════════════ LISTA DE ATLETAS AGRUPADOS ═══════════════════════ */}
       <AdminAtletasGrupoNivel
         atletasAgrupados={atletasAgrupados}
+        loading={loadingFiltrados}
         viewMode={viewMode}
         filtrosActivos={filtrosActivos}
         clearFilters={clearFilters}

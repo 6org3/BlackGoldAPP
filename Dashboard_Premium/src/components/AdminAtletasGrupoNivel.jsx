@@ -4,6 +4,7 @@ import AtletaListRow from './AdminAtletasListRow';
 
 export default function AdminAtletasGrupoNivel({
   atletasAgrupados,
+  loading,
   viewMode,
   filtrosActivos,
   clearFilters,
@@ -15,7 +16,13 @@ export default function AdminAtletasGrupoNivel({
 }) {
   return (
     <div className="space-y-8">
-      {atletasAgrupados.length === 0 && (
+      {loading && atletasAgrupados.length === 0 && (
+        <div className="text-center py-16">
+          <p className="text-gray-500 text-sm font-bold animate-pulse">Buscando atletas...</p>
+        </div>
+      )}
+
+      {!loading && atletasAgrupados.length === 0 && (
         <div className="text-center py-16">
           <div className="text-4xl mb-4">🔍</div>
           <p className="text-gray-500 text-sm font-bold">No se encontraron atletas con estos filtros.</p>

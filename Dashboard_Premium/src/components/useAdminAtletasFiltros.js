@@ -1,8 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { NIVEL_ORDER } from './AdminAtletasConstants';
+import { fetchTodosLosAtletas } from '../api/atletasService';
 
 // ─── Hook de filtrado y agrupamiento de atletas ────────────────
-export default function useAdminAtletasFiltros(atletas) {
+// El filtrado ocurre en el servidor (fetchTodosLosAtletas con filtros), no
+// sobre un array ya cargado en memoria — así un coach o un club grande no
+// descarga el roster completo solo para aplicar 4 filtros de UI.
+export default function useAdminAtletasFiltros(user) {
   // ─── Filter State ─────────────────────────────────────────
   const [busqueda, setBusqueda] = useState('');
   const [filtroCat, setFiltroCat] = useState('Todas');
@@ -10,44 +14,46 @@ export default function useAdminAtletasFiltros(atletas) {
   const [filtroPosicion, setFiltroPosicion] = useState('Todas');
   const [filtroGenero, setFiltroGenero] = useState('Todos');
   const [showFilters, setShowFilters] = useState(false);
+  const [busquedaDebounced, setBusquedaDebounced] = useState('');
+  const [atletasFiltrados, setAtletasFiltrados] = useState([]);
+  const [loadingFiltrados, setLoadingFiltrados] = useState(false);
+  const requestIdRef = useRef(0);
 
-  // ─── Filtrado y agrupamiento (memoizado) ──────────────────
-  const atletasFiltrados = useMemo(() => {
-    if (!atletas) return [];
+  useEffect(() => {
+    const t = setTimeout(() => setBusquedaDebounced(busqueda), 300);
+    return () => clearTimeout(t);
+  }, [busqueda]);
 
-    const hasFilters = busqueda !== '' ||
-                       filtroCat !== 'Todas' ||
-                       filtroNivel !== 'Todos' ||
-                       filtroPosicion !== 'Todas' ||
-                       filtroGenero !== 'Todos';
+  const hasFilters = busquedaDebounced !== '' ||
+                     filtroCat !== 'Todas' ||
+                     filtroNivel !== 'Todos' ||
+                     filtroPosicion !== 'Todas' ||
+                     filtroGenero !== 'Todos';
 
-    if (!hasFilters) return []; // No renderizar todo el array inicial para mejorar fluidez
+  useEffect(() => {
+    if (!hasFilters || !user) {
+      setAtletasFiltrados([]); // No traer todo el roster mientras no haya un filtro activo
+      return;
+    }
 
-    return atletas.filter(a => {
-      // Búsqueda de texto
-      if (busqueda) {
-        const b = busqueda.toLowerCase();
-        const matchName = a.nombre?.toLowerCase().includes(b);
-        const matchCedula = a.cedula?.toLowerCase().includes(b);
-        if (!matchName && !matchCedula) return false;
-      }
-      // Filtro Categoría
-      if (filtroCat !== 'Todas' && a.categoria !== filtroCat) return false;
-      // Filtro Nivel
-      if (filtroNivel !== 'Todos') {
-        const nivelAtleta = a.nivel_desarrollo || 'Por Asignar';
-        if (nivelAtleta !== filtroNivel) return false;
-      }
-      // Filtro Posición
-      if (filtroPosicion !== 'Todas' && a.posicion !== filtroPosicion) return false;
-      // Filtro Género
-      if (filtroGenero !== 'Todos') {
-        const generoAtleta = a.genero || 'Masculino';
-        if (generoAtleta !== filtroGenero) return false;
-      }
-      return true;
+    const requestId = ++requestIdRef.current;
+    setLoadingFiltrados(true);
+    fetchTodosLosAtletas(user, {
+      search: busquedaDebounced,
+      categoria: filtroCat,
+      nivelDesarrollo: filtroNivel,
+      posicion: filtroPosicion,
+      genero: filtroGenero,
+    }).then(data => {
+      if (requestId !== requestIdRef.current) return; // filtro cambió mientras cargaba
+      setAtletasFiltrados(data || []);
+    }).catch(err => {
+      console.error('Error al filtrar atletas:', err);
+      if (requestId === requestIdRef.current) setAtletasFiltrados([]);
+    }).finally(() => {
+      if (requestId === requestIdRef.current) setLoadingFiltrados(false);
     });
-  }, [atletas, busqueda, filtroCat, filtroNivel, filtroPosicion, filtroGenero]);
+  }, [user, busquedaDebounced, filtroCat, filtroNivel, filtroPosicion, filtroGenero, hasFilters]);
 
   const atletasAgrupados = useMemo(() => {
     const groups = {};
@@ -86,6 +92,7 @@ export default function useAdminAtletasFiltros(atletas) {
     atletasFiltrados,
     atletasAgrupados,
     filtrosActivos,
+    loadingFiltrados,
     clearFilters,
   };
 }
