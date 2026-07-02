@@ -1,4 +1,4 @@
-import AdminAsistencia from '../pages/AdminAsistencia';
+import AdminAsistencia from '../components/AdminAsistencia';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../AuthContext';
 import { fetchTodosLosAtletas } from '../api/atletasService';

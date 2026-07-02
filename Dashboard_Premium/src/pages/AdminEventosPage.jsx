@@ -1,4 +1,4 @@
-import AdminEventos from './AdminEventos';
+import AdminEventos from '../components/AdminEventos';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../AuthContext';
 import { fetchTodosLosAtletas } from '../api/atletasService';

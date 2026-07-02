@@ -1,4 +1,4 @@
-import AdminSesiones from './AdminSesiones';
+import AdminSesiones from '../components/AdminSesiones';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../AuthContext';
 import { fetchTodosLosAtletas } from '../api/atletasService';

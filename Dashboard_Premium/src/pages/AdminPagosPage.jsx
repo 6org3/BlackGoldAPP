@@ -1,4 +1,4 @@
-import AdminPagos from './AdminPagos';
+import AdminPagos from '../components/AdminPagos';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../AuthContext';
 import { fetchTodosLosAtletas } from '../api/atletasService';

@@ -14,6 +14,8 @@ const AdminMisionesPage = lazy(() => import('./pages/AdminMisionesPage.jsx'))
 const AdminPagosPage = lazy(() => import('./pages/AdminPagosPage.jsx'))
 const AdminComunicacionesPage = lazy(() => import('./pages/AdminComunicacionesPage.jsx'))
 const AdminEventosPage = lazy(() => import('./pages/AdminEventosPage.jsx'))
+const AdminAsistenciaPage = lazy(() => import('./pages/AdminAsistenciaPage.jsx'))
+const AdminSesionesPage = lazy(() => import('./pages/AdminSesionesPage.jsx'))
 const PadreDashboard = lazy(() => import('./pages/PadreDashboard.jsx'))
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
@@ -99,6 +101,22 @@ createRoot(document.getElementById('root')).render(
             element={
               <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
                 <AdminEventosPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/asistencia"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
+                <AdminAsistenciaPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/sesiones"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
+                <AdminSesionesPage />
               </PrivateRoute>
             }
           />

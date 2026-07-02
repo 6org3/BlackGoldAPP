@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays, Send, CheckCircle2, Check, X, HelpCircle, Clock, MapPin } from 'lucide-react';
-import AudienceSelector from '../components/AudienceSelector';
+import AudienceSelector from './AudienceSelector';
 import {
   crearEvento, fetchEventos, fetchTableroConvocados, TIPO_EVENTO_LABEL,
 } from '../api/eventosService';

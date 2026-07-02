@@ -1,4 +1,4 @@
-import AdminComunicaciones from './AdminComunicaciones';
+import AdminComunicaciones from '../components/AdminComunicaciones';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../AuthContext';
 import { fetchTodosLosAtletas } from '../api/atletasService';

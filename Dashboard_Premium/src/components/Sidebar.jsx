@@ -140,6 +140,22 @@ export default function Sidebar({ filtros, onFiltroChange, isMobileMenuOpen, set
             onClick={() => navigate('/admin/eventos')}
           />
         )}
+        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+          <NavItem
+            icon={<ClipboardList size={18} />}
+            label="Asistencia"
+            active={location.pathname === '/admin/asistencia'}
+            onClick={() => navigate('/admin/asistencia')}
+          />
+        )}
+        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+          <NavItem
+            icon={<FlaskConical size={18} />}
+            label="Sesiones"
+            active={location.pathname === '/admin/sesiones'}
+            onClick={() => navigate('/admin/sesiones')}
+          />
+        )}
         {(user.rol === 'owner' || user.rol === 'superadmin') && (
           <NavItem
             icon={<BarChart3 size={18} />}
