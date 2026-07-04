@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "blackgold-mcp": {
+      "command": "node",
+      "args": ["blackgold-mcp/src/index.js"]
+    }
+  }
+}

@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "functions:sync": "node scripts/sync_edge_shared.mjs",
+    "functions:deploy": "npm run functions:sync && npx supabase functions deploy generar-misiones-ia"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

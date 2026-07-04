@@ -1,0 +1,347 @@
+{
+  "_comentario": "Catálogo inicial de misiones (cobertura mínima del spec loop misiones-baremo: ≥1 general + ≥1 específica por sub-pilar × bucket de edad). Redactado con el estándar de justificación de packages/analytics-core/baremos_cientificos.md. Todas nacen inactivas: el coach las cura en AdminMisiones (D3). nivel_objetivo se deja null a propósito = comodín de nivel en seleccionarMisiones (la dosis por edad va en la descripción). Insertar con scripts/seed_catalogo_misiones.mjs.",
+  "misiones": [
+    {
+      "pilar": "fuerza", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Reto animal: camina como oso y cangrejo",
+      "descripcion": "3 veces por semana: cruza tu habitación 4 veces caminando como oso (manos y pies, cadera alta) y 4 veces como cangrejo (boca arriba). Descansa 1 minuto entre vueltas. Marca en un papel cada día que lo hagas.",
+      "justificacion": "El entrenamiento de fuerza en preadolescentes debe basarse en patrones con peso corporal y juego animal: mejora la fuerza general y la competencia motriz sin cargas externas, con riesgo mínimo (NSCA Position Statement on Youth Resistance Training, Lloyd et al., 2016)."
+    },
+    {
+      "pilar": "fuerza", "categoria_bucket": "Sub12", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Técnica de sentadilla con vaso de agua",
+      "descripcion": "Aprende la sentadilla perfecta: pies al ancho de hombros, baja como sentándote en una silla invisible sosteniendo un vaso de agua con ambas manos al frente sin derramarlo. 3 series de 8, tres días por semana. El coach revisará tu técnica antes de validar.",
+      "justificacion": "Dominar el patrón de sentadilla con peso corporal antes de cualquier carga es el prerequisito técnico que la NSCA establece para el desarrollo de fuerza del tren inferior en niños; la corrección postural temprana previene compensaciones (Faigenbaum & Myer, Br J Sports Med, 2010)."
+    },
+    {
+      "pilar": "fuerza", "categoria_bucket": "Sub15", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Rutina básica de empuje y plancha",
+      "descripcion": "3 veces por semana: 3 series de flexiones (las que salgan con buena forma, rodillas apoyadas si hace falta) + 3 planchas de 30 segundos. Apunta tus números para ver tu progreso semana a semana.",
+      "justificacion": "En la adolescencia temprana el entrenamiento con peso corporal estructurado (empuje + core) produce ganancias de fuerza significativas por adaptación neural, y establece el hábito de registro de cargas que la NSCA recomienda como base de la progresión (Lloyd et al., 2016)."
+    },
+    {
+      "pilar": "fuerza", "categoria_bucket": "Sub15", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Sentadilla goblet con técnica supervisada",
+      "descripcion": "2 sesiones por semana: 4 series de 8 sentadillas goblet con mancuerna ligera (5-8 kg), bajando en 3 segundos y subiendo explosivo. Graba un video de tu última serie para que el coach revise profundidad y rodillas.",
+      "justificacion": "La sentadilla goblet es la progresión recomendada tras dominar el peso corporal: la carga frontal enseña el torso erguido y permite fuerza del tren inferior con técnica segura en púberes (NSCA Essentials of Strength Training; Lloyd et al., 2016). El tempo excéntrico 3s maximiza el estímulo con carga baja."
+    },
+    {
+      "pilar": "fuerza", "categoria_bucket": "Sub18", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Registro de fuerza semanal",
+      "descripcion": "Lleva un cuaderno (o nota del celular) con tus 3 básicos de peso corporal: flexiones máximas, dominadas (o remo invertido) y sentadillas a una pierna asistidas. Mídete una vez por semana durante 4 semanas y trae el registro al coach.",
+      "justificacion": "El automonitoreo de cargas y repeticiones es el predictor conductual más consistente de adherencia y progresión en fuerza juvenil; sin registro no hay sobrecarga progresiva planificable (NSCA, principios de periodización; Locke & Latham sobre metas medibles, Am Psychol, 2002)."
+    },
+    {
+      "pilar": "fuerza", "categoria_bucket": "Sub18", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Bloque de fuerza relativa: sentadilla y empuje",
+      "descripcion": "3 sesiones por semana durante 4 semanas: sentadilla con barra o goblet pesada 4×6, press de banca o flexiones lastradas 4×6, remo 4×8. Sube la carga solo cuando completes todas las series con técnica limpia. Coordina con el coach la carga inicial.",
+      "justificacion": "Post-pico de crecimiento, los andrógenos permiten hipertrofia y fuerza con cargas externas: los baremos Sub18 de sentadilla relativa (1.0-2.0×BW) requieren trabajo estructurado de 6-8 repeticiones con progresión de carga (NSCA Essentials; baremos sentadilla_rel del club)."
+    },
+    {
+      "pilar": "fuerza", "categoria_bucket": "Senior", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Hábito de fuerza: 3 sesiones no negociables",
+      "descripcion": "Durante 4 semanas, cumple 3 sesiones semanales de fuerza (gimnasio o peso corporal pesado). No importa la duración: importa no fallar ninguna. Marca cada sesión en el calendario y presenta 12/12 al coach.",
+      "justificacion": "En adultos jóvenes la frecuencia ≥2-3 sesiones/semana es el umbral mínimo documentado para mantener y ganar fuerza (ACSM Position Stand on Resistance Training, 2009); la consistencia supera al volumen puntual para el rendimiento sostenido en temporada."
+    },
+    {
+      "pilar": "fuerza", "categoria_bucket": "Senior", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Ciclo de fuerza máxima 4 semanas",
+      "descripcion": "Con supervisión del coach: 4 semanas de sentadilla y press banca a 4×5 con 80-85% de tu mejor marca, más accesorios de tirón. Test de sentadilla relativa (×BW) al inicio y al final para medir el delta.",
+      "justificacion": "Los baremos Senior del club (sentadilla 1.0-2.0×BW, press 0.75-1.5×BW) corresponden a fuerza máxima entrenada con intensidades ≥80% 1RM y 3-5 repeticiones, el rango con mayor transferencia documentada a sprint y salto en basquetbolistas (NSCA; Suchomel et al., Sports Med, 2016)."
+    },
+
+    {
+      "pilar": "explosividad", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Juego de saltos: rayuela y cuerda",
+      "descripcion": "3 veces por semana, 10 minutos: salta la cuerda (o juega rayuela) alternando dos pies, un pie y desplazamientos. Cuenta cuántos saltos seguidos logras sin fallar y trata de superar tu récord cada semana.",
+      "justificacion": "La pliometría de bajo impacto en formato lúdico (cuerda, rayuela) es la vía segura y efectiva para desarrollar potencia del tren inferior en preadolescentes, aprovechando la ventana de adaptación neural pre-PHV (Lloyd et al., plyometric training in youth, J Strength Cond Res, 2011)."
+    },
+    {
+      "pilar": "explosividad", "categoria_bucket": "Sub12", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Aterrizajes de ninja desde cajón bajo",
+      "descripcion": "2 veces por semana con el coach: 3 series de 6 saltos desde un cajón bajo (20-30 cm) aterrizando en silencio total, rodillas alineadas y flexionadas. Primero se domina el aterrizaje; después vendrán los saltos hacia arriba.",
+      "justificacion": "La mecánica de aterrizaje precede al salto en la progresión pliométrica juvenil: absorber fuerza con rodillas alineadas reduce el valgo dinámico y el riesgo de lesión de LCA, y es la base del CMJ que mide el baremo (NSCA; Myer et al., prevención de LCA en jóvenes, Am J Sports Med, 2005)."
+    },
+    {
+      "pilar": "explosividad", "categoria_bucket": "Sub15", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Escaleras y sprints cortos semanales",
+      "descripcion": "3 veces por semana: 6 sprints de 10-15 metros a máxima velocidad con caminata de regreso como descanso, más 2 series de subir escaleras de dos en dos. Total 15 minutos.",
+      "justificacion": "El sprint corto es el estímulo pliométrico natural con mayor transferencia al salto vertical en adolescentes; 2-3 dosis semanales de esfuerzos <6 s con pausa completa desarrollan potencia sin fatiga metabólica (Rumpf et al., sprint training youth meta-analysis, Pediatr Exerc Sci, 2012)."
+    },
+    {
+      "pilar": "explosividad", "categoria_bucket": "Sub15", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Progresión CMJ: salto con contramovimiento",
+      "descripcion": "2 sesiones por semana: 4 series de 5 saltos con contramovimiento (baja rápido, salta máximo, aterriza suave) + 3 series de 5 saltos al aro tocando el tablero o red. Descansa 90 segundos entre series. El coach mide tu CMJ al inicio y al mes.",
+      "justificacion": "El CMJ es la prueba del baremo de explosividad (Sub15: 28-49 cm): entrenar el propio gesto con volumen bajo (≤60 contactos/sesión) y pausas completas es el método con mejor evidencia para mejorarlo en púberes (NSCA plyometric guidelines; Ramírez-Campillo et al., J Strength Cond Res, 2018)."
+    },
+    {
+      "pilar": "explosividad", "categoria_bucket": "Sub18", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Dosis semanal de pliometría básica",
+      "descripcion": "3 veces por semana, 15 minutos: 3×8 saltos de tobillo (pogo), 3×5 saltos al pecho (tuck jump) y 6 sprints de 15 m. Registra tu mejor toque en tablero cada viernes.",
+      "justificacion": "Mantener 2-3 exposiciones pliométricas semanales de bajo volumen preserva y mejora la potencia durante la temporada; el registro semanal del toque hace visible la tendencia que luego valida el baremo CMJ (Sub18: 36-59 cm) (NSCA; Ramírez-Campillo et al., 2018)."
+    },
+    {
+      "pilar": "explosividad", "categoria_bucket": "Sub18", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Pliometría de choque y saltos con carga ligera",
+      "descripcion": "Con el coach, 2 sesiones por semana: drop jumps desde 30-40 cm (4×4, mínima pausa en el suelo), saltos con chaleco o mancuernas ligeras (3×5) y CMJ test cada 2 semanas. Suspender si hay dolor de rodilla o tendón.",
+      "justificacion": "En atletas post-PHV la pliometría de choque (drop jump) explota el ciclo estiramiento-acortamiento con las mayores ganancias documentadas de CMJ, siempre con progresión de altura y volumen controlado (<120 contactos/semana) para proteger el tendón rotuliano (NSCA; Bobbert, drop jumping, Sports Med, 1990)."
+    },
+    {
+      "pilar": "explosividad", "categoria_bucket": "Senior", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Potencia en cada calentamiento",
+      "descripcion": "Incorpora a TODOS tus calentamientos de esta temporada: 3 aceleraciones de 10 m, 5 saltos máximos al aro y 5 lanzamientos de balón medicinal contra pared (o pase de pecho explosivo). Menos de 5 minutos por sesión.",
+      "justificacion": "La potencia se mantiene con dosis mínimas frecuentes de intención máxima (post-activation performance enhancement): microdosis en el calentamiento sostienen el CMJ en temporada sin añadir fatiga (Blazevich & Babault, PAPE review, Front Physiol, 2019)."
+    },
+    {
+      "pilar": "explosividad", "categoria_bucket": "Senior", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Bloque de potencia: triple extensión con carga",
+      "descripcion": "Con el coach, 2 sesiones por semana durante 4 semanas: cargada de potencia o salto con trap-bar al 30-40% 1RM (5×3, máxima velocidad de ejecución), más drop jumps 3×4. CMJ test antes y después del bloque.",
+      "justificacion": "El entrenamiento balístico con cargas del 30-40% 1RM maximiza la potencia mecánica de la triple extensión (tobillo-rodilla-cadera), el determinante del salto vertical Senior (baremo 40-69 cm); la combinación fuerza+balístico supera a cualquiera aislado (Cormie et al., Sports Med, 2011)."
+    },
+
+    {
+      "pilar": "movilidad", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Rutina del gato y la cobra al despertar",
+      "descripcion": "Cada mañana antes de ir a clases: 5 gato-vaca lentos, 5 cobras suaves, 10 círculos de brazos y 30 segundos de sentadilla profunda sostenida (agárrate de algo si hace falta). 3 minutos en total, todos los días.",
+      "justificacion": "La niñez es la ventana de mayor entrenabilidad de la flexibilidad; rutinas diarias breves de rango completo consolidan patrones articulares que después del estirón son más difíciles de recuperar (revisión sistemática de flexibilidad juvenil, PMC9259532; FitnessGram HFZ sit-and-reach)."
+    },
+    {
+      "pilar": "movilidad", "categoria_bucket": "Sub12", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Tobillos elásticos: dorsiflexión contra pared",
+      "descripcion": "3 veces por semana: descalzo, con el pie a un palmo de la pared, lleva la rodilla hacia la pared sin levantar el talón. 3 series de 10 por pierna, midiendo cada semana a cuántos centímetros de la pared llegas. El coach valida tu medición.",
+      "justificacion": "La dorsiflexión de tobillo (WBLT, baremo del club: 6-13 cm) condiciona la mecánica de sentadilla, aterrizaje y defensa; el trabajo activo de rango contra pared es el protocolo estándar de mejora y su medición semanal enseña autoevaluación (Bennell et al., WBLT reliability, Aust J Physiother, 1998)."
+    },
+    {
+      "pilar": "movilidad", "categoria_bucket": "Sub15", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Rutina anti-estirón: 10 minutos de movilidad",
+      "descripcion": "Estás en la edad del estirón: 4 veces por semana dedica 10 minutos a la rutina — isquiotibiales con banda o toalla (2×30s por pierna), flexores de cadera en zancada (2×30s), aductores en mariposa (2×30s) y columna con gato-vaca (10 repeticiones).",
+      "justificacion": "Durante el pico de velocidad de crecimiento el hueso crece más rápido que el complejo músculo-tendón y la flexibilidad cae transitoriamente (~6 meses antes y después del PHV); el estiramiento regular en esta fase mitiga la pérdida y el riesgo de lesión por tracción (PMC9259532; Philippaerts et al., 2006)."
+    },
+    {
+      "pilar": "movilidad", "categoria_bucket": "Sub15", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Caderas de basquetbolista: rotación 90/90",
+      "descripcion": "3 veces por semana: sentado en posición 90/90, 8 transiciones lentas de lado a lado sin apoyar las manos, luego 2×30 segundos de sostén en cada lado. Graba un video mensual para que el coach compare tu rango de rotación interna.",
+      "justificacion": "La rotación interna de cadera (baremo del club: 22-44°) limita el cambio de dirección y la postura defensiva; el 90/90 activo entrena rotación interna y externa en carga específica, y su déficit unilateral >15% es señal de riesgo que el sistema ya alerta (normas clínicas de ROM de cadera; Ellenbecker et al., 2007)."
+    },
+    {
+      "pilar": "movilidad", "categoria_bucket": "Sub18", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Movilidad post-entrenamiento obligatoria",
+      "descripcion": "Después de cada práctica (mínimo 3 veces por semana): 8 minutos — sofá stretch para cuádriceps/flexores (2×45s por pierna), paloma para glúteo (2×45s) y pecho en marco de puerta (2×30s). Sin saltarse ninguna.",
+      "justificacion": "El estiramiento estático post-ejercicio, cuando el tejido está caliente, produce las mayores ganancias de rango sin afectar el rendimiento (a diferencia del estático pre-entrenamiento); la adherencia post-práctica es el mejor predictor de mejora del sit-and-reach del baremo Sub18 (4-13 cm) (Behm et al., stretching review, Appl Physiol Nutr Metab, 2016)."
+    },
+    {
+      "pilar": "movilidad", "categoria_bucket": "Sub18", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Hombros de tirador: rotación con banda",
+      "descripcion": "3 veces por semana: rotación externa e interna de hombro con banda elástica (3×12 cada dirección, cada brazo), más sleeper stretch suave (2×30s). El coach medirá tu rotación de hombro con goniómetro al inicio y al mes.",
+      "justificacion": "El tiro repetitivo genera desbalances de rotación glenohumeral (baremos del club: RE 70-94°, RI 50-74°); el fortalecimiento con banda del manguito más estiramiento capsular posterior es el protocolo documentado para restaurar el arco total y prevenir hombro doloroso del lanzador (Wilk et al., shoulder ROM athletes, JOSPT, 2009)."
+    },
+    {
+      "pilar": "movilidad", "categoria_bucket": "Senior", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Protocolo de mantenimiento articular",
+      "descripcion": "4 veces por semana, 12 minutos: CARs (círculos articulares controlados) de cadera, hombro y columna al despertar, más 3 minutos de sentadilla profunda acumulada durante el día. Constancia por 4 semanas.",
+      "justificacion": "En adultos la movilidad no mejora sola: decae con la edad y la carga de entrenamiento (ROM de cadera cae ~4.7° por década); los movimientos articulares activos de rango completo con frecuencia ≥3/semana son la dosis mínima de mantenimiento documentada (ScienceDirect, clinical hip ROM; Behm et al., 2016)."
+    },
+    {
+      "pilar": "movilidad", "categoria_bucket": "Senior", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Auditoría de asimetrías con plan correctivo",
+      "descripcion": "Con el coach: medición bilateral de dorsiflexión (WBLT), rotaciones de cadera y hombro. Donde haya >15% de diferencia entre lados, 4 semanas de trabajo unilateral correctivo (3 sesiones/semana) y re-test.",
+      "justificacion": "Las asimetrías >15% de rango entre extremidades se asocian con mayor incidencia lesional en deportes de salto y cambio de dirección — es el mismo umbral que el motor de evaluación del club ya usa para alertar; el trabajo unilateral dirigido las reduce en 4-6 semanas (normativa WBLT; Croisier et al., asimetrías y lesión, Am J Sports Med, 2008)."
+    },
+
+    {
+      "pilar": "tiro", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Forma perfecta contra la pared",
+      "descripcion": "5 minutos diarios: frente a una pared, practica tu forma de tiro sin aro — codo bajo el balón, muñeca suelta al final (como sacar la mano de una pecera). 25 repeticiones con una sola mano, balón hacia arriba y que caiga en tus manos.",
+      "justificacion": "En la iniciación, la práctica en bloque de la mecánica aislada (sin la presión del resultado en el aro) acelera la consolidación del patrón motor del tiro; separar forma de resultado es el estándar del aprendizaje motor temprano (Schmidt & Lee, Motor Control and Learning; forma BEEF de enseñanza FIBA)."
+    },
+    {
+      "pilar": "tiro", "categoria_bucket": "Sub12", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Escalera de tiro cercano: 5 posiciones",
+      "descripcion": "3 veces por semana en cancha: 5 tiros desde 5 puntos alrededor de la zona (1-2 metros del aro), usando el tablero en los ángulos. Apunta cuántos encestas de 25. Cuando logres 20/25 dos veces seguidas, retrocede un paso. El coach valida tu registro.",
+      "justificacion": "La progresión por distancia con criterio de dominio (80% de acierto antes de alejarse) construye el tiro sin corromper la mecánica por falta de fuerza — el error clásico en Sub12; los baremos de tiro libre del club (20-54%) reflejan exactamente esa progresión evolutiva (motor learning por criterio; enseñanza FIBA mini-basket)."
+    },
+    {
+      "pilar": "tiro", "categoria_bucket": "Sub15", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Rutina de tiro libre con ritual",
+      "descripcion": "Diseña tu ritual de tiro libre (ej.: 3 botes, respiración, mirada al aro) y úsalo SIEMPRE. 3 veces por semana lanza 30 tiros libres con tu ritual completo, anotando tus aciertos. Meta del mes: superar tu porcentaje del baremo.",
+      "justificacion": "La rutina pre-tiro consistente mejora el porcentaje de tiro libre de forma medible al automatizar la preparación atencional (Predebon & Docker, Percept Mot Skills, 1992); el baremo Sub15 del club (33-69%) es sensible justamente a esta consistencia procedimental."
+    },
+    {
+      "pilar": "tiro", "categoria_bucket": "Sub15", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Tiro tras recepción: pies listos",
+      "descripcion": "Con el coach o un compañero, 3 veces por semana: 4 series de 10 tiros de media distancia RECIBIENDO el pase en movimiento (pies preparados, catch & shoot en menos de 1 segundo). Registra aciertos por serie y el coach revisa tu preparación de pies.",
+      "justificacion": "El tiro en juego real es tras recepción y con presión temporal — la práctica variable con pase previo transfiere más al partido que el tiro estático repetido (especificidad y práctica variable: Schmidt & Lee); la media distancia del baremo (22-49%) se mide en condiciones análogas."
+    },
+    {
+      "pilar": "tiro", "categoria_bucket": "Sub18", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Volumen inteligente: 150 tiros con registro",
+      "descripcion": "3 sesiones semanales de 50 tiros cada una (150/semana): 20 tiros libres, 20 de media distancia desde 4 puntos, 10 triples. Registra los aciertos de CADA bloque en tu celular y comparte la hoja al coach cada domingo.",
+      "justificacion": "A esta edad el diferencial de tiro viene del volumen deliberado con feedback cuantitativo: registrar por zonas convierte cada sesión en práctica deliberada y permite detectar qué distancia arrastra el porcentaje (Ericsson, deliberate practice; baremos Sub18: TL 50-77%, media 28-54%, triple 22-44%)."
+    },
+    {
+      "pilar": "tiro", "categoria_bucket": "Sub18", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Tiro bajo fatiga y presión defensiva",
+      "descripcion": "Con el coach, 2 veces por semana: circuito de 3 vueltas — 6 tiros tras sprint y cambio de dirección, 6 tras recepción con defensor pasivo cerrando, 5 tiros libres con pulso alto. Se registra el porcentaje bajo fatiga vs. en frío.",
+      "justificacion": "El porcentaje de tiro cae bajo fatiga y presión si solo se entrena en frío; la práctica en condiciones representativas (fatiga + defensor) es la que transfiere al partido según el enfoque de aprendizaje representativo (Pinder et al., representative learning design, J Sport Exerc Psychol, 2011)."
+    },
+    {
+      "pilar": "tiro", "categoria_bucket": "Senior", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Mantenimiento de tiro en temporada",
+      "descripcion": "Además de las prácticas de equipo: 2 sesiones individuales de 60 tiros por semana (mitad de tus zonas de tiro en ataque real, mitad tiros libres). Registro semanal de porcentajes en tu hoja compartida con el coach.",
+      "justificacion": "El porcentaje de tiro decae en temporada si el volumen individual desaparece bajo la carga táctica colectiva; el mantenimiento con dosis moderadas y specificity de zonas propias preserva la mecánica automatizada (Ericsson; análisis de shooting slumps en temporada, NBA analytics aplicada)."
+    },
+    {
+      "pilar": "tiro", "categoria_bucket": "Senior", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Ingeniería del tiro: análisis en video",
+      "descripcion": "Con el coach: grabación lateral y frontal de 20 tiros tuyos, análisis conjunto de arco, alineación y consistencia de la muñeca; identificación de UNA corrección prioritaria y 3 semanas de trabajo específico sobre ella con re-grabación final.",
+      "justificacion": "En tiradores formados, las ganancias vienen de correcciones finas guiadas por video (arco óptimo 45-52°, consistencia del release): el feedback visual extrínseco corrige errores que la propiocepción ya no detecta por automatización (video feedback en habilidades cerradas: Rothstein & Arnold, 1976; biomecánica del tiro: Okazaki et al., Sports Biomech, 2015)."
+    },
+
+    {
+      "pilar": "agilidad", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Persecuciones y congelados con desplazamiento",
+      "descripcion": "En recreos o con amigos, 3 veces por semana: 10 minutos de juegos de persecución (congelados, cogidas) haciendo cambios de dirección bruscos. Cuenta como misión si terminas agitado y sonriendo.",
+      "justificacion": "La agilidad en preadolescentes se desarrolla mejor con juego de persecución no estructurado que con escaleras y conos: los cambios de dirección reactivos ante otro jugador entrenan percepción-acción, el componente que define la agilidad real (Sheppard & Young, agility literature review, J Sports Sci, 2006)."
+    },
+    {
+      "pilar": "agilidad", "categoria_bucket": "Sub12", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Zigzag con balón: control en movimiento",
+      "descripcion": "3 veces por semana: 4 pasadas de zigzag entre 5 conos (o botellas) driblando, ida con mano derecha y vuelta con izquierda, al ritmo más rápido donde NO pierdas el balón. Cuenta tus cambios de dirección en 60 segundos — el baremo del club mide exactamente eso.",
+      "justificacion": "El manejo de balón bajo desplazamiento con cambio de dirección es la agilidad específica del básquet que mide el baremo zigzag_balon (Sub12: 8-21 COD/min); a esta edad el énfasis en control antes que velocidad fija la técnica de dribling que la velocidad posterior explotará (enseñanza FIBA mini-basket; Sheppard & Young, 2006)."
+    },
+    {
+      "pilar": "agilidad", "categoria_bucket": "Sub15", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Pies rápidos: escalera 3 veces por semana",
+      "descripcion": "10 minutos, 3 veces por semana: 4 patrones de escalera de agilidad (dos pies, laterales, in-in-out-out, cruzados) × 3 pasadas cada uno, más 4 desplazamientos defensivos laterales de 5 metros ida y vuelta.",
+      "justificacion": "La frecuencia de apoyos y la mecánica de paso lateral son los componentes entrenables de la agilidad programada en la adolescencia temprana; la escalera mejora la coordinación de pies que luego se transfiere al deslizamiento defensivo del Lane Agility (baremo Sub15: 12.0-14.5 s) (NSCA agility development)."
+    },
+    {
+      "pilar": "agilidad", "categoria_bucket": "Sub15", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Lane Agility técnico por tramos",
+      "descripcion": "Con el coach, 2 veces por semana: el circuito Lane Agility partido en sus 4 tramos (sprint, deslizamiento lateral, carrera atrás, deslizamiento) practicando CADA tramo por separado con técnica correcta, luego 3 circuitos completos cronometrados.",
+      "justificacion": "Descomponer el Lane Agility Drill en tramos permite corregir la mecánica específica de cada patrón (no cruzar pies en el deslizamiento, transición sin pasos extra) antes de integrarla — el método de práctica por partes documentado para pruebas compuestas de agilidad (NBA Combine protocol; part-whole practice: Schmidt & Lee)."
+    },
+    {
+      "pilar": "agilidad", "categoria_bucket": "Sub18", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "COD semanal: cortes a máxima intensidad",
+      "descripcion": "2-3 veces por semana al final del calentamiento: 6 repeticiones de sprint 5 m + corte de 45-90° + sprint 5 m, alternando lado del corte. Máxima intensidad, pausa completa entre repeticiones. 8 minutos.",
+      "justificacion": "El cambio de dirección de alta intensidad con pausa completa mantiene y mejora la cualidad neuromuscular del corte (frenado excéntrico + reaceleración), determinante del Lane Agility Sub18 (11.0-12.8 s); dosis pequeñas frecuentes superan a sesiones largas esporádicas (Dos'Santos et al., COD training, Sports Med, 2019)."
+    },
+    {
+      "pilar": "agilidad", "categoria_bucket": "Sub18", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Agilidad reactiva: corte a la señal",
+      "descripcion": "Con el coach o un compañero, 2 veces por semana: 8 repeticiones de carrera frontal donde reaccionas a la señal (mano, voz o movimiento del compañero) cortando hacia el lado indicado. Luego 4 duelos 1c1 de espejo defensivo de 10 segundos.",
+      "justificacion": "La agilidad de partido = velocidad de cambio de dirección + toma de decisión perceptiva; el entrenamiento reactivo ante estímulo humano mejora la agilidad reactiva significativamente más que los circuitos preprogramados de conos (Young & Rogers, reactive agility vs change of direction, J Sports Sci, 2014)."
+    },
+    {
+      "pilar": "agilidad", "categoria_bucket": "Senior", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Frenado excéntrico: la base del corte",
+      "descripcion": "2 veces por semana: 3×6 sentadillas con bajada lenta de 4 segundos, 3×5 frenados desde carrera (acelera 10 m, frena en 2 pasos, mantén la posición 2 s) y 2×8 zancadas laterales profundas. 15 minutos.",
+      "justificacion": "En adultos la limitante del cambio de dirección suele ser la capacidad de frenado excéntrico, no la aceleración: la fuerza excéntrica del cuádriceps predice el rendimiento COD y protege el LCA en la desaceleración (Dos'Santos et al., braking strategies, Sports Med, 2019; Jones et al., eccentric strength & COD, J Strength Cond Res, 2017)."
+    },
+    {
+      "pilar": "agilidad", "categoria_bucket": "Senior", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Lane Agility bajo 12 segundos: plan de 4 semanas",
+      "descripcion": "Con el coach: test inicial de Lane Agility cronometrado, análisis de qué tramo pierde más tiempo, 4 semanas con 2 sesiones semanales atacando ese tramo (deslizamiento, retro-carrera o transiciones) y re-test final.",
+      "justificacion": "El baremo Senior de Lane Agility (10.5-12.3 s) discrimina por las transiciones entre patrones, no por la velocidad lineal; el entrenamiento dirigido al tramo deficitario identificado por cronometraje parcial es la vía de mejora documentada en el protocolo del NBA Combine (NBA Combine analytics; Dos'Santos, 2019)."
+    },
+
+    {
+      "pilar": "tactica", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Mira básquet con ojos de detective",
+      "descripcion": "Una vez por semana, mira 10 minutos de un partido (NBA, liga local o de tu categoría) con UNA misión: contar cuántas veces el equipo pasa el balón antes de tirar, y descubrir qué hace el jugador SIN balón. Cuéntale al coach qué encontraste.",
+      "justificacion": "La observación dirigida con foco atencional específico desarrolla la lectura de juego en la iniciación: aprender a mirar el juego lejos del balón es el precursor de la táctica individual (Teaching Games for Understanding, Bunker & Thorpe; García-González et al., conocimiento táctico juvenil, Rev Psicol Deporte, 2011)."
+    },
+    {
+      "pilar": "tactica", "categoria_bucket": "Sub12", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Decisión de 2: ¿paso o tiro?",
+      "descripcion": "En cada práctica de esta semana, en los juegos reducidos 2c1 y 2c2: tu única misión es decidir bien — si el defensor viene a ti, pasa; si se queda con tu compañero, ataca al aro. El coach te dará feedback de cada decisión, no del resultado.",
+      "justificacion": "El 2c1 es la unidad táctica mínima del básquet: entrenar la decisión binaria con feedback sobre la DECISIÓN (no el acierto del tiro) acelera la lectura del defensor, la base de toda la táctica ofensiva posterior (small-sided games y toma de decisión: Davids et al., ecological dynamics; TGfU)."
+    },
+    {
+      "pilar": "tactica", "categoria_bucket": "Sub15", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Cuaderno táctico del partido",
+      "descripcion": "Después de cada partido de este mes, escribe 3 líneas: una jugada que salió bien y por qué, un error táctico tuyo y qué harías distinto, y algo que hizo el rival que te costó. Compártelo con el coach cada semana.",
+      "justificacion": "La reflexión estructurada post-partido consolida el aprendizaje táctico implícito en conocimiento explícito reutilizable; los diarios de autoconfrontación mejoran la toma de decisiones en deportes de equipo adolescentes (reflective practice en deporte: Richards et al., Reflective Practice, 2012)."
+    },
+    {
+      "pilar": "tactica", "categoria_bucket": "Sub15", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Pick & roll: las 3 lecturas del que sale del bloqueo",
+      "descripcion": "Con el coach, 2 semanas de trabajo: aprender y repetir las 3 lecturas al usar un bloqueo directo — (1) defensor persigue → gira la esquina, (2) defensor pasa por debajo → tiro, (3) cambio defensivo → ataca el desajuste. Juegos 2c2 con bloqueo evaluando la lectura correcta.",
+      "justificacion": "El pick & roll es la acción táctica más frecuente del básquet moderno y su rendimiento depende de la lectura del comportamiento defensivo, entrenable mediante repetición variable de los 3 escenarios (análisis de frecuencia P&R en FIBA/NBA; práctica variable: Schmidt & Lee; Gómez et al., ball screen analysis, Int J Perform Anal Sport, 2015)."
+    },
+    {
+      "pilar": "tactica", "categoria_bucket": "Sub18", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Scouting personal del rival",
+      "descripcion": "Antes de cada partido de este mes: averigua (por videos o partidos previos) quién es el mejor anotador rival y cuál es su mano dominante, y define UNA regla defensiva personal contra él. Después del partido evalúa con el coach si tu regla funcionó.",
+      "justificacion": "El scouting individual convierte la táctica de equipo en responsabilidad personal: anticipar tendencias del oponente reduce el tiempo de decisión defensiva, y el ciclo plan→ejecución→evaluación es el formato documentado de desarrollo táctico en juveniles avanzados (game intelligence: Memmert, tactical creativity, 2010)."
+    },
+    {
+      "pilar": "tactica", "categoria_bucket": "Sub18", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Video-análisis: 5 posesiones tuyas",
+      "descripcion": "Con el coach: seleccionar en video 5 posesiones tuyas de un partido reciente (2 buenas, 3 mejorables), analizarlas juntos identificando la alternativa táctica superior en cada una, y fijar 1 objetivo táctico concreto para el siguiente partido.",
+      "justificacion": "El video-análisis individual con instrucción es el método con mayor efecto documentado sobre la toma de decisiones en deportes de equipo (mejoras del 15-25% en decisiones correctas); el foco en pocas posesiones con alternativa explícita evita la sobrecarga informacional (García-González et al., video-feedback y táctica, 2014; Memmert, 2010)."
+    },
+    {
+      "pilar": "tactica", "categoria_bucket": "Senior", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Lectura de sistemas: 20 minutos de film semanal",
+      "descripcion": "Cada semana de este mes: 20 minutos de video de un equipo de élite enfocándote SOLO en un concepto (spacing en transición, defensa del P&R, rotaciones de ayuda). Trae al coach una jugada que aplicarías con tu equipo y por qué.",
+      "justificacion": "En seniors el diferencial táctico está en el reconocimiento de patrones colectivos: el estudio sistemático de film con foco conceptual único desarrolla el reconocimiento anticipado que distingue a los jugadores expertos (pattern recognition en expertos: Abernethy et al.; North et al., perceptual expertise, 2009)."
+    },
+    {
+      "pilar": "tactica", "categoria_bucket": "Senior", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Rol táctico maestro: domina tu función",
+      "descripcion": "Con el coach: definir por escrito tu rol táctico exacto en los 3 sistemas principales del equipo (qué decides tú, qué está prefijado, cuáles son tus 2 opciones prioritarias en cada uno), y evaluarlo en video tras 3 partidos con una rúbrica simple de cumplimiento.",
+      "justificacion": "La claridad de rol es uno de los predictores más robustos de eficacia colectiva y rendimiento individual en deportes de equipo (role clarity: Eys & Carron, Small Group Res, 2001); operacionalizarla por sistema con rúbrica convierte la eficiencia táctica del baremo en conducta observable y entrenable."
+    },
+
+    {
+      "pilar": "resiliencia", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "El truco del globo: respira antes de seguir",
+      "descripcion": "Aprende el truco: cuando falles o te enojes en un partido o práctica, infla un globo imaginario — inhala 3 segundos por la nariz, exhala 5 segundos por la boca como inflando un globo, y di en tu mente 'siguiente jugada'. Úsalo toda la semana y cuéntale al coach cuándo te sirvió.",
+      "justificacion": "La respiración con exhalación prolongada activa la respuesta parasimpática y es la técnica de autorregulación más enseñable en niños; anclarla a una rutina verbal ('siguiente jugada') crea el hábito de reset atencional que define la resiliencia deportiva temprana (arousal regulation en deporte infantil: Weinberg & Gould, Foundations of Sport Psychology)."
+    },
+    {
+      "pilar": "resiliencia", "categoria_bucket": "Sub12", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Misión: 5 errores valientes",
+      "descripcion": "Esta semana en las prácticas tu misión es cometer 5 'errores valientes': intentar algo difícil (un pase arriesgado bueno, atacar al grande, tirar cuando estás solo) aunque pueda salir mal. El coach cuenta contigo los intentos — se valida por intentar, no por acertar.",
+      "justificacion": "Recompensar el intento valiente y no el resultado construye orientación al aprendizaje (growth mindset) y reduce el miedo al error, el principal freno de desarrollo en la iniciación deportiva; la evidencia muestra que el clima motivacional orientado a la tarea predice persistencia a largo plazo (Dweck, mindset; Duda & Nicholls, motivational climate in youth sport)."
+    },
+    {
+      "pilar": "resiliencia", "categoria_bucket": "Sub15", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Termómetro emocional post-práctica",
+      "descripcion": "Durante 3 semanas, después de cada práctica registra en tu celular: tu frustración de 1 a 10, qué la disparó y cómo respondiste. Los domingos revisa tu semana: ¿qué situación se repite? Compártelo con el coach una vez por semana.",
+      "justificacion": "El automonitoreo emocional es el primer paso de la autorregulación: identificar disparadores recurrentes permite anticiparlos, y el registro sistemático mejora la regulación emocional en adolescentes deportistas (self-monitoring y regulación: Zimmerman, self-regulation cycle; aplicado al deporte en Kitsantas & Zimmerman, 2002)."
+    },
+    {
+      "pilar": "resiliencia", "categoria_bucket": "Sub15", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Rutina de reset: 3 pasos tras el error",
+      "descripcion": "Con el coach, diseña tu rutina personal de 5 segundos para después de un error (ej.: puño cerrado y soltar + una respiración + palabra clave). Entrénala en situaciones creadas: el coach provocará errores en práctica (silbatos injustos, tanteos en contra) y evaluará si ejecutas tu rutina.",
+      "justificacion": "Las rutinas de recuperación post-error (mistake rituals) reducen la rumiación y el arrastre del error a la siguiente jugada; el entrenamiento con adversidad simulada (pressure training) es el método documentado para transferirlas a competición (pressure training: Stoker et al., J Appl Sport Psychol, 2016; mistake rituals: Gilbert, coaching literature)."
+    },
+    {
+      "pilar": "resiliencia", "categoria_bucket": "Sub18", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Metas de proceso del mes",
+      "descripcion": "Define con formato escrito 3 metas de PROCESO para este mes (ej.: 'comunicar en cada defensa', 'correr la cancha en cada transición') — nada de resultados ni estadísticas. Autoevalúate 1-10 tras cada partido y revisa con el coach a fin de mes.",
+      "justificacion": "Las metas de proceso (controlables) sostienen la confianza y el esfuerzo bajo presión mejor que las metas de resultado, especialmente en fases de derrotas; es el hallazgo central de la teoría de metas aplicada al deporte (Locke & Latham, goal setting; Kingston & Hardy, process goals in sport, JSEP, 1997)."
+    },
+    {
+      "pilar": "resiliencia", "categoria_bucket": "Sub18", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Entrenamiento bajo presión diseñada",
+      "descripcion": "Con el coach, 3 sesiones: situaciones de presión real diseñada — tiros libres decisivos con castigo/premio grupal, finales simulados perdiendo por 2 con 30 segundos, público ruidoso artificial. Después de cada una, evaluación conjunta de tu respuesta emocional y táctica.",
+      "justificacion": "La exposición gradual y deliberada a presión en entrenamiento (pressure inurement) mejora el rendimiento bajo presión competitiva real — el efecto está documentado en ensayos con deportistas juveniles de élite; la clave es la evaluación posterior que convierte la experiencia en estrategia (Stoker et al., pressure training, 2016; Fletcher & Sarkar, psychological resilience in champions, 2012)."
+    },
+    {
+      "pilar": "resiliencia", "categoria_bucket": "Senior", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Higiene mental del competidor",
+      "descripcion": "Durante 4 semanas: 5 minutos diarios de respiración guiada o mindfulness (cualquier app sirve), y regla de las 24 horas — tras un mal partido, análisis solo al día siguiente, nunca la misma noche. Registro simple de cumplimiento.",
+      "justificacion": "La práctica breve y regular de mindfulness reduce la ansiedad competitiva y mejora la recuperación atencional entre partidos en atletas adultos (mindfulness-based interventions in sport: Bühlmayer et al., meta-análisis, Sports Med, 2017); la regla de demora evita el procesamiento emocional en caliente que consolida narrativas negativas."
+    },
+    {
+      "pilar": "resiliencia", "categoria_bucket": "Senior", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Protocolo personal de rendimiento bajo presión",
+      "descripcion": "Con el coach: construir tu protocolo escrito de manejo de presión (señales corporales de alarma, rutina de regulación, diálogo interno de 3 frases, plan para los últimos 2 minutos de partido cerrado) y validarlo en 3 situaciones de práctica diseñadas + 1 partido real con evaluación posterior.",
+      "justificacion": "Los atletas de élite no improvisan bajo presión: operan protocolos preconstruidos de regulación (rutinas + diálogo interno instruccional); formalizarlos por escrito y testearlos con presión simulada es la intervención con mejor transferencia documentada (Fletcher & Sarkar, resilience in Olympic champions, Psychol Sport Exerc, 2012; self-talk meta-análisis: Hatzigeorgiadis et al., 2011)."
+    }
+  ]
+}

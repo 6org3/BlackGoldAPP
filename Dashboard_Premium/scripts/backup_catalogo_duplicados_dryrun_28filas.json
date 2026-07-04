@@ -1,0 +1,1468 @@
+[
+  {
+    "id": "31c1d04a-68a1-4f73-8a73-82c80cebebb4",
+    "nombre": "Salto Vertical (CMJ)",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "explosividad",
+    "tren": "inferior",
+    "unidad": "cm",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        22,
+        27,
+        32,
+        37
+      ],
+      "Sub15": [
+        28,
+        34,
+        41,
+        49
+      ],
+      "Sub18": [
+        36,
+        43,
+        51,
+        59
+      ],
+      "Senior": [
+        40,
+        49,
+        59,
+        69
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "e289d012-3f67-44ec-878b-e37f686edc3a",
+    "nombre": "Flexiones en 30s",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "explosividad",
+    "tren": "superior",
+    "unidad": "reps",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        7,
+        11,
+        16,
+        21
+      ],
+      "Sub15": [
+        12,
+        17,
+        22,
+        27
+      ],
+      "Sub18": [
+        16,
+        21,
+        26,
+        31
+      ],
+      "Senior": [
+        18,
+        23,
+        29,
+        34
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "1a1bf387-a718-4fa9-adcc-45164beb0c6b",
+    "nombre": "Dominadas",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "explosividad",
+    "tren": "superior",
+    "unidad": "reps",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        0,
+        0,
+        3,
+        8
+      ],
+      "Sub15": [
+        0,
+        3,
+        6,
+        12
+      ],
+      "Sub18": [
+        4,
+        6,
+        9,
+        14
+      ],
+      "Senior": [
+        4,
+        7,
+        12,
+        17
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "21e92a49-e446-490c-9586-d25c05caef22",
+    "nombre": "Sentadilla (× Peso Corp.)",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "fuerza",
+    "tren": "inferior",
+    "unidad": "x_bw",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        0.25,
+        0.39,
+        0.59,
+        0.79
+      ],
+      "Sub15": [
+        0.7,
+        0.99,
+        1.29,
+        1.59
+      ],
+      "Sub18": [
+        1,
+        1.39,
+        1.69,
+        1.99
+      ],
+      "Senior": [
+        1,
+        1.39,
+        1.69,
+        1.99
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "cdcf2828-c952-4fe6-a7db-20e2e5ff679c",
+    "nombre": "Push-ups Máx.",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "fuerza",
+    "tren": "superior",
+    "unidad": "reps",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        8,
+        13,
+        19,
+        29
+      ],
+      "Sub15": [
+        15,
+        23,
+        29,
+        40
+      ],
+      "Sub18": [
+        20,
+        29,
+        34,
+        45
+      ],
+      "Senior": [
+        20,
+        29,
+        39,
+        55
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "91663882-72bd-4d56-8929-516d5b4f9a5e",
+    "nombre": "Press Banca (× Peso Corp.)",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "fuerza",
+    "tren": "superior",
+    "unidad": "x_bw",
+    "invertido": false,
+    "thresholds": {
+      "Sub18": [
+        0.6,
+        0.84,
+        1.09,
+        1.29
+      ],
+      "Senior": [
+        0.75,
+        0.99,
+        1.19,
+        1.49
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "81f42a83-3315-45e2-993c-012af22e1d89",
+    "nombre": "Sit & Reach",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "movilidad",
+    "tren": null,
+    "unidad": "cm",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        -5,
+        -1,
+        3,
+        7
+      ],
+      "Sub15": [
+        -5,
+        -1,
+        4,
+        9
+      ],
+      "Sub18": [
+        4,
+        6,
+        10,
+        13
+      ],
+      "Senior": [
+        4,
+        6,
+        13,
+        16
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "0012e594-ec13-47b5-99b3-543b6effa643",
+    "nombre": "Dorsiflexión Tobillo",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "movilidad",
+    "tren": "inferior",
+    "unidad": "cm",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        6.1,
+        8.3,
+        10.9,
+        13
+      ],
+      "Sub15": [
+        6.1,
+        8.3,
+        10.9,
+        13
+      ],
+      "Sub18": [
+        6.1,
+        8.3,
+        10.9,
+        13
+      ],
+      "Senior": [
+        6.1,
+        8.3,
+        10.9,
+        13
+      ]
+    },
+    "inputs_requeridos": [
+      {
+        "id": "izq",
+        "label": "Izquierdo"
+      },
+      {
+        "id": "der",
+        "label": "Derecho"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "8fbd30df-0c65-4f24-ae9c-b96f75afe29a",
+    "nombre": "Rot. Interna Cadera",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "movilidad",
+    "tren": "inferior",
+    "unidad": "grados",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        22,
+        29,
+        37,
+        44
+      ],
+      "Sub15": [
+        22,
+        29,
+        37,
+        44
+      ],
+      "Sub18": [
+        22,
+        29,
+        37,
+        44
+      ],
+      "Senior": [
+        22,
+        29,
+        37,
+        44
+      ]
+    },
+    "inputs_requeridos": [
+      {
+        "id": "izq",
+        "label": "Izquierdo"
+      },
+      {
+        "id": "der",
+        "label": "Derecho"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "8997a559-20cb-4e78-8627-15171c55e35a",
+    "nombre": "Rot. Externa Cadera",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "movilidad",
+    "tren": "inferior",
+    "unidad": "grados",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        32,
+        39,
+        47,
+        54
+      ],
+      "Sub15": [
+        32,
+        39,
+        47,
+        54
+      ],
+      "Sub18": [
+        32,
+        39,
+        47,
+        54
+      ],
+      "Senior": [
+        32,
+        39,
+        47,
+        54
+      ]
+    },
+    "inputs_requeridos": [
+      {
+        "id": "izq",
+        "label": "Izquierdo"
+      },
+      {
+        "id": "der",
+        "label": "Derecho"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "97f3be84-1587-4542-a350-feb628e5a8fb",
+    "nombre": "Rot. Externa Hombro",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "movilidad",
+    "tren": "superior",
+    "unidad": "grados",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        70,
+        79,
+        87,
+        94
+      ],
+      "Sub15": [
+        70,
+        79,
+        87,
+        94
+      ],
+      "Sub18": [
+        70,
+        79,
+        87,
+        94
+      ],
+      "Senior": [
+        70,
+        79,
+        87,
+        94
+      ]
+    },
+    "inputs_requeridos": [
+      {
+        "id": "izq",
+        "label": "Izquierdo"
+      },
+      {
+        "id": "der",
+        "label": "Derecho"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "9c96cfc0-39ea-40f3-a63e-902506abc409",
+    "nombre": "Rot. Interna Hombro",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "movilidad",
+    "tren": "superior",
+    "unidad": "grados",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        50,
+        59,
+        67,
+        74
+      ],
+      "Sub15": [
+        50,
+        59,
+        67,
+        74
+      ],
+      "Sub18": [
+        50,
+        59,
+        67,
+        74
+      ],
+      "Senior": [
+        50,
+        59,
+        67,
+        74
+      ]
+    },
+    "inputs_requeridos": [
+      {
+        "id": "izq",
+        "label": "Izquierdo"
+      },
+      {
+        "id": "der",
+        "label": "Derecho"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "572af887-0438-4fc1-b361-3729b44c6e37",
+    "nombre": "Pistol Single Squat",
+    "descripcion": "",
+    "pilar": "fisico",
+    "sub_pilar": "movilidad",
+    "tren": "inferior",
+    "unidad": "reps",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        0,
+        2,
+        5,
+        8
+      ],
+      "Sub15": [
+        2,
+        5,
+        8,
+        12
+      ],
+      "Sub18": [
+        4,
+        8,
+        12,
+        16
+      ],
+      "Senior": [
+        6,
+        10,
+        15,
+        20
+      ]
+    },
+    "inputs_requeridos": [
+      {
+        "id": "izq",
+        "label": "Izquierdo"
+      },
+      {
+        "id": "der",
+        "label": "Derecho"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "04b6adb5-0652-46b8-8c9d-b55f4cbd013b",
+    "nombre": "Tiro Libre",
+    "descripcion": "",
+    "pilar": "tecnico",
+    "sub_pilar": "tiro",
+    "tren": null,
+    "unidad": "%",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        20,
+        29,
+        41,
+        54
+      ],
+      "Sub15": [
+        33,
+        44,
+        57,
+        69
+      ],
+      "Sub18": [
+        50,
+        59,
+        69,
+        77
+      ],
+      "Senior": [
+        55,
+        67,
+        74,
+        81
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "d07a9050-6f8e-4ace-8976-a42fabbb76ed",
+    "nombre": "Media Distancia",
+    "descripcion": "",
+    "pilar": "tecnico",
+    "sub_pilar": "tiro",
+    "tren": null,
+    "unidad": "%",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        18,
+        24,
+        34,
+        44
+      ],
+      "Sub15": [
+        22,
+        31,
+        39,
+        49
+      ],
+      "Sub18": [
+        28,
+        37,
+        45,
+        54
+      ],
+      "Senior": [
+        28,
+        37,
+        45,
+        54
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "5021bd8d-7735-4256-a7d8-241e5bd7a3cb",
+    "nombre": "Tres Puntos",
+    "descripcion": "",
+    "pilar": "tecnico",
+    "sub_pilar": "tiro",
+    "tren": null,
+    "unidad": "%",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        14,
+        21,
+        29,
+        39
+      ],
+      "Sub15": [
+        18,
+        25,
+        33,
+        41
+      ],
+      "Sub18": [
+        22,
+        29,
+        37,
+        44
+      ],
+      "Senior": [
+        24,
+        29,
+        35,
+        41
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "69aa4bdc-535a-49b0-9dbf-d1d88707ea76",
+    "nombre": "Lane Agility",
+    "descripcion": "",
+    "pilar": "tecnico",
+    "sub_pilar": "agilidad",
+    "tren": null,
+    "unidad": "segundos",
+    "invertido": true,
+    "thresholds": {
+      "Sub12": [
+        13,
+        13.9,
+        14.9,
+        16
+      ],
+      "Sub15": [
+        12,
+        12.9,
+        13.5,
+        14.5
+      ],
+      "Sub18": [
+        11,
+        11.5,
+        12,
+        12.8
+      ],
+      "Senior": [
+        10.5,
+        11,
+        11.5,
+        12.3
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "6444f3d9-a6b4-4bc2-8ad5-b681d040457a",
+    "nombre": "Zigzag con Balón",
+    "descripcion": "",
+    "pilar": "tecnico",
+    "sub_pilar": "agilidad",
+    "tren": null,
+    "unidad": "COD/min",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        8,
+        11,
+        16,
+        21
+      ],
+      "Sub15": [
+        12,
+        16,
+        22,
+        27
+      ],
+      "Sub18": [
+        16,
+        20,
+        25,
+        30
+      ],
+      "Senior": [
+        16,
+        21,
+        27,
+        33
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "ab3b9d4f-fcb3-45ab-9993-bd28e8980bb9",
+    "nombre": "Eficiencia Táctica",
+    "descripcion": "",
+    "pilar": "mental",
+    "sub_pilar": "tactica",
+    "tren": null,
+    "unidad": "rating",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        20,
+        35,
+        55,
+        75
+      ],
+      "Sub15": [
+        20,
+        35,
+        55,
+        75
+      ],
+      "Sub18": [
+        20,
+        35,
+        55,
+        75
+      ],
+      "Senior": [
+        20,
+        35,
+        55,
+        75
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "e140b835-f467-4046-b4a7-beb6c6e2c3ca",
+    "nombre": "Resiliencia",
+    "descripcion": "",
+    "pilar": "mental",
+    "sub_pilar": "resiliencia",
+    "tren": null,
+    "unidad": "rating",
+    "invertido": false,
+    "thresholds": {
+      "Sub12": [
+        20,
+        35,
+        55,
+        75
+      ],
+      "Sub15": [
+        20,
+        35,
+        55,
+        75
+      ],
+      "Sub18": [
+        20,
+        35,
+        55,
+        75
+      ],
+      "Senior": [
+        20,
+        35,
+        55,
+        75
+      ]
+    },
+    "inputs_requeridos": null,
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-20T20:53:09.055443+00:00",
+    "tipo": null,
+    "descripcion_ejecucion": null,
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "33333333-3333-4333-8333-333333333333",
+    "nombre": "Salto Vertical (CMJ)",
+    "descripcion": "Salto vertical con contramovimiento",
+    "pilar": "fisico",
+    "sub_pilar": "explosividad",
+    "tren": "inferior",
+    "unidad": "cm",
+    "invertido": false,
+    "thresholds": {
+      "Femenino": {
+        "Sub12": [
+          18,
+          22,
+          26,
+          30
+        ],
+        "Sub15": [
+          22,
+          28,
+          34,
+          40
+        ],
+        "Sub18": [
+          28,
+          34,
+          42,
+          48
+        ],
+        "Senior": [
+          32,
+          40,
+          48,
+          56
+        ]
+      },
+      "Masculino": {
+        "Sub12": [
+          22,
+          27,
+          32,
+          37
+        ],
+        "Sub15": [
+          28,
+          34,
+          41,
+          49
+        ],
+        "Sub18": [
+          36,
+          43,
+          51,
+          59
+        ],
+        "Senior": [
+          40,
+          49,
+          59,
+          69
+        ]
+      }
+    },
+    "inputs_requeridos": [
+      {
+        "id": "unico",
+        "label": "Altura"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-22T01:05:10.438665+00:00",
+    "tipo": "mas_es_mejor",
+    "descripcion_ejecucion": "El atleta se para derecho, flexiona las rodillas y salta lo más alto posible usando el impulso de los brazos.",
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "44444444-4444-4444-8444-444444444444",
+    "nombre": "Flexiones en 30s",
+    "descripcion": "Flexiones de pecho",
+    "pilar": "fisico",
+    "sub_pilar": "fuerza",
+    "tren": "superior",
+    "unidad": "reps",
+    "invertido": false,
+    "thresholds": {
+      "Femenino": {
+        "Sub12": [
+          4,
+          7,
+          11,
+          15
+        ],
+        "Sub15": [
+          8,
+          12,
+          16,
+          20
+        ],
+        "Sub18": [
+          10,
+          15,
+          20,
+          25
+        ],
+        "Senior": [
+          12,
+          18,
+          23,
+          28
+        ]
+      },
+      "Masculino": {
+        "Sub12": [
+          7,
+          11,
+          16,
+          21
+        ],
+        "Sub15": [
+          12,
+          17,
+          22,
+          27
+        ],
+        "Sub18": [
+          16,
+          21,
+          26,
+          31
+        ],
+        "Senior": [
+          18,
+          23,
+          29,
+          34
+        ]
+      }
+    },
+    "inputs_requeridos": [
+      {
+        "id": "unico",
+        "label": "Reps"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-22T01:05:10.438665+00:00",
+    "tipo": "mas_es_mejor",
+    "descripcion_ejecucion": "Contar flexiones estrictas (pecho a 5cm del piso) realizadas en exactamente 30 segundos.",
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "55555555-5555-4555-8555-555555555555",
+    "nombre": "Dominadas",
+    "descripcion": "Dominadas estrictas",
+    "pilar": "fisico",
+    "sub_pilar": "fuerza",
+    "tren": "superior",
+    "unidad": "reps",
+    "invertido": false,
+    "thresholds": {
+      "Femenino": {
+        "Sub12": [
+          0,
+          0,
+          1,
+          3
+        ],
+        "Sub15": [
+          0,
+          1,
+          3,
+          5
+        ],
+        "Sub18": [
+          1,
+          3,
+          5,
+          8
+        ],
+        "Senior": [
+          1,
+          4,
+          7,
+          10
+        ]
+      },
+      "Masculino": {
+        "Sub12": [
+          0,
+          0,
+          3,
+          8
+        ],
+        "Sub15": [
+          0,
+          3,
+          6,
+          12
+        ],
+        "Sub18": [
+          4,
+          6,
+          9,
+          14
+        ],
+        "Senior": [
+          4,
+          7,
+          12,
+          17
+        ]
+      }
+    },
+    "inputs_requeridos": [
+      {
+        "id": "unico",
+        "label": "Reps"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-22T01:05:10.438665+00:00",
+    "tipo": "mas_es_mejor",
+    "descripcion_ejecucion": "Dominadas estrictas (barbilla sobre la barra, codos extendidos abajo). Sin kipping.",
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "66666666-6666-4666-8666-666666666666",
+    "nombre": "Sentadilla (x Peso Corp.)",
+    "descripcion": "Fuerza máxima sentadilla",
+    "pilar": "fisico",
+    "sub_pilar": "fuerza",
+    "tren": "inferior",
+    "unidad": "x_bw",
+    "invertido": false,
+    "thresholds": {
+      "Femenino": {
+        "Sub12": [
+          0.2,
+          0.3,
+          0.45,
+          0.6
+        ],
+        "Sub15": [
+          0.5,
+          0.7,
+          0.9,
+          1.1
+        ],
+        "Sub18": [
+          0.8,
+          1,
+          1.3,
+          1.6
+        ],
+        "Senior": [
+          0.8,
+          1,
+          1.3,
+          1.6
+        ]
+      },
+      "Masculino": {
+        "Sub12": [
+          0.25,
+          0.39,
+          0.59,
+          0.79
+        ],
+        "Sub15": [
+          0.7,
+          0.99,
+          1.29,
+          1.59
+        ],
+        "Sub18": [
+          1,
+          1.39,
+          1.69,
+          1.99
+        ],
+        "Senior": [
+          1,
+          1.39,
+          1.69,
+          1.99
+        ]
+      }
+    },
+    "inputs_requeridos": [
+      {
+        "id": "unico",
+        "label": "Ratio"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-22T01:05:10.438665+00:00",
+    "tipo": "mas_es_mejor",
+    "descripcion_ejecucion": "1RM de sentadilla profunda dividido para el peso corporal del atleta.",
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "77777777-7777-4777-8777-777777777777",
+    "nombre": "Tiro Libre",
+    "descripcion": "Porcentaje de Tiro Libre",
+    "pilar": "tecnico",
+    "sub_pilar": "tiro",
+    "tren": null,
+    "unidad": "%",
+    "invertido": false,
+    "thresholds": {
+      "Femenino": {
+        "Sub12": [
+          20,
+          29,
+          41,
+          54
+        ],
+        "Sub15": [
+          33,
+          44,
+          57,
+          69
+        ],
+        "Sub18": [
+          50,
+          59,
+          69,
+          77
+        ],
+        "Senior": [
+          55,
+          67,
+          74,
+          81
+        ]
+      },
+      "Masculino": {
+        "Sub12": [
+          20,
+          29,
+          41,
+          54
+        ],
+        "Sub15": [
+          33,
+          44,
+          57,
+          69
+        ],
+        "Sub18": [
+          50,
+          59,
+          69,
+          77
+        ],
+        "Senior": [
+          55,
+          67,
+          74,
+          81
+        ]
+      }
+    },
+    "inputs_requeridos": [
+      {
+        "id": "unico",
+        "label": "% Acierto"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-22T01:05:10.438665+00:00",
+    "tipo": "mas_es_mejor",
+    "descripcion_ejecucion": "Secuencia de 10 a 20 tiros libres consecutivos bajo presión moderada.",
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "88888888-8888-4888-8888-888888888888",
+    "nombre": "Lane Agility",
+    "descripcion": "Agilidad en la pintura",
+    "pilar": "tecnico",
+    "sub_pilar": "agilidad",
+    "tren": null,
+    "unidad": "segundos",
+    "invertido": true,
+    "thresholds": {
+      "Femenino": {
+        "Sub12": [
+          14,
+          14.9,
+          15.9,
+          17
+        ],
+        "Sub15": [
+          13,
+          13.9,
+          14.5,
+          15.5
+        ],
+        "Sub18": [
+          12,
+          12.5,
+          13,
+          13.8
+        ],
+        "Senior": [
+          11.5,
+          12,
+          12.5,
+          13.3
+        ]
+      },
+      "Masculino": {
+        "Sub12": [
+          13,
+          13.9,
+          14.9,
+          16
+        ],
+        "Sub15": [
+          12,
+          12.9,
+          13.5,
+          14.5
+        ],
+        "Sub18": [
+          11,
+          11.5,
+          12,
+          12.8
+        ],
+        "Senior": [
+          10.5,
+          11,
+          11.5,
+          12.3
+        ]
+      }
+    },
+    "inputs_requeridos": [
+      {
+        "id": "unico",
+        "label": "Tiempo"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-22T01:05:10.438665+00:00",
+    "tipo": "menos_es_mejor",
+    "descripcion_ejecucion": "Recorrer el perímetro de la zona (pintura) combinando sprint frontal, desplazamiento lateral y carrera hacia atrás.",
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "99999999-9999-4999-8999-999999999999",
+    "nombre": "Eficiencia Táctica",
+    "descripcion": "Rating subjetivo",
+    "pilar": "mental",
+    "sub_pilar": "tactica",
+    "tren": null,
+    "unidad": "rating",
+    "invertido": false,
+    "thresholds": {
+      "Femenino": {
+        "Todas": [
+          20,
+          35,
+          55,
+          75
+        ]
+      },
+      "Masculino": {
+        "Todas": [
+          20,
+          35,
+          55,
+          75
+        ]
+      }
+    },
+    "inputs_requeridos": [
+      {
+        "id": "unico",
+        "label": "Rating 0-100"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-22T01:05:10.438665+00:00",
+    "tipo": "mas_es_mejor",
+    "descripcion_ejecucion": "Evaluación subjetiva del coach basada en la toma de decisiones del atleta en simulaciones de juego real.",
+    "autor_id": null,
+    "baremo_key": null
+  },
+  {
+    "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "nombre": "Resiliencia",
+    "descripcion": "Rating subjetivo",
+    "pilar": "mental",
+    "sub_pilar": "resiliencia",
+    "tren": null,
+    "unidad": "rating",
+    "invertido": false,
+    "thresholds": {
+      "Femenino": {
+        "Todas": [
+          20,
+          35,
+          55,
+          75
+        ]
+      },
+      "Masculino": {
+        "Todas": [
+          20,
+          35,
+          55,
+          75
+        ]
+      }
+    },
+    "inputs_requeridos": [
+      {
+        "id": "unico",
+        "label": "Rating 0-100"
+      }
+    ],
+    "creado_por": null,
+    "club_id": null,
+    "fecha_creacion": "2026-06-22T01:05:10.438665+00:00",
+    "tipo": "mas_es_mejor",
+    "descripcion_ejecucion": "Evaluación de lenguaje corporal, respuesta al fracaso y capacidad de mantener la concentración bajo fatiga extrema.",
+    "autor_id": null,
+    "baremo_key": null
+  }
+]
