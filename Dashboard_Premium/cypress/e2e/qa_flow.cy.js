@@ -19,7 +19,9 @@ describe('Black Gold QA Flow', () => {
 
     // 2. DASHBOARD
     cy.url({ timeout: 10000 }).should('include', '/dashboard');
-    cy.contains(/dashboard premium/i, { timeout: 10000 }).should('be.visible');
+    // Texto real del header del dashboard (el anterior 'Dashboard Premium' no
+    // existe en la UI — solo en el <title> del documento, que contains no ve).
+    cy.contains(/tripulación/i, { timeout: 10000 }).should('be.visible');
 
     // Verificamos que carguen los datos
     cy.get('.animate-spin').should('not.exist');

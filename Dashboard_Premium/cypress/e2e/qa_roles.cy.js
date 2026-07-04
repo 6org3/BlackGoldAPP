@@ -1,10 +1,13 @@
 describe('QA Flow - 3 Roles', () => {
   const ROLES_CONFIG = Cypress.env('QA_ROLES');
 
+  // dashboardText: texto REAL y estable de cada layout (verificado contra la UI
+  // actual — los textos anteriores 'Dashboard Premium'/'Nivel de Desarrollo'/
+  // 'Centro de Control' no existían en ningún componente y hacían fallar la suite).
   const ROLES = [
-    { key: 'coach', name: 'Coach', expectedUrl: '/dashboard', dashboardText: 'Dashboard Premium' },
-    { key: 'atleta', name: 'Atleta', expectedUrl: '/dashboard', dashboardText: 'Nivel de Desarrollo' },
-    { key: 'padre', name: 'Padre', expectedUrl: '/padre', dashboardText: 'Centro de Control' },
+    { key: 'coach', name: 'Coach', expectedUrl: '/dashboard', dashboardText: 'Tripulación' },
+    { key: 'atleta', name: 'Atleta', expectedUrl: '/dashboard', dashboardText: 'Radar de Pilares' },
+    { key: 'padre', name: 'Padre', expectedUrl: '/padre', dashboardText: 'Portal de Padres' },
   ];
 
   before(function () {

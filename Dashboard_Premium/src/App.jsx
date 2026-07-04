@@ -10,6 +10,7 @@ import AppToolbar from './components/AppToolbar';
 import AppAthleteGrid from './components/AppAthleteGrid';
 import AppAthleteProfileModal from './components/AppAthleteProfileModal';
 import AppSecondaryModals from './components/AppSecondaryModals';
+import GrupoTendencias from './components/GrupoTendencias';
 
 function App() {
   const { user, logout } = useAuth();
@@ -107,6 +108,9 @@ function App() {
           onSelect={setSelectedAtleta}
           onLoadMore={loadMore}
         />
+
+        {/* Tendencias agregadas del grupo visible (respeta los filtros) */}
+        {!loading && <GrupoTendencias atletas={atletasFiltrados} />}
 
         {/* Modal Perfil Específico */}
         <AppAthleteProfileModal
