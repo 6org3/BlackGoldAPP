@@ -116,6 +116,20 @@ describe('normalizarValor — casos borde', () => {
     const resultado = normalizarValor(BAREMOS.cmj_salto, 40, 'Juvenil (Sub-18)');
     expect(resultado.baremo).toBe(BAREMOS.cmj_salto);
   });
+
+  it('marca noAplica en vez de devolver "poor" en silencio cuando el bucket de edad no tiene baremo (press_banca_rel solo define Sub18/Senior)', () => {
+    const resultado = normalizarValor('press_banca_rel', 30, 'Premini (Sub-9)');
+    expect(resultado.noAplica).toBe(true);
+    expect(resultado.puntuacion).toBeNull();
+    expect(resultado.tier).toBeNull();
+    expect(resultado.mensajeNoAplica).toMatch(/Sub12/);
+  });
+
+  it('noAplica es false para una prueba con baremo definido en la categoría', () => {
+    const resultado = normalizarValor('cmj_salto', 40, 'Juvenil (Sub-18)');
+    expect(resultado.noAplica).toBe(false);
+    expect(resultado.tier).not.toBeNull();
+  });
 });
 
 describe('calcularOverall', () => {

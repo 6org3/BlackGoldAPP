@@ -376,15 +376,28 @@ export function categoriaABucketBaremo(categoriaFEB) {
 
 /**
  * Normaliza un valor crudo en una puntuación 0-100 usando los baremos científicos.
+ *
+ * NOTA — sin diferenciación por género: los umbrales de BAREMOS no están segmentados
+ * por sexo (todas las entradas van directo a Sub12/Sub15/Sub18/Senior). Un parámetro
+ * `genero` existió aquí antes pero no tenía ningún umbral que consultar, así que su
+ * efecto real era nulo pese a aparentar soportarlo — ver packages/analytics-core/
+ * baremos_cientificos.md para la evidencia de que el género sí importa en varias
+ * pruebas (p.ej. push-ups, salto vertical) y qué falta para implementarlo de verdad
+ * (columna de género por atleta + umbrales propios por sexo y prueba).
+ *
  * @param {object|string} baremoObj - El objeto de configuración de la prueba (o clave string por retrocompatibilidad)
  * @param {number|number[]} valorCrudo - El valor medido
  * @param {string} categoria - La categoría del atleta (ej. 'Sub15')
- * @param {string} genero - El género del atleta (ej. 'Masculino' o 'Femenino'). Por defecto 'Masculino'.
- * @returns {{ puntuacion: number, tier: string, tierConfig: object, baremo: object, isAsymmetric: boolean, alertMsg: string|null }}
+ * @returns {{ puntuacion: number|null, tier: string|null, tierConfig: object|null, baremo: object, isAsymmetric: boolean, alertMsg: string|null, noAplica: boolean, mensajeNoAplica: string|null }}
  */
-export function normalizarValor(baremoObj, valorCrudo, categoria, genero = 'Masculino') {
+export function normalizarValor(baremoObj, valorCrudo, categoria) {
   const baremo = typeof baremoObj === 'string' ? BAREMOS[baremoObj] : baremoObj;
-  if (!baremo) return { puntuacion: 0, tier: 'poor', tierConfig: TIER_CONFIG.poor, baremo: null, isAsymmetric: false, alertMsg: null };
+  if (!baremo) {
+    return {
+      puntuacion: 0, tier: 'poor', tierConfig: TIER_CONFIG.poor, baremo: null,
+      isAsymmetric: false, alertMsg: null, noAplica: false, mensajeNoAplica: null,
+    };
+  }
 
   let valToEval = 0;
   let isAsymmetric = false;
@@ -406,15 +419,22 @@ export function normalizarValor(baremoObj, valorCrudo, categoria, genero = 'Masc
     valToEval = parseFloat(valorCrudo);
   }
 
-  // Buscar género y categoría exacta o fallback
-  const thresholdsByGender = baremo.thresholds[genero] || baremo.thresholds['Masculino'] || baremo.thresholds;
   const catKey = categoriaABucketBaremo(categoria)
-    || Object.keys(thresholdsByGender).find(k => categoria.includes(k))
+    || Object.keys(baremo.thresholds).find(k => categoria.includes(k))
     || 'Sub15';
-  
-  // Soporte para pruebas antiguas que no tienen géneros anidados, o pruebas nuevas
-  const thresholds = thresholdsByGender[catKey] || baremo.thresholds[catKey];
-  if (!thresholds || !Array.isArray(thresholds)) return { puntuacion: 0, tier: 'poor', tierConfig: TIER_CONFIG.poor, baremo };
+
+  const thresholds = baremo.thresholds[catKey];
+  if (!thresholds || !Array.isArray(thresholds)) {
+    // La prueba existe pero no tiene baremo definido para este bucket de edad
+    // (p.ej. press_banca_rel solo define Sub18/Senior). Antes esto devolvía
+    // silenciosamente tier 'poor'/puntuación 0, contaminando el promedio del
+    // pilar sin ninguna señal de que la prueba no correspondía a esa edad.
+    return {
+      puntuacion: null, tier: null, tierConfig: null, baremo,
+      isAsymmetric: false, alertMsg: null, noAplica: true,
+      mensajeNoAplica: `"${baremo.label}" no tiene baremo definido para la categoría ${catKey}.`,
+    };
+  }
 
   let tier;
   const [t1, t2, t3, t4] = thresholds;
@@ -440,7 +460,9 @@ export function normalizarValor(baremoObj, valorCrudo, categoria, genero = 'Masc
     tierConfig: TIER_CONFIG[tier],
     baremo,
     isAsymmetric,
-    alertMsg
+    alertMsg,
+    noAplica: false,
+    mensajeNoAplica: null,
   };
 }
 

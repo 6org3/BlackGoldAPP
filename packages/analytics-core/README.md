@@ -22,3 +22,6 @@ importan por **ruta relativa** (`.js` planos, ES modules), para no acoplar el bu
   `categoriaABucketBaremo()`, `RANGOS`, recompensas.
 - `categoriaFEB.js` — `calcularEdad()`, `calcularCategoriaFEB()`.
 - `radar.js` — `getSubPilarScores()`, `build3LayerRadarData()`, `RADAR_AXES`.
+- `baremos_cientificos.md` — auditoría de las fuentes citadas en `baremos.js` (qué está
+  verificado, qué falta, y el riesgo de desincronización entre este archivo y el catálogo
+  que usa la app en producción). Leer antes de modificar umbrales.
