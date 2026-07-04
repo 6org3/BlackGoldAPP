@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, X, Check, Search, Plus, Save } from 'lucide-react';
+import { Target, X, Check, Search, Plus, Save, RefreshCw } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 import { asignarMisionAAtleta } from '../api/misionesService';
@@ -13,6 +13,7 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
   const [misionesAsignadas, setMisionesAsignadas] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [saving, setSaving] = useState(false);
+  const [regenerando, setRegenerando] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
   // Form para crear nueva
@@ -94,6 +95,28 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
     setSaving(false);
   };
 
+  // Re-invoca el loop evaluación → misión para este atleta (D2). Idempotente:
+  // el backend deduplica contra todas las asignaciones históricas + índice único,
+  // así que pulsarlo N veces nunca duplica asignaciones.
+  const handleRegenerar = async () => {
+    setRegenerando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generar-misiones-ia', {
+        body: { atleta_id: atleta.atleta_id || atleta.id },
+      });
+      if (error) throw error;
+      const nuevas = data?.asignadas?.length ?? 0;
+      setSuccessMsg(nuevas > 0
+        ? `${nuevas} misión(es) generada(s) según sus debilidades.`
+        : 'Sin misiones nuevas (ya tiene asignada la tanda actual).');
+      await loadMisiones();
+      setTimeout(() => { setSuccessMsg(''); }, 2500);
+    } catch (err) {
+      alert('Error al regenerar misiones: ' + err.message);
+    }
+    setRegenerando(false);
+  };
+
   const misionesFiltradas = misiones.filter(m => m.titulo.toLowerCase().includes(busqueda.toLowerCase()));
 
   if (!isOpen) return null;
@@ -111,9 +134,17 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
               <h2 className="text-2xl font-black text-[#FFD700] uppercase tracking-tighter">Misiones para {atleta.nombre.split(' ')[0]}</h2>
               <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Elige o crea una misión educativa</p>
             </div>
-            <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white">
-              <X size={20} />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button onClick={handleRegenerar} disabled={regenerando}
+                title="Vuelve a ejecutar el motor de recomendación por debilidades (idempotente)"
+                className="flex items-center space-x-2 px-3 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 rounded-xl transition-colors disabled:opacity-50">
+                <RefreshCw size={14} className={regenerando ? 'animate-spin' : ''} />
+                <span className="text-[10px] font-bold uppercase tracking-widest">{regenerando ? 'Generando…' : 'Regenerar misiones'}</span>
+              </button>
+              <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white">
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {successMsg ? (

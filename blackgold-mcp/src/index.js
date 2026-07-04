@@ -3,9 +3,14 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
+import { BAREMOS, categoriaABucketBaremo } from "../../packages/analytics-core/baremos.js";
 
-dotenv.config();
+// Resuelto contra la ubicación del script, no contra process.cwd(): un cliente MCP
+// (Claude Code, Claude Desktop) lanza este proceso con el cwd del host, no de este paquete.
+dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env") });
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -156,6 +161,188 @@ server.tool(
       promptInfo += "\nINSTRUCCIÓN PARA LA IA: Teniendo en cuenta los 7 sub-pilares (explosividad, fuerza, movilidad, tiro, agilidad, tactica, resiliencia), detecta cuáles no han sido evaluados o hace más tiempo no se evalúan. Sugiere la siguiente prueba específica (ej: CMJ, Lane Agility, etc) y BRINDA UNA EXPLICACIÓN LÓGICA y científica de por qué debe evaluarse eso ahora.";
 
       return { content: [{ type: "text", text: promptInfo }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// ============================================================
+// CATÁLOGO DE MISIONES (D3 del spec loop misiones-baremo):
+// el MCP propone misiones con justificación científica, el coach
+// las activa desde AdminMisiones. Matriz objetivo:
+// 7 sub-pilares × 3 niveles × 4 buckets de edad = 84 celdas.
+// ============================================================
+
+const SUB_PILARES = ["fuerza", "explosividad", "movilidad", "tiro", "agilidad", "tactica", "resiliencia"];
+const NIVELES = ["Micro", "Desarrollo", "Elite"];
+const BUCKETS = ["Sub12", "Sub15", "Sub18", "Senior"];
+
+const claveCelda = (subPilar, nivel, bucket) => `${subPilar}|${nivel}|${bucket}`;
+
+// Cobertura actual de la matriz: una celda está cubierta si tiene ≥1 misión
+// 'general' Y ≥1 'especifica' (activas o propuestas — la curaduría es del coach).
+function calcularCobertura(misiones) {
+  const porCelda = {};
+  (misiones || []).forEach(m => {
+    if (!SUB_PILARES.includes(m.pilar) || !m.nivel_objetivo || !m.categoria_bucket) return;
+    const clave = claveCelda(m.pilar, m.nivel_objetivo, m.categoria_bucket);
+    if (!porCelda[clave]) porCelda[clave] = { general: 0, especifica: 0 };
+    porCelda[clave][m.complejidad === "general" ? "general" : "especifica"]++;
+  });
+
+  const faltantes = [];
+  let cubiertas = 0;
+  SUB_PILARES.forEach(sp => NIVELES.forEach(niv => BUCKETS.forEach(b => {
+    const c = porCelda[claveCelda(sp, niv, b)];
+    if (c && c.general >= 1 && c.especifica >= 1) {
+      cubiertas++;
+    } else {
+      faltantes.push({ sub_pilar: sp, nivel: niv, bucket: b, tiene: c || { general: 0, especifica: 0 } });
+    }
+  })));
+  return { cubiertas, faltantes };
+}
+
+// Tool 4: Generar Catálogo de Misiones
+server.tool(
+  "generar_catalogo_misiones",
+  "Analiza la cobertura del catálogo de misiones (matriz 7 sub-pilares × 3 niveles × 4 buckets de edad), prioriza las celdas faltantes según los atletas reales del club, y devuelve las instrucciones para redactar las misiones faltantes con justificación científica. Tras redactarlas, insertarlas con insertar_misiones_catalogo.",
+  {
+    sub_pilar: z.enum(SUB_PILARES).optional().describe("Limitar a un sub-pilar"),
+    nivel: z.enum(NIVELES).optional().describe("Limitar a un nivel"),
+    categoria_bucket: z.enum(BUCKETS).optional().describe("Limitar a un bucket de edad"),
+  },
+  async ({ sub_pilar, nivel, categoria_bucket }) => {
+    try {
+      const { data: misiones, error: misError } = await supabase
+        .from("misiones")
+        .select("id, pilar, nivel_objetivo, categoria_bucket, complejidad, activa");
+      if (misError) throw new Error("Error consultando misiones: " + misError.message +
+        (misError.message.includes("column") ? " — aplica primero la migración loop_misiones_fase1 (npx supabase db push)." : ""));
+
+      // Buckets con atletas REALES del club (priorización de celdas)
+      const { data: atletasClub, error: atlError } = await supabase
+        .from("usuarios")
+        .select("fecha_nacimiento")
+        .eq("rol", "atleta")
+        .not("fecha_nacimiento", "is", null);
+      if (atlError) throw new Error("Error consultando atletas: " + atlError.message);
+
+      const bucketsConAtletas = new Set(
+        (atletasClub || [])
+          .map(a => categoriaABucketBaremo(calcularCategoriaFEB(a.fecha_nacimiento)))
+          .filter(Boolean)
+      );
+
+      const { cubiertas, faltantes } = calcularCobertura(misiones);
+
+      let pendientes = faltantes.filter(f =>
+        (!sub_pilar || f.sub_pilar === sub_pilar) &&
+        (!nivel || f.nivel === nivel) &&
+        (!categoria_bucket || f.bucket === categoria_bucket)
+      );
+      // Primero las celdas de buckets donde hay atletas reales
+      pendientes.sort((a, b) =>
+        (bucketsConAtletas.has(b.bucket) ? 1 : 0) - (bucketsConAtletas.has(a.bucket) ? 1 : 0));
+
+      // Umbrales de los baremos como contexto de qué se mide en cada sub-pilar
+      const subPilaresPedidos = sub_pilar ? [sub_pilar] : [...new Set(pendientes.map(p => p.sub_pilar))];
+      let contextoBaremos = "";
+      subPilaresPedidos.forEach(sp => {
+        const pruebas = Object.entries(BAREMOS).filter(([, b]) => b.sub_pilar === sp);
+        if (pruebas.length === 0) return;
+        contextoBaremos += `\nSub-pilar "${sp}" — se mide con:\n`;
+        pruebas.forEach(([key, b]) => {
+          contextoBaremos += `  · ${b.label} (${key}, ${b.unidad}, ${b.tipo}): umbrales ${JSON.stringify(b.thresholds)}\n`;
+        });
+      });
+
+      let prompt = `=== COBERTURA DEL CATÁLOGO DE MISIONES ===\n`;
+      prompt += `Celdas cubiertas: ${cubiertas}/84 (cubierta = ≥1 general Y ≥1 específica).\n`;
+      prompt += `Buckets con atletas reales en el club (PRIORIDAD): ${[...bucketsConAtletas].join(", ") || "ninguno"}.\n\n`;
+      prompt += `=== CELDAS FALTANTES (priorizadas) ===\n`;
+      pendientes.slice(0, 30).forEach(f => {
+        prompt += `- ${f.sub_pilar} × ${f.nivel} × ${f.bucket}` +
+          ` (tiene ${f.tiene.general} general/${f.tiene.especifica} específica)` +
+          (bucketsConAtletas.has(f.bucket) ? "  ← ATLETAS REALES" : "") + `\n`;
+      });
+      if (pendientes.length > 30) prompt += `… y ${pendientes.length - 30} celdas más (pide por sub_pilar para acotar).\n`;
+      prompt += `\n=== CONTEXTO CIENTÍFICO (umbrales de baremos) ===${contextoBaremos || "\n(sin pruebas asociadas)"}\n`;
+      prompt += `
+=== INSTRUCCIONES DE REDACCIÓN ===
+Para cada celda faltante genera misiones con:
+- titulo: motivador, máx 60 caracteres.
+- descripcion: ejecutable por un chico de esa edad (bucket) sin supervisión especial.
+- justificacion: fundamento científico CON FUENTE (NSCA, FitnessGram, PubMed) de por qué
+  ese trabajo mejora ese sub-pilar a esa edad — mismo estándar que packages/analytics-core/baremos_cientificos.md.
+- xp_recompensa coherente con el nivel: Micro≈25, Desarrollo≈50, Elite≈75.
+- complejidad: 'general' = hábito/educativa auto-asignable al atleta; 'especifica' = técnica
+  que requiere criterio del coach antes de ser visible.
+- video_url: opcional; SOLO YouTube real y pertinente.
+
+Cuando tengas el lote redactado, llama a la herramienta insertar_misiones_catalogo con el array JSON.
+Las misiones nacen inactivas (activa=false): el coach las revisa y activa desde AdminMisiones.`;
+
+      return { content: [{ type: "text", text: prompt }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 5: Insertar Misiones al Catálogo
+server.tool(
+  "insertar_misiones_catalogo",
+  "Inserta en lote las misiones redactadas para el catálogo (nacen inactivas, is_ai_generated=true; el coach las activa desde AdminMisiones). Valida contra los CHECKs reales de la tabla misiones.",
+  {
+    misiones: z.array(z.object({
+      titulo: z.string().min(5),
+      descripcion: z.string().min(20),
+      justificacion: z.string().min(30),
+      pilar: z.enum(SUB_PILARES),
+      nivel_objetivo: z.enum(NIVELES),
+      categoria_bucket: z.enum(BUCKETS),
+      complejidad: z.enum(["general", "especifica"]),
+      xp_recompensa: z.number().int().positive(),
+      video_url: z.string().url().optional(),
+    })).min(1).describe("Lote de misiones a insertar"),
+  },
+  async ({ misiones }) => {
+    try {
+      const filas = misiones.map(m => ({
+        titulo: m.titulo,
+        descripcion: m.descripcion,
+        justificacion: m.justificacion,
+        pilar: m.pilar,
+        nivel_objetivo: m.nivel_objetivo,
+        categoria_bucket: m.categoria_bucket,
+        complejidad: m.complejidad,
+        xp_recompensa: m.xp_recompensa,
+        video_url: m.video_url ?? null,
+        activa: false,
+        is_ai_generated: true,
+        condicion_trigger: "catalogo_mcp",
+      }));
+
+      const { error: insError } = await supabase.from("misiones").insert(filas);
+      if (insError) {
+        throw new Error("Error insertando misiones: " + insError.message +
+          (insError.message.includes("column") ? " — aplica primero la migración loop_misiones_fase1 (npx supabase db push)." : ""));
+      }
+
+      // Recalcular cobertura post-insert
+      const { data: todas } = await supabase
+        .from("misiones")
+        .select("id, pilar, nivel_objetivo, categoria_bucket, complejidad, activa");
+      const { cubiertas } = calcularCobertura(todas);
+
+      return {
+        content: [{
+          type: "text",
+          text: `✅ ${filas.length} misión(es) insertada(s) con activa=false (pendientes de curaduría del coach en AdminMisiones).\nCobertura de la matriz tras el insert: ${cubiertas}/84 celdas.`,
+        }],
+      };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }] };
     }

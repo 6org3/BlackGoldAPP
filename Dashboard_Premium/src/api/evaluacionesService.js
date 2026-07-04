@@ -1,6 +1,10 @@
 // src/api/evaluacionesService.js
 import { supabase } from './supabaseClient';
 import { checkAndCreateRecompensas } from './recompensasService';
+// Fuente única de "última evaluación por prueba" (analytics-core, compartido
+// con blackgold-mcp y la Edge Function). El shim src/lib/baremosEngine.js solo
+// reexporta baremos.js, por eso se importa directo del paquete.
+import { ultimasPorPrueba } from '../../../packages/analytics-core/recomendaciones.js';
 
 // ============================
 // EVALUACIONES POR PRUEBAS (Fase 4D)
@@ -36,11 +40,9 @@ export const recalcularOverall = async (atletaId) => {
   // Fetch latest evaluaciones
   const evaluaciones = await fetchEvaluacionesAtleta(atletaId);
 
-  // Keep only latest per prueba_tipo
-  const latest = {};
-  evaluaciones.forEach(e => {
-    if (!latest[e.prueba_tipo]) latest[e.prueba_tipo] = e;
-  });
+  // Última evaluación por prueba_tipo (lógica compartida de analytics-core;
+  // no depende del orden de la query).
+  const latest = ultimasPorPrueba(evaluaciones);
 
   const { overall, rango } = calcularOverall(Object.values(latest));
 
@@ -58,5 +60,53 @@ export const recalcularOverall = async (atletaId) => {
   // Check if rank changed → create recompensas
   await checkAndCreateRecompensas(atletaId, rango.id);
 
+  // Disparo del loop evaluación → misión (D2 del spec): invoca la Edge Function
+  // que genera/asigna misiones según las debilidades medidas. Best-effort y NO
+  // bloqueante: nunca debe hacer fallar el guardado de la evaluación (sin await;
+  // el error solo se loguea).
+  try {
+    supabase.functions
+      .invoke('generar-misiones-ia', { body: { atleta_id: atletaId } })
+      .then(({ error: fnError }) => {
+        if (fnError) {
+          console.error('Error al invocar generar-misiones-ia:', fnError);
+        }
+      })
+      .catch(err => {
+        console.error('Error al invocar generar-misiones-ia:', err);
+      });
+  } catch (err) {
+    console.error('Error al invocar generar-misiones-ia:', err);
+  }
+
   return { overall, rango };
+};
+
+/**
+ * Historial COMPLETO de evaluaciones de varios atletas en un solo query
+ * (sin dedup por prueba: eso lo decide el consumidor con ultimasPorPrueba).
+ *
+ * @param {Array<string>} atletaIds - ids de atletas (atletas.id).
+ * @returns {Promise<Object>} { [atletaId]: evaluaciones[] } — cada atleta pedido
+ *   tiene su clave (con [] si no tiene evaluaciones); {} si atletaIds está vacío.
+ *   Las evaluaciones vienen ordenadas por created_at ascendente.
+ */
+export const fetchEvaluacionesDeAtletas = async (atletaIds) => {
+  if (!atletaIds || atletaIds.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from('evaluaciones_pruebas')
+    .select('*')
+    .in('atleta_id', atletaIds)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+
+  const porAtleta = {};
+  atletaIds.forEach(id => { porAtleta[id] = []; });
+  (data || []).forEach(evaluacion => {
+    if (!porAtleta[evaluacion.atleta_id]) porAtleta[evaluacion.atleta_id] = [];
+    porAtleta[evaluacion.atleta_id].push(evaluacion);
+  });
+
+  return porAtleta;
 };

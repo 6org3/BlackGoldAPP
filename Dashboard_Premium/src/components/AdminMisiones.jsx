@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
 import { fetchTodosLosAtletas } from '../api/atletasService';
-import { aprobarMision, rechazarMision } from '../api/misionesService';
-import { ArrowLeft, Plus, Save, X, Play, Trash2, Pencil, CheckCircle, XCircle } from 'lucide-react';
+import { aprobarMision, rechazarMision, aprobarAsignacion, rechazarAsignacion, setMisionActiva } from '../api/misionesService';
+import { ArrowLeft, Plus, Save, X, Play, Trash2, Pencil, CheckCircle, XCircle, Power, ChevronDown } from 'lucide-react';
 import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -19,11 +19,22 @@ export default function AdminMisiones() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [busquedaMision, setBusquedaMision] = useState('');
+  const [filtroBanco, setFiltroBanco] = useState('todas'); // todas | activas | propuestas
+  const [justifAbierta, setJustifAbierta] = useState(null); // id de misión con justificación expandida
 
   const misionesFiltradas = misiones.filter(m => {
-    if (!busquedaMision) return true;
-    return m.titulo?.toLowerCase().includes(busquedaMision.toLowerCase());
+    if (busquedaMision && !m.titulo?.toLowerCase().includes(busquedaMision.toLowerCase())) return false;
+    if (filtroBanco === 'activas') return m.activa !== false;
+    if (filtroBanco === 'propuestas') return m.activa === false;
+    return true;
   });
+
+  // H2 — dos colas sobre estado='pendiente_aprobacion', desambiguadas por `completada`:
+  // completada=true  → el atleta la terminó, el coach aprueba el XP (flujo original).
+  // completada=false → asignación PROPUESTA por el loop (auto_baremo/IA), el coach
+  //                    decide si el atleta la ve (D4).
+  const completadasPorAprobar = pendientes.filter(p => p.completada);
+  const asignacionesPropuestas = pendientes.filter(p => !p.completada);
 
   const emptyForm = {
     titulo: '', descripcion: '', pilar: 'youtube', video_url: '',
@@ -43,17 +54,22 @@ export default function AdminMisiones() {
     const atls = await fetchTodosLosAtletas(user);
     setAtletas(atls);
 
-    // Cargar pendientes de aprobación
+    // Cargar pendientes de aprobación (ambas colas: completadas por aprobar y
+    // asignaciones propuestas por el loop — se separan por `completada` en render)
     const { data: pData } = await supabase
       .from('progreso_misiones')
       .select(`
-        id, 
-        fecha_completada, 
-        misiones (titulo, xp_recompensa), 
+        id,
+        completada,
+        origen,
+        sub_pilar_objetivo,
+        fecha_completada,
+        fecha_asignacion,
+        misiones (titulo, xp_recompensa, nivel_objetivo, complejidad, is_ai_generated),
         atletas (id, usuarios (nombre, categoria))
       `)
       .eq('estado', 'pendiente_aprobacion')
-      .order('fecha_completada', { ascending: false });
+      .order('fecha_completada', { ascending: false, nullsFirst: false });
     setPendientes(pData || []);
   };
 
@@ -172,6 +188,44 @@ export default function AdminMisiones() {
     } catch (err) {
       setError('Error al rechazar la misión: ' + err.message);
     }
+  };
+
+  const handleAprobarAsignacion = async (id) => {
+    try {
+      await aprobarAsignacion(id);
+      setSuccess('Asignación aprobada. El atleta ya puede ver la misión.');
+      loadData();
+    } catch (err) {
+      setError('Error al aprobar la asignación: ' + err.message);
+    }
+  };
+
+  const handleRechazarAsignacion = async (id) => {
+    try {
+      await rechazarAsignacion(id);
+      setSuccess('Asignación rechazada (el atleta nunca la verá).');
+      loadData();
+    } catch (err) {
+      setError('Error al rechazar la asignación: ' + err.message);
+    }
+  };
+
+  const handleToggleActiva = async (mision) => {
+    try {
+      await setMisionActiva(mision.id, mision.activa === false);
+      setSuccess(mision.activa === false
+        ? `Misión "${mision.titulo}" activada: entra al catálogo del selector.`
+        : `Misión "${mision.titulo}" desactivada: sale del catálogo.`);
+      loadData();
+    } catch (err) {
+      setError('Error al cambiar el estado de la misión: ' + err.message);
+    }
+  };
+
+  const ORIGEN_BADGE = {
+    auto_baremo: { label: 'Por evaluación', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' },
+    ia: { label: 'IA', cls: 'bg-purple-500/10 text-purple-400 border-purple-500/30' },
+    coach: { label: 'Coach', cls: 'bg-gray-500/10 text-gray-400 border-gray-500/30' },
   };
 
   return (
@@ -311,15 +365,15 @@ export default function AdminMisiones() {
         </motion.form>
       )}
 
-      {/* Panel de Aprobaciones Pendientes */}
-      {pendientes.length > 0 && (
+      {/* Cola A — Misiones completadas por el atleta, esperando aprobación de XP */}
+      {completadasPorAprobar.length > 0 && (
         <div className="mb-10">
           <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4 flex items-center">
             <span className="w-2 h-2 rounded-full bg-[#FFD700] mr-2 animate-pulse"></span>
-            Aprobaciones Pendientes
+            Completadas por Aprobar
           </h3>
           <div className="space-y-3">
-            {pendientes.map((p, i) => (
+            {completadasPorAprobar.map((p, i) => (
               <motion.div key={p.id}
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                 className="bg-white/5 border border-[#FFD700]/30 rounded-xl p-4 flex items-center justify-between"
@@ -330,7 +384,7 @@ export default function AdminMisiones() {
                     Atleta: <span className="text-[#FFD700]">{p.atletas?.usuarios?.nombre}</span> ({p.atletas?.usuarios?.categoria})
                   </p>
                   <p className="text-[10px] text-gray-500 mt-1">
-                    Completada el: {new Date(p.fecha_completada).toLocaleDateString()}
+                    Completada el: {p.fecha_completada ? new Date(p.fecha_completada).toLocaleDateString() : '—'}
                   </p>
                 </div>
                 <div className="flex space-x-2">
@@ -349,9 +403,72 @@ export default function AdminMisiones() {
         </div>
       )}
 
-      {/* Lista de Misiones Existentes */}
+      {/* Cola B — Asignaciones propuestas por el loop (auto_baremo/IA): el coach
+          decide si el atleta las ve (D4). Sin XP en juego aquí. */}
+      {asignacionesPropuestas.length > 0 && (
+        <div className="mb-10">
+          <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4 flex items-center">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 mr-2 animate-pulse"></span>
+            Asignaciones Propuestas
+          </h3>
+          <div className="space-y-3">
+            {asignacionesPropuestas.map((p, i) => {
+              const badge = ORIGEN_BADGE[p.origen] || ORIGEN_BADGE.coach;
+              return (
+                <motion.div key={p.id}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                  className="bg-white/5 border border-cyan-500/30 rounded-xl p-4 flex items-center justify-between"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold text-white">{p.misiones?.titulo}</p>
+                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${badge.cls}`}>{badge.label}</span>
+                      {p.sub_pilar_objetivo && (
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-orange-500/10 text-orange-400 border-orange-500/30">
+                          Objetivo: {p.sub_pilar_objetivo}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                      Atleta: <span className="text-[#FFD700]">{p.atletas?.usuarios?.nombre}</span> ({p.atletas?.usuarios?.categoria})
+                    </p>
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Propuesta el: {p.fecha_asignacion ? new Date(p.fecha_asignacion).toLocaleDateString() : '—'}
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button onClick={() => handleAprobarAsignacion(p.id)} className="flex items-center space-x-1 px-3 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 rounded-lg transition-colors">
+                      <CheckCircle size={14} />
+                      <span className="text-xs font-bold uppercase">Aprobar</span>
+                    </button>
+                    <button onClick={() => handleRechazarAsignacion(p.id)} className="flex items-center space-x-1 px-3 py-2 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 rounded-lg transition-colors">
+                      <XCircle size={14} />
+                      <span className="text-xs font-bold uppercase">Rechazar</span>
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Banco de Misiones — con curaduría del catálogo (D3): las misiones
+          propuestas por el MCP/IA nacen inactivas hasta que el coach las active. */}
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-xl font-black text-white uppercase tracking-tight">Banco de Misiones</h3>
+        <div className="flex space-x-1">
+          {[['todas', 'Todas'], ['activas', 'Activas'], ['propuestas', 'Propuestas']].map(([id, label]) => (
+            <button key={id} onClick={() => setFiltroBanco(id)}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+                filtroBanco === id
+                  ? 'bg-[#FFD700]/15 border-[#FFD700]/40 text-[#FFD700]'
+                  : 'bg-white/[0.02] border-white/10 text-gray-500 hover:text-white'
+              }`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="mb-4">
         <input type="text" placeholder="Buscar misión por título..."
@@ -362,22 +479,66 @@ export default function AdminMisiones() {
         {misionesFiltradas.map((mision, i) => (
           <motion.div key={mision.id}
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-            className="glass-card rounded-xl p-5 flex items-center justify-between glow-border"
+            className={`glass-card rounded-xl p-5 glow-border ${mision.activa === false ? 'opacity-70' : ''}`}
           >
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center shrink-0">
-                <Play size={16} className="text-[#FFD700]" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center shrink-0">
+                  <Play size={16} className="text-[#FFD700]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-bold text-white">{mision.titulo}</p>
+                    {mision.activa === false && (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-gray-500/10 text-gray-400 border-gray-500/30">Propuesta</span>
+                    )}
+                    {mision.is_ai_generated && (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-purple-500/10 text-purple-400 border-purple-500/30">IA</span>
+                    )}
+                    {mision.complejidad && (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-cyan-500/10 text-cyan-400 border-cyan-500/30">{mision.complejidad}</span>
+                    )}
+                    {mision.nivel_objetivo && (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-orange-500/10 text-orange-400 border-orange-500/30">{mision.nivel_objetivo}</span>
+                    )}
+                    {mision.categoria_bucket && (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">{mision.categoria_bucket}</span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                    +{mision.xp_recompensa} XP · {PILAR_LABELS[mision.pilar] || mision.pilar} · {mision.categoria_objetivo || '—'} · {(mision.quiz || []).length} preguntas
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-white">{mision.titulo}</p>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                  +{mision.xp_recompensa} XP · {PILAR_LABELS[mision.pilar] || mision.pilar} · {mision.categoria_objetivo} · {(mision.quiz || []).length} preguntas
-                </p>
+              <div className="flex items-center space-x-2 shrink-0">
+                {mision.justificacion && (
+                  <button onClick={() => setJustifAbierta(justifAbierta === mision.id ? null : mision.id)}
+                    className={`p-2 rounded-lg border transition-colors ${justifAbierta === mision.id ? 'bg-[#FFD700]/10 border-[#FFD700]/40 text-[#FFD700]' : 'bg-white/[0.02] border-white/10 text-gray-500 hover:text-white'}`}
+                    title="Ver justificación científica">
+                    <ChevronDown size={14} className={justifAbierta === mision.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                  </button>
+                )}
+                <button onClick={() => handleToggleActiva(mision)}
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg border transition-colors ${
+                    mision.activa === false
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                      : 'bg-white/[0.02] text-gray-400 border-white/10 hover:text-white'
+                  }`}
+                  title={mision.activa === false ? 'Activar (entra al catálogo del selector)' : 'Desactivar (sale del catálogo)'}>
+                  <Power size={14} />
+                  <span className="text-[10px] font-bold uppercase">{mision.activa === false ? 'Activar' : 'Activa'}</span>
+                </button>
+                <button onClick={() => handleDelete(mision)} className="text-gray-500 hover:text-red-500 transition-colors">
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
-            <button onClick={() => handleDelete(mision)} className="text-gray-500 hover:text-red-500 transition-colors">
-              <Trash2 size={16} />
-            </button>
+            {justifAbierta === mision.id && mision.justificacion && (
+              <div className="mt-3 pt-3 border-t border-white/10">
+                <p className="text-[9px] text-[#FFD700] font-bold uppercase tracking-widest mb-1">Justificación científica</p>
+                <p className="text-xs text-gray-300 leading-relaxed">{mision.justificacion}</p>
+              </div>
+            )}
           </motion.div>
         ))}
       </div>

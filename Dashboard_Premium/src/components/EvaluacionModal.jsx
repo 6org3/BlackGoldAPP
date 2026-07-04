@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ClipboardCheck, ChevronDown, FlaskConical, Save, Loader2, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { TIER_CONFIG, normalizarValor } from '../lib/baremosEngine';
 import { supabase } from '../api/supabaseClient';
+import { recalcularOverall } from '../api/evaluacionesService';
 import { useAuth } from '../AuthContext';
 import NuevaPruebaModal from './NuevaPruebaModal';
 
@@ -30,6 +31,20 @@ const OBJETIVOS = [
   { id: 'resiliencia', label: 'Resiliencia', icon: '🛡️', filter: (b) => b.sub_pilar === 'resiliencia', border: 'border-pink-500/30', bgActive: 'bg-pink-500/20', text: 'text-pink-400' },
   { id: 'recuperacion', label: 'Carga/Sueño', icon: '🔋', filter: (b) => b.sub_pilar === 'recuperacion', border: 'border-blue-500/30', bgActive: 'bg-blue-500/20', text: 'text-blue-400' },
 ];
+
+// Salvaguarda defensiva: si catalogo_ejercicios llegara a tener filas
+// duplicadas por nombre (p.ej. por un seed reintroducido), se queda con una
+// sola por nombre, priorizando la que tiene baremo_key asignado (canónica).
+function dedupePorNombre(filas) {
+  const porNombre = new Map();
+  for (const fila of filas) {
+    const existente = porNombre.get(fila.nombre);
+    if (!existente || (!existente.baremo_key && fila.baremo_key)) {
+      porNombre.set(fila.nombre, fila);
+    }
+  }
+  return [...porNombre.values()];
+}
 
 // ─── COMPONENT ──────────────────────────────────────────────
 export default function EvaluacionModal({ atleta, onClose, onSaved }) {
@@ -59,7 +74,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
         .from('catalogo_ejercicios')
         .select('*');
       if (data && !error) {
-        setCatalogoEjercicios(data);
+        setCatalogoEjercicios(dedupePorNombre(data));
       }
     } catch (err) {
       console.error(err);
@@ -120,7 +135,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
 
   // Is valid for submit?
   const isFormValid = useMemo(() => {
-    if (!pruebaTipo || !preview) return false;
+    if (!pruebaTipo || !preview || preview.noAplica) return false;
     if (selectedBaremo?.inputs_requeridos) {
       return selectedBaremo.inputs_requeridos.every(i => valoresCrudos[i.id] !== undefined && valoresCrudos[i.id] !== '');
     }
@@ -176,6 +191,15 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
         .insert(registros);
 
       if (dbError) throw dbError;
+
+      // Cierra el loop evaluación → misión → XP: recalcula overall/rango del
+      // atleta y dispara la generación de misiones (Edge Function). No
+      // bloqueante: si el recálculo falla, la evaluación ya quedó guardada.
+      try {
+        await recalcularOverall(atleta.atleta_id || atleta.id);
+      } catch (recalcError) {
+        console.error('Error al recalcular el overall tras guardar la evaluación:', recalcError);
+      }
 
       setSaved(true);
       setTimeout(() => {
@@ -274,7 +298,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                   <p className="text-emerald-400 font-bold uppercase tracking-widest text-sm">
                     Evaluación guardada
                   </p>
-                  {preview && (
+                  {preview && !preview.noAplica && (
                     <p className={`text-lg font-black ${preview.tierConfig.color}`}>
                       {preview.tierConfig.label} — {preview.puntuacion}/100
                     </p>
@@ -373,8 +397,8 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                   {/* ─── Category warning ────────────────────── */}
                   {selectedBaremo && !categoryAvailable && (
                     <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 text-orange-400 text-xs">
-                      ⚠️ Esta prueba no tiene baremos específicos para la categoría{' '}
-                      <strong>{atleta?.categoria || 'actual'}</strong>. Se usará un fallback general.
+                      ⚠️ Esta prueba no tiene baremo definido para la categoría{' '}
+                      <strong>{atleta?.categoria || 'actual'}</strong>. No podrás guardar un resultado hasta que exista un umbral para esta categoría.
                     </div>
                   )}
 
@@ -434,7 +458,16 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
 
                   {/* ─── Preview Result ──────────────────────── */}
                   <AnimatePresence>
-                    {preview && (
+                    {preview && preview.noAplica && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 text-orange-400 text-xs mt-2"
+                      >
+                        ⚠️ {preview.mensajeNoAplica} No se puede guardar este resultado.
+                      </motion.div>
+                    )}
+                    {preview && !preview.noAplica && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
