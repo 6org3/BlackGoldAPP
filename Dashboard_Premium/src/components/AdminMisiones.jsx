@@ -66,7 +66,7 @@ export default function AdminMisiones() {
         fecha_completada,
         fecha_asignacion,
         misiones (titulo, xp_recompensa, nivel_objetivo, complejidad, is_ai_generated),
-        atletas (id, usuarios (nombre, categoria))
+        atletas (id, usuarios!atletas_usuario_id_fkey (nombre, categoria))
       `)
       .eq('estado', 'pendiente_aprobacion')
       .order('fecha_completada', { ascending: false, nullsFirst: false });
