@@ -1,9 +1,14 @@
 # Unificación: Sesiones · Modo Cancha · Evaluación Científica
 
-Documento de diseño (2026-07-04). Origen: revisión de incongruencias reportadas por
-el owner del club. Fuente de verdad para la unificación de los módulos de
-entrenamiento y evaluación. **Es un documento de diseño: no se ha tocado código de
-producción todavía.**
+Documento de diseño (2026-07-04, ampliado 2026-07-05). Origen: revisión de
+incongruencias reportadas por el owner del club. Fuente de verdad para la unificación
+de los módulos de entrenamiento y evaluación. **Es un documento de diseño: no se ha
+tocado código de producción todavía.**
+
+**Actualización 2026-07-05:** se retomó la consolidación para atacar el ítem grande
+pendiente (§2, §3, §7): unificar los 2 (en realidad **3**, ver §2.6) sistemas de
+sesión/asistencia. Esta sesión NO tocó código ni BD — solo diseño + decisiones
+pedidas al owner (§8).
 
 Documentos hermanos:
 - `docs/comunicaciones_eventos.md` — eventos/convocatorias (migración v18).
@@ -90,6 +95,32 @@ filas** en `sesiones_entrenamiento` con la nota `[MODO_CANCHA: <id>]`, y marca l
 el pilar como `Pilar:X | tipo` en el mismo texto). Frágil: cualquier cambio de copy
 rompe el parseo (`match(/Pilar:([^|]+)/)`).
 
+### 2.6 Descubrimiento (2026-07-05): existe un TERCER sistema, ya real y en producción
+
+Al verificar en código (no en el documento anterior, que no lo mencionaba) apareció
+`src/api/asistenciaService.js` + `src/components/AdminAsistencia.jsx`, ruteado en
+`/admin/asistencia` (roles `superadmin/owner/coach`, ver `main.jsx:154-161`) — **no es
+un prototipo, es una pantalla de pase de lista diario que ya está en uso**:
+
+- Tabla real **`asistencia`**: `id, atleta_id, coach_id, fecha, estado, notas`, con
+  **`UNIQUE(atleta_id, fecha)`** (un solo registro de asistencia por atleta por día,
+  vía `upsert(..., { onConflict: 'atleta_id,fecha' })`).
+- `estado` ∈ `Presente | Ausente | Justificada | Lesionado` (4 valores, más rico que el
+  booleano `presente/no` de Modo Cancha).
+- **La consume `OwnerKPIsPage.jsx:88`** para calcular el KPI "asistencia % (7 días)" del
+  dashboard del owner, y `whatsappReport.js` para reportes.
+- **No tiene ninguna relación con `sesiones_programadas`, `sesiones_entrenamiento` ni
+  `sesiones_control`.** Un coach que pasa lista en Modo Cancha (hack de notas) y nunca
+  entra a `/admin/asistencia` deja esa tabla vacía para sus atletas — **el KPI de
+  asistencia del owner probablemente está incompleto o mal calculado hoy**, según cuánto
+  se use en la práctica cada pantalla (no verificable desde el código: requiere mirar
+  datos reales).
+
+**Implicación para el diseño:** la pregunta abierta original ("¿tabla real de asistencia
+vs hack de notas?") ya tenía una respuesta parcial — **la tabla real ya existía**. La
+decisión pasó a ser "¿Modo Cancha escribe en esta misma tabla `asistencia`, o crea una
+tabla paralela nueva?" — resuelto a favor de extender la existente (ver §3.3.a y §8).
+
 ---
 
 ## 3. Visión unificada (a dónde queremos llegar)
@@ -114,26 +145,143 @@ Esto hace que "cuadre" todo: una sesión cuyo objetivo es *tiro* usa las mismas 
   según el pilar → así la sesión que se da en cancha queda planificada y trazable.
 - La **asistencia se ratifica en Modo Cancha** a la hora del entrenamiento, para los tres
   formatos (Grupal por niveles / Grupal individualizada / Privada 1v1), contra una
-  **tabla de asistencia real** (no el hack de notas).
+  **tabla de asistencia real** (no el hack de notas) — ver §3.3, la tabla ya existe.
 
-### 3.3 Convergencia de datos (propuesta, aditiva)
+**Decisión del owner (2026-07-05): tabla nueva `sesiones_plantilla`** (no el flag
+`es_plantilla` en `sesiones_control`):
+
+```sql
+-- ADITIVO, propuesto — NO aplicado todavía
+CREATE TABLE IF NOT EXISTS sesiones_plantilla (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre             TEXT NOT NULL,
+  pilar              TEXT REFERENCES ... ,   -- valida contra PILARES de taxonomia.js
+  sub_pilar          TEXT,                   -- valida contra SUB_PILARES de taxonomia.js (incluye 'resistencia' tras P1.5)
+  tipo_clase         TEXT,                   -- 'Grupal (Niveles)' | 'Grupal Individualizada' | 'Privada 1v1' | NULL=cualquiera
+  ejercicios_ids     UUID[] DEFAULT '{}',    -- referencias a ejercicios_catalogo
+  descripcion        TEXT,
+  notas_metodologicas TEXT,
+  creado_por         UUID REFERENCES usuarios(id),
+  activa             BOOLEAN DEFAULT true,
+  created_at         TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**Por qué tabla nueva y no `es_plantilla` en `sesiones_control`:** una fila de
+`sesiones_control` representa una sesión *concreta* (fecha, grupo/atleta, evaluación
+`se_logro`). Una plantilla no tiene fecha ni atleta ni evaluación — es reutilizable. Meter
+ambos conceptos en la misma tabla obliga a que columnas obligatorias-en-espíritu
+(`fecha`, `grupo_id`/`atleta_id`) queden huérfanas en las filas-plantilla, y cada query
+de historial (`fetchSesionesControl`, ya usado en `AdminSesiones.jsx:369`) necesitaría
+un `WHERE es_plantilla = false` que hoy no existe y es fácil de olvidar en queries
+nuevas.
+
+### 3.3 Convergencia de datos (propuesta concreta, aditiva)
 
 Siguiendo la convención del repo (migraciones aditivas, `IF NOT EXISTS`):
 
-- **Tabla de plantillas de sesión** (`sesiones_plantilla` o reutilizar `sesiones_control`
-  marcando `es_plantilla=true`): objetivo canónico + `ejercicios_ids`.
-- **Tabla de asistencia real** (`asistencia`, ya mencionada en CLAUDE.md como existente
-  pero no poblada por Modo Cancha): `sesion_id`, `atleta_id`, `presente`, `hora`.
-- **Un solo catálogo o una relación explícita** entre `ejercicios_catalogo` (entrenamiento)
-  y `catalogo_ejercicios` (pruebas), o al menos renombrar para eliminar el espejo. Decisión
-  pendiente: ¿una prueba de evaluación es un tipo de ejercicio, o son dominios separados?
-- **Una sola regla de XP/stats**: consolidar los 3-4 caminos en un servicio único de
-  puntuación para evitar descuadres.
+**a) Asistencia — decisión del owner (2026-07-05): extender la tabla `asistencia` YA
+EXISTENTE (§2.6), no crear una tercera.** Modo Cancha debe dejar de inferir presencia
+por `notas` y escribir en la misma tabla que ya alimenta `OwnerKPIsPage`:
+
+```sql
+-- ADITIVO, propuesto — NO aplicado todavía
+ALTER TABLE asistencia
+  ADD COLUMN IF NOT EXISTS sesion_id UUID REFERENCES sesiones_programadas(id) ON DELETE SET NULL;
+
+-- La UNIQUE(atleta_id, fecha) actual asume 1 registro/atleta/día (pase de lista
+-- diario de AdminAsistencia). Si un atleta puede tener 2 clases el mismo día
+-- (ej. grupal + privada 1v1), hay que relajarla:
+ALTER TABLE asistencia DROP CONSTRAINT IF EXISTS asistencia_atleta_id_fecha_key;
+ALTER TABLE asistencia
+  ADD CONSTRAINT asistencia_atleta_fecha_sesion_key UNIQUE (atleta_id, fecha, sesion_id);
+```
+
+Con esto: `AdminAsistencia.jsx` sigue funcionando exactamente igual (sigue escribiendo
+con `sesion_id = NULL`, pase de lista manual del día); Modo Cancha, al "Pasar Lista"
+(paso 3), hace upsert por cada presente con `estado='Presente'` + `sesion_id` de la
+clase; `OwnerKPIsPage` automáticamente empieza a contar la asistencia de Modo Cancha sin
+tocar su query. Riesgo a validar con datos reales antes de aplicar: si ya existen días
+con más de un registro por atleta que dependían de la unicidad vieja, el `ALTER` de la
+constraint podría fallar — hay que revisar duplicados existentes primero.
+
+*(Alternativa descartada: tabla nueva `sesion_asistencia` separada solo para Modo
+Cancha. Más simple pero deja a `OwnerKPIsPage` ciega a las clases de Modo Cancha a
+menos que se le enseñe a unir dos tablas — el owner prefirió resolver la desconexión
+de raíz.)*
+
+**b) Catálogos de ejercicios:** ya resuelto (§2.3) — son dominios distintos, no se
+fusionan; `src/api/tablas.js` mata el nombre espejo a nivel de código.
+
+**c) XP/stats:** ya resuelto (§2.4, commit `3175186`) — `analytics-core/xp.js` +
+`xpService.otorgarXP` son la fuente única. Falta solo migrar a RPC atómico (deuda menor,
+no bloquea esta fase).
+
+**d) Taxonomía de "qué se entrena" en Modo Cancha y Control de Sesiones — ver §3.4.**
 
 > ⚠️ El esquema base (`sesiones_programadas`, `sesiones_entrenamiento`, `sesiones_control`,
-> ambos catálogos, `atletas`, `evaluaciones_pruebas`…) **aún no tiene migración baseline
-> versionada** (ver CLAUDE.md). Antes de reestructurar conviene capturar el baseline con
-> `npx supabase db dump` para saber exactamente qué columnas existen hoy.
+> `asistencia`, ambos catálogos, `atletas`, `evaluaciones_pruebas`…) **aún no tiene
+> migración baseline versionada** (ver CLAUDE.md). Antes de aplicar cualquiera de los
+> `ALTER`/`CREATE` de esta sección, capturar el baseline con `npx supabase db dump
+> --schema public -f supabase/migrations/00000000000000_baseline.sql` (requiere
+> `supabase login` del usuario) para saber exactamente qué columnas/constraints existen
+> hoy y no adivinar el nombre real de la constraint `UNIQUE(atleta_id, fecha)`.
+
+### 3.4 Taxonomía única para Modo Cancha y Control de Sesiones (decisiones #1 y #2 de §8)
+
+`OBJETIVOS_CLASE` (Modo Cancha, `ModoCanchaModalConstants.jsx:10-18`) y `TIPOS`
+(`AdminSesiones.jsx:15`) deben dejar de ser listas propias y consumir
+`packages/analytics-core/taxonomia.js`. Verificado en código: hoy son **incompatibles
+entre sí y con la taxonomía**, no solo distintas en nombre:
+
+| Objetivo hoy (ModoCancha / AdminSesiones) | En `taxonomia.js` | Conflicto |
+|---|---|---|
+| "Físico - Fuerza" / "Físico - Explosividad" / "Físico - Velocidad/Agilidad" | `fuerza`, `explosividad` → `fisico`; **`agilidad` → `tecnico`** | ModoCancha mete Agilidad dentro de "Físico"; la taxonomía (y baremos/radar) la clasifica como **técnico**. Incongruencia real, no cosmética — **decisión #1**. |
+| "Físico - Resistencia" | *(no existe ningún sub_pilar `resistencia`)* | No mapea a nada — **decisión #2**. |
+| "Eficiencia Táctica" | `tactica` → `mental` | Mapea limpio. |
+| "Resiliencia Psicológica" | `resiliencia` → `mental` | Mapea limpio. |
+| "Liderazgo y Comunicación" | *(no existe)* | No mapea a nada — **decisión #2**. |
+| `TIPOS` = Técnico/Físico/Táctico/Evaluación/Recuperación | pilares son `fisico/tecnico/mental` (+ `recuperacion` monitoreo) | "Evaluación" no es un pilar, es un *tipo de actividad* (la sesión ES una evaluación, no entrena un pilar) — estos dos ejes (¿qué pilar se entrena? vs ¿qué clase de actividad es?) están mezclados en una sola lista plana. |
+
+**Decisión del owner (2026-07-05):**
+
+1. **Agilidad → Técnico.** Modo Cancha se alinea con `taxonomia.js`/`baremos.js`/radar.
+   Cambia solo la agrupación/etiqueta del botón "Físico - Velocidad/Agilidad" en Modo
+   Cancha; no toca baremos ni radar (ya clasificaban `agilidad` como técnico).
+2. **Liderazgo y Comunicación → sub-pilar `resiliencia`** (mental). Mantiene el
+   comportamiento actual de `handleCerrarClase`/`handleSubmitEvaluation` (ya sube
+   `resiliencia_psicologica` cuando el objetivo incluye "Liderazgo") — sin cambio de
+   conducta, solo formaliza el mapeo en la taxonomía compartida.
+3. **Resistencia → sub-pilar físico NUEVO, real** (no un tag transversal): el owner
+   señaló que ningún sub-pilar existente mide resistencia cardiovascular
+   anaeróbica/aeróbica, y quiere que `resistencia` sea un sub-pilar de pleno derecho
+   dentro de `fisico`, con **sus propias pruebas, baremos y misiones** — al mismo nivel
+   que `fuerza`/`explosividad`/`movilidad`. Verificado en código
+   (`packages/analytics-core/baremos.js:474-504`, `calcularOverall`): el pilar `fisico`
+   se calcula como **promedio simple** de los sub-pilares con evaluación registrada
+   (no hay pesos por sub-pilar hoy) → agregar un 4º sub-pilar físico **no requiere
+   rebalancear `PILLAR_WEIGHTS`**, solo:
+   - Añadir `{ key: 'resistencia', label: 'Resistencia', pilar: 'fisico' }` a
+     `SUB_PILARES` en `taxonomia.js` (el radar pasa de 7 a **8 ejes**, derivado
+     automáticamente ahí — `radar.js` no necesita tocarse).
+   - **Diseñar baremos reales** (umbrales por categoría FEB) para al menos una prueba de
+     resistencia — pendiente decidir con el owner **qué prueba(s)** (ej. Course
+     Navette/Léger, Test de Cooper, Yo-Yo IR1, sprints repetidos/RSA para la
+     componente anaeróbica) y si aeróbica/anaeróbica son un solo sub_pilar con una
+     prueba compuesta o si conviven varias pruebas bajo el mismo `sub_pilar=resistencia`
+     (como ya ocurre hoy con otros sub-pilares que tienen múltiples pruebas).
+   - Nueva(s) fila(s) en `catalogo_ejercicios` (pruebas de evaluación, `pilar='fisico'`,
+     `sub_pilar='resistencia'`) con sus `thresholds`.
+   - Contenido: misiones nuevas `pilar='fisico'` orientadas a resistencia (mismo patrón
+     que falta hoy para `recuperacion`, ver §4.1).
+   - **Esto es un workstream de contenido/ciencia deportiva, no solo ingeniería** —
+     depende de qué prueba(s) y umbrales por categoría defina el cuerpo técnico del
+     club. Se registra como fase propia (§7, "P1.5") separada de la unificación de
+     sesiones para no bloquearla.
+4. Separar en dos ejes independientes lo que hoy es una sola lista: **`pilar`/`sub_pilar`
+   canónico** (qué se entrena, de `taxonomia.js`, incluyendo el nuevo `resistencia`) +
+   **`tipo_actividad`** opcional (Evaluación/Recuperación como *formato* de la sesión, no
+   como pilar). Esto resuelve también la mezcla en `TIPOS` de `AdminSesiones`.
 
 ---
 
@@ -241,28 +389,61 @@ Fuentes de bugs futuros. Consolidar en la fase de datos (§3.3).
 
 ---
 
-## 7. Plan por fases (propuesto)
+## 7. Plan por fases (actualizado 2026-07-05 — las 4 decisiones de producto ya están tomadas, §8)
 
-Alineado con la convención P0/P1/P2 del repo. **Ninguna fase está iniciada.**
+Alineado con la convención P0/P1/P2 del repo. Los ítems tachados con ✅ ya están hechos
+(ver §2.4/§2.6/§4.1 y memoria del proyecto); lo demás sigue **sin iniciar** — esta
+sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
 
-- **P0 — Quick wins de UI (bajo riesgo, sin migración):**
-  - Fix del baremo Sub-14 (§6.1).
-  - UX móvil de evaluación + retiro de la pestaña Carga/Sueño (§4.1, §5).
-  - Decisión de producto: acceso del rol atleta a la evaluación científica.
-- **P1 — Taxonomía compartida (§3.1):** que Sesiones/Cancha/Evaluación consuman
-  `pilar → sub_pilar` de `analytics-core` en vez de listas locales.
-- **P2 — Unificación de datos (§3.2, §3.3):** baseline del esquema → plantillas de sesión
-  → tabla de asistencia real → servicio único de XP → limpieza de catálogos espejo.
+- ~~**P0 — Quick wins de UI**~~ ✅ HECHO: fix baremo Sub-14, UX móvil de evaluación,
+  catálogos espejo (código), taxonomía única `pilar→sub_pilar`, servicio único de XP,
+  recuperación→MCP→misiones.
+- **P1 — Baseline técnico (bloquea P2 y P1.5, siguiente sesión):**
+  - Capturar `npx supabase db dump --schema public` antes de tocar `asistencia`,
+    `sesiones_control` o crear `sesiones_plantilla` (requiere `supabase login`).
+  - Revisar datos reales de `asistencia` por posibles duplicados atleta+fecha antes de
+    relajar su `UNIQUE(atleta_id, fecha)` (§3.3.a).
+- **P1.5 — Contenido de resistencia (independiente, puede correr en paralelo a P2/P3):**
+  - Definir con el cuerpo técnico qué prueba(s) miden `resistencia` (Course
+    Navette/Léger, Cooper, Yo-Yo IR1, RSA…) y sus umbrales por categoría FEB (§3.4.3).
+  - Diseñar los baremos (mismo formato que `baremos.js`/`catalogo_ejercicios` ya usan).
+  - Redactar misiones `pilar='fisico'` orientadas a resistencia.
+  - Solo entonces: añadir `resistencia` a `SUB_PILARES` (`taxonomia.js`) — el radar pasa
+    de 7 a 8 ejes automáticamente.
+- **P2 — Migraciones aditivas (tras el baseline de P1):**
+  1. `CREATE TABLE sesiones_plantilla` (§3.2, decidida) + poblarla con las plantillas
+     que hoy son objetivos de Modo Cancha.
+  2. `ALTER TABLE asistencia ADD sesion_id` + ajuste de `UNIQUE` (§3.3.a, decidida).
+  3. Migrar `OBJETIVOS_CLASE`/`TIPOS` a consumir `taxonomia.js`: Agilidad→Técnico,
+     Liderazgo→`resiliencia` (§3.4, decididas), separando `pilar/sub_pilar` de
+     `tipo_actividad`.
+- **P3 — Reescritura de flujo (código, tras P2 en producción):**
+  - `ModoCanchaModalConfigPilar` pasa de "elegir pilar" a "elegir/sugerir plantilla".
+  - Paso "Pasar Lista" de Modo Cancha escribe en `asistencia` en vez de inferir por
+    `notas`/`[MODO_CANCHA: id]`.
+  - `AdminSesiones` gana un botón "Guardar como plantilla".
+  - Retirar el parseo de `notas` (`[EN_CURSO]`, `Pilar:X | tipo`) una vez que
+    `sesiones_programadas`/`sesiones_control` tengan columnas reales para lo mismo.
 
 ---
 
-## 8. Preguntas abiertas (requieren decisión del owner antes de codificar)
+## 8. Decisiones del owner (2026-07-05) — ya no son preguntas abiertas
 
-1. **Rol atleta**: al retirar Carga/Sueño, ¿el atleta pierde acceso a la evaluación
-   científica (recomendado) o se le da otra vista?
-2. **Catálogos**: ¿una prueba de evaluación es un tipo de ejercicio de entrenamiento, o
-   son dominios que deben permanecer separados (solo renombrar)?
-3. **XP**: ¿se acepta consolidar las 3-4 reglas de XP en un único servicio, aun si cambia
-   ligeramente cuánta XP se otorga hoy?
-4. **Plantillas**: ¿tabla nueva `sesiones_plantilla` o reutilizar `sesiones_control` con
-   flag `es_plantilla`?
+1. **Agilidad → Técnico.** (§3.4.1) Modo Cancha se alinea con
+   `taxonomia.js`/`baremos.js`/radar; sin cambio de cálculo, solo de agrupación/UI.
+2. **Liderazgo y Comunicación → sub-pilar `resiliencia`.** (§3.4.2) Sin cambio de
+   conducta — formaliza el mapeo que ya hace `handleCerrarClase` hoy.
+3. **Resistencia → sub-pilar físico NUEVO** con pruebas/baremos/misiones propios, no un
+   tag transversal. (§3.4.3) Es el ítem con más trabajo pendiente: requiere diseño de
+   baremos reales (ver P1.5) antes de tocar `taxonomia.js`/radar.
+4. **Plantillas → tabla nueva `sesiones_plantilla`.** (§3.2)
+5. **Asistencia → extender la tabla `asistencia` ya existente** con `sesion_id` +
+   relajar su `UNIQUE`. (§3.3.a)
+
+**Preguntas de la fase anterior, ya resueltas y no reabiertas:** rol atleta en
+Carga/Sueño (§4.1, conserva acceso); catálogos espejo (§2.3, dominios separados, no se
+fusionan); XP (§2.4, ya consolidado en `analytics-core/xp.js`).
+
+**Sigue pendiente de decisión (no bloquea el resto, ver P1.5):** qué prueba(s) exactas
+miden `resistencia` y sus umbrales por categoría — requiere input del cuerpo técnico,
+no es una decisión de ingeniería.
