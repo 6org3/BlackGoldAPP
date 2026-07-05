@@ -40,6 +40,7 @@ Black Gold — un ecosistema de club de baloncesto para el club en Sucumbíos (E
 
 ## Documentos de diseño
 
+- `docs/design_system.md` — Black Gold Design System v1 (tokens, componentes, motion, gobernanza). Implementación viva en `Dashboard_Premium/src/styles/tokens.css` (Tailwind v4 `@theme`) y `Dashboard_Premium/src/lib/designTokens.js` (Recharts/Framer/confetti). Demo visual: `docs/design_system_demo.html`. Regla: no introducir hex nuevos en componentes — tokenizar primero.
 - `docs/comunicaciones_eventos.md` — diseño de las comunicaciones segmentadas y el módulo de eventos deportivos (convocatorias/RSVP, recordatorios, resultados), más la capacidad futura de campeonatos + planilla de juego digital. Acompaña a la migración v18.
 - `docs/evaluacion_ingenieria_producto.md` — evaluación de ingeniería del producto (2026-07-01): arquitectura, seguridad, calidad de código y roadmap P0/P1/P2.
 - `docs/plan_remediacion_seguridad.md` — plan de remediación fase por fase derivado de la evaluación anterior; es la fuente de verdad sobre qué fase de seguridad/deuda técnica está en curso o pendiente.

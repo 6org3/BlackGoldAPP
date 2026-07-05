@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Black Gold — Design System v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ==== TOKENS (espejo de Dashboard_Premium/src/styles/tokens.css) ==== */
+  :root{
+    --gold-100:#FFF8DC;--gold-300:#FFEB66;--gold-400:#FFDF33;--gold-500:#FFD700;
+    --gold-600:#D4AF37;--gold-700:#9E7C1C;--gold-900:#3D3300;
+    --surface-base:#09090B;--surface-sunken:#0D0D0F;--surface-card:#121214;
+    --surface-raised:#18181B;--surface-top:#1F1F23;
+    --fg:#EDEDED;--fg-secondary:#9CA3AF;--fg-muted:#6B7280;--fg-faint:#4B5563;--fg-inverse:#0A0A0C;
+    --success:#10B981;--success-soft:#34D399;--warning:#F59E0B;--warning-soft:#FBBF24;
+    --caution:#F97316;--caution-soft:#FB923C;--danger:#EF4444;--danger-soft:#F87171;
+    --info:#3B82F6;--info-soft:#60A5FA;--mental:#A855F7;--mental-soft:#C084FC;
+    --rank-rookie:#9CA3AF;--rank-prospecto:#FB923C;--rank-desarrollo:#60A5FA;
+    --rank-elite:#FFD700;--rank-leyenda:#C084FC;
+    --tier-excelente:#34D399;--tier-muybueno:#FFD700;--tier-bueno:#22D3EE;
+    --tier-regular:#FB923C;--tier-sindatos:#4B5563;
+    --radius-control:12px;--radius-panel:16px;--radius-card:24px;
+    --shadow-card:0 10px 30px -10px rgb(0 0 0/.8),inset 0 1px 0 rgb(255 255 255/.02);
+    --glow-gold:0 0 20px rgb(255 215 0/.4);--glow-bar:0 0 8px rgb(255 215 0/.5);
+    --ease-premium:cubic-bezier(.25,.46,.45,.94);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--surface-base);color:var(--fg);
+    font-family:'Outfit',ui-sans-serif,system-ui,sans-serif;
+    background-image:radial-gradient(circle at 50% 0%,rgb(255 215 0/.04) 0%,transparent 60%);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:56px 20px 120px}
+
+  /* voz de la marca */
+  .eyebrow{font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-muted)}
+  .eyebrow.gold{color:var(--gold-500)}
+  h2{font-size:22px;font-weight:900;letter-spacing:-.02em;margin-top:6px}
+  section{margin-top:72px}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid rgb(255 255 255/.08);padding-bottom:14px;margin-bottom:26px}
+  .sec-head small{color:var(--fg-faint);font-size:11px;font-weight:600}
+
+  .grad-gold{
+    background:linear-gradient(135deg,var(--gold-500),var(--gold-600) 55%,var(--gold-500));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .glass{
+    background:linear-gradient(145deg,rgb(20 20 22/.9),rgb(10 10 12/.95));
+    border:1px solid rgb(255 215 0/.05);box-shadow:var(--shadow-card);
+    backdrop-filter:blur(20px);border-radius:var(--radius-card);
+  }
+  .glass:hover{border-color:rgb(255 215 0/.3);box-shadow:0 0 20px rgb(255 215 0/.1),inset 0 0 15px rgb(255 215 0/.05);transition:all .3s var(--ease-premium)}
+
+  /* hero */
+  .hero{text-align:center;padding:64px 0 8px}
+  .hero h1{font-size:clamp(38px,7vw,64px);font-weight:900;text-transform:uppercase;letter-spacing:.04em;line-height:1.05;filter:drop-shadow(0 0 26px rgb(255 215 0/.25))}
+  .hero p{color:var(--fg-secondary);font-weight:300;margin-top:14px;font-size:15px}
+  .hero .chips{margin-top:22px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+
+  /* swatches */
+  .swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:12px}
+  .swatch{border-radius:var(--radius-panel);overflow:hidden;border:1px solid rgb(255 255 255/.08);background:var(--surface-card)}
+  .swatch .c{height:64px}
+  .swatch .m{padding:9px 11px}
+  .swatch .m b{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+  .swatch .m span{font-size:10px;color:var(--fg-muted);font-weight:600}
+  .grp{margin-bottom:26px}
+  .grp>.eyebrow{display:block;margin-bottom:12px}
+
+  /* tipografía */
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:13px 0;border-bottom:1px dashed rgb(255 255 255/.06)}
+  .type-row .lab{width:150px;flex:none}
+  .type-row .lab b{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-secondary)}
+  .type-row .lab span{font-size:10px;color:var(--fg-faint);font-weight:600}
+
+  /* botones */
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;justify-content:center;
+    min-height:44px;padding:0 20px;border-radius:var(--radius-control);
+    font:900 10px/1 'Outfit';letter-spacing:.2em;text-transform:uppercase;
+    border:1px solid transparent;cursor:pointer;transition:all .15s var(--ease-premium);
+  }
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--gold-500);color:var(--fg-inverse);border-color:rgb(255 215 0/.5);box-shadow:var(--glow-gold)}
+  .btn-primary:hover{background:var(--gold-400)}
+  .btn-mental{background:rgb(168 85 247/.2);border-color:rgb(168 85 247/.5);color:var(--mental-soft);box-shadow:0 0 20px rgb(168 85 247/.15)}
+  .btn-mental:hover{background:rgb(168 85 247/.3)}
+  .btn-info{background:rgb(59 130 246/.2);border-color:rgb(59 130 246/.5);color:var(--info-soft)}
+  .btn-info:hover{background:rgb(59 130 246/.3)}
+  .btn-ghost{background:rgb(255 255 255/.05);border-color:rgb(255 255 255/.1);color:var(--fg-secondary)}
+  .btn-ghost:hover{background:rgb(255 255 255/.1);color:var(--fg)}
+  .btn-danger{background:rgb(239 68 68/.2);border-color:rgb(239 68 68/.5);color:var(--danger-soft)}
+  .btn-danger:hover{background:rgb(239 68 68/.3)}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+
+  /* chips */
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+    font:900 9px/1 'Outfit';letter-spacing:.18em;text-transform:uppercase;border:1px solid;
+  }
+  .dot{width:8px;height:8px;border-radius:999px;animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.45}}
+
+  /* barras */
+  .track{height:8px;background:var(--surface-sunken);border:1px solid rgb(255 255 255/.05);border-radius:999px;overflow:hidden}
+  .fill{height:100%;border-radius:999px;width:0;transition:width 1s var(--ease-premium)}
+  .fill.gold{background:linear-gradient(90deg,var(--gold-600),var(--gold-500));box-shadow:var(--glow-bar)}
+  .bar-lab{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 7px}
+  .bar-lab .eyebrow{font-size:9px}
+  .bar-lab b{font-size:9px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}
+
+  /* tarjetas ejemplo */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+  .kpi{padding:22px}
+  .kpi .val{font-size:32px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:8px}
+  .delta{font-size:10px;font-weight:800;letter-spacing:.12em}
+  .spark{display:flex;align-items:flex-end;gap:2px;height:26px;margin-top:14px;opacity:.7}
+  .spark i{width:5px;background:var(--gold-500);border-radius:2px}
+  .alerta{border-radius:var(--radius-panel);padding:15px;border:1px solid;backdrop-filter:blur(12px)}
+  .alerta p{font-size:12px;font-weight:300;line-height:1.6;margin-top:6px}
+
+  .avatar{width:52px;height:52px;border-radius:999px;background:rgb(255 255 255/.05);border:1px solid rgb(255 255 255/.2);display:grid;place-items:center;font-weight:900;font-size:20px;color:rgb(255 255 255/.5)}
+
+  /* skeleton */
+  .skel{position:relative;overflow:hidden;background:var(--surface-raised);border-radius:var(--radius-panel)}
+  .skel::after{content:'';position:absolute;inset:0;transform:translateX(-100%);
+    background:linear-gradient(90deg,transparent,rgb(255 255 255/.05),transparent);
+    animation:shimmer 1.8s ease-in-out infinite}
+  @keyframes shimmer{to{transform:translateX(100%)}}
+
+  /* entrada por scroll */
+  .fiu{opacity:0;transform:translateY(24px);transition:opacity .6s var(--ease-premium),transform .6s var(--ease-premium)}
+  .fiu.in{opacity:1;transform:none}
+
+  /* level-up overlay */
+  #lvl{position:fixed;inset:0;z-index:99;display:none;place-items:center;background:radial-gradient(circle at 50% 45%,rgb(255 215 0/.08),transparent 50%),rgb(0 0 0/.92);cursor:pointer}
+  #lvl.on{display:grid;animation:fadein .4s ease-out}
+  @keyframes fadein{from{opacity:0}}
+  #lvl .ring{position:absolute;border:2px solid var(--gold-500);border-radius:999px;opacity:0;animation:ring 2s ease-out forwards}
+  @keyframes ring{0%{transform:scale(0);opacity:0}45%{opacity:var(--o)}100%{transform:scale(1.15);opacity:0}}
+  #lvl .core{text-align:center;position:relative;z-index:2}
+  #lvl .emo{font-size:84px;filter:drop-shadow(0 0 40px rgb(255 215 0/.55));animation:pop .7s var(--ease-premium) .15s both}
+  @keyframes pop{0%{transform:scale(0) rotate(-20deg)}70%{transform:scale(1.15) rotate(4deg)}100%{transform:scale(1)}}
+  #lvl h3{font-size:clamp(26px,5vw,40px);font-weight:900;text-transform:uppercase;letter-spacing:.06em;margin-top:10px;animation:rise .6s ease-out .5s both}
+  #lvl p{color:var(--fg-secondary);margin-top:10px;font-weight:300;animation:rise .5s ease-out .8s both}
+  #lvl p b{color:var(--gold-500);font-weight:900}
+  #lvl small{display:block;margin-top:26px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-faint);animation:rise .6s ease-out 1.4s both}
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+  #lvl .pt{position:absolute;border-radius:999px;animation:part var(--d) ease-out var(--dl) both}
+  @keyframes part{0%{transform:translate(0,0) scale(0);opacity:0}15%{opacity:1;transform:translate(0,0) scale(1.4)}100%{transform:translate(var(--tx),var(--ty)) scale(.25);opacity:0}}
+
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  td{padding:9px 12px;border-bottom:1px solid rgb(255 255 255/.05);color:var(--fg-secondary)}
+  td:first-child{color:var(--fg);font-weight:600;white-space:nowrap}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <span class="eyebrow gold">Black Gold · Sistema de diseño · v1</span>
+    <h1><span class="grad-gold">El oro<br>se gana</span></h1>
+    <p>Dark premium · Gamificación · PWA — tokens en <b style="font-weight:600;color:var(--fg)">src/styles/tokens.css</b> + <b style="font-weight:600;color:var(--fg)">src/lib/designTokens.js</b></p>
+    <div class="chips">
+      <span class="chip" style="background:rgb(255 215 0/.08);border-color:rgb(255 215 0/.3);color:var(--gold-500)">5 superficies</span>
+      <span class="chip" style="background:rgb(255 255 255/.06);border-color:rgb(255 255 255/.15);color:var(--fg-secondary)">3 radios</span>
+      <span class="chip" style="background:rgb(255 255 255/.06);border-color:rgb(255 255 255/.15);color:var(--fg-secondary)">1 oro sólido por vista</span>
+    </div>
+  </div>
+
+  <!-- PALETA -->
+  <section class="fiu">
+    <div class="sec-head"><div><span class="eyebrow gold">01</span><h2>Paleta</h2></div><small>primitivos → semánticos</small></div>
+
+    <div class="grp"><span class="eyebrow">Oro — la moneda visual</span>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="c" style="background:#FFF8DC"></div><div class="m"><b style="color:var(--fg)">gold-100</b><span>#FFF8DC</span></div></div>
+        <div class="swatch"><div class="c" style="background:#FFEB66"></div><div class="m"><b style="color:var(--fg)">gold-300</b><span>#FFEB66</span></div></div>
+        <div class="swatch"><div class="c" style="background:#FFDF33"></div><div class="m"><b style="color:var(--fg)">gold-400</b><span>hover</span></div></div>
+        <div class="swatch" style="border-color:rgb(255 215 0/.4)"><div class="c" style="background:#FFD700;box-shadow:var(--glow-gold)"></div><div class="m"><b style="color:var(--gold-500)">brand ★</b><span>#FFD700</span></div></div>
+        <div class="swatch"><div class="c" style="background:#D4AF37"></div><div class="m"><b style="color:var(--fg)">gold-600</b><span>#D4AF37</span></div></div>
+        <div class="swatch"><div class="c" style="background:#9E7C1C"></div><div class="m"><b style="color:var(--fg)">gold-700</b><span>#9E7C1C</span></div></div>
+        <div class="swatch"><div class="c" style="background:#3D3300"></div><div class="m"><b style="color:var(--fg)">gold-900</b><span>#3D3300</span></div></div>
+      </div>
+    </div>
+
+    <div class="grp"><span class="eyebrow">Superficies — nunca inventar un negro</span>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="c" style="background:#09090B"></div><div class="m"><b style="color:var(--fg)">base</b><span>fondo app</span></div></div>
+        <div class="swatch"><div class="c" style="background:#0D0D0F"></div><div class="m"><b style="color:var(--fg)">sunken</b><span>inputs · tracks</span></div></div>
+        <div class="swatch"><div class="c" style="background:#121214"></div><div class="m"><b style="color:var(--fg)">card</b><span>tarjetas</span></div></div>
+        <div class="swatch"><div class="c" style="background:#18181B"></div><div class="m"><b style="color:var(--fg)">raised</b><span>modales</span></div></div>
+        <div class="swatch"><div class="c" style="background:#1F1F23"></div><div class="m"><b style="color:var(--fg)">top</b><span>tooltips</span></div></div>
+      </div>
+    </div>
+
+    <div class="grp"><span class="eyebrow">Feedback y dominio — base 500 + soft 400</span>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="c" style="background:linear-gradient(135deg,#10B981 50%,#34D399 50%)"></div><div class="m"><b style="color:var(--success-soft)">success</b><span>pagos · asistencia</span></div></div>
+        <div class="swatch"><div class="c" style="background:linear-gradient(135deg,#F59E0B 50%,#FBBF24 50%)"></div><div class="m"><b style="color:var(--warning-soft)">warning</b><span>fatiga · pendiente</span></div></div>
+        <div class="swatch"><div class="c" style="background:linear-gradient(135deg,#F97316 50%,#FB923C 50%)"></div><div class="m"><b style="color:var(--caution-soft)">caution</b><span>regular · impacto</span></div></div>
+        <div class="swatch"><div class="c" style="background:linear-gradient(135deg,#EF4444 50%,#F87171 50%)"></div><div class="m"><b style="color:var(--danger-soft)">danger</b><span>crítico · deuda</span></div></div>
+        <div class="swatch"><div class="c" style="background:linear-gradient(135deg,#3B82F6 50%,#60A5FA 50%)"></div><div class="m"><b style="color:var(--info-soft)">info</b><span>datos físicos</span></div></div>
+        <div class="swatch"><div class="c" style="background:linear-gradient(135deg,#A855F7 50%,#C084FC 50%)"></div><div class="m"><b style="color:var(--mental-soft)">mental</b><span>misiones · mente</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIPOGRAFÍA -->
+  <section class="fiu">
+    <div class="sec-head"><div><span class="eyebrow gold">02</span><h2>Tipografía — Outfit</h2></div><small>300 · 400 · 600 · 800 · 900</small></div>
+    <div class="type-row"><div class="lab"><b>Display héroe</b><span>black · gradiente oro</span></div><div class="grad-gold" style="font-size:34px;font-weight:900;text-transform:uppercase;letter-spacing:.04em">¡Rango ascendido!</div></div>
+    <div class="type-row"><div class="lab"><b>H1 página</b><span>black · tracking-tight</span></div><div style="font-size:24px;font-weight:900;letter-spacing:-.02em">Amaru Quishpe</div></div>
+    <div class="type-row"><div class="lab"><b>H2 sección</b><span>black · uppercase</span></div><div style="font-size:17px;font-weight:900;text-transform:uppercase">Rango actual</div></div>
+    <div class="type-row"><div class="lab"><b>Body</b><span>light · fg-secondary</span></div><div style="font-size:14px;font-weight:300;color:var(--fg-secondary);line-height:1.6">Priorizar sueño 10–12 h y actividades recreativas esta semana.</div></div>
+    <div class="type-row"><div class="lab"><b>Eyebrow</b><span>la voz de la marca</span></div><div class="eyebrow">XP total acumulado</div></div>
+    <div class="type-row"><div class="lab"><b>Dato grande</b><span>black · tabular-nums</span></div><div style="font-size:28px;font-weight:900;font-variant-numeric:tabular-nums">2.450 <span style="font-size:12px;color:var(--gold-500);font-weight:800">XP</span></div></div>
+  </section>
+
+  <!-- BOTONES -->
+  <section class="fiu">
+    <div class="sec-head"><div><span class="eyebrow gold">03</span><h2>Botones</h2></div><small>44px táctil · uno dorado por vista</small></div>
+    <div class="row">
+      <button class="btn btn-primary">⚡ Evaluar</button>
+      <button class="btn btn-mental">◎ Misiones</button>
+      <button class="btn btn-info">▤ Test carga</button>
+      <button class="btn btn-ghost">Cancelar</button>
+      <button class="btn btn-danger">Eliminar</button>
+      <button class="btn btn-primary" disabled>Deshabilitado</button>
+    </div>
+    <p style="font-size:11px;color:var(--fg-muted);margin-top:14px;font-weight:600">Primario = oro sólido + glow (máx. 1 por vista) · secundarios tintados al 20 % con borde al 50 % · <code style="color:var(--fg-secondary)">active:scale(.97)</code> en táctil, <code style="color:var(--fg-secondary)">hover:scale</code> solo desktop.</p>
+  </section>
+
+  <!-- CHIPS + GAMIFICACIÓN -->
+  <section class="fiu">
+    <div class="sec-head"><div><span class="eyebrow gold">04</span><h2>Chips · Rangos · Baremo</h2></div><small>bg /10 · borde /25 · texto soft</small></div>
+    <div class="grp"><span class="eyebrow">Estados</span>
+      <div class="row">
+        <span class="chip" style="background:rgb(16 185 129/.1);border-color:rgb(16 185 129/.25);color:var(--success-soft)"><i class="dot" style="background:var(--success)"></i> Al día</span>
+        <span class="chip" style="background:rgb(245 158 11/.1);border-color:rgb(245 158 11/.25);color:var(--warning-soft)"><i class="dot" style="background:var(--warning)"></i> Fatiga silenciosa</span>
+        <span class="chip" style="background:rgb(239 68 68/.1);border-color:rgb(239 68 68/.25);color:var(--danger-soft)"><i class="dot" style="background:var(--danger)"></i> Agotamiento activo</span>
+        <span class="chip" style="background:rgb(249 115 22/.1);border-color:rgb(249 115 22/.25);color:var(--caution-soft)">⚠ Impacto</span>
+        <span class="chip" style="background:rgb(255 255 255/.1);border-color:rgb(255 255 255/.2);color:var(--fg)">Base · U-13</span>
+      </div>
+    </div>
+    <div class="grp"><span class="eyebrow">Rangos XP — fuente única RANGOS_UI</span>
+      <div class="row">
+        <span class="chip" style="background:rgb(156 163 175/.06);border-color:rgb(156 163 175/.3);color:var(--rank-rookie)">🟤 Rookie</span>
+        <span class="chip" style="background:rgb(251 146 60/.06);border-color:rgb(251 146 60/.3);color:var(--rank-prospecto)">🟠 Prospecto</span>
+        <span class="chip" style="background:rgb(96 165 250/.06);border-color:rgb(96 165 250/.3);color:var(--rank-desarrollo)">🔵 Desarrollo</span>
+        <span class="chip" style="background:rgb(255 215 0/.06);border-color:rgb(255 215 0/.35);color:var(--rank-elite);box-shadow:0 0 14px rgb(255 215 0/.15)">⭐ Élite</span>
+        <span class="chip" style="background:rgb(192 132 252/.06);border-color:rgb(192 132 252/.3);color:var(--rank-leyenda)">👑 Leyenda Mamba</span>
+      </div>
+    </div>
+    <div class="grp" style="margin-bottom:0"><span class="eyebrow">Baremo de rendimiento</span>
+      <div class="row">
+        <span class="chip" style="border-color:rgb(52 211 153/.3);color:var(--tier-excelente)">Excelente ≥81</span>
+        <span class="chip" style="border-color:rgb(255 215 0/.3);color:var(--tier-muybueno)">Muy bueno ≥61</span>
+        <span class="chip" style="border-color:rgb(34 211 238/.3);color:var(--tier-bueno)">Bueno ≥41</span>
+        <span class="chip" style="border-color:rgb(251 146 60/.3);color:var(--tier-regular)">Regular ≥21</span>
+        <span class="chip" style="border-color:rgb(75 85 99/.5);color:var(--tier-sindatos)">Sin datos</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- TARJETAS -->
+  <section class="fiu">
+    <div class="sec-head"><div><span class="eyebrow gold">05</span><h2>Tarjetas</h2></div><small>glass · panel · KPI · alerta</small></div>
+    <div class="cards">
+
+      <!-- tarjeta atleta -->
+      <div class="glass" style="padding:24px">
+        <div style="display:flex;gap:14px;align-items:center">
+          <div class="avatar">A</div>
+          <div style="flex:1">
+            <div style="font-size:19px;font-weight:900;letter-spacing:-.02em">Amaru Quishpe</div>
+            <div class="row" style="gap:6px;margin-top:7px">
+              <span class="chip" style="background:rgb(255 255 255/.1);border-color:rgb(255 255 255/.2);color:var(--fg);font-size:8px">Base</span>
+              <span class="chip" style="background:rgb(255 215 0/.06);border-color:rgb(255 215 0/.35);color:var(--gold-500);font-size:8px">⭐ Élite</span>
+            </div>
+          </div>
+        </div>
+        <div class="bar-lab"><span class="eyebrow">Hacia Leyenda Mamba</span><b style="color:var(--gold-500)" id="xp-pct">0%</b></div>
+        <div class="track"><div class="fill gold" data-w="72"></div></div>
+        <div class="bar-lab" style="margin-top:16px"><span class="eyebrow">Fuerza</span><b style="color:var(--tier-excelente)">Excelente</b></div>
+        <div class="track" style="height:6px"><div class="fill" data-w="86" style="background:linear-gradient(90deg,#34D39988,#34D399);box-shadow:0 0 8px rgb(52 211 153/.4)"></div></div>
+        <div class="bar-lab" style="margin-top:10px"><span class="eyebrow">Técnica de tiro</span><b style="color:var(--tier-regular)">Regular</b></div>
+        <div class="track" style="height:6px"><div class="fill" data-w="34" style="background:linear-gradient(90deg,#FB923C88,#FB923C);box-shadow:0 0 8px rgb(251 146 60/.4)"></div></div>
+      </div>
+
+      <div style="display:grid;gap:18px">
+        <!-- KPI -->
+        <div class="glass kpi" style="border-radius:var(--radius-panel)">
+          <span class="eyebrow">Ingresos del mes</span>
+          <div class="val">$1.240 <span class="delta" style="color:var(--success-soft)">▲ 12%</span></div>
+          <div class="spark"><i style="height:30%"></i><i style="height:45%"></i><i style="height:38%"></i><i style="height:60%"></i><i style="height:52%"></i><i style="height:74%"></i><i style="height:100%"></i></div>
+        </div>
+        <!-- alerta -->
+        <div class="alerta" style="background:rgb(245 158 11/.08);border-color:rgb(245 158 11/.35)">
+          <div class="row" style="gap:8px"><i class="dot" style="background:var(--warning)"></i><b style="font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--warning-soft)">Fatiga silenciosa</b></div>
+          <p style="color:rgb(253 230 138/.75)">Rendimiento disminuido sin dolor aparente. Reducir volumen de entrenamiento.</p>
+        </div>
+        <!-- skeleton -->
+        <div class="skel" style="height:64px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOTION -->
+  <section class="fiu">
+    <div class="sec-head"><div><span class="eyebrow gold">06</span><h2>Motion</h2></div><small>celebrar, no distraer</small></div>
+    <table>
+      <tr><td>fast · 150 ms</td><td>hover, toggles — <i style="color:var(--fg-muted)">ease-premium</i></td></tr>
+      <tr><td>base · 300 ms</td><td>modales, fade-in-up</td></tr>
+      <tr><td>entrance · 600 ms</td><td>tarjetas al entrar (stagger 0.08 s, tope 0.6 s)</td></tr>
+      <tr><td>bar · 1000 ms</td><td>barras de progreso y XP</td></tr>
+      <tr><td>celebration · 2000 ms</td><td>level-up: anillos + partículas + spring</td></tr>
+    </table>
+    <div class="row" style="margin-top:22px">
+      <button class="btn btn-primary" onclick="levelUp()">▶ Probar level-up</button>
+      <span style="font-size:11px;color:var(--fg-muted);font-weight:600">Coreografía completa: backdrop radial → anillos → partículas → spring del emblema → título en oro líquido.</span>
+    </div>
+  </section>
+
+  <!-- REGLAS -->
+  <section class="fiu">
+    <div class="sec-head"><div><span class="eyebrow gold">07</span><h2>Reglas de oro</h2></div></div>
+    <table>
+      <tr><td>1 · El oro se gana</td><td>Un solo elemento dorado sólido por vista: el CTA o el logro.</td></tr>
+      <tr><td>2 · La luz informa</td><td>Todo acento significa algo (estado, dominio, rango). Nada decorativo.</td></tr>
+      <tr><td>3 · Negros con nombre</td><td>5 superficies. Prohibido inventar un sexto negro.</td></tr>
+      <tr><td>4 · Cero hex en JSX</td><td>Si falta un color, se tokeniza en tokens.css + designTokens.js primero.</td></tr>
+      <tr><td>5 · 44 px o nada</td><td>Target táctil mínimo en móvil; densidad 36 px solo en desktop admin.</td></tr>
+      <tr><td>6 · Movimiento con propósito</td><td>reduced-motion siempre; loops solo transform/opacity.</td></tr>
+    </table>
+  </section>
+</div>
+
+<!-- LEVEL-UP OVERLAY -->
+<div id="lvl" onclick="this.classList.remove('on')">
+  <div class="ring" style="--o:.25;width:180px;height:180px;animation-delay:.15s;box-shadow:0 0 40px rgb(255 215 0/.2)"></div>
+  <div class="ring" style="--o:.15;width:300px;height:300px;animation-delay:.4s"></div>
+  <div class="ring" style="--o:.08;width:440px;height:440px;animation-delay:.65s"></div>
+  <div class="core">
+    <div class="emo">⭐</div>
+    <h3 class="grad-gold">¡Rango ascendido!</h3>
+    <p>Has alcanzado <b>Élite</b></p>
+    <small>Toca para continuar</small>
+  </div>
+</div>
+
+<script>
+  // Entrada por scroll (fade-in-up del sistema)
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+  document.querySelectorAll('.fiu').forEach(el=>io.observe(el));
+
+  // Barras animadas al entrar en viewport
+  const ib=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){
+    const f=e.target;setTimeout(()=>{f.style.width=f.dataset.w+'%'},250);
+    if(f.classList.contains('gold')){let p=0;const t=setInterval(()=>{p+=2;if(p>=72){p=72;clearInterval(t)}
+      const el=document.getElementById('xp-pct');if(el)el.textContent=p+'%'},26)}
+    ib.unobserve(f)}}),{threshold:.4});
+  document.querySelectorAll('.fill').forEach(el=>ib.observe(el));
+
+  // Level-up: partículas doradas regeneradas en cada disparo
+  const GOLD=['#FFD700','#D4AF37','#FFF8DC','#FFEB66'];
+  function levelUp(){
+    const o=document.getElementById('lvl');
+    o.querySelectorAll('.pt').forEach(p=>p.remove());
+    const n=innerWidth<480?14:26;
+    for(let i=0;i<n;i++){
+      const p=document.createElement('div');p.className='pt';
+      const a=Math.random()*360,d=70+Math.random()*130,s=5+Math.random()*8;
+      p.style.cssText=`width:${s}px;height:${s}px;left:50%;top:46%;
+        background:radial-gradient(circle,${GOLD[i%4]} 0%,${GOLD[i%4]} 45%,transparent 70%);
+        --tx:${Math.cos(a*Math.PI/180)*d}px;--ty:${Math.sin(a*Math.PI/180)*d}px;
+        --d:${1.4+Math.random()*1.6}s;--dl:${.25+Math.random()*.9}s`;
+      o.appendChild(p);
+    }
+    o.classList.remove('on');void o.offsetWidth;o.classList.add('on');
+  }
+</script>
+</body>
+</html>

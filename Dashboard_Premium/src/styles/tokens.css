@@ -1,0 +1,198 @@
+/* ============================================================
+   BLACK GOLD DESIGN SYSTEM — tokens.css (v1)
+   Fuente única de verdad visual de la app.
+   Arquitectura de 3 capas: primitivos → semánticos → componente.
+   Documentación completa: docs/design_system.md (raíz del repo).
+
+   Regla de oro: ningún componente escribe hex nuevos ni valores
+   arbitrarios ([#FFD700], blur-[100px]…) — si falta un token,
+   se agrega aquí y se documenta.
+   ============================================================ */
+
+@theme {
+  /* ----------------------------------------------------------
+     CAPA 1 · PRIMITIVOS
+     ---------------------------------------------------------- */
+
+  /* Oro — la moneda visual del club. Se usa vía los semánticos
+     brand/*; la escala completa existe para gradientes y matices. */
+  --color-gold-100: #FFF8DC; /* champagne: partículas, texto sobre oro oscuro */
+  --color-gold-300: #FFEB66; /* highlight, brillos de gradiente */
+  --color-gold-400: #FFDF33; /* hover del oro sólido */
+  --color-gold-500: #FFD700; /* oro canónico Black Gold */
+  --color-gold-600: #D4AF37; /* oro metálico viejo: extremos de gradiente */
+  --color-gold-700: #9E7C1C; /* oro profundo: bordes fuertes, pressed */
+  --color-gold-900: #3D3300; /* fondos teñidos de oro (alertas doradas) */
+
+  /* Superficies — 5 niveles de negro, de fondo a tooltip.
+     Nunca inventar un negro nuevo: elegir el nivel correcto. */
+  --color-surface-base:   #09090B; /* fondo de la app (theme-color de la PWA) */
+  --color-surface-sunken: #0D0D0F; /* pozos: inputs, tracks de barras, wells */
+  --color-surface-card:   #121214; /* tarjetas y paneles */
+  --color-surface-raised: #18181B; /* modales, dropdowns, hover de tarjeta */
+  --color-surface-top:    #1F1F23; /* tooltips, máxima elevación */
+
+  /* Texto sobre oscuro */
+  --color-fg:           #EDEDED; /* texto principal */
+  --color-fg-secondary: #9CA3AF; /* texto de apoyo (gray-400) */
+  --color-fg-muted:     #6B7280; /* labels, metadatos (gray-500) */
+  --color-fg-faint:     #4B5563; /* solo decorativo, nunca información (gray-600) */
+  --color-fg-inverse:   #0A0A0C; /* texto sobre superficies doradas */
+
+  /* ----------------------------------------------------------
+     CAPA 2 · SEMÁNTICOS
+     ---------------------------------------------------------- */
+
+  /* Marca */
+  --color-brand:        var(--color-gold-500);
+  --color-brand-hover:  var(--color-gold-400);
+  --color-brand-strong: var(--color-gold-600);
+  --color-on-brand:     var(--color-fg-inverse);
+
+  /* Feedback — par base (500, fondos/dots) + soft (400, texto sobre negro).
+     Receta chip: bg-{token}/10 border border-{token}/25 text-{token}-soft */
+  --color-success:      #10B981;
+  --color-success-soft: #34D399;
+  --color-warning:      #F59E0B; /* ámbar: fatiga, pendiente de aprobar */
+  --color-warning-soft: #FBBF24;
+  --color-caution:      #F97316; /* naranja: "regular", sensibilidad al impacto */
+  --color-caution-soft: #FB923C;
+  --color-danger:       #EF4444;
+  --color-danger-soft:  #F87171;
+  --color-info:         #3B82F6; /* datos físicos, self-service del atleta */
+  --color-info-soft:    #60A5FA;
+  --color-mental:       #A855F7; /* misiones, perfil mental, lo cognitivo */
+  --color-mental-soft:  #C084FC;
+
+  /* Gamificación — rangos XP (fuente única; antes vivía triplicada en
+     xpProgress.js, RangoProgreso.jsx y LevelUpAnimation.jsx). */
+  --color-rank-rookie:     #9CA3AF;
+  --color-rank-prospecto:  #FB923C;
+  --color-rank-desarrollo: #60A5FA;
+  --color-rank-elite:      #FFD700;
+  --color-rank-leyenda:    #C084FC;
+
+  /* Gamificación — baremo de rendimiento (getBaremoLevel) */
+  --color-tier-excelente: #34D399;
+  --color-tier-muybueno:  #FFD700;
+  --color-tier-bueno:     #22D3EE;
+  --color-tier-regular:   #FB923C;
+  --color-tier-sindatos:  #4B5563;
+
+  /* Externos */
+  --color-whatsapp:      #25D366;
+  --color-whatsapp-deep: #128C7E;
+
+  /* Aliases legacy (compatibilidad con el @theme original) */
+  --color-black-bg:   var(--color-surface-base);
+  --color-black-card: var(--color-surface-card);
+  --color-danger-red: #FF3333;
+  --color-gold-glow:  rgb(255 215 0 / 0.4);
+
+  /* ----------------------------------------------------------
+     Tipografía — Outfit en 5 pesos (300/400/600/800/900).
+     La "voz" de la marca: títulos font-black tracking-tight,
+     labels micro uppercase tracking-eyebrow.
+     ---------------------------------------------------------- */
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+
+  --text-3xs: 0.5625rem;            /* 9px — nano labels (reemplaza text-[9px]) */
+  --text-3xs--line-height: 1.35;
+  --text-2xs: 0.625rem;             /* 10px — micro labels (reemplaza text-[10px]) */
+  --text-2xs--line-height: 1.4;
+
+  --tracking-eyebrow: 0.2em;        /* labels uppercase de sección/chip */
+
+  /* Radios — 3 niveles anidables: card ⊃ panel ⊃ control */
+  --radius-control: 0.75rem;  /* 12px — botones, inputs, chips rectangulares */
+  --radius-panel:   1rem;     /* 16px — sub-tarjetas, alertas, list items */
+  --radius-card:    1.5rem;   /* 24px — tarjetas principales, modales */
+
+  /* Sombras y glows */
+  --shadow-card: 0 10px 30px -10px rgb(0 0 0 / 0.8),
+                 inset 0 1px 0 rgb(255 255 255 / 0.02);
+  --shadow-modal: 0 25px 60px -15px rgb(0 0 0 / 0.9);
+  --shadow-glow-gold: 0 0 20px rgb(255 215 0 / 0.4);        /* CTA dorado */
+  --shadow-glow-gold-soft: 0 0 20px rgb(255 215 0 / 0.1),
+                           inset 0 0 15px rgb(255 215 0 / 0.05); /* hover de borde */
+  --shadow-glow-bar: 0 0 8px rgb(255 215 0 / 0.5);          /* barras de progreso */
+
+  /* Motion — curva firma + animaciones de sistema.
+     Duraciones/springs para Framer Motion: src/lib/designTokens.js */
+  --ease-premium: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  --animate-fade-in-up: fade-in-up 0.3s ease-out both;
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+    50%      { opacity: 0.6; box-shadow: 0 0 8px 1px currentColor; }
+  }
+
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+  @keyframes shimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+  }
+}
+
+/* --------------------------------------------------------------
+   CAPA 3 · COMPONENTE — tokens de dimensión compartidos
+   -------------------------------------------------------------- */
+:root {
+  --control-height: 2.75rem;         /* 44px — target táctil mínimo (móvil) */
+  --control-height-compact: 2.25rem; /* 36px — controles densos de escritorio */
+}
+
+/* --------------------------------------------------------------
+   Utilidades de sistema (recetas en docs/design_system.md §4)
+   -------------------------------------------------------------- */
+
+/* Tarjeta vidrio — superficie principal de dashboards */
+.glass-card {
+  background: linear-gradient(145deg, rgb(20 20 22 / 0.9) 0%, rgb(10 10 12 / 0.95) 100%);
+  border: 1px solid rgb(255 215 0 / 0.05);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Borde que despierta al hover (solo desktop con puntero fino) */
+.glow-border:hover {
+  border-color: rgb(255 215 0 / 0.3);
+  box-shadow: var(--shadow-glow-gold-soft);
+}
+
+/* Relleno dorado de barras de progreso */
+.progress-bar-glow {
+  background: linear-gradient(90deg, var(--color-gold-600), var(--color-gold-500));
+  box-shadow: var(--shadow-glow-bar);
+}
+
+/* Titulares héroe con oro líquido (level-up, hitos) */
+.text-gradient-gold {
+  background: linear-gradient(135deg, var(--color-gold-500), var(--color-gold-600) 55%, var(--color-gold-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Skeleton de carga con shimmer (estados loading de tarjetas) */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-panel);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.04), transparent);
+  animation: shimmer 1.8s ease-in-out infinite;
+}
