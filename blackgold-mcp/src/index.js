@@ -7,6 +7,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
 import { BAREMOS, categoriaABucketBaremo } from "../../packages/analytics-core/baremos.js";
+// Motor de recomendación COMPARTIDO (un solo cerebro): el mismo que usa la web
+// (vía el shim src/lib/didacticEngine.js) y la Edge Function.
+import { evaluarDeficits } from "../../packages/analytics-core/didactica.js";
+import { calcularReadinessScore, detectarAlertasRecuperacion } from "../../packages/analytics-core/readiness.js";
 
 // Resuelto contra la ubicación del script, no contra process.cwd(): un cliente MCP
 // (Claude Code, Claude Desktop) lanza este proceso con el cwd del host, no de este paquete.
@@ -161,6 +165,106 @@ server.tool(
       promptInfo += "\nINSTRUCCIÓN PARA LA IA: Teniendo en cuenta los 7 sub-pilares (explosividad, fuerza, movilidad, tiro, agilidad, tactica, resiliencia), detecta cuáles no han sido evaluados o hace más tiempo no se evalúan. Sugiere la siguiente prueba específica (ej: CMJ, Lane Agility, etc) y BRINDA UNA EXPLICACIÓN LÓGICA y científica de por qué debe evaluarse eso ahora.";
 
       return { content: [{ type: "text", text: promptInfo }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Condiciones de recuperación (déficits de disponibilidad/riesgo) que produce el motor
+// compartido evaluarDeficits/detectarAlertasRecuperacion. Sirven de `condicion_trigger`
+// para las misiones de recuperación (pilar='recuperacion').
+const RECUPERACION_TRIGGERS = [
+  "deshidratado_extremo",
+  "hidratacion_baja",
+  "sueno_deficiente",
+  "fatiga_alta",
+  "sobreentrenamiento_activo",
+  "fatiga_silenciosa",
+  "rpe_extremo",
+];
+const RECUPERACION_CONDICIONES = new Set([...RECUPERACION_TRIGGERS, "percepcion_alterada"]);
+
+// Tool 6: Analizar Readiness / Recuperación y recomendar misiones
+server.tool(
+  "analyze_athlete_readiness",
+  "Analiza la recuperación del atleta (check-in diario: sueño, fatiga, hidratación de la tabla atleta_readiness + estado_recuperacion) usando el motor compartido, y recomienda misiones de recuperación del catálogo. La recuperación es una señal de disponibilidad/riesgo, NO una nota de rendimiento.",
+  {
+    athlete_id: z.string().describe("UUID del atleta (atletas.id)")
+  },
+  async ({ athlete_id }) => {
+    try {
+      // Último check-in de readiness + estado de recuperación del atleta.
+      const [{ data: readiness }, { data: atleta }] = await Promise.all([
+        supabase
+          .from("atleta_readiness")
+          .select("sueno_calidad, fatiga_fisica, color_orina, fecha")
+          .eq("atleta_id", athlete_id)
+          .order("fecha", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("atletas")
+          .select("estado_recuperacion")
+          .eq("id", athlete_id)
+          .maybeSingle(),
+      ]);
+
+      if (!readiness && !(atleta && atleta.estado_recuperacion)) {
+        return { content: [{ type: "text", text: `El atleta ${athlete_id} no tiene check-in de readiness ni estado de recuperación registrado. Pídele completar el Check-in Diario.` }] };
+      }
+
+      const score = calcularReadinessScore(readiness);
+
+      // Déficits de recuperación con el MISMO motor que la web/Edge. Se pasan evals
+      // vacías a propósito: aquí solo interesan las condiciones de recuperación, no las
+      // debilidades de rendimiento (esas las cubren analyze_athlete_pillars / el loop).
+      const atletaObj = {
+        readiness_hoy: readiness || null,
+        estado_recuperacion: atleta?.estado_recuperacion || null,
+        _evaluaciones: [],
+      };
+      const deficits = evaluarDeficits(atletaObj).filter(d => RECUPERACION_CONDICIONES.has(d.condicion));
+      const condicionesActivas = new Set(deficits.map(d => d.condicion));
+
+      // Misiones de recuperación del catálogo activo cuyo trigger coincide con una
+      // condición activa (mismo emparejamiento que getAutoMissions).
+      const { data: misiones } = await supabase
+        .from("misiones")
+        .select("id, titulo, condicion_trigger, complejidad, xp_recompensa, activa, pilar")
+        .eq("activa", true)
+        .eq("pilar", "recuperacion");
+
+      const recomendadas = (misiones || []).filter(m => {
+        if (!m.condicion_trigger) return condicionesActivas.size > 0;
+        return m.condicion_trigger.split(",").map(t => t.trim()).some(t => condicionesActivas.has(t));
+      });
+
+      let out = `=== READINESS / RECUPERACIÓN ===\n`;
+      out += `Atleta: ${athlete_id}\n`;
+      out += readiness
+        ? `Check-in (${readiness.fecha}): sueño ${readiness.sueno_calidad}/10, fatiga ${readiness.fatiga_fisica}/10, hidratación (orina) ${readiness.color_orina}/8.\n`
+        : `Sin check-in diario reciente.\n`;
+      out += score != null ? `Readiness score: ${score}/100 (más = mejor recuperado; NO entra al overall ni al radar).\n` : "";
+      if (atleta?.estado_recuperacion) out += `Estado de recuperación: ${atleta.estado_recuperacion}.\n`;
+
+      out += `\n--- ALERTAS ---\n`;
+      out += deficits.length
+        ? deficits.map(d => `- [${d.prioridad.toUpperCase()}] ${d.mensaje}`).join("\n")
+        : "Sin alertas de recuperación: disponibilidad adecuada.";
+
+      out += `\n\n--- MISIONES DE RECUPERACIÓN RECOMENDADAS ---\n`;
+      if (!misiones || misiones.length === 0) {
+        out += `El catálogo NO tiene misiones de recuperación (pilar='recuperacion'). Redáctalas con justificación científica (higiene de sueño, hidratación, recuperación activa, manejo de carga) y créalas con insertar_misiones_recuperacion.`;
+      } else if (recomendadas.length === 0) {
+        out += `Hay misiones de recuperación en el catálogo pero ninguna aplica a las condiciones activas de hoy.`;
+      } else {
+        out += recomendadas.map(m => `- ${m.titulo} (${m.complejidad}, ${m.xp_recompensa ?? "?"} XP) → trigger: ${m.condicion_trigger}`).join("\n");
+      }
+
+      out += `\n\nINSTRUCCIÓN PARA LA IA: prioriza recuperación sobre carga cuando haya alertas críticas. Sugiere hábitos accionables por el propio atleta y, si el coach lo aprueba, asigna las misiones recomendadas.`;
+
+      return { content: [{ type: "text", text: out }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }] };
     }
@@ -341,6 +445,56 @@ server.tool(
         content: [{
           type: "text",
           text: `✅ ${filas.length} misión(es) insertada(s) con activa=false (pendientes de curaduría del coach en AdminMisiones).\nCobertura de la matriz tras el insert: ${cubiertas}/84 celdas.`,
+        }],
+      };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 7: Insertar Misiones de Recuperación al Catálogo
+server.tool(
+  "insertar_misiones_recuperacion",
+  "Inserta misiones de recuperación (pilar='recuperacion', nivel/bucket agnósticos) que analyze_athlete_readiness recomendará cuando el atleta tenga alertas de sueño/fatiga/hidratación/carga. Nacen inactivas (activa=false); el coach las activa desde AdminMisiones. Son la contraparte de contenido del motor de recuperación.",
+  {
+    misiones: z.array(z.object({
+      titulo: z.string().min(5),
+      descripcion: z.string().min(20),
+      justificacion: z.string().min(30).describe("Fundamento científico con fuente (higiene de sueño, hidratación, recuperación activa, gestión de carga)."),
+      condicion_trigger: z.enum(RECUPERACION_TRIGGERS).describe("Condición de recuperación que activa la misión (la produce el motor compartido)."),
+      complejidad: z.enum(["general", "especifica"]).default("general").describe("'general' = hábito auto-asignable al atleta; 'especifica' = requiere criterio del coach."),
+      xp_recompensa: z.number().int().positive(),
+      video_url: z.string().url().optional(),
+    })).min(1).describe("Lote de misiones de recuperación a insertar"),
+  },
+  async ({ misiones }) => {
+    try {
+      const filas = misiones.map(m => ({
+        titulo: m.titulo,
+        descripcion: m.descripcion,
+        justificacion: m.justificacion,
+        pilar: "recuperacion",
+        // Recuperación es agnóstica de nivel/edad: aplica a todos (null = comodín).
+        nivel_objetivo: null,
+        categoria_bucket: null,
+        complejidad: m.complejidad ?? "general",
+        condicion_trigger: m.condicion_trigger,
+        xp_recompensa: m.xp_recompensa,
+        video_url: m.video_url ?? null,
+        activa: false,
+        is_ai_generated: true,
+      }));
+
+      const { error: insError } = await supabase.from("misiones").insert(filas);
+      if (insError) {
+        throw new Error("Error insertando misiones de recuperación: " + insError.message);
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: `✅ ${filas.length} misión(es) de recuperación insertada(s) con activa=false (pendientes de curaduría del coach en AdminMisiones). Triggers: ${[...new Set(filas.map(f => f.condicion_trigger))].join(", ")}.`,
         }],
       };
     } catch (err) {

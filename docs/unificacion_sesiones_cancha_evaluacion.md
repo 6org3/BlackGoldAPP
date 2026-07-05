@@ -145,7 +145,29 @@ Carga/Sueño se conserva como la vía por la que el propio atleta reporta su est
 resultados**. Es decir, deja de ser un dato muerto y se vuelve una entrada del motor de
 recomendación de misiones.
 
-**Implicaciones / trabajo derivado:**
+**Estado (2026-07-05):** implementado el camino **MCP dedicada** + consolidación del
+motor en un solo cerebro:
+- La recuperación real vive en la tabla **`atleta_readiness`** (check-in diario: sueño,
+  fatiga, hidratación), leída hoy solo por el `didacticEngine` de la web. La pestaña
+  "Carga/Sueño" de `EvaluacionModal` (sub_pilar `recuperacion`) está vacía porque el
+  catálogo no tiene pruebas de recuperación — se conserva pero no es la fuente.
+- **`analytics-core/readiness.js`** (nuevo, puro, compartido): `calcularReadinessScore` +
+  `detectarAlertasRecuperacion`.
+- **`analytics-core/didactica.js`** (nuevo): `evaluarDeficits`/`getAutoMissions`/
+  `getFaseBiologica` movidos desde el `didacticEngine` solo-web (que quedó como shim),
+  con la detección de recuperación delegada a `readiness.js`. Ahora web, MCP y Edge usan
+  el MISMO motor.
+- **`blackgold-mcp`**: nueva tool `analyze_athlete_readiness` (lee `atleta_readiness`,
+  calcula score+alertas y recomienda misiones de recuperación) + `insertar_misiones_recuperacion`
+  (autoría de misiones `pilar='recuperacion'`, agnósticas de nivel/edad).
+- **Pendiente (contenido):** el catálogo aún no tiene misiones `pilar='recuperacion'`; hay
+  que redactarlas (higiene de sueño, hidratación, recuperación activa, gestión de carga)
+  vía `insertar_misiones_recuperacion` para que la recomendación tenga qué proponer.
+- **Pendiente (consolidación profunda):** unificar el loop automático de la Edge Function
+  (`detectarDebilidades`/`seleccionarMisiones`, baremo-driven) con este motor de déficits
+  por `condicion_trigger` — siguen siendo dos mecanismos (§2.4).
+
+**Implicaciones / trabajo derivado (histórico):**
 - **Se conserva** la pestaña `recuperacion` en `EvaluacionModal` y el acceso del rol
   `atleta` (default `activeTab` y filtro en `EvaluacionModal.jsx:86` y `:342`). La barra
   móvil sigue con sus objetivos completos → la mejora de la barra (§5) debe funcionar con
