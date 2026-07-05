@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getXPProgress, NIVELES_XP } from './xpProgress';
+import { RANGOS_UI, BAREMO_UI, getBaremoUI, getRangoUI } from './designTokens';
 
 describe('getXPProgress', () => {
   it('trata XP nulo/indefinido/no numérico como 0', () => {
@@ -50,6 +51,47 @@ describe('getXPProgress', () => {
   it('NIVELES_XP está ordenado ascendentemente por mínimo de XP', () => {
     for (let i = 1; i < NIVELES_XP.length; i++) {
       expect(NIVELES_XP[i].min).toBeGreaterThan(NIVELES_XP[i - 1].min);
+    }
+  });
+
+  it('cada nivel deriva su identidad visual de RANGOS_UI (fuente única del design system)', () => {
+    for (const nivel of NIVELES_XP) {
+      const ui = RANGOS_UI[nivel.id];
+      expect(ui).toBeDefined();
+      expect(nivel.hex).toBe(ui.hex);
+      expect(nivel.color).toBe(ui.text);
+      expect(nivel.bg).toBe(ui.bg);
+      expect(nivel.emoji).toBe(ui.emoji);
+    }
+  });
+
+  it('getRangoUI cae al dorado (élite) ante un id desconocido', () => {
+    expect(getRangoUI('inexistente')).toBe(RANGOS_UI.elite);
+    expect(getRangoUI(undefined)).toBe(RANGOS_UI.elite);
+  });
+});
+
+describe('getBaremoUI', () => {
+  it.each([
+    [100, 'Excelente'],
+    [81, 'Excelente'],
+    [80, 'Muy Bueno'],
+    [61, 'Muy Bueno'],
+    [60, 'Bueno'],
+    [41, 'Bueno'],
+    [40, 'Regular'],
+    [21, 'Regular'],
+    [20, 'Sin datos'],
+    [0, 'Sin datos'],
+  ])('puntuación %i → %s (umbrales del baremo original)', (valor, nombreEsperado) => {
+    expect(getBaremoUI(valor).nombre).toBe(nombreEsperado);
+  });
+
+  it('valores no numéricos caen en "Sin datos" y todo tier tiene clases de token', () => {
+    expect(getBaremoUI(undefined).nombre).toBe('Sin datos');
+    for (const tier of BAREMO_UI) {
+      expect(tier.color).toMatch(/^text-tier-/);
+      expect(tier.bg).toMatch(/^bg-tier-/);
     }
   });
 });

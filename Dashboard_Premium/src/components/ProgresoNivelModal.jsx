@@ -11,8 +11,8 @@ export default function ProgresoNivelModal({ isOpen, onClose, atleta }) {
   const tierInfo = progress.currentRango;
   const tier = tierInfo.nombre;
   let tierColor = tierInfo.color;
-  let bgGradient = `from-[${tierInfo.bg.split('-')[1]}]/20 to-black/40`; // Simplification
-  
+  let bgGradient = 'from-gray-500/20 to-gray-900/40';
+
   if (tierInfo.id === 'rookie') bgGradient = 'from-gray-500/20 to-gray-900/40';
   if (tierInfo.id === 'prospecto') bgGradient = 'from-orange-500/20 to-orange-900/40';
   if (tierInfo.id === 'desarrollo') bgGradient = 'from-blue-500/20 to-blue-900/40';

@@ -1,15 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { getXPProgress } from '../lib/xpProgress';
-
-// ─── Dynamic Tailwind color mapping ─────────────────────────
-const RANGO_HEX = {
-  rookie:   '#6b7280', // gray-500
-  prospecto:'#f97316', // orange-500
-  desarrollo:'#3b82f6', // blue-500
-  elite:    '#FFD700',
-  leyenda_mamba: '#a855f7', // purple-500
-};
+import { COLORS } from '../lib/designTokens';
 
 export default function RangoProgreso({ xpTotal }) {
   const progress = useMemo(
@@ -18,7 +10,8 @@ export default function RangoProgreso({ xpTotal }) {
   );
 
   const currentRango = progress.currentRango;
-  const barColor = RANGO_HEX[currentRango?.id] || '#FFD700';
+  // Identidad del rango desde la fuente única (designTokens vía NIVELES_XP)
+  const barColor = currentRango?.hex || COLORS.gold[500];
 
   return (
     <div className="w-full max-w-[200px] select-none">
@@ -66,7 +59,7 @@ export default function RangoProgreso({ xpTotal }) {
               <span className="text-gray-400">{progress.nextLevelName}</span>
             </>
           ) : (
-            <span className="text-[#FFD700]">MAX</span>
+            <span className="text-brand">MAX</span>
           )}
         </span>
       </div>

@@ -1,13 +1,22 @@
 // src/lib/xpProgress.js
 // XP Progression System
 
-export const NIVELES_XP = [
-  { id: 'rookie', nombre: 'Rookie', min: 0, emoji: '🟤', color: 'text-gray-400', bg: 'bg-gray-500' },
-  { id: 'prospecto', nombre: 'Prospecto', min: 1000, emoji: '🟠', color: 'text-orange-400', bg: 'bg-orange-500' },
-  { id: 'desarrollo', nombre: 'Desarrollo', min: 2500, emoji: '🔵', color: 'text-blue-400', bg: 'bg-blue-500' },
-  { id: 'elite', nombre: 'Élite', min: 5000, emoji: '⭐', color: 'text-[#FFD700]', bg: 'bg-[#FFD700]' },
-  { id: 'leyenda_mamba', nombre: 'Leyenda Mamba', min: 7500, emoji: '👑', color: 'text-purple-400', bg: 'bg-purple-500' },
+import { RANGOS_UI } from './designTokens';
+
+// Umbrales de XP (dominio) + identidad visual desde la fuente única
+// del design system (color/bg/hex/emoji — ver RANGOS_UI en designTokens.js).
+const UMBRALES = [
+  { id: 'rookie', nombre: 'Rookie', min: 0 },
+  { id: 'prospecto', nombre: 'Prospecto', min: 1000 },
+  { id: 'desarrollo', nombre: 'Desarrollo', min: 2500 },
+  { id: 'elite', nombre: 'Élite', min: 5000 },
+  { id: 'leyenda_mamba', nombre: 'Leyenda Mamba', min: 7500 },
 ];
+
+export const NIVELES_XP = UMBRALES.map(nivel => {
+  const ui = RANGOS_UI[nivel.id];
+  return { ...nivel, emoji: ui.emoji, color: ui.text, bg: ui.bg, hex: ui.hex };
+});
 
 /**
  * Calculates progress towards the next rank based on xp_total.

@@ -14,7 +14,7 @@ export default function XPProgressBar({ xpTotal, misionesAprobadas }) {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-8 glass-card rounded-2xl p-5 border border-[#FFD700]/20 shadow-[0_0_20px_rgba(255,215,0,0.05)]"
+      className="mb-8 glass-card rounded-2xl p-5 border border-brand/20 shadow-[0_0_20px_rgba(255,215,0,0.05)]"
     >
       {/* Rank header */}
       <div className="flex items-center justify-between mb-4">
@@ -39,14 +39,14 @@ export default function XPProgressBar({ xpTotal, misionesAprobadas }) {
           <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest">
             {isMax ? 'Nivel Máximo Alcanzado' : `Hacia ${nextLevelName}`}
           </span>
-          <span className="text-[11px] font-black text-[#FFD700]">{percentage}%</span>
+          <span className="text-[11px] font-black text-brand">{percentage}%</span>
         </div>
         <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${percentage}%` }}
             transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
-            className="h-full rounded-full bg-gradient-to-r from-[#FFD700] to-[#D4AF37] shadow-[0_0_8px_rgba(255,215,0,0.5)]"
+            className="h-full rounded-full progress-bar-glow"
           />
         </div>
         {!isMax && (

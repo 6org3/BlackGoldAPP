@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { COLORS, CONFETTI_GOLD } from '../lib/designTokens';
 
 // ─── Gold particle generator ────────────────────────────────
 // Creates randomized sparkle/particle positions and animation params
@@ -35,14 +36,8 @@ export default function LevelUpAnimation({ rango, onComplete }) {
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  // Color to hex for glows — map rango color classes
-  const rangoColorHex = {
-    'text-gray-400':    '#9ca3af',
-    'text-orange-400':  '#fb923c',
-    'text-blue-400':    '#60a5fa',
-    'text-[#FFD700]':   '#FFD700',
-    'text-purple-400':  '#c084fc',
-  }[rango?.color] || '#FFD700';
+  // Hex del rango desde la fuente única (NIVELES_XP ← RANGOS_UI)
+  const rangoColorHex = rango?.hex || COLORS.gold[500];
 
   return (
     <AnimatePresence>
@@ -92,13 +87,7 @@ export default function LevelUpAnimation({ rango, onComplete }) {
         {/* Glow con radial-gradient (solo compositing) en vez de box-shadow (repaint por frame) */}
         {!shouldReduceMotion && particles.map((p) => {
           const particleColor =
-            p.id % 4 === 0
-              ? '#FFD700'
-              : p.id % 4 === 1
-              ? '#D4AF37'
-              : p.id % 4 === 2
-              ? '#FFF8DC'
-              : rangoColorHex;
+            p.id % 4 === 3 ? rangoColorHex : CONFETTI_GOLD[p.id % 4];
           return (
             <motion.div
               key={`particle-${p.id}`}
@@ -159,7 +148,7 @@ export default function LevelUpAnimation({ rango, onComplete }) {
             transition={shouldReduceMotion ? { duration: 0.3 } : { delay: 0.6, duration: 0.6, ease: 'easeOut' }}
             className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-3"
             style={{
-              background: 'linear-gradient(135deg, #FFD700, #D4AF37, #FFD700)',
+              background: `linear-gradient(135deg, ${COLORS.gold[500]}, ${COLORS.gold[600]}, ${COLORS.gold[500]})`,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               textShadow: 'none',

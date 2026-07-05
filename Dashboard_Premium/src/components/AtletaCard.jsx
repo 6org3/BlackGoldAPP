@@ -4,6 +4,7 @@ import RadarChartComp from './RadarChartComp';
 import { Shield, Skull, Eye, EyeOff, ClipboardList } from 'lucide-react';
 import { RANGOS } from '../lib/baremosEngine';
 import { getXPProgress } from '../lib/xpProgress';
+import { getBaremoUI } from '../lib/designTokens';
 import { getSubPilarScores } from '../lib/radarCalc';
 import { useAuth } from '../AuthContext';
 import PortalPadreSeccion from './PortalPadreSeccion';
@@ -316,14 +317,6 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
   );
 }
 
-function getBaremoLevel(value) {
-  if (value >= 81) return { nombre: 'Excelente', color: 'text-emerald-400', bg: 'bg-emerald-500' };
-  if (value >= 61) return { nombre: 'Muy Bueno', color: 'text-[#FFD700]', bg: 'bg-[#FFD700]' };
-  if (value >= 41) return { nombre: 'Bueno', color: 'text-cyan-400', bg: 'bg-cyan-500' };
-  if (value >= 21) return { nombre: 'Regular', color: 'text-orange-400', bg: 'bg-orange-500' };
-  return { nombre: 'Sin datos', color: 'text-gray-600', bg: 'bg-gray-700' };
-}
-
 function getHistoricalData(evaluaciones, subPilarKey) {
   if (!evaluaciones || evaluaciones.length === 0) return [];
   // Radar uses the key (e.g. 'fuerza', 'explosividad', 'tactica') which matches sub_pilar
@@ -335,7 +328,7 @@ function getHistoricalData(evaluaciones, subPilarKey) {
 }
 
 function ProgressBar({ label, value, index, isDanger, history = [] }) {
-  const level = getBaremoLevel(value);
+  const level = getBaremoUI(value);
   
   return (
     <div>

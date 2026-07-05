@@ -14,6 +14,7 @@ import HistorialPruebas from './HistorialPruebas';
 import EditarPerfilModal from './EditarPerfilModal';
 import { evaluarDeficits } from '../lib/didacticEngine';
 import { getSubPilarScores } from '../lib/radarCalc';
+import { getBaremoUI } from '../lib/designTokens';
 import { Brain } from 'lucide-react';
 
 const TABS = [
@@ -476,7 +477,7 @@ function TabKPIs({ atleta, todosLosAtletas }) {
         <div className="space-y-4">
           {PILARES.map(({ key, label, color }) => {
             const val = subPilarScores[key] || 0;
-            const level = getBaremoLevel(val);
+            const level = getBaremoUI(val);
             return (
               <div key={key}>
                 <div className="flex justify-between items-center mb-1.5">
@@ -510,14 +511,6 @@ function TabKPIs({ atleta, todosLosAtletas }) {
 }
 
 /* ── Helpers ─────────────────────────────────────────────────── */
-function getBaremoLevel(value) {
-  if (value >= 81) return { nombre: 'Excelente', color: 'text-emerald-400' };
-  if (value >= 61) return { nombre: 'Muy Bueno', color: 'text-[#FFD700]' };
-  if (value >= 41) return { nombre: 'Bueno',     color: 'text-cyan-400' };
-  if (value >= 21) return { nombre: 'Regular',   color: 'text-orange-400' };
-  return { nombre: 'Sin datos', color: 'text-gray-600' };
-}
-
 function StatCard({ label, value, color, large }) {
   const colors = {
     blue:   'text-blue-400 bg-blue-500/10 border-blue-500/20',
