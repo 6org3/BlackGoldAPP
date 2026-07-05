@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   normalizarValor,
+  resolverUmbrales,
   calcularOverall,
   getRango,
   categoriaABucketBaremo,
@@ -187,5 +188,105 @@ describe('RANGOS — invariantes de la tabla', () => {
     for (let i = 1; i < ordenados.length; i++) {
       expect(ordenados[i].min).toBe(ordenados[i - 1].max + 1);
     }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// resolverUmbrales (fase P1.5): resolución multi-convención de thresholds.
+// Las formas 2-5 existen en producción (inventario catalogo_ejercicios 2026-07-05)
+// y antes de este resolver devolvían siempre noAplica.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('resolverUmbrales — convenciones de thresholds en producción', () => {
+  const CANONICO = { Sub15: [10, 20, 30, 40], Sub18: [15, 25, 35, 45] };
+
+  it('1. canónica bucket→array: devuelve los cortes del bucket', () => {
+    expect(resolverUmbrales(CANONICO, { bucket: 'Sub15' })).toEqual([10, 20, 30, 40]);
+  });
+
+  it('1b. bucket sin definir → null (mismo noAplica de siempre)', () => {
+    expect(resolverUmbrales(CANONICO, { bucket: 'Sub12' })).toBeNull();
+  });
+
+  it('2. NUEVA por nivel de desarrollo: indexa por el nivel del atleta', () => {
+    const porNivel = { Sub15: { Micro: [5, 10, 15, 20], Desarrollo: [10, 20, 30, 40], Elite: [20, 30, 40, 50] } };
+    expect(resolverUmbrales(porNivel, { bucket: 'Sub15', nivelDesarrollo: 'Elite' })).toEqual([20, 30, 40, 50]);
+    expect(resolverUmbrales(porNivel, { bucket: 'Sub15', nivelDesarrollo: 'Micro' })).toEqual([5, 10, 15, 20]);
+  });
+
+  it('2b. sin nivel del atleta (o nivel no definido en el umbral) → fallback Desarrollo', () => {
+    const porNivel = { Sub15: { Micro: [5, 10, 15, 20], Desarrollo: [10, 20, 30, 40] } };
+    expect(resolverUmbrales(porNivel, { bucket: 'Sub15' })).toEqual([10, 20, 30, 40]);
+    expect(resolverUmbrales(porNivel, { bucket: 'Sub15', nivelDesarrollo: 'Elite' })).toEqual([10, 20, 30, 40]);
+  });
+
+  it('2c. umbral por nivel sin Desarrollo → usa el primer nivel disponible', () => {
+    const soloElite = { Sub15: { Elite: [20, 30, 40, 50] } };
+    expect(resolverUmbrales(soloElite, { bucket: 'Sub15', nivelDesarrollo: 'Micro' })).toEqual([20, 30, 40, 50]);
+  });
+
+  it('3. capa de género (shape de NuevaPruebaModal): indexa por el género del atleta', () => {
+    const porGenero = {
+      Masculino: { Sub15: [20, 30, 40, 50] },
+      Femenino: { Sub15: [16, 24, 32, 40] },
+    };
+    expect(resolverUmbrales(porGenero, { bucket: 'Sub15', genero: 'Femenino' })).toEqual([16, 24, 32, 40]);
+    expect(resolverUmbrales(porGenero, { bucket: 'Sub15', genero: 'Masculino' })).toEqual([20, 30, 40, 50]);
+  });
+
+  it('3b. sin género del atleta → fallback al primer género definido (mejor aproximación que noAplica)', () => {
+    const porGenero = { Masculino: { Sub15: [20, 30, 40, 50] }, Femenino: { Sub15: [16, 24, 32, 40] } };
+    expect(resolverUmbrales(porGenero, { bucket: 'Sub15' })).toEqual([20, 30, 40, 50]);
+  });
+
+  it("4. bucket comodín 'Todas' (legacy): aplica a cualquier categoría", () => {
+    const todas = { Todas: [1, 2, 3, 4] };
+    expect(resolverUmbrales(todas, { bucket: 'Sub18' })).toEqual([1, 2, 3, 4]);
+  });
+
+  it("4b. género + 'Todas' combinados (shape real: 'Agilidad Reactiva en Y')", () => {
+    const real = { Femenino: { Todas: [9, 8, 7, 6] }, Masculino: { Todas: [8, 7, 6, 5] } };
+    expect(resolverUmbrales(real, { bucket: 'Sub15', genero: 'Femenino' })).toEqual([9, 8, 7, 6]);
+  });
+
+  it('5. shape legacy por tiers {tier_1..tier_4} → array de cortes', () => {
+    const tiers = { Todas: { tier_1: 4, tier_2: 6, tier_3: 8, tier_4: 10 } };
+    expect(resolverUmbrales(tiers, { bucket: 'Sub12' })).toEqual([4, 6, 8, 10]);
+  });
+
+  it('entradas basura → null (null, array plano, cortes no numéricos)', () => {
+    expect(resolverUmbrales(null, { bucket: 'Sub15' })).toBeNull();
+    expect(resolverUmbrales([1, 2, 3, 4], { bucket: 'Sub15' })).toBeNull();
+    expect(resolverUmbrales({ Sub15: ['a', 'b', 'c', 'd'] }, { bucket: 'Sub15' })).toBeNull();
+    expect(resolverUmbrales({ Sub15: [1, 2] }, { bucket: 'Sub15' })).toBeNull();
+  });
+});
+
+describe('normalizarValor — perfil (nivel_desarrollo / genero) con umbrales segmentados', () => {
+  const pruebaPorNivel = {
+    label: 'Prueba por Nivel', tipo: 'mas_es_mejor', unidad: 'reps',
+    thresholds: { Sub15: { Micro: [5, 10, 15, 20], Elite: [20, 30, 40, 50] } },
+  };
+
+  it('el mismo valor crudo puntúa distinto según el nivel del atleta', () => {
+    const micro = normalizarValor(pruebaPorNivel, 25, 'Menores (Sub-14)', { nivel_desarrollo: 'Micro' });
+    const elite = normalizarValor(pruebaPorNivel, 25, 'Menores (Sub-14)', { nivel_desarrollo: 'Elite' });
+    expect(micro.tier).toBe('excellent'); // 25 > 20 (t4 de Micro)
+    expect(elite.tier).toBe('below_avg'); // 20 < 25 ≤ 30 (t2 de Elite)
+  });
+
+  it('sin perfil, un umbral segmentado por género ya no revienta en noAplica (fallback)', () => {
+    const pruebaGenero = {
+      label: 'Prueba por Género', tipo: 'mas_es_mejor', unidad: 'cm',
+      thresholds: { Masculino: { Todas: [10, 20, 30, 40] }, Femenino: { Todas: [8, 16, 24, 32] } },
+    };
+    const res = normalizarValor(pruebaGenero, 35, 'Juvenil (Sub-18)');
+    expect(res.noAplica).toBe(false);
+    expect(res.tier).toBe('above_avg'); // resuelve con Masculino [10,20,30,40]
+  });
+
+  it('la firma vieja de 3 argumentos sigue funcionando igual (retrocompatibilidad)', () => {
+    const conPerfil = normalizarValor('cmj_salto', 30, 'Premini (Sub-9)', {});
+    const sinPerfil = normalizarValor('cmj_salto', 30, 'Premini (Sub-9)');
+    expect(sinPerfil).toEqual(conPerfil);
   });
 });

@@ -494,8 +494,32 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
     `blackgold-mcp`) — una tabla de plantillas ya construida y nunca conectada. Decisión
     de plantillas (§3.2, §8) **revisada**: reutilizarla en vez de crear
     `sesiones_plantilla` desde cero.
-- **P1.5 — Autoría de pruebas/baremos vía MCP** (REDEFINIDA 2026-07-05, dirección del
-  owner — antes era solo "contenido de resistencia"):
+- **P1.5 — Autoría de pruebas/baremos vía MCP** — ✅ TOOLING IMPLEMENTADO (2026-07-05;
+  falta el CONTENIDO: redactar/validar las pruebas en conversación MCP con el owner).
+  Lo construido:
+  - `blackgold-mcp/knowledge/fundamentos_iniciacion_vinueza.md` — la guía metodológica
+    ecuatoriana (Vinueza) aportada por el owner, como base de conocimiento del MCP.
+  - Tools nuevas: `consultar_metodologia_iniciacion` (devuelve la guía),
+    `generar_catalogo_pruebas` (cobertura del catálogo por sub-pilar — detecta también
+    pruebas con umbrales irresolubles y sub_pilares fuera de taxonomía — + contexto
+    metodológico + instrucciones), `insertar_pruebas_evaluacion` (inserción validada:
+    sub_pilar canónico +'resistencia', cortes ascendentes, capas por género/nivel).
+    El MCP ahora deriva sus SUB_PILARES de `taxonomia.js` (antes lista local duplicada)
+    y la matriz de misiones (84 celdas) crece sola cuando entre `resistencia`.
+  - **`resolverUmbrales` en `analytics-core/baremos.js`** — hallazgo del inventario de
+    producción (30 pruebas): convivían TRES convenciones de `thresholds` y dos eran
+    irresolubles para el motor (10/30 pruebas muertas, siempre `noAplica`): la canónica
+    `bucket→array` (20), `Todas→{tier_1..4}` (8, legacy) y `género→Todas→array` (2, las
+    crea `NuevaPruebaModal`). El resolver nuevo entiende las tres + las dos dimensiones
+    nuevas (nivel de desarrollo y género) con fallbacks seguros; `normalizarValor` gana
+    el 4º parámetro `perfil` y `EvaluacionModal` (guard `categoryAvailable` + preview)
+    lo propaga desde `atleta.nivel_desarrollo`/`atleta.genero`. Nota: el parámetro
+    `genero` que se había retirado por no tener umbrales que consultar
+    (baremos_cientificos.md) vuelve ahora con umbrales reales que sí lo usan.
+  - Suite 229/229 (14 tests nuevos de resolverUmbrales/perfil); `functions:sync`
+    corrido (Edge `_shared` alineado); MCP arranca y registra las tools.
+
+  Diseño original de la redefinición (referencia):
   - **Alcance nuevo:** el `blackgold-mcp` gana herramienta(s) de **autoría de pruebas de
     evaluación con sus baremos**, no solo para `resistencia` sino para **los 3 pilares /
     8 sub-pilares** (los 7 del radar + `resistencia`), con umbrales categorizados por

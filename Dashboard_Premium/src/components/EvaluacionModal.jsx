@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ClipboardCheck, ChevronDown, FlaskConical, Save, Loader2, CheckCircle2, ChevronLeft } from 'lucide-react';
-import { TIER_CONFIG, normalizarValor, categoriaABucketBaremo } from '../lib/baremosEngine';
+import { TIER_CONFIG, normalizarValor, resolverUmbrales, categoriaABucketBaremo } from '../lib/baremosEngine';
 import { labelPilar, labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { supabase } from '../api/supabaseClient';
 import { TABLA_PRUEBAS_EVALUACION } from '../api/tablas';
@@ -156,7 +156,15 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     const catKey = categoriaABucketBaremo(cat)
       || Object.keys(thresholds).find(k => cat.includes(k))
       || 'Sub15';
-    return Array.isArray(thresholds[catKey]);
+    // resolverUmbrales entiende TODAS las convenciones del catálogo (bucket→array,
+    // por nivel de desarrollo, por género, 'Todas', tiers legacy) — el check anterior
+    // (Array.isArray(thresholds[catKey])) marcaba "no hay baremo" en pruebas anidadas
+    // que sí lo tenían. Debe usar el MISMO resolver que normalizarValor.
+    return resolverUmbrales(thresholds, {
+      bucket: catKey,
+      nivelDesarrollo: atleta?.nivel_desarrollo ?? null,
+      genero: atleta?.genero ?? null,
+    }) !== null;
   }, [selectedBaremo, atleta]);
 
   // Real-time normalization preview
@@ -185,7 +193,12 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
       label: selectedBaremo.nombre
     };
     
-    return normalizarValor(baremoParam, vals, cat);
+    // El perfil (nivel de desarrollo / género) solo influye si los umbrales de la
+    // prueba están segmentados por esas dimensiones (ver resolverUmbrales, P1.5).
+    return normalizarValor(baremoParam, vals, cat, {
+      nivel_desarrollo: atleta?.nivel_desarrollo ?? null,
+      genero: atleta?.genero ?? null,
+    });
   }, [pruebaTipo, valoresCrudos, atleta, selectedBaremo]);
 
   // Is valid for submit?

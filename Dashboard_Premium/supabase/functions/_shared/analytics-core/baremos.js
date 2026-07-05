@@ -375,23 +375,77 @@ export function categoriaABucketBaremo(categoriaFEB) {
 // FUNCIONES PRINCIPALES
 // ===================================================================
 
+const NIVELES_DESARROLLO = ['Micro', 'Desarrollo', 'Elite'];
+
+/**
+ * Resuelve el array de 4 cortes [t1,t2,t3,t4] dentro de un `thresholds`, entendiendo
+ * TODAS las convenciones que conviven en producción (inventariadas 2026-07-05 en
+ * catalogo_ejercicios) más la dimensión nueva de nivel de desarrollo (fase P1.5):
+ *
+ *   1. { Sub15: [t1,t2,t3,t4], ... }                       ← canónica (BAREMOS estático)
+ *   2. { Sub15: { Micro:[...], Desarrollo:[...], Elite:[...] } } ← NUEVA: por nivel de desarrollo
+ *   3. { Masculino: {...}, Femenino: {...} }               ← capa de género (NuevaPruebaModal;
+ *                                                            dimorfismo sexual, Vinueza 2002)
+ *   4. { Todas: ... }                                      ← bucket comodín legacy
+ *   5. { Todas: { tier_1: n, tier_2: n, tier_3: n, tier_4: n } } ← shape legacy por tiers
+ *
+ * Antes de este resolver, las formas 2-5 devolvían siempre noAplica (el motor exigía
+ * `Array.isArray(thresholds[bucket])`), dejando muertas 10 de las 30 pruebas del
+ * catálogo en producción.
+ *
+ * @param {object} thresholdsRaw - El JSONB thresholds de la prueba.
+ * @param {{ bucket: string, nivelDesarrollo?: string|null, genero?: string|null }} ctx
+ * @returns {number[]|null} Los 4 cortes, o null si no hay umbral aplicable.
+ */
+export function resolverUmbrales(thresholdsRaw, { bucket, nivelDesarrollo = null, genero = null } = {}) {
+  if (!thresholdsRaw || typeof thresholdsRaw !== 'object' || Array.isArray(thresholdsRaw)) return null;
+
+  // Capa opcional de género. Fallback al otro género si el del atleta no está definido:
+  // preferible a noAplica (el umbral del otro sexo es una aproximación, no un vacío).
+  let nodo = thresholdsRaw;
+  if (nodo.Masculino || nodo.Femenino) {
+    nodo = nodo[genero] || nodo.Masculino || nodo.Femenino;
+    if (!nodo || typeof nodo !== 'object' || Array.isArray(nodo)) return null;
+  }
+
+  // Bucket de edad, con 'Todas' como comodín.
+  let cortes = nodo[bucket] ?? nodo.Todas ?? null;
+  if (!cortes) return null;
+
+  if (!Array.isArray(cortes) && typeof cortes === 'object') {
+    if (NIVELES_DESARROLLO.some(n => n in cortes)) {
+      // Capa de nivel de desarrollo: nivel del atleta → fallback 'Desarrollo' → el que haya.
+      cortes = cortes[nivelDesarrollo] || cortes.Desarrollo
+        || cortes[NIVELES_DESARROLLO.find(n => n in cortes)];
+    } else if ('tier_1' in cortes) {
+      cortes = [cortes.tier_1, cortes.tier_2, cortes.tier_3, cortes.tier_4];
+    }
+  }
+
+  return Array.isArray(cortes) && cortes.length >= 4 && cortes.slice(0, 4).every(Number.isFinite)
+    ? cortes
+    : null;
+}
+
 /**
  * Normaliza un valor crudo en una puntuación 0-100 usando los baremos científicos.
  *
- * NOTA — sin diferenciación por género: los umbrales de BAREMOS no están segmentados
- * por sexo (todas las entradas van directo a Sub12/Sub15/Sub18/Senior). Un parámetro
- * `genero` existió aquí antes pero no tenía ningún umbral que consultar, así que su
- * efecto real era nulo pese a aparentar soportarlo — ver packages/analytics-core/
- * baremos_cientificos.md para la evidencia de que el género sí importa en varias
- * pruebas (p.ej. push-ups, salto vertical) y qué falta para implementarlo de verdad
- * (columna de género por atleta + umbrales propios por sexo y prueba).
+ * NOTA sobre género y nivel de desarrollo: los umbrales de BAREMOS estático no están
+ * segmentados por sexo ni nivel (van directo a Sub12/Sub15/Sub18/Senior), pero las
+ * pruebas del catálogo en BD sí pueden estarlo (ver resolverUmbrales). El 4º parámetro
+ * `perfil` alimenta esas dimensiones cuando existen; si el umbral no las define, no
+ * tiene ningún efecto. (Un parámetro `genero` existió aquí antes y se retiró por no
+ * tener umbrales que consultar — hoy sí los hay, creados por NuevaPruebaModal, y la
+ * base científica del dimorfismo está en baremos_cientificos.md y en
+ * blackgold-mcp/knowledge/fundamentos_iniciacion_vinueza.md.)
  *
  * @param {object|string} baremoObj - El objeto de configuración de la prueba (o clave string por retrocompatibilidad)
  * @param {number|number[]} valorCrudo - El valor medido
  * @param {string} categoria - La categoría del atleta (ej. 'Sub15')
+ * @param {{ nivel_desarrollo?: string|null, genero?: string|null }} [perfil] - Atributos del atleta para umbrales segmentados.
  * @returns {{ puntuacion: number|null, tier: string|null, tierConfig: object|null, baremo: object, isAsymmetric: boolean, alertMsg: string|null, noAplica: boolean, mensajeNoAplica: string|null }}
  */
-export function normalizarValor(baremoObj, valorCrudo, categoria) {
+export function normalizarValor(baremoObj, valorCrudo, categoria, perfil = {}) {
   const baremo = typeof baremoObj === 'string' ? BAREMOS[baremoObj] : baremoObj;
   if (!baremo) {
     return {
@@ -424,8 +478,15 @@ export function normalizarValor(baremoObj, valorCrudo, categoria) {
     || Object.keys(baremo.thresholds).find(k => categoria.includes(k))
     || 'Sub15';
 
-  const thresholds = baremo.thresholds[catKey];
-  if (!thresholds || !Array.isArray(thresholds)) {
+  // Resolución multi-convención (canónica, por nivel, por género, 'Todas', tiers legacy)
+  // — ver resolverUmbrales. perfil.nivel_desarrollo/genero solo influyen si el umbral
+  // de esta prueba está segmentado por esas dimensiones.
+  const thresholds = resolverUmbrales(baremo.thresholds, {
+    bucket: catKey,
+    nivelDesarrollo: perfil.nivel_desarrollo ?? perfil.nivelDesarrollo ?? null,
+    genero: perfil.genero ?? null,
+  });
+  if (!thresholds) {
     // La prueba existe pero no tiene baremo definido para este bucket de edad
     // (p.ej. press_banca_rel solo define Sub18/Senior). Antes esto devolvía
     // silenciosamente tier 'poor'/puntuación 0, contaminando el promedio del
