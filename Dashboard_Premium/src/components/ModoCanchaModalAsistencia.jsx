@@ -59,10 +59,10 @@ export default function ModoCanchaModalAsistencia({
               <div className="flex gap-1 bg-surface-base rounded-lg p-1 border border-white/10">
                 <button onClick={() => handleMarcarAsistencia(a.atleta_id, true)}
                   aria-pressed={asistencia[a.atleta_id] === true}
-                  className={`px-5 py-3 min-h-11 rounded-md text-sm font-bold transition-all ${asistencia[a.atleta_id] === true ? 'bg-success text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'text-fg-muted hover:text-white'}`}>P</button>
+                  className={`px-5 py-3 min-h-11 rounded-md text-sm font-bold transition ${asistencia[a.atleta_id] === true ? 'bg-success text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'text-fg-muted hover:text-white'}`}>P</button>
                 <button onClick={() => handleMarcarAsistencia(a.atleta_id, false)}
                   aria-pressed={asistencia[a.atleta_id] === false}
-                  className={`px-5 py-3 min-h-11 rounded-md text-sm font-bold transition-all ${asistencia[a.atleta_id] === false ? 'bg-danger text-white shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'text-fg-muted hover:text-white'}`}>A</button>
+                  className={`px-5 py-3 min-h-11 rounded-md text-sm font-bold transition ${asistencia[a.atleta_id] === false ? 'bg-danger text-white shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'text-fg-muted hover:text-white'}`}>A</button>
               </div>
             </div>
           ))

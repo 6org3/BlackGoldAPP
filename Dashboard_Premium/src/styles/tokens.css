@@ -196,3 +196,14 @@
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.04), transparent);
   animation: shimmer 1.8s ease-in-out infinite;
 }
+
+/* Foco visible global — red de seguridad de accesibilidad de teclado.
+   :focus-visible solo dispara con navegación por teclado (no al hacer clic),
+   así que da un anillo dorado a TODO interactivo sin ensuciar el foco de mouse.
+   Los controles que ya definen su propio focus:ring (p. ej. inputs de formulario)
+   lo conservan; esta regla cubre el resto (botones, chips, nav, enlaces). */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}

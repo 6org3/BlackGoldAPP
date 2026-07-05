@@ -145,7 +145,7 @@ Estados: hover desktop via `.glow-border`; loading con `.skeleton`; nunca elevar
 
 | Variante | Receta | Uso |
 |---|---|---|
-| **Primario** | `bg-brand text-on-brand border border-brand/50 rounded-control font-black uppercase tracking-eyebrow text-2xs shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition-all` | **Uno por vista.** Evaluar, Guardar, Confirmar |
+| **Primario** | `bg-brand text-on-brand border border-brand/50 rounded-control font-black uppercase tracking-eyebrow text-2xs shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition` | **Uno por vista.** Evaluar, Guardar, Confirmar |
 | Secundario tintado | `bg-{acento}/20 border border-{acento}/50 text-{acento}-soft rounded-control …` | Acciones de dominio (Misiones→mental, Test→info) |
 | Ghost | `bg-white/5 border border-white/10 text-fg-secondary hover:bg-white/10 hover:text-fg` | Cancelar, toggles, filtros |
 | Destructivo | como secundario con `danger` | Eliminar (siempre con confirmación) |
@@ -210,7 +210,7 @@ Tokens en `MOTION` (JS) y `--ease-premium`, `animate-fade-in-up`, `animate-pulse
 - **Progreso:** width 0→X con `ease.premium`; el glow acompaña al fill, nunca se anima solo.
 - **Vivo/pendiente:** dot con `animate-pulse` (o `animate-pulse-glow`).
 
-**Reglas duras:** respetar `prefers-reduced-motion` (global en `index.css` + `useReducedMotion` en coreografías JS como ya hace LevelUpAnimation); no animar `box-shadow`/`blur` por frame; solo `transform` y `opacity` en loops; menos partículas en pantallas <480px (patrón existente).
+**Reglas duras:** respetar `prefers-reduced-motion` (global en `index.css` + `useReducedMotion` en coreografías JS como ya hace LevelUpAnimation); **nunca `transition-all`** — usar `transition` (Tailwind emite una lista curada de propiedades: color, bg, border, transform, box-shadow, opacity, filter) o una utilidad específica (`transition-colors`, `transition-transform`); no animar `box-shadow`/`blur` por frame; solo `transform` y `opacity` en loops; menos partículas en pantallas <480px (patrón existente).
 
 ---
 
@@ -231,7 +231,7 @@ El rol **no** cambia tokens (mismo dark premium para todos) — cambia jerarquí
 
 - **Contraste AA:** `fg` 15.2:1 y `brand` 12.6:1 sobre `surface-card` ✔. `fg-muted` (4.6:1) mínimo para texto informativo pequeño; `fg-faint` (2.9:1) **solo decorativo**. Texto `on-brand` sobre oro 11.9:1 ✔.
 - **Táctil:** 44px mínimo; separación ≥8px entre targets.
-- **Foco visible:** `focus-visible:ring-2 ring-brand/40` en todo interactivo.
+- **Foco visible:** regla global `:focus-visible` en `tokens.css` da un anillo dorado (outline 2px `brand` + offset) a **todo** interactivo con navegación por teclado, sin ensuciar el foco de mouse. Los controles con `focus:ring` propio (inputs de formulario) lo conservan; no hace falta añadir foco por componente.
 - **Movimiento:** reduced-motion global + coreografías con fallback fade.
 - **Color nunca solo:** todo estado lleva texto o ícono además del color (los chips ya lo cumplen).
 
@@ -244,6 +244,7 @@ El rol **no** cambia tokens (mismo dark premium para todos) — cambia jerarquí
 2. Prohibidos los arbitrarios de color/tamaño de fuente (`text-[#FFD700]`, `text-[10px]`) en código nuevo — existen `text-brand`, `text-2xs`.
 3. Un solo oro sólido por vista.
 4. Nuevos mapas de color en JS solo en `designTokens.js`.
+5. Nunca `transition-all` — usar `transition` o una utilidad específica (ver §5). El foco visible es global (§7): no reintroducir `outline-none` sin reemplazo.
 
 **Mapa de migración (aplicar oportunistamente, archivo por archivo):**
 

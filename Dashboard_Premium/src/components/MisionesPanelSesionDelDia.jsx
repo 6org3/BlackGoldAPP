@@ -97,7 +97,7 @@ export default function SesionDelDia({
           <button
             onClick={handleSaveEva}
             disabled={isRpeLocked}
-            className={`mt-4 flex items-center justify-center gap-2 font-black text-2xs uppercase tracking-eyebrow px-6 py-2.5 min-h-11 rounded-control transition-all w-full ${isRpeLocked ? 'bg-white/5 text-fg-muted cursor-not-allowed border border-white/5' : 'bg-brand border border-brand/50 text-on-brand shadow-glow-gold hover:bg-brand-hover active:scale-[0.97]'}`}
+            className={`mt-4 flex items-center justify-center gap-2 font-black text-2xs uppercase tracking-eyebrow px-6 py-2.5 min-h-11 rounded-control transition w-full ${isRpeLocked ? 'bg-white/5 text-fg-muted cursor-not-allowed border border-white/5' : 'bg-brand border border-brand/50 text-on-brand shadow-glow-gold hover:bg-brand-hover active:scale-[0.97]'}`}
           >
             {isRpeLocked ? '✅ RPE Registrado' : evaSaved ? '✅ Guardado' : 'Guardar RPE'}
           </button>

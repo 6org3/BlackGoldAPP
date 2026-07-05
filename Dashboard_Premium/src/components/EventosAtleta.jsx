@@ -263,7 +263,7 @@ function EventoCard({ evento, index, past, onRsvp, updating }) {
                 key={estado}
                 onClick={() => onRsvp(evento.convocadoId, estado)}
                 disabled={updating}
-                className={`flex flex-1 items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-lg border text-[11px] font-black uppercase tracking-widest transition-all ${
+                className={`flex flex-1 items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-lg border text-[11px] font-black uppercase tracking-widest transition ${
                   isActive ? cfg.bg + ' ' + cfg.color : 'bg-white/5 border-white/10 text-fg-faint hover:text-fg-secondary hover:border-white/20'
                 }`}
               >

@@ -121,7 +121,7 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
             </div>
           </div>
 
-          <button type="submit" disabled={saving} className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-3 rounded-control hover:scale-[1.02] transition-all disabled:opacity-50 mt-6">
+          <button type="submit" disabled={saving} className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-3 rounded-control hover:scale-[1.02] transition disabled:opacity-50 mt-6">
             <Save size={16} /><span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
           </button>
         </form>

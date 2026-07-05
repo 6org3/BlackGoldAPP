@@ -106,7 +106,7 @@ export default function AdminPagos({ user, atletas = [] }) {
             </div>
           </div>
           <button onClick={handleGenerarMes} disabled={generando}
-            className="flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 bg-brand/10 border border-brand/30 text-brand text-xs font-black rounded-control uppercase tracking-widest hover:bg-brand/20 disabled:opacity-50 transition-all">
+            className="flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 bg-brand/10 border border-brand/30 text-brand text-xs font-black rounded-control uppercase tracking-widest hover:bg-brand/20 disabled:opacity-50 transition">
             <Plus size={14} />
             <span>{generando ? 'Generando...' : 'Generar Mes'}</span>
           </button>
@@ -133,7 +133,7 @@ export default function AdminPagos({ user, atletas = [] }) {
         <div className="flex items-center space-x-1 bg-white/5 border border-white/10 rounded-control p-1">
           {GRUPOS.map(g => (
             <button key={g} onClick={() => setGrupo(g)}
-              className={`px-3 py-2 min-h-10 rounded-lg text-2xs font-black uppercase tracking-widest transition-all ${
+              className={`px-3 py-2 min-h-10 rounded-lg text-2xs font-black uppercase tracking-widest transition ${
                 grupo === g ? 'bg-brand/10 text-brand border border-brand/30' : 'text-fg-muted hover:text-white'
               }`}>{g}</button>
           ))}
@@ -239,7 +239,7 @@ export default function AdminPagos({ user, atletas = [] }) {
                         </div>
                       ) : (
                         <button onClick={() => setMarcandoId(pago.id)}
-                          className="flex-1 md:flex-none px-3.5 py-2 min-h-11 md:min-h-10 bg-success/10 border border-success/30 text-success-soft text-2xs font-black rounded-lg hover:bg-success/20 transition-all uppercase tracking-widest">
+                          className="flex-1 md:flex-none px-3.5 py-2 min-h-11 md:min-h-10 bg-success/10 border border-success/30 text-success-soft text-2xs font-black rounded-lg hover:bg-success/20 transition uppercase tracking-widest">
                           Marcar Pagado
                         </button>
                       )}

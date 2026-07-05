@@ -40,7 +40,7 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: staggerDelay(index), duration: MOTION.duration.entrance, ease: MOTION.ease.out }}
-      className="glass-card rounded-none md:rounded-card p-6 md:p-8 relative overflow-hidden transition-all duration-500 glow-border isolate"
+      className="glass-card rounded-none md:rounded-card p-6 md:p-8 relative overflow-hidden transition duration-500 glow-border isolate"
     >
       {/* Background ambient lighting */}
       <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-60 bg-brand"></div>
@@ -127,21 +127,21 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
             <div className="flex flex-wrap gap-2 mt-4 w-full md:w-auto justify-start md:justify-end">
               <button
                 onClick={() => setShowEvalModal(true)}
-                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-brand border border-brand/50 rounded-control text-2xs font-black uppercase tracking-eyebrow text-on-brand shadow-glow-gold hover:bg-brand-hover hover:scale-105 active:scale-[0.97] transition-all"
+                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-brand border border-brand/50 rounded-control text-2xs font-black uppercase tracking-eyebrow text-on-brand shadow-glow-gold hover:bg-brand-hover hover:scale-105 active:scale-[0.97] transition"
               >
                 <ClipboardList size={14} />
                 <span>Evaluar</span>
               </button>
               <button
                 onClick={() => setShowMisionesModal(true)}
-                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-mental/20 border border-mental/50 rounded-control text-2xs font-black uppercase tracking-eyebrow text-mental-soft shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:bg-mental/30 hover:scale-105 active:scale-[0.97] transition-all"
+                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-mental/20 border border-mental/50 rounded-control text-2xs font-black uppercase tracking-eyebrow text-mental-soft shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:bg-mental/30 hover:scale-105 active:scale-[0.97] transition"
               >
                 <Target size={14} />
                 <span>Misiones</span>
               </button>
               <button
                 onClick={() => generateWhatsAppReport(atleta)}
-                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-whatsapp border border-whatsapp/50 rounded-control text-2xs font-black uppercase tracking-eyebrow text-white shadow-[0_0_20px_rgba(37,211,102,0.4)] hover:bg-whatsapp-deep hover:scale-105 active:scale-[0.97] transition-all"
+                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-whatsapp border border-whatsapp/50 rounded-control text-2xs font-black uppercase tracking-eyebrow text-white shadow-[0_0_20px_rgba(37,211,102,0.4)] hover:bg-whatsapp-deep hover:scale-105 active:scale-[0.97] transition"
               >
                 <MessageCircle size={14} />
                 <span>Reporte</span>
@@ -151,7 +151,7 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
             <div className="flex flex-wrap gap-2 mt-4 w-full md:w-auto justify-start md:justify-end">
               <button
                 onClick={() => setShowEvalModal(true)}
-                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-info/20 border border-info/50 rounded-control text-2xs font-black uppercase tracking-eyebrow text-info-soft shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:bg-info/30 hover:scale-105 active:scale-[0.97] transition-all"
+                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-info/20 border border-info/50 rounded-control text-2xs font-black uppercase tracking-eyebrow text-info-soft shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:bg-info/30 hover:scale-105 active:scale-[0.97] transition"
               >
                 <ClipboardList size={14} />
                 <span>Test Carga y Sueño</span>

@@ -77,7 +77,7 @@ export default function Login() {
                 spellCheck={false}
                 value={identificador}
                 onChange={(e) => setIdentificador(e.target.value)}
-                className="w-full bg-surface-card/80 border border-white/10 rounded-control py-4 pl-12 pr-4 text-white focus:outline-none focus:border-brand/50 focus:shadow-[0_0_15px_rgba(255,215,0,0.2)] transition-all"
+                className="w-full bg-surface-card/80 border border-white/10 rounded-control py-4 pl-12 pr-4 text-white focus:outline-none focus:border-brand/50 focus:shadow-[0_0_15px_rgba(255,215,0,0.2)] transition"
                 placeholder="ejemplo@correo.com, 0999..., 172..."
                 required
               />
@@ -96,7 +96,7 @@ export default function Login() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-surface-card/80 border border-white/10 rounded-control py-4 pl-12 pr-12 text-white focus:outline-none focus:border-brand/50 focus:shadow-[0_0_15px_rgba(255,215,0,0.2)] transition-all"
+                className="w-full bg-surface-card/80 border border-white/10 rounded-control py-4 pl-12 pr-12 text-white focus:outline-none focus:border-brand/50 focus:shadow-[0_0_15px_rgba(255,215,0,0.2)] transition"
                 placeholder="••••••••"
                 required
               />
@@ -124,7 +124,7 @@ export default function Login() {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-brand hover:bg-brand-hover text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control shadow-glow-gold transition-all disabled:opacity-50 active:scale-[0.99]"
+            className="w-full bg-brand hover:bg-brand-hover text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control shadow-glow-gold transition disabled:opacity-50 active:scale-[0.99]"
           >
             {loading ? 'Validando ADN...' : 'Desbloquear Poneglyph'}
           </button>

@@ -36,7 +36,7 @@ export default function AppHeader({ user, setIsMobileMenuOpen, setShowEditProfil
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowEditProfile(true)}
-            className="group flex items-center space-x-2 px-4 py-2.5 rounded-control bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all duration-300"
+            className="group flex items-center space-x-2 px-4 py-2.5 rounded-control bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition duration-300"
             title="Editar Perfil"
           >
             <User size={16} className="text-fg-secondary group-hover:text-white transition-colors" />
@@ -44,7 +44,7 @@ export default function AppHeader({ user, setIsMobileMenuOpen, setShowEditProfil
           </button>
           <button
             onClick={handleLogout}
-            className="group p-3 rounded-control bg-white/5 hover:bg-danger/10 border border-white/10 hover:border-danger/30 transition-all duration-300"
+            className="group p-3 rounded-control bg-white/5 hover:bg-danger/10 border border-white/10 hover:border-danger/30 transition duration-300"
             title="Cerrar sesión"
             aria-label="Cerrar sesión"
             data-testid="btn-logout"

@@ -260,7 +260,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                         onClick={() => handleSelect(pregunta.id, oIdx)}
                         className={`
                           flex flex-1 items-center justify-center space-x-2 min-h-12 px-4 py-2.5 rounded-control text-xs font-bold
-                          transition-all duration-200 cursor-pointer
+                          transition duration-200 cursor-pointer
                           ${isSelected
                             ? 'bg-brand/15 border-brand/60 text-brand shadow-[0_0_12px_rgba(255,215,0,0.15)]'
                             : 'bg-white/[0.03] border-white/10 text-white/50 hover:border-white/20 hover:text-white/70'
@@ -273,7 +273,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                         {/* Custom radio dot */}
                         <span className={`
                           w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0
-                          transition-all duration-200
+                          transition duration-200
                           ${isSelected
                             ? 'border-brand bg-brand/20'
                             : 'border-white/20 bg-transparent'
@@ -362,7 +362,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
             whileTap={todasRespondidas ? { scale: 0.98 } : {}}
             className={`
               flex items-center space-x-2 px-6 py-3 rounded-control font-black text-sm uppercase tracking-widest
-              transition-all duration-300
+              transition duration-300
               ${todasRespondidas
                 ? 'bg-brand/20 border border-brand/50 text-brand hover:bg-brand/30 hover:shadow-[0_0_20px_rgba(255,215,0,0.2)]'
                 : 'bg-white/5 border border-white/10 text-white/20 cursor-not-allowed'

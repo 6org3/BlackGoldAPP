@@ -56,7 +56,7 @@ function MisionCard({ mision, index, expanded, onToggle, onComplete, onQuiz }) {
                 {mision.quiz && mision.quiz.length > 0 ? (
                   <button
                     onClick={() => onQuiz(mision)}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 bg-brand border border-brand/50 text-on-brand font-black text-2xs uppercase tracking-eyebrow px-6 py-3 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition-all"
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 bg-brand border border-brand/50 text-on-brand font-black text-2xs uppercase tracking-eyebrow px-6 py-3 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition"
                   >
                     <Sparkles size={14} />
                     <span>Iniciar Cuestionario ({mision.quiz.length} preguntas)</span>
@@ -64,7 +64,7 @@ function MisionCard({ mision, index, expanded, onToggle, onComplete, onQuiz }) {
                 ) : (
                   <button
                     onClick={() => onComplete(mision.id)}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 bg-brand border border-brand/50 text-on-brand font-black text-2xs uppercase tracking-eyebrow px-6 py-3 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition-all"
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 bg-brand border border-brand/50 text-on-brand font-black text-2xs uppercase tracking-eyebrow px-6 py-3 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition"
                   >
                     <CheckCircle2 size={14} />
                     <span>Marcar como Completada</span>

@@ -171,7 +171,7 @@ export default function AdminPlanificacion() {
             <button
               key={atleta.id}
               onClick={() => handleSelectAtleta(atleta)}
-              className={`w-full text-left p-4 rounded-control border transition-all active:scale-[0.99] ${
+              className={`w-full text-left p-4 rounded-control border transition active:scale-[0.99] ${
                 selectedAtleta?.id === atleta.id
                   ? 'bg-brand/5 border-brand/40 shadow-[0_0_15px_rgba(255,215,0,0.1)]'
                   : 'bg-white/[0.02] border-white/5 hover:border-white/15 hover:bg-white/[0.04]'
@@ -345,7 +345,7 @@ export default function AdminPlanificacion() {
               <button
                 type="submit"
                 disabled={saving || !rulesResult.approved}
-                className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Save size={16} />
                 <span>{saving ? 'Registrando en Supabase...' : 'Registrar Sesión de Entrenamiento'}</span>

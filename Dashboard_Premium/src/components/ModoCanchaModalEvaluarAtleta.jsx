@@ -67,7 +67,7 @@ export default function ModoCanchaModalEvaluarAtleta({
                 const isSelected = insigniasSeleccionadas.some(i => i.id === ins.id);
                 return (
                   <div key={ins.id}
-                    className={`p-2 rounded-lg border flex flex-col transition-all ${isSelected ? 'bg-brand/10 border-brand/50 shadow-[0_0_10px_rgba(255,215,0,0.15)] opacity-100 scale-[1.02]' : 'bg-white/5 border-white/10 opacity-40 grayscale'}`}>
+                    className={`p-2 rounded-lg border flex flex-col transition ${isSelected ? 'bg-brand/10 border-brand/50 shadow-[0_0_10px_rgba(255,215,0,0.15)] opacity-100 scale-[1.02]' : 'bg-white/5 border-white/10 opacity-40 grayscale'}`}>
                     <div className="flex items-center space-x-2 mb-1">
                       {ins.icon}
                       <span className={`text-2xs font-bold ${isSelected ? 'text-brand' : 'text-fg-secondary'}`}>{ins.label}</span>
@@ -78,7 +78,7 @@ export default function ModoCanchaModalEvaluarAtleta({
             </div>
           </div>
 
-          <button onClick={handleSubmitEvaluation} disabled={saving} className="w-full bg-brand hover:bg-brand-hover text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.2)] disabled:opacity-50 mt-4 transition-all hover:scale-[1.02]">
+          <button onClick={handleSubmitEvaluation} disabled={saving} className="w-full bg-brand hover:bg-brand-hover text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.2)] disabled:opacity-50 mt-4 transition hover:scale-[1.02]">
             {saving ? 'Guardando...' : 'Guardar Evaluación'}
           </button>
         </>

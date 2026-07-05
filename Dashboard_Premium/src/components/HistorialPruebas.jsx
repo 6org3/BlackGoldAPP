@@ -157,7 +157,7 @@ export default function HistorialPruebas({ atletaId }) {
             <button
               key={p.id}
               onClick={() => { setPilarActivo(p.id); setPruebaActiva(null); }}
-              className={`px-3.5 py-2.5 min-h-[40px] rounded-lg text-2xs font-black uppercase tracking-widest border transition-all ${
+              className={`px-3.5 py-2.5 min-h-[40px] rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
                 activo
                   ? 'border-current text-white'
                   : 'border-white/10 text-fg-faint hover:text-fg-secondary hover:border-white/20'
@@ -179,7 +179,7 @@ export default function HistorialPruebas({ atletaId }) {
           <span className="text-[8px] text-fg-faint font-bold uppercase tracking-widest">Prueba:</span>
           <button
             onClick={() => setPruebaActiva(null)}
-            className={`px-3 py-2 min-h-[36px] rounded-md text-2xs font-bold uppercase tracking-widest border transition-all ${
+            className={`px-3 py-2 min-h-[36px] rounded-md text-2xs font-bold uppercase tracking-widest border transition ${
               !pruebaActiva ? 'bg-white/10 border-white/30 text-white' : 'border-white/10 text-fg-faint hover:text-fg-secondary'
             }`}
           >
@@ -189,7 +189,7 @@ export default function HistorialPruebas({ atletaId }) {
             <button
               key={pt}
               onClick={() => setPruebaActiva(pt)}
-              className={`px-3 py-2 min-h-[36px] rounded-md text-2xs font-bold uppercase tracking-widest border transition-all ${
+              className={`px-3 py-2 min-h-[36px] rounded-md text-2xs font-bold uppercase tracking-widest border transition ${
                 pruebaActiva === pt
                   ? 'border-current text-white'
                   : 'border-white/10 text-fg-faint hover:text-fg-secondary'

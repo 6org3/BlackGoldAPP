@@ -24,7 +24,7 @@ export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltr
             aria-label="Buscar cédula o nombre"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full bg-surface-card border border-brand/30 text-white text-base md:text-[11px] font-bold tracking-wide rounded-control pl-9 pr-3 py-2.5 focus:outline-none focus:border-brand/60 focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] transition-all"
+            className="w-full bg-surface-card border border-brand/30 text-white text-base md:text-[11px] font-bold tracking-wide rounded-control pl-9 pr-3 py-2.5 focus:outline-none focus:border-brand/60 focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] transition"
           />
         </div>
       </div>
@@ -96,7 +96,7 @@ export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltr
         <button
           onClick={() => setShowAsignador(true)}
           aria-label="Asignar misiones"
-          className="flex items-center justify-center space-x-2 bg-brand/10 border border-brand/50 text-brand hover:bg-brand/20 px-4 py-3 rounded-control text-2xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(255,215,0,0.2)] shrink-0 self-end"
+          className="flex items-center justify-center space-x-2 bg-brand/10 border border-brand/50 text-brand hover:bg-brand/20 px-4 py-3 rounded-control text-2xs font-black uppercase tracking-widest transition shadow-[0_0_20px_rgba(255,215,0,0.2)] shrink-0 self-end"
         >
           <Target size={16} />
           <span className="hidden md:inline">Misiones</span>

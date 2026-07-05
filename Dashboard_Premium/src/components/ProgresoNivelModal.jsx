@@ -96,7 +96,7 @@ export default function ProgresoNivelModal({ isOpen, onClose, atleta }) {
               </div>
               <div className="h-3 bg-zinc-950/50 rounded-full overflow-hidden border border-zinc-800">
                 <div 
-                  className={`h-full rounded-full transition-all duration-1000 bg-gradient-to-r ${tierInfo.bg} to-white/20`}
+                  className={`h-full rounded-full transition duration-1000 bg-gradient-to-r ${tierInfo.bg} to-white/20`}
                   style={{ width: `${Math.min(100, Math.max(0, progress.percentage))}%` }}
                 />
               </div>

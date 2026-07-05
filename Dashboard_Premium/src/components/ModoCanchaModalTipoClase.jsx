@@ -38,7 +38,7 @@ export default function ModoCanchaModalTipoClase({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {['Micro', 'Desarrollo', 'Elite'].map(lvl => (
               <button key={lvl} onClick={() => { setNivelSeleccionado(lvl); setStep(2); }}
-                className={`py-3 bg-black/40 border ${nivelSeleccionado === lvl ? 'border-brand' : 'border-white/10'} hover:border-brand/50 rounded-control text-white font-bold transition-all text-sm uppercase tracking-widest`}>
+                className={`py-3 bg-black/40 border ${nivelSeleccionado === lvl ? 'border-brand' : 'border-white/10'} hover:border-brand/50 rounded-control text-white font-bold transition text-sm uppercase tracking-widest`}>
                 {lvl}
               </button>
             ))}
@@ -49,7 +49,7 @@ export default function ModoCanchaModalTipoClase({
       {tipoClase === 'grupal_ind' && (
         <div className="mt-8 flex justify-center animate-in fade-in slide-in-from-bottom-4">
           <button onClick={() => setStep(2)}
-            className="px-8 py-3 bg-caution hover:bg-caution-soft text-black font-black uppercase tracking-widest rounded-control transition-all shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+            className="px-8 py-3 bg-caution hover:bg-caution-soft text-black font-black uppercase tracking-widest rounded-control transition shadow-[0_0_15px_rgba(249,115,22,0.3)]">
             Continuar a Configuración <ArrowRight size={18} className="inline ml-2" />
           </button>
         </div>

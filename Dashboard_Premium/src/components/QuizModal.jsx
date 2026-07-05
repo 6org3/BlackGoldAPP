@@ -133,7 +133,7 @@ export default function QuizModal({ quiz, xpRecompensa, onPass, onClose }) {
                       whileTap={!showResult ? { scale: 0.98 } : {}}
                       onClick={() => handleAnswer(index)}
                       disabled={showResult}
-                      className={`w-full text-left p-4 rounded-control border transition-all duration-300 ${bgClass}`}
+                      className={`w-full text-left p-4 rounded-control border transition duration-300 ${bgClass}`}
                     >
                       <div className="flex items-center space-x-3">
                         <span className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-xs font-bold text-gray-300 shrink-0">
@@ -182,7 +182,7 @@ export default function QuizModal({ quiz, xpRecompensa, onPass, onClose }) {
 
               <button
                 onClick={handleFinish}
-                className={`w-full py-4 rounded-control font-black uppercase tracking-widest text-sm transition-all ${
+                className={`w-full py-4 rounded-control font-black uppercase tracking-widest text-sm transition ${
                   passed
                     ? 'bg-gradient-to-r from-brand to-brand-strong text-black shadow-[0_0_20px_rgba(255,215,0,0.3)]'
                     : 'bg-white/10 text-white hover:bg-white/20'

@@ -191,7 +191,7 @@ function RewardCard({ recompensa, index }) {
       variants={cardVariants}
       whileHover={desbloqueado ? { scale: 1.02, y: -2 } : {}}
       className={`
-        relative rounded-panel p-5 transition-all duration-300 overflow-hidden
+        relative rounded-panel p-5 transition duration-300 overflow-hidden
         ${desbloqueado
           ? 'bg-white/[0.04] border border-brand/30 shadow-[0_0_20px_rgba(255,215,0,0.08)]'
           : 'bg-white/[0.02] border border-white/[0.06] opacity-60'

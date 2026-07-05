@@ -54,7 +54,7 @@
     border:1px solid rgb(255 215 0/.05);box-shadow:var(--shadow-card);
     backdrop-filter:blur(20px);border-radius:var(--radius-card);
   }
-  .glass:hover{border-color:rgb(255 215 0/.3);box-shadow:0 0 20px rgb(255 215 0/.1),inset 0 0 15px rgb(255 215 0/.05);transition:all .3s var(--ease-premium)}
+  .glass:hover{border-color:rgb(255 215 0/.3);box-shadow:0 0 20px rgb(255 215 0/.1),inset 0 0 15px rgb(255 215 0/.05);transition:border-color .3s var(--ease-premium),box-shadow .3s var(--ease-premium)}
 
   /* hero */
   .hero{text-align:center;padding:64px 0 8px}
@@ -84,9 +84,12 @@
     display:inline-flex;align-items:center;gap:8px;justify-content:center;
     min-height:44px;padding:0 20px;border-radius:var(--radius-control);
     font:900 10px/1 'Outfit';letter-spacing:.2em;text-transform:uppercase;
-    border:1px solid transparent;cursor:pointer;transition:all .15s var(--ease-premium);
+    border:1px solid transparent;cursor:pointer;
+    transition:background-color .15s var(--ease-premium),color .15s var(--ease-premium),transform .15s var(--ease-premium),box-shadow .15s var(--ease-premium);
   }
   .btn:active{transform:scale(.97)}
+  /* Foco visible global (misma receta que tokens.css) */
+  :focus-visible{outline:2px solid var(--gold-500);outline-offset:2px;border-radius:2px}
   .btn-primary{background:var(--gold-500);color:var(--fg-inverse);border-color:rgb(255 215 0/.5);box-shadow:var(--glow-gold)}
   .btn-primary:hover{background:var(--gold-400)}
   .btn-mental{background:rgb(168 85 247/.2);border-color:rgb(168 85 247/.5);color:var(--mental-soft);box-shadow:0 0 20px rgb(168 85 247/.15)}

@@ -352,7 +352,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       <button
                         key={obj.id}
                         onClick={() => setActiveTab(obj.id)}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap
+                        className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs font-bold uppercase tracking-widest transition whitespace-nowrap
                           ${activeTab === obj.id ? `${obj.bgActive} ${obj.text} border-b-2 ${obj.border}` : 'text-fg-muted hover:bg-white/5 hover:text-gray-300'}`}
                       >
                         <span>{obj.icon}</span> {obj.label}
@@ -376,7 +376,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                               setValoresCrudos({});
                               setError('');
                             }}
-                            className="bg-white/5 border border-white/10 hover:border-brand/50 hover:bg-white/10 rounded-control p-4 text-left transition-all flex flex-col group"
+                            className="bg-white/5 border border-white/10 hover:border-brand/50 hover:bg-white/10 rounded-control p-4 text-left transition flex flex-col group"
                           >
                             <span className="text-white font-bold text-sm mb-1 group-hover:text-brand transition-colors">{baremo.nombre}</span>
                             <div className="flex justify-between items-center text-2xs text-fg-muted font-bold uppercase tracking-widest">
@@ -527,7 +527,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                     <button
                       onClick={handleSubmit}
                       disabled={!isFormValid || saving}
-                      className="w-full bg-brand hover:bg-brand-hover text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_25px_rgba(255,215,0,0.2)] disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                      className="w-full bg-brand hover:bg-brand-hover text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_25px_rgba(255,215,0,0.2)] disabled:opacity-30 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
                     >
                       {saving ? (
                         <>

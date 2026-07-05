@@ -17,7 +17,7 @@ function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropome
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 10) * 0.04 }}
-      className="group relative glass-card rounded-panel p-5 hover:border-brand/25 hover:shadow-[0_0_30px_rgba(255,215,0,0.08)] transition-all duration-300"
+      className="group relative glass-card rounded-panel p-5 hover:border-brand/25 hover:shadow-[0_0_30px_rgba(255,215,0,0.08)] transition duration-300"
     >
       {/* Top: Avatar + Identity */}
       <div className="flex items-center space-x-3 mb-4">

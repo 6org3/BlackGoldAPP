@@ -298,7 +298,7 @@ export default function AdminMisiones() {
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setForm(emptyForm); }}
-          className="flex items-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-control shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition-all"
+          className="flex items-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-control shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition"
         >
           <Plus size={16} />
           <span>Nueva Misión</span>
@@ -401,7 +401,7 @@ export default function AdminMisiones() {
             <div className="grid grid-cols-2 gap-2">
               {atletas.map(a => (
                 <button key={a.atleta_id} type="button" onClick={() => toggleAtleta(a.atleta_id)}
-                  className={`flex items-center space-x-3 p-3 rounded-lg border text-left text-xs font-medium transition-all ${
+                  className={`flex items-center space-x-3 p-3 rounded-lg border text-left text-xs font-medium transition ${
                     form.asignar_a.includes(a.atleta_id)
                       ? 'bg-brand/10 border-brand/40 text-brand'
                       : 'bg-white/[0.02] border-white/10 text-fg-secondary hover:text-white hover:border-white/20'
@@ -517,7 +517,7 @@ export default function AdminMisiones() {
         <div className="flex space-x-1">
           {[['todas', 'Todas'], ['activas', 'Activas'], ['propuestas', 'Propuestas']].map(([id, label]) => (
             <button key={id} onClick={() => setFiltroBanco(id)}
-              className={`px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
                 filtroBanco === id
                   ? 'bg-brand/15 border-brand/40 text-brand'
                   : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'

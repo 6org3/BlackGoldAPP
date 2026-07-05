@@ -35,7 +35,7 @@ export default function ModoCanchaModalSesionesActivas({
         const circumference = 2 * Math.PI * 28;
         return (
           <div key={session.id}
-            className={`rounded-panel border p-4 transition-all ${
+            className={`rounded-panel border p-4 transition ${
               t.terminada
                 ? 'bg-success/10 border-success/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
                 : t.restantes < 300
@@ -100,7 +100,7 @@ export default function ModoCanchaModalSesionesActivas({
 
             {/* Botón Evaluar */}
             <button onClick={() => handleResumeSession(session)}
-              className={`w-full mt-3 py-3 rounded-control font-black uppercase tracking-widest text-xs transition-all ${
+              className={`w-full mt-3 py-3 rounded-control font-black uppercase tracking-widest text-xs transition ${
                 t.terminada
                   ? 'bg-success text-black hover:bg-success-soft shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                   : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'

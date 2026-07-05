@@ -79,7 +79,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
           <button
             onClick={() => setShowModoCancha(true)}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-control text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 mb-2
+            className={`w-full flex items-center justify-between px-5 py-4 rounded-control text-xs font-bold uppercase tracking-[0.15em] transition duration-300 mb-2
               ${activeSessionCount > 0 
                 ? 'bg-success/10 border-success/50 text-success-soft shadow-[0_0_20px_rgba(16,185,129,0.2)] animate-pulse' 
                 : showModoCancha
@@ -191,7 +191,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         <button
           onClick={() => setShowModoCancha(true)}
           aria-label="Abrir Modo Cancha"
-          className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-brand text-black p-4 rounded-full shadow-glow-gold hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition-all flex items-center justify-center md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
+          className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-brand text-black p-4 rounded-full shadow-glow-gold hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition flex items-center justify-center md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
         >
           <Zap size={24} fill="currentColor" />
         </button>
@@ -206,7 +206,7 @@ function NavItem({ icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center space-x-4 px-5 py-4 rounded-control text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300
+      className={`w-full flex items-center space-x-4 px-5 py-4 rounded-control text-xs font-bold uppercase tracking-[0.15em] transition duration-300
         ${active ? 'bg-gradient-to-r from-brand/10 to-transparent text-brand border-l-2 border-brand' : 'text-fg-muted hover:bg-white/5 hover:text-white border-l-2 border-transparent'}
       `}
     >

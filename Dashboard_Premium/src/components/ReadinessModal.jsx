@@ -135,7 +135,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
                   onClick={() => setColorOrina(c.value)}
                   aria-label={`Nivel ${c.value}: ${c.label}`}
                   aria-pressed={colorOrina === c.value}
-                  className={`h-12 rounded-lg border-2 transition-all ${
+                  className={`h-12 rounded-lg border-2 transition ${
                     colorOrina === c.value ? 'border-white scale-105 shadow-lg' : 'border-transparent opacity-70 hover:opacity-100'
                   }`}
                   style={{ backgroundColor: c.color }}
@@ -153,7 +153,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full relative group overflow-hidden bg-white/5 border border-white/10 hover:border-indigo-500/50 rounded-control p-4 transition-all"
+            className="w-full relative group overflow-hidden bg-white/5 border border-white/10 hover:border-indigo-500/50 rounded-control p-4 transition"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative flex items-center justify-center space-x-2 text-white font-bold tracking-eyebrow uppercase text-sm">

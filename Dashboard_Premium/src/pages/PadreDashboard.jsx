@@ -199,7 +199,7 @@ export default function PadreDashboard() {
         <div className="flex flex-wrap gap-2 mb-6">
           {data.hijos.map((hijo, idx) => (
             <button key={hijo.atleta_id} onClick={() => setSelectedHijoIndex(idx)}
-              className={`px-6 py-3 min-h-11 rounded-control text-2xs font-black uppercase tracking-eyebrow border transition-all ${
+              className={`px-6 py-3 min-h-11 rounded-control text-2xs font-black uppercase tracking-eyebrow border transition ${
                 idx === selectedHijoIndex ? 'bg-brand/10 text-brand border-brand/20' : 'bg-white/5 border-white/10 text-fg-muted hover:bg-white/10 hover:text-fg'
               }`}>
               {hijo.nombre}
@@ -230,7 +230,7 @@ export default function PadreDashboard() {
                 <button
                   onClick={exportPDF}
                   disabled={isExporting}
-                  className="flex items-center justify-center gap-2 bg-brand text-on-brand border border-brand/50 text-2xs font-black uppercase tracking-eyebrow px-4 py-2.5 min-h-11 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 bg-brand text-on-brand border border-brand/50 text-2xs font-black uppercase tracking-eyebrow px-4 py-2.5 min-h-11 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition disabled:opacity-50"
                 >
                   {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                   {isExporting ? 'Generando...' : 'Exportar Scout'}
@@ -347,7 +347,7 @@ export default function PadreDashboard() {
                           return (
                             <div
                               key={nb.nivel}
-                              className={`h-2.5 flex-1 rounded-sm transition-all duration-500 ${
+                              className={`h-2.5 flex-1 rounded-sm transition duration-500 ${
                                 isFilled
                                   ? 'bg-gradient-to-r from-brand-strong to-brand'
                                   : isCurrent
@@ -417,7 +417,7 @@ export default function PadreDashboard() {
                 </div>
                 <span className="text-lg font-black text-white">$30.00</span>
               </div>
-              <button className="w-full bg-danger hover:bg-danger-soft text-white font-bold uppercase tracking-eyebrow py-3 min-h-11 rounded-control transition-all text-2xs">
+              <button className="w-full bg-danger hover:bg-danger-soft text-white font-bold uppercase tracking-eyebrow py-3 min-h-11 rounded-control transition text-2xs">
                 Enviar Comprobante al WhatsApp
               </button>
             </motion.div>
@@ -458,7 +458,7 @@ export default function PadreDashboard() {
                         <div className="grid grid-cols-1 min-[400px]:grid-cols-3 gap-2 mt-3">
                           {opciones.map((o) => (
                             <button key={o.val} onClick={() => handleRSVP(c.id, o.val)}
-                              className={`flex items-center justify-center gap-1.5 py-3 min-h-11 rounded-control border text-xs font-black uppercase tracking-wider transition-all ${
+                              className={`flex items-center justify-center gap-1.5 py-3 min-h-11 rounded-control border text-xs font-black uppercase tracking-wider transition ${
                                 c.estado_rsvp === o.val ? o.on : `bg-transparent ${o.off}`
                               }`}>
                               {o.icon}{o.label}
@@ -558,7 +558,7 @@ export default function PadreDashboard() {
                       </div>
                       
                       {/* Card */}
-                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] glass-card p-4 rounded-panel border border-white/5 group-hover:border-white/20 transition-all">
+                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] glass-card p-4 rounded-panel border border-white/5 group-hover:border-white/20 transition">
                         <div className="flex items-center justify-between mb-2">
                           <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-1 rounded-md ${sesion.tipo === 'Individual' ? 'bg-mental/20 text-mental-soft' : 'bg-success/20 text-success-soft'}`}>
                             {sesion.tipo} • {sesion.objetivo_tipo}

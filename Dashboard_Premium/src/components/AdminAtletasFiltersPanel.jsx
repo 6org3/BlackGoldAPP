@@ -32,12 +32,12 @@ export default function AdminAtletasFiltersPanel({
             placeholder="Buscar por nombre o cédula..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/10 rounded-control pl-11 pr-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/40 focus:shadow-[0_0_15px_rgba(255,215,0,0.08)] transition-all"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-control pl-11 pr-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/40 focus:shadow-[0_0_15px_rgba(255,215,0,0.08)] transition"
           />
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center space-x-2 px-4 py-3 rounded-control border text-xs font-bold uppercase tracking-widest transition-all ${
+          className={`flex items-center space-x-2 px-4 py-3 rounded-control border text-xs font-bold uppercase tracking-widest transition ${
             showFilters || filtrosActivos
               ? 'bg-brand/10 border-brand/30 text-brand'
               : 'bg-white/[0.03] border-white/10 text-fg-muted hover:text-white hover:border-white/20'

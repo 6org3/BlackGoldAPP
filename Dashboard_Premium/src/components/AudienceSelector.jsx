@@ -97,7 +97,7 @@ export default function AudienceSelector({ atletas = [], onChange }) {
           const Icon = cfg.icon;
           return (
             <button key={tipo} type="button" onClick={() => cambiarSegmento(tipo)}
-              className={`flex flex-col items-center justify-center space-y-1 p-3 rounded-control border text-2xs font-black uppercase tracking-wider transition-all ${
+              className={`flex flex-col items-center justify-center space-y-1 p-3 rounded-control border text-2xs font-black uppercase tracking-wider transition ${
                 segmentoTipo === tipo ? cfg.color : 'border-white/10 text-fg-muted hover:text-white hover:bg-white/5'
               }`}>
               <Icon size={16} />
@@ -125,7 +125,7 @@ export default function AudienceSelector({ atletas = [], onChange }) {
           <div className="flex flex-wrap gap-2">
             {grupos.map((g) => (
               <button key={g.id} type="button" onClick={() => setParams({ grupo_id: g.id })}
-                className={`flex-1 min-w-[100px] p-2.5 rounded-control border text-2xs font-black uppercase transition-all ${
+                className={`flex-1 min-w-[100px] p-2.5 rounded-control border text-2xs font-black uppercase transition ${
                   params.grupo_id === g.id ? 'bg-info/10 border-info/40 text-blue-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
                 }`}>{g.nombre}</button>
             ))}
@@ -141,7 +141,7 @@ export default function AudienceSelector({ atletas = [], onChange }) {
               const on = (params.grupo_ids || []).includes(g.id);
               return (
                 <button key={g.id} type="button" onClick={() => toggleEnArray('grupo_ids', g.id)}
-                  className={`p-2.5 rounded-control border text-2xs font-black uppercase transition-all ${
+                  className={`p-2.5 rounded-control border text-2xs font-black uppercase transition ${
                     on ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
                   }`}>{g.nombre}</button>
               );
@@ -158,7 +158,7 @@ export default function AudienceSelector({ atletas = [], onChange }) {
               const on = (params.categorias || []).includes(cat);
               return (
                 <button key={cat} type="button" onClick={() => toggleEnArray('categorias', cat)}
-                  className={`p-2.5 rounded-control border text-2xs font-black uppercase transition-all ${
+                  className={`p-2.5 rounded-control border text-2xs font-black uppercase transition ${
                     on ? 'bg-caution/10 border-caution/40 text-orange-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
                   }`}>{cat}</button>
               );
@@ -190,7 +190,7 @@ export default function AudienceSelector({ atletas = [], onChange }) {
           <div className="flex gap-2">
             {['Masculino', 'Femenino'].map((gen) => (
               <button key={gen} type="button" onClick={() => setParams({ genero: gen })}
-                className={`flex-1 p-2.5 rounded-control border text-xs font-black uppercase transition-all ${
+                className={`flex-1 p-2.5 rounded-control border text-xs font-black uppercase transition ${
                   params.genero === gen ? 'bg-teal-500/10 border-teal-500/40 text-teal-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
                 }`}>{gen}</button>
             ))}

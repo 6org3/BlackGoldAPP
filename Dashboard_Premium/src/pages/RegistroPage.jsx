@@ -60,7 +60,7 @@ export default function RegistroPage() {
           <CheckCircle2 className="w-20 h-20 text-success-soft mx-auto mb-6" />
           <h2 className="text-3xl font-black uppercase tracking-tighter mb-4 text-success-soft">¡Inscripción Exitosa!</h2>
           <p className="text-fg-secondary text-sm mb-8">El perfil ha sido creado correctamente. Ahora puedes iniciar sesión con tus credenciales.</p>
-          <button onClick={() => navigate('/login')} className="w-full bg-success hover:bg-success-soft text-black font-black uppercase tracking-widest py-4 rounded-control transition-all">
+          <button onClick={() => navigate('/login')} className="w-full bg-success hover:bg-success-soft text-black font-black uppercase tracking-widest py-4 rounded-control transition">
             Ir al Portal
           </button>
         </motion.div>
@@ -165,7 +165,7 @@ export default function RegistroPage() {
                 </motion.div>
               )}
 
-              <button type="submit" disabled={loading} className="w-full mt-8 bg-brand hover:bg-brand-hover text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control transition-all flex items-center justify-center disabled:opacity-50 shadow-glow-gold active:scale-[0.99]">
+              <button type="submit" disabled={loading} className="w-full mt-8 bg-brand hover:bg-brand-hover text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control transition flex items-center justify-center disabled:opacity-50 shadow-glow-gold active:scale-[0.99]">
                 {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Finalizar Registro'}
               </button>
             </motion.div>

@@ -35,14 +35,14 @@ export default function AdminAtletasHeader({
         <div className="hidden sm:flex items-center bg-white/5 rounded-control p-1 border border-white/5">
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-brand/15 text-brand shadow-[0_0_10px_rgba(255,215,0,0.15)]' : 'text-fg-muted hover:text-white'}`}
+            className={`p-2.5 rounded-lg transition ${viewMode === 'grid' ? 'bg-brand/15 text-brand shadow-[0_0_10px_rgba(255,215,0,0.15)]' : 'text-fg-muted hover:text-white'}`}
             title="Vista Cuadrícula"
           >
             <LayoutGrid size={16} />
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-brand/15 text-brand shadow-[0_0_10px_rgba(255,215,0,0.15)]' : 'text-fg-muted hover:text-white'}`}
+            className={`p-2.5 rounded-lg transition ${viewMode === 'list' ? 'bg-brand/15 text-brand shadow-[0_0_10px_rgba(255,215,0,0.15)]' : 'text-fg-muted hover:text-white'}`}
             title="Vista Lista"
           >
             <List size={16} />
@@ -52,7 +52,7 @@ export default function AdminAtletasHeader({
         <button
           onClick={() => { setShowForm(!showForm); setEditingId(null); setForm(emptyForm); setShowParentForm(false); }}
           aria-label="Nuevo atleta"
-          className="flex items-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-control shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] hover:scale-[1.02] transition-all"
+          className="flex items-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-control shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] hover:scale-[1.02] transition"
         >
           <UserPlus size={16} />
           <span className="hidden sm:inline">Nuevo Atleta</span>

@@ -164,7 +164,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
               const Icon = cfg.icon;
               return (
                 <button key={tipo} onClick={() => cambiarSegmento(tipo)}
-                  className={`flex flex-col items-center justify-center space-y-1 p-3 rounded-control border text-2xs font-black uppercase tracking-wider transition-all ${
+                  className={`flex flex-col items-center justify-center space-y-1 p-3 rounded-control border text-2xs font-black uppercase tracking-wider transition ${
                     segmentoTipo === tipo ? cfg.color : 'border-white/10 text-fg-muted hover:text-white hover:bg-white/5'
                   }`}>
                   <Icon size={16} />
@@ -192,7 +192,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
               <div className="flex flex-wrap gap-2">
                 {grupos.map((g) => (
                   <button key={g.id} onClick={() => setParams({ grupo_id: g.id })}
-                    className={`flex-1 min-w-[100px] p-2.5 rounded-control border text-2xs font-black uppercase transition-all ${
+                    className={`flex-1 min-w-[100px] p-2.5 rounded-control border text-2xs font-black uppercase transition ${
                       params.grupo_id === g.id ? 'bg-info/10 border-info/40 text-blue-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
                     }`}>
                     {g.nombre}<br /><span className="text-[8px] text-fg-muted normal-case font-normal">{g.horario}</span>
@@ -210,7 +210,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
                   const on = (params.grupo_ids || []).includes(g.id);
                   return (
                     <button key={g.id} onClick={() => toggleEnArray('grupo_ids', g.id)}
-                      className={`p-2.5 rounded-control border text-2xs font-black uppercase transition-all ${
+                      className={`p-2.5 rounded-control border text-2xs font-black uppercase transition ${
                         on ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
                       }`}>{g.nombre}</button>
                   );
@@ -227,7 +227,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
                   const on = (params.categorias || []).includes(cat);
                   return (
                     <button key={cat} onClick={() => toggleEnArray('categorias', cat)}
-                      className={`p-2.5 rounded-control border text-2xs font-black uppercase transition-all ${
+                      className={`p-2.5 rounded-control border text-2xs font-black uppercase transition ${
                         on ? 'bg-caution/10 border-caution/40 text-orange-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
                       }`}>{cat}</button>
                   );
@@ -259,7 +259,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
               <div className="flex gap-2">
                 {['Masculino', 'Femenino'].map((gen) => (
                   <button key={gen} onClick={() => setParams({ genero: gen })}
-                    className={`flex-1 p-2.5 rounded-control border text-xs font-black uppercase transition-all ${
+                    className={`flex-1 p-2.5 rounded-control border text-xs font-black uppercase transition ${
                       params.genero === gen ? 'bg-teal-500/10 border-teal-500/40 text-teal-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
                     }`}>{gen}</button>
                 ))}
@@ -327,7 +327,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
             className="w-full bg-white/5 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/50 resize-none transition-colors" />
 
           <button onClick={handleEnviar} disabled={saving || !puedeEnviar}
-            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-panel font-black uppercase tracking-widest text-sm transition-all ${
+            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-panel font-black uppercase tracking-widest text-sm transition ${
               saved
                 ? 'bg-success/20 border border-success/40 text-success-soft'
                 : 'bg-brand/10 border border-brand/30 text-brand hover:bg-brand/20 disabled:opacity-40'

@@ -112,7 +112,7 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
                 href={`https://wa.me/${coachWhatsApp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola Coach, soy representante de ${atleta.nombre}.`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-whatsapp hover:bg-whatsapp-deep text-white text-xs font-black uppercase tracking-widest py-3 min-h-11 px-4 rounded-control shadow-[0_0_15px_rgba(37,211,102,0.3)] transition-all flex items-center justify-center"
+                className="w-full bg-whatsapp hover:bg-whatsapp-deep text-white text-xs font-black uppercase tracking-widest py-3 min-h-11 px-4 rounded-control shadow-[0_0_15px_rgba(37,211,102,0.3)] transition flex items-center justify-center"
               >
                 <MessageCircle size={14} className="mr-2" />
                 WhatsApp

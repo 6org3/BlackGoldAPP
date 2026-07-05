@@ -18,6 +18,13 @@ html, body, #root {
   background-image: radial-gradient(circle at 50% 0%, rgba(255,215,0,0.03) 0%, transparent 70%);
 }
 
+/* App exclusivamente dark: los controles nativos (scrollbars por defecto,
+   date pickers, autofill, menús de <select>) se pintan en su variante oscura
+   en vez de la clara del sistema. */
+html {
+  color-scheme: dark;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;

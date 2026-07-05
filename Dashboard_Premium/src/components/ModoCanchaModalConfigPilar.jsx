@@ -12,7 +12,7 @@ export default function ModoCanchaModalConfigPilar({ pilarObjetivo, setPilarObje
         <div className="grid grid-cols-1 gap-2">
           {OBJETIVOS_CLASE.map(obj => (
             <button key={obj} onClick={() => setPilarObjetivo(obj)}
-              className={`py-3 px-4 rounded-control text-sm font-bold uppercase tracking-wide border transition-all ${pilarObjetivo === obj ? 'bg-brand/10 border-brand text-brand' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}>
+              className={`py-3 px-4 rounded-control text-sm font-bold uppercase tracking-wide border transition ${pilarObjetivo === obj ? 'bg-brand/10 border-brand text-brand' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}>
               {obj}
             </button>
           ))}

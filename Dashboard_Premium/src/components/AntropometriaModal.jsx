@@ -174,7 +174,7 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
           <button
             type="submit"
             disabled={saving}
-            className="w-full mt-6 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-3 rounded-control hover:shadow-glow-gold transition-all flex items-center justify-center gap-2"
+            className="w-full mt-6 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-3 rounded-control hover:shadow-glow-gold transition flex items-center justify-center gap-2"
           >
             <Save size={16} />
             <span>{saving ? 'Guardando...' : 'Guardar Evaluación'}</span>

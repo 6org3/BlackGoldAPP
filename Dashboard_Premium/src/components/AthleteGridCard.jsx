@@ -28,7 +28,7 @@ export default function AthleteGridCard({ atleta, onClick }) {
           onClick();
         }
       }}
-      className="bg-white/[0.03] border border-white/10 rounded-panel p-5 hover:border-brand/30 focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:outline-none transition-all cursor-pointer relative group"
+      className="bg-white/[0.03] border border-white/10 rounded-panel p-5 hover:border-brand/30 focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:outline-none transition cursor-pointer relative group"
     >
       {/* Recovery / Readiness alerts: pills con texto visible (nada de
           significado solo-hover en información médica) */}

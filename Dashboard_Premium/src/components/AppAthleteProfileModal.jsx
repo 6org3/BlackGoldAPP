@@ -38,7 +38,7 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
       <button
         ref={closeBtnRef}
         onClick={onClose}
-        className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-[110] flex items-center space-x-2 text-white bg-black/50 hover:bg-black/80 p-3 pr-4 rounded-full border border-white/10 backdrop-blur-md transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)]"
+        className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-[110] flex items-center space-x-2 text-white bg-black/50 hover:bg-black/80 p-3 pr-4 rounded-full border border-white/10 backdrop-blur-md transition shadow-[0_0_15px_rgba(0,0,0,0.5)]"
       >
         <div className="bg-danger/20 text-danger-soft rounded-full p-1"><X size={16} /></div>
         <span className="text-2xs font-bold uppercase tracking-widest text-red-100">Cerrar</span>

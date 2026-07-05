@@ -181,8 +181,8 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
             <>
               {/* Tabs */}
               <div className="flex space-x-2 mb-6">
-                <button onClick={() => setTab('catalogo')} className={`flex-1 py-3 min-h-11 text-2xs font-black uppercase tracking-eyebrow rounded-control border transition-all ${tab === 'catalogo' ? 'bg-brand/10 text-brand border-brand/20' : 'bg-white/5 text-fg-muted border-transparent hover:bg-white/10 hover:text-fg'}`}>Banco de Misiones</button>
-                <button onClick={() => setTab('crear')} className={`flex-1 py-3 min-h-11 text-2xs font-black uppercase tracking-eyebrow rounded-control border transition-all ${tab === 'crear' ? 'bg-brand/10 text-brand border-brand/20' : 'bg-white/5 text-fg-muted border-transparent hover:bg-white/10 hover:text-fg'}`}>Crear Nueva</button>
+                <button onClick={() => setTab('catalogo')} className={`flex-1 py-3 min-h-11 text-2xs font-black uppercase tracking-eyebrow rounded-control border transition ${tab === 'catalogo' ? 'bg-brand/10 text-brand border-brand/20' : 'bg-white/5 text-fg-muted border-transparent hover:bg-white/10 hover:text-fg'}`}>Banco de Misiones</button>
+                <button onClick={() => setTab('crear')} className={`flex-1 py-3 min-h-11 text-2xs font-black uppercase tracking-eyebrow rounded-control border transition ${tab === 'crear' ? 'bg-brand/10 text-brand border-brand/20' : 'bg-white/5 text-fg-muted border-transparent hover:bg-white/10 hover:text-fg'}`}>Crear Nueva</button>
               </div>
 
               {tab === 'catalogo' && (
@@ -208,7 +208,7 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
                               Asignada
                             </button>
                           ) : (
-                            <button onClick={() => handleAsignar(m.id)} disabled={saving} className="px-4 py-2 bg-success/20 text-success-soft hover:bg-success hover:text-black font-bold uppercase tracking-widest text-2xs rounded-control transition-all">
+                            <button onClick={() => handleAsignar(m.id)} disabled={saving} className="px-4 py-2 bg-success/20 text-success-soft hover:bg-success hover:text-black font-bold uppercase tracking-widest text-2xs rounded-control transition">
                               {saving ? 'Asignando...' : 'Asignar'}
                             </button>
                           )}
@@ -243,7 +243,7 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
                       </select>
                     </div>
                   </div>
-                  <button type="submit" disabled={saving} className="w-full mt-4 bg-brand text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control flex items-center justify-center hover:bg-brand-hover active:scale-[0.99] transition-all shadow-glow-gold">
+                  <button type="submit" disabled={saving} className="w-full mt-4 bg-brand text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control flex items-center justify-center hover:bg-brand-hover active:scale-[0.99] transition shadow-glow-gold">
                     {saving ? 'Guardando...' : 'Crear y Asignar Misión'} <Save size={18} className="ml-2"/>
                   </button>
                 </form>

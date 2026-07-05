@@ -111,7 +111,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
               <button
                 key={id}
                 onClick={() => handleTabChange(id)}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-left transition-all duration-200 ${
+                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-left transition duration-200 ${
                   active
                     ? 'bg-brand/10 border border-brand/20 text-brand'
                     : 'text-fg-muted hover:text-gray-300 hover:bg-white/5 border border-transparent'
@@ -131,14 +131,14 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
         <div className="px-3 py-4 border-t border-white/5 space-y-1">
           <button
             onClick={() => setShowEditProfile(true)}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-fg-muted hover:text-gray-300 hover:bg-white/5 transition-all border border-transparent text-left"
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-fg-muted hover:text-gray-300 hover:bg-white/5 transition border border-transparent text-left"
           >
             <User size={16} className="text-fg-faint" />
             <span className="text-[11px] font-black uppercase tracking-widest">Editar Perfil</span>
           </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-fg-muted hover:text-danger-soft hover:bg-danger/5 transition-all border border-transparent text-left"
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-fg-muted hover:text-danger-soft hover:bg-danger/5 transition border border-transparent text-left"
             data-testid="btn-logout"
           >
             <LogOut size={16} className="text-fg-faint" />

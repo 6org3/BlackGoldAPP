@@ -94,7 +94,7 @@ export default function AdminEventos({ user, atletas = [] }) {
           <div className="flex flex-wrap gap-2">
             {TIPOS.map(([val, label]) => (
               <button key={val} type="button" onClick={() => setTipo(val)}
-                className={`px-3 py-2 rounded-control border text-2xs font-black uppercase tracking-wider transition-all ${
+                className={`px-3 py-2 rounded-control border text-2xs font-black uppercase tracking-wider transition ${
                   tipo === val ? 'bg-brand/10 border-brand/40 text-brand' : 'border-white/10 text-fg-muted hover:bg-white/5'
                 }`}>{label}</button>
             ))}
@@ -133,7 +133,7 @@ export default function AdminEventos({ user, atletas = [] }) {
           </div>
 
           <button onClick={handlePublicar} disabled={saving || !puedePublicar}
-            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-panel font-black uppercase tracking-widest text-sm transition-all ${
+            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-panel font-black uppercase tracking-widest text-sm transition ${
               saved
                 ? 'bg-success/20 border border-success/40 text-success-soft'
                 : 'bg-brand/10 border border-brand/30 text-brand hover:bg-brand/20 disabled:opacity-40'

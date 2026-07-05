@@ -23,7 +23,7 @@ export default function AppAthleteGrid({ loading, atletasPaginados, currentHasMo
           <div className="mt-8 flex justify-center">
             <button
               onClick={onLoadMore}
-              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] rounded-control bg-white/5 border border-white/10 hover:bg-brand/10 hover:border-brand/30 hover:text-brand text-fg-secondary font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] rounded-control bg-white/5 border border-white/10 hover:bg-brand/10 hover:border-brand/30 hover:text-brand text-fg-secondary font-bold text-xs uppercase tracking-widest transition flex items-center justify-center gap-2"
             >
               Cargar Más
             </button>

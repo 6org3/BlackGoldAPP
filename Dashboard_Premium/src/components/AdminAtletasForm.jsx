@@ -107,7 +107,7 @@ export default function AdminAtletasForm({
 
       <button
         type="submit" disabled={saving}
-        className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] transition-all disabled:opacity-50"
+        className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] transition disabled:opacity-50"
       >
         <Save size={16} />
         <span>{saving ? 'Guardando en Supabase...' : editingId ? 'Actualizar Atleta' : 'Registrar Atleta'}</span>

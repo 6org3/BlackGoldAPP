@@ -23,7 +23,7 @@ export default function ModoCanchaModalGridAtletas({
           const inicialApellido = partes.length > 1 ? `${(partes[2] || partes[1]).charAt(0)}.` : '';
           return (
             <button key={a.atleta_id} onClick={() => { setAtletaEvaluando(a); setStep(5); }}
-              className={`p-4 rounded-panel border flex flex-col items-center text-center transition-all ${
+              className={`p-4 rounded-panel border flex flex-col items-center text-center transition ${
                 yaEvaluado
                 ? 'bg-success/10 border-success/30 opacity-70 hover:opacity-100'
                 : 'bg-white/5 border-white/10 hover:border-brand/50 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,215,0,0.1)]'

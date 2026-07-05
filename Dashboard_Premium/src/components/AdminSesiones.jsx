@@ -158,7 +158,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
               <button
                 key={m}
                 onClick={() => setModo(m)}
-                className={`flex items-center space-x-2 px-4 py-3 min-h-11 rounded-control text-xs font-black uppercase tracking-widest transition-all ${
+                className={`flex items-center space-x-2 px-4 py-3 min-h-11 rounded-control text-xs font-black uppercase tracking-widest transition ${
                   modo === m
                     ? 'bg-brand text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
                     : 'text-fg-secondary hover:text-white hover:bg-white/5'
@@ -179,7 +179,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {grupos.map(g => (
                   <button key={g.id} onClick={() => setForm({ ...form, grupoId: g.id })}
-                    className={`p-3 border rounded-control text-xs font-bold uppercase tracking-widest truncate transition-all ${
+                    className={`p-3 border rounded-control text-xs font-bold uppercase tracking-widest truncate transition ${
                       form.grupoId === g.id ? 'border-brand bg-brand/10 text-brand' : 'border-white/10 text-fg-secondary hover:border-white/30 hover:bg-white/5'
                     }`}>
                     {g.nombre}
@@ -280,7 +280,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
                 const Icon = TIPO_ICONS[t];
                 return (
                   <button key={t} onClick={() => setForm(f => ({ ...f, objetivoTipo: t, ejerciciosIds: [] }))}
-                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg border text-2xs font-black uppercase tracking-widest transition-all ${
+                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg border text-2xs font-black uppercase tracking-widest transition ${
                       form.objetivoTipo === t ? TIPO_COLORS[t] : 'border-white/10 text-fg-muted hover:text-white hover:bg-white/5'
                     }`}>
                     <Icon size={12} />
@@ -304,7 +304,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
                 const sel = form.ejerciciosIds.includes(ej.id);
                 return (
                   <button key={ej.id} onClick={() => toggleEjercicio(ej.id)}
-                    className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-control border text-left transition-all ${
+                    className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-control border text-left transition ${
                       sel ? `${TIPO_COLORS[form.objetivoTipo]} opacity-100` : 'border-white/5 hover:bg-white/5 opacity-70 hover:opacity-100'
                     }`}>
                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${sel ? 'bg-current border-current' : 'border-white/20'}`}>
@@ -342,7 +342,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
 
           {/* Botón Registrar */}
           <button onClick={handleGuardar} disabled={saving || !form.objetivoDesc.trim() || (modo === 'Privada 1v1' && !atletaSeleccionado)}
-            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-panel font-black uppercase tracking-widest text-sm transition-all ${
+            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-panel font-black uppercase tracking-widest text-sm transition ${
               saved ? 'bg-success/20 border border-success/40 text-success-soft'
                     : 'bg-brand/10 border border-brand/30 text-brand hover:bg-brand/20 disabled:opacity-40 disabled:cursor-not-allowed'
             }`}>
@@ -407,7 +407,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
                         <div className="flex gap-2">
                           {['Sí', 'Parcial', 'No'].map(v => (
                             <button key={v} onClick={() => setEvalData(e => ({ ...e, se_logro: v }))}
-                              className={`flex-1 py-3 min-h-11 rounded-lg text-xs font-black uppercase border transition-all ${
+                              className={`flex-1 py-3 min-h-11 rounded-lg text-xs font-black uppercase border transition ${
                                 evalData.se_logro === v ? LOGRO_CONFIG[v].color : 'border-white/10 text-fg-muted hover:bg-white/5'
                               }`}>{v}</button>
                           ))}

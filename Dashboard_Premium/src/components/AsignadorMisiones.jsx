@@ -365,7 +365,7 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
           <button
             onClick={handleAssign}
             disabled={loading || success || !misionSeleccionadaId}
-            className={`w-full mt-2 flex items-center justify-center gap-2 p-4 rounded-xl font-bold uppercase tracking-widest transition-all ${
+            className={`w-full mt-2 flex items-center justify-center gap-2 p-4 rounded-xl font-bold uppercase tracking-widest transition ${
               success
                 ? 'bg-emerald-500 text-black'
                 : 'bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-40'

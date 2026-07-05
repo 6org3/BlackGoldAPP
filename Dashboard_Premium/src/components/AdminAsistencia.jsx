@@ -210,7 +210,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
                         aria-label={cfg.label}
                         aria-pressed={isActive}
                         onClick={() => setAsistencias(prev => ({ ...prev, [atleta.id]: estado }))}
-                        className={`min-h-11 md:min-w-11 p-2 md:p-2.5 rounded-lg border transition-all font-bold flex flex-col md:flex-row items-center justify-center gap-1 ${
+                        className={`min-h-11 md:min-w-11 p-2 md:p-2.5 rounded-lg border transition font-bold flex flex-col md:flex-row items-center justify-center gap-1 ${
                           isActive ? cfg.color : 'text-fg-faint border-white/5 hover:bg-white/5 hover:text-fg-secondary'
                         }`}
                       >
@@ -234,7 +234,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         <button
           onClick={handleGuardar}
           disabled={saving}
-          className={`flex items-center space-x-2 px-6 py-3 rounded-control font-black uppercase tracking-widest text-sm transition-all ${
+          className={`flex items-center space-x-2 px-6 py-3 rounded-control font-black uppercase tracking-widest text-sm transition ${
             saved
               ? 'bg-success/20 border border-success/40 text-success-soft'
               : 'bg-brand/10 border border-brand/30 text-brand hover:bg-brand/20'
