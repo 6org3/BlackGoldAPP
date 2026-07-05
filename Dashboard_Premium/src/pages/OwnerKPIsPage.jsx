@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -7,6 +7,7 @@ import { useAuth } from '../AuthContext';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { supabase } from '../api/supabaseClient';
 import { getSubPilarScores } from '../lib/radarCalc';
+import { COLORS, CHART, staggerDelay } from '../lib/designTokens';
 
 const METRIC_LABELS = {
   fuerza: 'Fuerza',
@@ -18,17 +19,9 @@ const METRIC_LABELS = {
   resiliencia: 'Resiliencia',
 };
 
-// Claves alineadas con calcularCategoriaFEB() (src/api/utilsAtletas.js). Antes estas
-// claves ('Sub-6', 'Senior', 'Femenino'...) no coincidían con ninguna categoría FEB
-// real, así que el desglose por categoría siempre caía al color gris por defecto.
-const CATEGORY_COLORS = {
-  'Premini (Sub-9)': '#10b981',      // emerald
-  'Mini (Sub-11)': '#06b6d4',        // cyan
-  'Menores (Sub-14)': '#3b82f6',     // blue
-  'Prejuvenil (Sub-16)': '#FFD700',  // gold
-  'Juvenil (Sub-18)': '#a855f7',     // purple
-  'Mayores': '#ec4899',              // pink
-};
+// Claves alineadas con calcularCategoriaFEB() (src/api/utilsAtletas.js).
+// Colores desde la paleta categórica del design system (CHART.categorical).
+const CATEGORY_COLORS = CHART.categorical;
 
 // Detecta viewport móvil (<sm) para adaptar los gráficos Recharts
 function useEsMovil() {
@@ -47,9 +40,9 @@ function useEsMovil() {
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[#1a1a2e] border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+    <div className="bg-surface-top border border-white/10 rounded-control px-4 py-3 shadow-2xl">
       <p className="text-xs font-bold text-white uppercase tracking-widest">{label}</p>
-      <p className="text-lg font-black text-[#FFD700] mt-1">{payload[0].value}%</p>
+      <p className="text-lg font-black text-brand mt-1">{payload[0].value}%</p>
     </div>
   );
 };
@@ -161,7 +154,7 @@ export default function OwnerKPIsPage() {
     return Object.entries(counts).map(([name, value]) => ({
       name,
       value,
-      color: CATEGORY_COLORS[name] || '#6b7280',
+      color: CATEGORY_COLORS[name] || CHART.categorical.fallback,
     }));
   }, [atletas]);
 
@@ -185,50 +178,50 @@ export default function OwnerKPIsPage() {
       label: 'Promedio Integral',
       value: `${promedioIntegral}%`,
       icon: TrendingUp,
-      color: 'text-[#FFD700]',
+      color: 'text-brand',
       glow: 'shadow-[0_0_20px_rgba(255,215,0,0.15)]',
     },
     {
       label: 'Asistencia Semanal',
       value: asistenciaPct !== null ? `${asistenciaPct}%` : '—',
       icon: CalendarCheck,
-      color: 'text-emerald-400',
+      color: 'text-success-soft',
       glow: 'shadow-[0_0_20px_rgba(52,211,153,0.15)]',
     },
     {
       label: 'Misiones Completadas',
       value: misionesCompletadas !== null ? misionesCompletadas : '—',
       icon: Target,
-      color: 'text-purple-400',
+      color: 'text-mental-soft',
       glow: 'shadow-[0_0_20px_rgba(168,85,247,0.15)]',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white relative overflow-hidden">
+    <div className="min-h-screen bg-surface-base text-white relative overflow-hidden">
       {/* Ambient Glow Effects (solo desktop: composición GPU cara en gama baja) */}
       <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-[#FFD700]/[0.03] rounded-full blur-[150px]" />
-        <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-purple-500/[0.03] rounded-full blur-[150px]" />
+        <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-brand/[0.03] rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-mental/[0.03] rounded-full blur-[150px]" />
       </div>
 
       <div className="relative z-10 p-6 md:p-12">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center space-x-4 mb-10">
-            <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard" className="p-3 -ml-3 rounded-full text-gray-500 hover:text-white hover:bg-white/5 transition-colors">
+            <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard" className="p-3 -ml-3 rounded-full text-fg-muted hover:text-white hover:bg-white/5 transition-colors">
               <ArrowLeft size={20} />
             </button>
             <div className="flex items-center space-x-3">
-              <BarChart3 className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" size={28} />
+              <BarChart3 className="text-brand drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" size={28} />
               <div>
                 <h2 className="text-3xl font-black uppercase tracking-tight">
                   KPIs del{' '}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#D4AF37]">
+                  <span className="text-gradient-gold">
                     Club
                   </span>
                 </h2>
-                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mt-1">
+                <p className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mt-1">
                   Panel ejecutivo · Métricas agregadas
                 </p>
               </div>
@@ -237,7 +230,7 @@ export default function OwnerKPIsPage() {
 
           {/* Loading */}
           {loading && (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+            <div className="flex flex-col items-center justify-center h-64 text-fg-muted">
               <Loader2 size={48} className="mb-4 opacity-20 animate-spin" />
               <p className="text-xs font-bold uppercase tracking-widest">Cargando datos del club...</p>
             </div>
@@ -252,11 +245,11 @@ export default function OwnerKPIsPage() {
                     key={card.label}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.08 }}
-                    className={`glass-card rounded-2xl border border-white/10 p-6 ${card.glow}`}
+                    transition={{ delay: staggerDelay(i) }}
+                    className={`glass-card rounded-panel border border-white/10 p-6 ${card.glow}`}
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest pr-2">{card.label}</p>
+                      <p className="text-2xs text-fg-muted font-bold uppercase tracking-widest pr-2">{card.label}</p>
                       <card.icon size={20} className={card.color} />
                     </div>
                     <p className={`text-4xl font-black ${card.color}`}>{card.value}</p>
@@ -269,9 +262,9 @@ export default function OwnerKPIsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35 }}
-                className="glass-card rounded-2xl border border-white/10 p-6 md:p-8 mb-12"
+                className="glass-card rounded-panel border border-white/10 p-6 md:p-8 mb-12"
               >
-                <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-6">
+                <h3 className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mb-6">
                   Análisis de Métricas del Club
                 </h3>
                 <div className="h-80">
@@ -281,13 +274,13 @@ export default function OwnerKPIsPage() {
                       layout="vertical"
                       margin={esMovil ? { top: 0, right: 12, left: 0, bottom: 0 } : { top: 0, right: 30, left: 20, bottom: 0 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis type="number" domain={[0, 100]} tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fill: CHART.axis, fontSize: 10 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
                       <YAxis
                         dataKey="name"
                         type="category"
                         width={esMovil ? 84 : 130}
-                        tick={{ fill: '#9ca3af', fontSize: esMovil ? 10 : 11, fontWeight: 700 }}
+                        tick={{ fill: CHART.label, fontSize: esMovil ? 10 : 11, fontWeight: 700 }}
                         tickFormatter={esMovil ? (v) => v.replace('Efic. ', '').replace('Técnica ', '') : undefined}
                         axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                       />
@@ -296,7 +289,7 @@ export default function OwnerKPIsPage() {
                         {metricData.map((entry) => (
                           <Cell
                             key={entry.key}
-                            fill={weakestMetric && entry.key === weakestMetric.key ? '#ef4444' : '#FFD700'}
+                            fill={weakestMetric && entry.key === weakestMetric.key ? COLORS.feedback.danger : COLORS.gold[500]}
                             fillOpacity={weakestMetric && entry.key === weakestMetric.key ? 0.8 : 0.6}
                           />
                         ))}
@@ -305,9 +298,9 @@ export default function OwnerKPIsPage() {
                   </ResponsiveContainer>
                 </div>
                 {weakestMetric && (
-                  <div className="mt-6 flex items-center space-x-3 bg-red-500/10 border border-red-500/20 rounded-xl px-5 py-3">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <p className="text-xs font-bold text-red-400 uppercase tracking-widest">
+                  <div className="mt-6 flex items-center space-x-3 bg-danger/10 border border-danger/20 rounded-panel px-5 py-3">
+                    <div className="w-2 h-2 rounded-full bg-danger animate-pulse" />
+                    <p className="text-xs font-bold text-danger-soft uppercase tracking-widest">
                       Punto débil del club: {weakestMetric.name} con un promedio de {weakestMetric.promedio}%
                     </p>
                   </div>
@@ -319,9 +312,9 @@ export default function OwnerKPIsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.45 }}
-                className="glass-card rounded-2xl border border-white/10 p-6 md:p-8 mb-12"
+                className="glass-card rounded-panel border border-white/10 p-6 md:p-8 mb-12"
               >
-                <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-6">
+                <h3 className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mb-6">
                   Distribución por Categoría
                 </h3>
                 <div className="flex flex-col lg:flex-row items-center gap-8">
@@ -346,9 +339,9 @@ export default function OwnerKPIsPage() {
                           content={({ active, payload }) => {
                             if (!active || !payload?.length) return null;
                             return (
-                              <div className="bg-[#1a1a2e] border border-white/10 rounded-xl px-4 py-3 shadow-2xl">
+                              <div className="bg-surface-top border border-white/10 rounded-control px-4 py-3 shadow-2xl">
                                 <p className="text-xs font-bold text-white uppercase tracking-widest">{payload[0].name}</p>
-                                <p className="text-lg font-black text-[#FFD700] mt-1">{payload[0].value} atletas</p>
+                                <p className="text-lg font-black text-brand mt-1">{payload[0].value} atletas</p>
                               </div>
                             );
                           }}
@@ -358,11 +351,11 @@ export default function OwnerKPIsPage() {
                   </div>
                   <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 w-full lg:w-1/2">
                     {categoryData.map((cat) => (
-                      <div key={cat.name} className="flex items-center space-x-3 min-w-0 bg-white/[0.02] rounded-xl px-4 py-3 border border-white/5">
+                      <div key={cat.name} className="flex items-center space-x-3 min-w-0 bg-white/[0.02] rounded-panel px-4 py-3 border border-white/5">
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-white truncate">{cat.name}</p>
-                          <p className="text-[10px] text-gray-500 font-bold">{cat.value} atletas</p>
+                          <p className="text-2xs text-fg-muted font-bold">{cat.value} atletas</p>
                         </div>
                       </div>
                     ))}
@@ -377,8 +370,8 @@ export default function OwnerKPIsPage() {
                 transition={{ delay: 0.55 }}
               >
                 <div className="flex items-center space-x-3 mb-6">
-                  <Crown size={18} className="text-[#FFD700] drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
-                  <h3 className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
+                  <Crown size={18} className="text-brand drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
+                  <h3 className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow">
                     Top 5 · Máximos Rendimientos
                   </h3>
                 </div>
@@ -388,50 +381,50 @@ export default function OwnerKPIsPage() {
                       key={atleta.atleta_id}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.6 + i * 0.08 }}
-                      className={`glass-card rounded-2xl border p-5 relative overflow-hidden ${
+                      transition={{ delay: 0.6 + staggerDelay(i) }}
+                      className={`glass-card rounded-panel border p-5 relative overflow-hidden ${
                         i === 0
-                          ? 'border-[#FFD700]/30 shadow-[0_0_25px_rgba(255,215,0,0.12)]'
+                          ? 'border-brand/30 shadow-[0_0_25px_rgba(255,215,0,0.12)]'
                           : 'border-white/10'
                       }`}
                     >
                       {/* Rank Number */}
                       <div className={`absolute top-3 right-3 text-3xl font-black ${
-                        i === 0 ? 'text-[#FFD700]/20' : 'text-white/5'
+                        i === 0 ? 'text-brand/20' : 'text-white/5'
                       }`}>
                         {i + 1}
                       </div>
 
                       {/* Crown for #1 */}
                       {i === 0 && (
-                        <Crown size={14} className="text-[#FFD700] mb-2 drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]" />
+                        <Crown size={14} className="text-brand mb-2 drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]" />
                       )}
 
                       <p className="text-sm font-bold text-white truncate">{atleta.nombre}</p>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                      <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">
                         {atleta.categoria}
                       </p>
 
                       {/* Rango Badge */}
                       <div className="mt-3 flex items-center justify-between">
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${atleta.rango?.textColor || 'text-gray-400'}`}>
+                        <span className={`text-2xs font-black uppercase tracking-widest ${atleta.rango?.textColor || 'text-fg-secondary'}`}>
                           {atleta.rango?.nombre} {atleta.rango?.tier}
                         </span>
                         <span className={`text-lg font-black ${
-                          i === 0 ? 'text-[#FFD700]' : 'text-white'
+                          i === 0 ? 'text-brand' : 'text-white'
                         }`}>
                           {atleta.rango?.pct || 0}%
                         </span>
                       </div>
 
                       {/* Progress bar */}
-                      <div className="mt-3 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div className="mt-3 h-1.5 bg-surface-sunken rounded-full overflow-hidden">
                         <motion.div
                           initial={{ width: 0 }}
                           animate={{ width: `${atleta.rango?.pct || 0}%` }}
-                          transition={{ delay: 0.8 + i * 0.1, duration: 0.8, ease: 'easeOut' }}
+                          transition={{ delay: 0.8 + staggerDelay(i, 0.1), duration: 0.8, ease: 'easeOut' }}
                           className={`h-full rounded-full ${
-                            i === 0 ? 'bg-gradient-to-r from-[#FFD700] to-[#D4AF37]' : 'bg-white/30'
+                            i === 0 ? 'progress-bar-glow' : 'bg-white/30'
                           }`}
                         />
                       </div>

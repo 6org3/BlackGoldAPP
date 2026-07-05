@@ -94,6 +94,26 @@ export const CHART = {
     borderRadius: 12,
     color: '#EDEDED',
   },
+  // Paleta categórica de los 7 pilares (barras/comparativas por pilar).
+  pilares: {
+    fuerza: '#F97316',
+    explosividad: '#EAB308',
+    movilidad: '#22C55E',
+    tiro: '#3B82F6',
+    agilidad: '#A855F7',
+    tactica: '#EC4899',
+    resiliencia: '#FFD700',
+  },
+  // Paleta categórica (pie/desgloses). Las categorías FEB tienen color fijo.
+  categorical: {
+    'Premini (Sub-9)': '#10B981',
+    'Mini (Sub-11)': '#06B6D4',
+    'Menores (Sub-14)': '#3B82F6',
+    'Prejuvenil (Sub-16)': '#FFD700',
+    'Juvenil (Sub-18)': '#A855F7',
+    'Mayores': '#EC4899',
+    fallback: '#6B7280',
+  },
 };
 
 // ── Motion (Framer Motion) ───────────────────────────────────
