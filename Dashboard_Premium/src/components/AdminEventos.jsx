@@ -102,30 +102,30 @@ export default function AdminEventos({ user, atletas = [] }) {
 
           <input type="text" placeholder="Título (ej. vs Tigres — Fecha 3)"
             value={titulo} onChange={(e) => setTitulo(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50" />
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50" />
 
           {(tipo === 'partido' || tipo === 'torneo') && (
             <input type="text" placeholder="Rival (opcional)"
               value={rival} onChange={(e) => setRival(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50" />
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50" />
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.25em] mb-2">Fecha y hora</label>
               <input type="datetime-local" value={fechaHora} onChange={(e) => setFechaHora(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" />
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-base md:text-sm text-white focus:outline-none" />
             </div>
             <div>
               <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.25em] mb-2">Sede (opcional)</label>
               <input type="text" placeholder="Coliseo / cancha" value={sede} onChange={(e) => setSede(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none" />
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none" />
             </div>
           </div>
 
           <textarea rows={2} placeholder="Detalles (opcional): uniforme, transporte, hora de llegada..."
             value={descripcion} onChange={(e) => setDescripcion(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 resize-none" />
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 resize-none" />
 
           <div>
             <h4 className="text-[9px] text-gray-500 font-black uppercase tracking-[0.25em] mb-3">¿A quién se convoca?</h4>
@@ -147,7 +147,7 @@ export default function AdminEventos({ user, atletas = [] }) {
         {/* DERECHA: eventos + tablero RSVP */}
         <div>
           <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Próximos / Recientes</h3>
-          <div className="space-y-3 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="space-y-3 lg:max-h-[75vh] lg:overflow-y-auto overscroll-contain lg:pr-1">
             {eventos.length === 0 && (
               <div className="text-center py-16 text-gray-600">
                 <CalendarDays size={32} className="mx-auto mb-3 opacity-30" />
@@ -172,7 +172,7 @@ export default function AdminEventos({ user, atletas = [] }) {
                   {ev.sede && <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5"><MapPin size={10} />{ev.sede}</p>}
 
                   {/* Tablero RSVP */}
-                  <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                     <Conteo icon={<Check size={12} />} label="Asisten" valor={t.asiste} color="text-emerald-400" />
                     <Conteo icon={<HelpCircle size={12} />} label="Duda" valor={t.duda} color="text-amber-400" />
                     <Conteo icon={<X size={12} />} label="No van" valor={t.no_asiste} color="text-red-400" />
@@ -193,7 +193,7 @@ function Conteo({ icon, label, valor, color }) {
   return (
     <div className="bg-white/5 rounded-xl py-2 border border-white/5">
       <div className={`flex items-center justify-center gap-1 ${color}`}>{icon}<span className="text-lg font-black leading-none">{valor}</span></div>
-      <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mt-1">{label}</p>
+      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">{label}</p>
     </div>
   );
 }

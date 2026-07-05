@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Dumbbell, Pencil, Trash2 } from 'lucide-react';
 import { NIVEL_BADGE } from './AdminAtletasConstants';
@@ -7,7 +8,7 @@ import ActionButton from './AdminAtletasActionButton';
 // TARJETA GRID — Vista cuadrícula premium
 // ═══════════════════════════════════════════════════════════════
 
-export default function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropometria, isExporting }) {
+function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropometria, isExporting }) {
   const nivelKey = atleta.nivel_desarrollo || 'Por Asignar';
   const badge = NIVEL_BADGE[nivelKey] || NIVEL_BADGE['Por Asignar'];
 
@@ -15,7 +16,7 @@ export default function AtletaGridCard({ atleta, index, onEdit, onDelete, onExpo
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04 }}
+      transition={{ delay: Math.min(index, 10) * 0.04 }}
       className="group relative glass-card rounded-2xl p-5 hover:border-[#FFD700]/25 hover:shadow-[0_0_30px_rgba(255,215,0,0.08)] transition-all duration-300"
     >
       {/* Top: Avatar + Identity */}
@@ -55,19 +56,19 @@ export default function AtletaGridCard({ atleta, index, onEdit, onDelete, onExpo
 
       {/* Actions row */}
       <div className="flex items-center justify-between pt-3 border-t border-white/5">
-        <div className="flex items-center space-x-1">
-          <ActionButton onClick={onExport} title="Descargar PDF" isActive={isExporting}>
+        <div className="flex items-center gap-1.5">
+          <ActionButton onClick={() => onExport(atleta)} title="Descargar PDF" isActive={isExporting}>
             <Download size={14} className={isExporting ? 'animate-pulse' : ''} />
           </ActionButton>
-          <ActionButton onClick={onAntropometria} title="Antropometría" className="hover:text-emerald-400">
+          <ActionButton onClick={() => onAntropometria(atleta)} title="Antropometría" className="hover:text-emerald-400">
             <Dumbbell size={14} />
           </ActionButton>
         </div>
-        <div className="flex items-center space-x-1">
-          <ActionButton onClick={onEdit} title="Editar" className="hover:text-[#FFD700]">
+        <div className="flex items-center gap-1.5">
+          <ActionButton onClick={() => onEdit(atleta)} title="Editar" className="hover:text-[#FFD700]">
             <Pencil size={14} />
           </ActionButton>
-          <ActionButton onClick={onDelete} title="Eliminar" className="hover:text-red-500">
+          <ActionButton onClick={() => onDelete(atleta)} title="Eliminar" className="hover:text-red-500">
             <Trash2 size={14} />
           </ActionButton>
         </div>
@@ -75,3 +76,5 @@ export default function AtletaGridCard({ atleta, index, onEdit, onDelete, onExpo
     </motion.div>
   );
 }
+
+export default memo(AtletaGridCard);

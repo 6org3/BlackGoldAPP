@@ -58,10 +58,10 @@ export default function AdminAtletasGrupoNivel({
                     key={atleta.id}
                     atleta={atleta}
                     index={i}
-                    onEdit={() => onEdit(atleta)}
-                    onDelete={() => onDelete(atleta)}
-                    onExport={() => onExport(atleta)}
-                    onAntropometria={() => onAntropometria(atleta)}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onExport={onExport}
+                    onAntropometria={onAntropometria}
                     isExporting={exportingAtleta?.id === atleta.id}
                   />
                 ))}
@@ -74,10 +74,10 @@ export default function AdminAtletasGrupoNivel({
                     key={atleta.id}
                     atleta={atleta}
                     index={i}
-                    onEdit={() => onEdit(atleta)}
-                    onDelete={() => onDelete(atleta)}
-                    onExport={() => onExport(atleta)}
-                    onAntropometria={() => onAntropometria(atleta)}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onExport={onExport}
+                    onAntropometria={onAntropometria}
                     isExporting={exportingAtleta?.id === atleta.id}
                   />
                 ))}

@@ -46,6 +46,39 @@ function dedupePorNombre(filas) {
   return [...porNombre.values()];
 }
 
+// ─── Tier badge renderer ────────────────────────────────────
+// A nivel de módulo: definido dentro del componente su identidad cambiaba en
+// cada render y React lo remontaba (re-disparando las animaciones) con cada
+// tecla del input de valores.
+const TierBadge = ({ tier, tierConfig, puntuacion }) => (
+  <motion.div
+    initial={{ scale: 0.8, opacity: 0 }}
+    animate={{ scale: 1, opacity: 1 }}
+    className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.03] border border-white/10"
+  >
+    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">
+      Resultado
+    </span>
+    <div className="flex items-center gap-3">
+      <span className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider ${tierConfig.bg} ${tier === 'above_avg' ? 'text-black' : 'text-white'}`}>
+        {tierConfig.label}
+      </span>
+      <span className="text-2xl font-black text-white">
+        {puntuacion}
+        <span className="text-sm text-gray-500 font-medium">/100</span>
+      </span>
+    </div>
+    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-1">
+      <motion.div
+        initial={{ width: 0 }}
+        animate={{ width: `${puntuacion}%` }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className={`h-full rounded-full ${tierConfig.bg}`}
+      />
+    </div>
+  </motion.div>
+);
+
 // ─── COMPONENT ──────────────────────────────────────────────
 export default function EvaluacionModal({ atleta, onClose, onSaved }) {
   const { user } = useAuth();
@@ -66,6 +99,13 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
   useEffect(() => {
     loadCatalogo();
   }, [user]);
+
+  // Bloquea el scroll del fondo mientras el modal está abierto (iOS scrollea el body detrás)
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   const loadCatalogo = async () => {
     setLoadingCatalogo(true);
@@ -213,36 +253,6 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     setSaving(false);
   };
 
-  // ─── Tier badge renderer ──────────────────────────────────
-  const TierBadge = ({ tier, tierConfig, puntuacion }) => (
-    <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.03] border border-white/10"
-    >
-      <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">
-        Resultado
-      </span>
-      <div className="flex items-center gap-3">
-        <span className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider ${tierConfig.bg} ${tier === 'above_avg' ? 'text-black' : 'text-white'}`}>
-          {tierConfig.label}
-        </span>
-        <span className="text-2xl font-black text-white">
-          {puntuacion}
-          <span className="text-sm text-gray-500 font-medium">/100</span>
-        </span>
-      </div>
-      <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-1">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${puntuacion}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut' }}
-          className={`h-full rounded-full ${tierConfig.bg}`}
-        />
-      </div>
-    </motion.div>
-  );
-
   return (
     <>
       <AnimatePresence>
@@ -250,7 +260,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-[110] flex items-center justify-center p-0 md:p-4 bg-black/90 md:bg-black/80 md:backdrop-blur-sm"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <motion.div
@@ -258,7 +268,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
           animate={{ scale: 1, y: 0, opacity: 1 }}
           exit={{ scale: 0.9, y: 30, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-xl bg-[#09090b] rounded-3xl border border-[#FFD700]/30 shadow-[0_0_60px_rgba(255,215,0,0.12)] overflow-hidden flex flex-col max-h-[90vh]"
+          className="w-full max-w-xl bg-[#09090b] rounded-none md:rounded-3xl border border-[#FFD700]/30 shadow-[0_0_60px_rgba(255,215,0,0.12)] overflow-hidden flex flex-col h-dvh md:h-auto md:max-h-[90vh] pt-[env(safe-area-inset-top)] md:pt-0"
         >
           {/* ─── Header ──────────────────────────────────────── */}
           <div className="p-4 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-[#FFD700]/10 to-transparent">
@@ -275,7 +285,8 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors"
+              aria-label="Cerrar evaluación"
+              className="text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-full transition-colors"
             >
               <X size={20} />
             </button>
@@ -308,12 +319,13 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                 <motion.div key="selector" className="flex flex-col h-full">
                   {/* Search and Action Bar */}
                   <div className="flex px-4 pt-4 pb-2 gap-2 items-center">
-                    <input 
-                      type="text" 
+                    <input
+                      type="search"
+                      autoComplete="off"
                       placeholder="Buscar ejercicio..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]/50"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]/50"
                     />
                     {user?.rol !== 'atleta' && (
                       <button
@@ -349,7 +361,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                   </div>
 
                   {/* List of Tests */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-black/20">
+                  <div className="flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-2 bg-black/20">
                     {loadingCatalogo ? (
                       <p className="text-center text-gray-500 text-xs py-8 uppercase font-bold tracking-widest">Cargando Catálogo...</p>
                     ) : pruebasFiltradas.length === 0 ? (
@@ -379,7 +391,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                 </motion.div>
               ) : (
                 /* ─── Formulario de la Prueba ──────────────────────── */
-                <motion.div key="form" className="p-5 overflow-y-auto flex-1 space-y-5">
+                <motion.div key="form" className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] overflow-y-auto flex-1 space-y-5">
                   <button onClick={() => setPruebaTipo('')} className="text-xs text-gray-400 hover:text-white flex items-center font-bold uppercase tracking-widest mb-2 transition-colors">
                     <ChevronLeft size={14} className="mr-1"/> Volver a las pruebas
                   </button>
@@ -428,18 +440,19 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       <div className={`grid gap-3 ${selectedBaremo.inputs_requeridos ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                         {(selectedBaremo.inputs_requeridos || [{ id: 'unico', label: 'Resultado' }]).map(input => (
                           <div key={input.id} className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 max-w-[5.5rem] truncate">
                               {input.label}:
                             </span>
                             <input
                               type="number"
                               step="any"
+                              inputMode="decimal"
                               value={valoresCrudos[input.id] || ''}
                               onChange={(e) => {
                                 setValoresCrudos(prev => ({ ...prev, [input.id]: e.target.value }));
                                 setError('');
                               }}
-                              className="w-full bg-[#121214] border border-white/10 rounded-xl pl-24 pr-16 py-4 text-sm text-white font-bold focus:outline-none focus:border-[#FFD700]/50 transition-colors shadow-inner"
+                              className="w-full bg-[#121214] border border-white/10 rounded-xl pl-24 pr-16 py-4 text-base md:text-sm text-white font-bold focus:outline-none focus:border-[#FFD700]/50 transition-colors shadow-inner"
                               placeholder="0.00"
                             />
                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-widest text-[#FFD700]/60">
@@ -498,7 +511,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       onChange={(e) => setNotas(e.target.value)}
                       placeholder="Observaciones sobre la ejecución, técnica, condiciones..."
                       rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 transition-colors resize-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 transition-colors resize-none"
                     />
                   </div>
 

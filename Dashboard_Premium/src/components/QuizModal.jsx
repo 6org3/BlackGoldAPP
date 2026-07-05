@@ -38,17 +38,19 @@ export default function QuizModal({ quiz, xpRecompensa, onPass, onClose }) {
         if (didPass) {
           // Lluvia de confeti dorado
           confetti({
-            particleCount: 150,
+            particleCount: 80,
             spread: 90,
             origin: { y: 0.6 },
             colors: ['#FFD700', '#D4AF37', '#FFFFFF', '#F5E6A3'],
+            disableForReducedMotion: true,
           });
           setTimeout(() => {
             confetti({
-              particleCount: 80,
+              particleCount: 50,
               spread: 120,
               origin: { y: 0.5 },
               colors: ['#FFD700', '#D4AF37'],
+              disableForReducedMotion: true,
             });
           }, 400);
         }
@@ -70,17 +72,20 @@ export default function QuizModal({ quiz, xpRecompensa, onPass, onClose }) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
-        onClick={onClose}
+        onClick={() => {
+          // Solo cerrar con toque fuera antes de empezar a responder, para no perder progreso
+          if (currentQuestion === 0 && !showResult && !finished) onClose();
+        }}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ type: "spring", damping: 25 }}
-          className="glass-card w-full max-w-lg rounded-3xl p-8 relative"
+          className="glass-card w-full max-w-lg rounded-3xl p-5 sm:p-8 relative max-h-[90dvh] overflow-y-auto"
           onClick={e => e.stopPropagation()}
         >
-          <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
+          <button onClick={onClose} aria-label="Cerrar cuestionario" className="absolute top-3 right-3 p-3 text-gray-500 hover:text-white transition-colors">
             <X size={20} />
           </button>
 

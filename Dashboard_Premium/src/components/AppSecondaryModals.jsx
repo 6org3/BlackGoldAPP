@@ -38,7 +38,15 @@ export default function AppSecondaryModals({
 
       {/* Modal Editar Perfil */}
       {showEditProfile && (
-        <EditarPerfilModal onClose={() => setShowEditProfile(false)} onRefresh={() => window.location.reload()} />
+        <EditarPerfilModal
+          onClose={() => setShowEditProfile(false)}
+          // Recarga completa a propósito: AuthContext no expone un refreshUser
+          // y supabase.auth.refreshSession() NO sirve aquí (su onAuthStateChange
+          // ignora TOKEN_REFRESHED y cualquier evento del mismo auth id), así
+          // que sin reload el `user` del contexto quedaría desactualizado tras
+          // editar el perfil. Reemplazar cuando AuthContext exponga refreshUser.
+          onRefresh={() => window.location.reload()}
+        />
       )}
     </>
   );

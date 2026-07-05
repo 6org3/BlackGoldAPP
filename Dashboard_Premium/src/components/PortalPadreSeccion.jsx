@@ -7,20 +7,24 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 export default function PortalPadreSeccion({ atleta, subPilarScores }) {
   const [notas, setNotas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mostrarTodasLasNotas, setMostrarTodasLasNotas] = useState(false);
 
-  // Teléfono de prueba para WhatsApp del Coach
-  const coachWhatsApp = "+1234567890"; // Reemplazar con el teléfono real del coach
+  // Sin número configurado no se muestra el bloque de Línea Directa
+  const coachWhatsApp = import.meta.env.VITE_COACH_WHATSAPP || '';
 
   useEffect(() => {
+    let cancelled = false;
+    const loadNotas = async () => {
+      setLoading(true);
+      const data = await fetchNotasCoach(atleta.atleta_id);
+      if (!cancelled) {
+        setNotas(data || []);
+        setLoading(false);
+      }
+    };
     loadNotas();
+    return () => { cancelled = true; };
   }, [atleta.atleta_id]);
-
-  const loadNotas = async () => {
-    setLoading(true);
-    const data = await fetchNotasCoach(atleta.atleta_id);
-    setNotas(data || []);
-    setLoading(false);
-  };
 
   const histogramData = useMemo(() => {
     const evaluaciones = atleta._evaluaciones || [];
@@ -95,23 +99,25 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
         
         {/* Contacto Coach y Pagos */}
         <div className="md:col-span-1 flex flex-col space-y-4">
-          <div className="bg-gradient-to-br from-[#128C7E]/10 to-[#075E54]/20 border border-[#25D366]/20 rounded-2xl p-5 flex flex-col items-center justify-center text-center">
-            <div className="w-12 h-12 bg-[#25D366]/20 rounded-full flex items-center justify-center mb-3">
-              <MessageCircle size={24} className="text-[#25D366]" />
+          {coachWhatsApp && (
+            <div className="bg-gradient-to-br from-[#128C7E]/10 to-[#075E54]/20 border border-[#25D366]/20 rounded-2xl p-5 flex flex-col items-center justify-center text-center">
+              <div className="w-12 h-12 bg-[#25D366]/20 rounded-full flex items-center justify-center mb-3">
+                <MessageCircle size={24} className="text-[#25D366]" />
+              </div>
+              <h5 className="text-white font-bold mb-1">Línea Directa</h5>
+              <p className="text-[10px] text-gray-400 mb-4">Comunícate por inasistencias o feedback privado.</p>
+
+              <a
+                href={`https://wa.me/${coachWhatsApp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola Coach, soy representante de ${atleta.nombre}.`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-xs font-black uppercase tracking-widest py-3 min-h-11 px-4 rounded-xl shadow-[0_0_15px_rgba(37,211,102,0.3)] transition-all flex items-center justify-center"
+              >
+                <MessageCircle size={14} className="mr-2" />
+                WhatsApp
+              </a>
             </div>
-            <h5 className="text-white font-bold mb-1">Línea Directa</h5>
-            <p className="text-[10px] text-gray-400 mb-4">Comunícate por inasistencias o feedback privado.</p>
-            
-            <a 
-              href={`https://wa.me/${coachWhatsApp}?text=Hola Coach, soy representante de ${atleta.nombre}.`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white text-[10px] font-black uppercase tracking-widest py-2 px-4 rounded-xl shadow-[0_0_15px_rgba(37,211,102,0.3)] transition-all flex items-center justify-center"
-            >
-              <MessageCircle size={14} className="mr-2" />
-              WhatsApp
-            </a>
-          </div>
+          )}
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
             <h5 className="text-white font-bold mb-2 flex items-center">
@@ -201,6 +207,7 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
                     <div className="h-32 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={histogramData.data}>
+                          <XAxis dataKey="fecha" tick={{ fill: '#6b7280', fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                           <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px', fontSize: '12px'}} />
                           <Bar dataKey="xp" radius={[4, 4, 0, 0]}>
                             {histogramData.data.map((entry, index) => (
@@ -245,7 +252,8 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
               Tablón Oficial de Notas
             </h5>
             
-            <div className="flex-1 overflow-y-auto max-h-[200px] pr-2 space-y-3 custom-scrollbar">
+            {/* Sin scroll anidado en móvil: lista limitada + "Ver más"; scroll interno solo en md+ */}
+            <div className="flex-1 max-h-none md:max-h-[200px] md:overflow-y-auto pr-2 space-y-3 custom-scrollbar">
               {loading ? (
                 <p className="text-xs text-gray-500 italic">Cargando notas...</p>
               ) : notas.length === 0 ? (
@@ -254,17 +262,17 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
                   <p className="text-[10px]">No hay notas publicadas aún.</p>
                 </div>
               ) : (
-                notas.map(nota => (
-                  <motion.div 
+                (mostrarTodasLasNotas ? notas : notas.slice(0, 5)).map(nota => (
+                  <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    key={nota.id} 
+                    key={nota.id}
                     className="bg-black/40 border border-white/5 rounded-xl p-3"
                   >
                     <div className="flex justify-between items-start mb-1">
                       <span className="text-[9px] text-[#FFD700] uppercase tracking-widest font-bold">Feedback del Coach</span>
-                      <span className="text-[8px] text-gray-500 flex items-center">
-                        <Calendar size={8} className="mr-1" />
+                      <span className="text-[10px] text-gray-400 flex items-center">
+                        <Calendar size={10} className="mr-1" />
                         {new Date(nota.created_at).toLocaleDateString()}
                       </span>
                     </div>
@@ -273,6 +281,14 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
                 ))
               )}
             </div>
+            {!loading && !mostrarTodasLasNotas && notas.length > 5 && (
+              <button
+                onClick={() => setMostrarTodasLasNotas(true)}
+                className="mt-3 w-full min-h-11 text-xs font-bold uppercase tracking-widest text-[#FFD700] bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+              >
+                Ver más notas ({notas.length - 5})
+              </button>
+            )}
           </div>
         </div>
 

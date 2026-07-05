@@ -68,12 +68,13 @@ export default function ProgresoNivelModal({ isOpen, onClose, atleta }) {
       <div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl mt-auto mb-auto relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700 rounded-full transition-colors z-10"
+          aria-label="Cerrar"
+          className="absolute top-4 right-4 p-2.5 text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700 rounded-full transition-colors z-10"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className={`p-8 bg-gradient-to-br ${bgGradient} border-b border-zinc-800 relative overflow-hidden`}>
+        <div className={`p-5 sm:p-8 bg-gradient-to-br ${bgGradient} border-b border-zinc-800 relative overflow-hidden`}>
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Trophy className="w-32 h-32" />
           </div>
@@ -103,7 +104,7 @@ export default function ProgresoNivelModal({ isOpen, onClose, atleta }) {
           </div>
         </div>
 
-        <div className="p-6 space-y-8">
+        <div className="p-4 sm:p-6 space-y-8">
           {/* Niveles */}
           <section>
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">

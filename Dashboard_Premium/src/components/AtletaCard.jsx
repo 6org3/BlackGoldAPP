@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import RadarChartComp from './RadarChartComp';
-import { Shield, Skull, Eye, EyeOff, Upload, ClipboardList } from 'lucide-react';
+import { Shield, Skull, Eye, EyeOff, ClipboardList } from 'lucide-react';
 import { RANGOS } from '../lib/baremosEngine';
 import { getXPProgress } from '../lib/xpProgress';
 import { getSubPilarScores } from '../lib/radarCalc';
@@ -25,16 +25,24 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
   const [showMisionesModal, setShowMisionesModal] = useState(false);
   const [showNivelModal, setShowNivelModal] = useState(false);
 
-  // Calculate sub-pilar scores for progress bars
-  const subPilarScores = getSubPilarScores(atleta._evaluaciones || []);
-  const deficits = evaluarDeficits(atleta);
+  // Memoizados: evitan recorrer todas las evaluaciones en cada re-render
+  // (toggles del radar, apertura/cierre de modales).
+  const subPilarScores = useMemo(() => getSubPilarScores(atleta._evaluaciones || []), [atleta._evaluaciones]);
+  const deficits = useMemo(() => evaluarDeficits(atleta), [atleta]);
+  const historiales = useMemo(
+    () => Object.fromEntries(
+      ['fuerza', 'explosividad', 'movilidad', 'tiro', 'agilidad', 'tactica', 'resiliencia']
+        .map(k => [k, getHistoricalData(atleta._evaluaciones, k)])
+    ),
+    [atleta._evaluaciones]
+  );
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.15, duration: 0.6, ease: "easeOut" }}
-      className="glass-card rounded-3xl p-6 md:p-8 relative overflow-hidden transition-all duration-500 glow-border isolate"
+      className="glass-card rounded-none md:rounded-3xl p-6 md:p-8 relative overflow-hidden transition-all duration-500 glow-border isolate"
     >
       {/* Background ambient lighting */}
       <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-60 bg-[#FFD700]"></div>
@@ -42,14 +50,8 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 relative z-10 gap-4">
         <div className="flex items-start space-x-4">
           {/* Avatar */}
-          <div className="relative group cursor-pointer">
-            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/20 flex items-center justify-center overflow-hidden">
-              <span className="text-2xl font-black text-white/50 uppercase">{atleta.nombre?.charAt(0)}</span>
-            </div>
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center rounded-full">
-              <Upload size={12} className="text-white mb-1" />
-              <span className="text-[6px] uppercase tracking-widest font-bold text-white">Subir Foto</span>
-            </div>
+          <div className="w-16 h-16 rounded-full bg-white/5 border border-white/20 flex items-center justify-center overflow-hidden shrink-0">
+            <span className="text-2xl font-black text-white/50 uppercase">{atleta.nombre?.charAt(0)}</span>
           </div>
           
           <div>
@@ -114,9 +116,9 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
         <div className="flex flex-col items-start md:items-end w-full md:w-auto">
           <div className="w-full sm:w-auto flex flex-col items-start md:items-end">
             <RangoProgreso xpTotal={atleta.xp_total || 0} />
-            <button 
+            <button
               onClick={() => setShowNivelModal(true)}
-              className="mt-2 text-[9px] text-[#FFD700]/80 hover:text-[#FFD700] uppercase tracking-widest font-bold flex items-center gap-1 transition-colors"
+              className="mt-2 py-2.5 px-2 -mx-2 min-h-[36px] text-[10px] text-[#FFD700]/80 hover:text-[#FFD700] uppercase tracking-widest font-bold flex items-center gap-1 transition-colors"
             >
               <span>Ver Guía de Progresión</span>
               <span className="w-3 h-3 rounded-full border border-current flex items-center justify-center text-[7px]">i</span>
@@ -124,34 +126,34 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
           </div>
           
           {user?.rol !== 'atleta' ? (
-            <div className="flex space-x-2 mt-4 w-full md:w-auto justify-end">
+            <div className="flex flex-wrap gap-2 mt-4 w-full md:w-auto justify-start md:justify-end">
               <button
                 onClick={() => setShowEvalModal(true)}
-                className="flex items-center justify-center space-x-2 px-4 py-2 bg-[#FFD700] border border-[#FFD700]/50 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-black shadow-[0_0_20px_rgba(255,215,0,0.4)] hover:bg-[#D4AF37] hover:scale-105 transition-all"
+                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-[#FFD700] border border-[#FFD700]/50 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-black shadow-[0_0_20px_rgba(255,215,0,0.4)] hover:bg-[#D4AF37] hover:scale-105 transition-all"
               >
                 <ClipboardList size={14} />
                 <span>Evaluar</span>
               </button>
               <button
                 onClick={() => setShowMisionesModal(true)}
-                className="flex items-center justify-center space-x-2 px-4 py-2 bg-purple-500/20 border border-purple-500/50 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:bg-purple-500/30 hover:scale-105 transition-all"
+                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-purple-500/20 border border-purple-500/50 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.2)] hover:bg-purple-500/30 hover:scale-105 transition-all"
               >
                 <Target size={14} />
                 <span>Misiones</span>
               </button>
               <button
                 onClick={() => generateWhatsAppReport(atleta)}
-                className="flex items-center justify-center space-x-2 px-4 py-2 bg-[#25D366] border border-[#25D366]/50 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(37,211,102,0.4)] hover:bg-[#128C7E] hover:scale-105 transition-all"
+                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-[#25D366] border border-[#25D366]/50 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-[0_0_20px_rgba(37,211,102,0.4)] hover:bg-[#128C7E] hover:scale-105 transition-all"
               >
                 <MessageCircle size={14} />
                 <span>Reporte</span>
               </button>
             </div>
           ) : (
-            <div className="flex space-x-2 mt-4 w-full md:w-auto justify-end">
+            <div className="flex flex-wrap gap-2 mt-4 w-full md:w-auto justify-start md:justify-end">
               <button
                 onClick={() => setShowEvalModal(true)}
-                className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-500/20 border border-blue-500/50 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:bg-blue-500/30 hover:scale-105 transition-all"
+                className="flex-1 min-w-[92px] flex items-center justify-center space-x-2 px-3 py-3 min-h-[44px] bg-blue-500/20 border border-blue-500/50 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.2)] hover:bg-blue-500/30 hover:scale-105 transition-all"
               >
                 <ClipboardList size={14} />
                 <span>Test Carga y Sueño</span>
@@ -194,19 +196,19 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
 
       {/* Radar Chart */}
       <div className="relative z-10 mt-6 mb-4">
-        <div className="flex justify-end space-x-2 mb-2">
-          <button 
+        <div className="flex justify-end gap-2 mb-2">
+          <button
             onClick={() => setShowCategoria(!showCategoria)}
-            className={`flex items-center space-x-1 px-2 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-colors ${showCategoria ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30' : 'bg-white/5 text-gray-500 border border-white/10'}`}
+            className={`flex items-center space-x-1 px-3 py-2.5 min-h-[40px] rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${showCategoria ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30' : 'bg-white/5 text-gray-500 border border-white/10'}`}
           >
-            {showCategoria ? <Eye size={10} /> : <EyeOff size={10} />}
+            {showCategoria ? <Eye size={14} /> : <EyeOff size={14} />}
             <span>Media Categoría</span>
           </button>
-          <button 
+          <button
             onClick={() => setShowClub(!showClub)}
-            className={`flex items-center space-x-1 px-2 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-colors ${showClub ? 'bg-white/20 text-white border border-white/30' : 'bg-white/5 text-gray-500 border border-white/10'}`}
+            className={`flex items-center space-x-1 px-3 py-2.5 min-h-[40px] rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${showClub ? 'bg-white/20 text-white border border-white/30' : 'bg-white/5 text-gray-500 border border-white/10'}`}
           >
-            {showClub ? <Eye size={10} /> : <EyeOff size={10} />}
+            {showClub ? <Eye size={14} /> : <EyeOff size={14} />}
             <span>Media Club</span>
           </button>
         </div>
@@ -219,15 +221,16 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
         />
       </div>
 
-      {/* Sub-Pilar Progress Bars */}
-      <div className="relative z-10 grid grid-cols-2 gap-x-6 gap-y-4">
-        <ProgressBar label="Fuerza" value={subPilarScores.fuerza} index={index} history={getHistoricalData(atleta._evaluaciones, 'fuerza')} />
-        <ProgressBar label="Explosividad" value={subPilarScores.explosividad} index={index} history={getHistoricalData(atleta._evaluaciones, 'explosividad')} />
-        <ProgressBar label="Movilidad" value={subPilarScores.movilidad} index={index} history={getHistoricalData(atleta._evaluaciones, 'movilidad')} />
-        <ProgressBar label="Técnica Tiro" value={subPilarScores.tiro} index={index} history={getHistoricalData(atleta._evaluaciones, 'tiro')} />
-        <ProgressBar label="Agilidad" value={subPilarScores.agilidad} index={index} history={getHistoricalData(atleta._evaluaciones, 'agilidad')} />
-        <ProgressBar label="Efic. Táctica" value={subPilarScores.tactica} index={index} history={getHistoricalData(atleta._evaluaciones, 'tactica')} />
-        <ProgressBar label="Resiliencia" value={subPilarScores.resiliencia} index={index} history={getHistoricalData(atleta._evaluaciones, 'resiliencia')} />
+      {/* Sub-Pilar Progress Bars (1 columna en móviles angostos para que
+          label + nivel + sparkline no colisionen) */}
+      <div className="relative z-10 grid grid-cols-1 min-[480px]:grid-cols-2 gap-x-6 gap-y-4">
+        <ProgressBar label="Fuerza" value={subPilarScores.fuerza} index={index} history={historiales.fuerza} />
+        <ProgressBar label="Explosividad" value={subPilarScores.explosividad} index={index} history={historiales.explosividad} />
+        <ProgressBar label="Movilidad" value={subPilarScores.movilidad} index={index} history={historiales.movilidad} />
+        <ProgressBar label="Técnica Tiro" value={subPilarScores.tiro} index={index} history={historiales.tiro} />
+        <ProgressBar label="Agilidad" value={subPilarScores.agilidad} index={index} history={historiales.agilidad} />
+        <ProgressBar label="Efic. Táctica" value={subPilarScores.tactica} index={index} history={historiales.tactica} />
+        <ProgressBar label="Resiliencia" value={subPilarScores.resiliencia} index={index} history={historiales.resiliencia} />
       </div>
 
       {/* Evaluaciones count */}

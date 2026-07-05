@@ -118,7 +118,7 @@ export default function GrupoTendencias({ atletas }) {
                 <div className="flex flex-col items-center justify-center py-8 space-y-3">
                   <p className="text-gray-600 text-xs font-bold">El grupo visible cambió.</p>
                   <button onClick={cargarGrupo}
-                    className="px-4 py-2 bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 hover:bg-[#FFD700]/20 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors">
+                    className="px-5 py-3 min-h-[44px] bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 hover:bg-[#FFD700]/20 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors">
                     Actualizar tendencias
                   </button>
                 </div>
@@ -137,7 +137,10 @@ export default function GrupoTendencias({ atletas }) {
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={debilidades} margin={{ top: 18, right: 5, left: -25, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                          <XAxis dataKey="label" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: '#6b7280' }} />
+                          {/* interval={0} + inclinación: las 7 etiquetas siempre
+                              visibles aunque el viewport sea angosto */}
+                          <XAxis dataKey="label" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: '#6b7280' }}
+                            interval={0} angle={-35} textAnchor="end" height={55} />
                           <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: '#6b7280' }} ticks={[0, 25, 50, 75, 100]} />
                           <Tooltip
                             cursor={{ fill: 'rgba(255,255,255,0.03)' }}

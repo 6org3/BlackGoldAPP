@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Dumbbell, Pencil, Trash2 } from 'lucide-react';
 import { NIVEL_BADGE } from './AdminAtletasConstants';
@@ -7,7 +8,7 @@ import ActionButton from './AdminAtletasActionButton';
 // FILA LISTA — Vista lista compacta
 // ═══════════════════════════════════════════════════════════════
 
-export default function AtletaListRow({ atleta, index, onEdit, onDelete, onExport, onAntropometria, isExporting }) {
+function AtletaListRow({ atleta, index, onEdit, onDelete, onExport, onAntropometria, isExporting }) {
   const nivelKey = atleta.nivel_desarrollo || 'Por Asignar';
   const badge = NIVEL_BADGE[nivelKey] || NIVEL_BADGE['Por Asignar'];
 
@@ -15,7 +16,7 @@ export default function AtletaListRow({ atleta, index, onEdit, onDelete, onExpor
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.03 }}
+      transition={{ delay: Math.min(index, 10) * 0.03 }}
       className="glass-card rounded-xl px-5 py-4 flex items-center justify-between glow-border group"
     >
       <div className="flex items-center space-x-4 flex-1 min-w-0">
@@ -42,20 +43,22 @@ export default function AtletaListRow({ atleta, index, onEdit, onDelete, onExpor
         </div>
       </div>
       {/* Actions */}
-      <div className="flex items-center space-x-2 ml-4">
-        <ActionButton onClick={onExport} title="PDF" isActive={isExporting}>
+      <div className="flex items-center gap-2 ml-4">
+        <ActionButton onClick={() => onExport(atleta)} title="PDF" isActive={isExporting}>
           <Download size={14} className={isExporting ? 'animate-pulse' : ''} />
         </ActionButton>
-        <ActionButton onClick={onAntropometria} title="Antropometría" className="hover:text-emerald-400">
+        <ActionButton onClick={() => onAntropometria(atleta)} title="Antropometría" className="hover:text-emerald-400">
           <Dumbbell size={14} />
         </ActionButton>
-        <ActionButton onClick={onEdit} title="Editar" className="hover:text-[#FFD700]">
+        <ActionButton onClick={() => onEdit(atleta)} title="Editar" className="hover:text-[#FFD700]">
           <Pencil size={14} />
         </ActionButton>
-        <ActionButton onClick={onDelete} title="Eliminar" className="hover:text-red-500">
+        <ActionButton onClick={() => onDelete(atleta)} title="Eliminar" className="hover:text-red-500">
           <Trash2 size={14} />
         </ActionButton>
       </div>
     </motion.div>
   );
 }
+
+export default memo(AtletaListRow);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
 import { AlertCircle, X } from 'lucide-react';
@@ -52,14 +52,16 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
   const [exportingAtleta, setExportingAtleta] = useState(null);
   const reportRef = React.useRef(null);
 
-  const handleDelete = async (atleta) => {
+  // Handlers estables: las cards/filas están memoizadas (React.memo) y
+  // reciben estas referencias directamente.
+  const handleDelete = useCallback(async (atleta) => {
     if (!confirm(`¿Seguro que deseas eliminar a ${atleta.nombre}? Esta acción no se puede deshacer.`)) return;
     await supabase.from('atletas').delete().eq('id', atleta.atleta_id);
     await supabase.from('usuarios').delete().eq('id', atleta.id);
     if (onRefresh) onRefresh();
-  };
+  }, [onRefresh]);
 
-  const exportPDF = async (atleta) => {
+  const exportPDF = useCallback(async (atleta) => {
     setExportingAtleta(atleta);
     setTimeout(async () => {
       if (!reportRef.current) return;
@@ -84,7 +86,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         setExportingAtleta(null);
       }
     }, 100);
-  };
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -112,7 +114,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
             className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold flex items-center space-x-3"
           >
             <AlertCircle size={18} /><span>{error}</span>
-            <button onClick={() => setError('')} className="ml-auto text-red-400/60 hover:text-red-300"><X size={16} /></button>
+            <button onClick={() => setError('')} aria-label="Cerrar mensaje" className="ml-auto p-2 -m-2 text-red-400/60 hover:text-red-300"><X size={16} /></button>
           </motion.div>
         )}
         {success && (
@@ -121,7 +123,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
             className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-bold"
           >
             {success}
-            <button onClick={() => setSuccess('')} className="ml-4 text-emerald-400/60 hover:text-emerald-300"><X size={16} /></button>
+            <button onClick={() => setSuccess('')} aria-label="Cerrar mensaje" className="ml-4 p-2 -m-2 text-emerald-400/60 hover:text-emerald-300"><X size={16} /></button>
           </motion.div>
         )}
       </AnimatePresence>

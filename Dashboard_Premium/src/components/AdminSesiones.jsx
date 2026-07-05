@@ -136,10 +136,10 @@ export default function AdminSesiones({ user, atletas = [] }) {
       <div className="fixed top-[-20%] left-[10%] w-[700px] h-[500px] bg-[#FFD700]/4 blur-[150px] pointer-events-none rounded-full" />
 
       {/* Header */}
-      <header className="mb-8 border-b border-white/5 pb-8 relative z-10">
+      <header className="mb-6 md:mb-8 border-b border-white/5 pb-4 md:pb-8 relative z-10">
         <div className="flex items-center space-x-3 mb-2">
           <ClipboardList className="text-[#FFD700]" size={28} />
-          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
+          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">
             Control de{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#D4AF37]">Sesiones</span>
           </h2>
@@ -159,7 +159,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
               <button
                 key={m}
                 onClick={() => setModo(m)}
-                className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`flex items-center space-x-2 px-4 py-3 min-h-11 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                   modo === m
                     ? 'bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -177,10 +177,10 @@ export default function AdminSesiones({ user, atletas = [] }) {
               <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.25em] mb-3">
                 {modo === 'Grupal Individualizada' ? 'Grupo de Entrenamiento (Max 10)' : 'Grupo de Entrenamiento'}
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {grupos.map(g => (
                   <button key={g.id} onClick={() => setForm({ ...form, grupoId: g.id })}
-                    className={`p-3 border rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                    className={`p-3 border rounded-xl text-xs font-bold uppercase tracking-widest truncate transition-all ${
                       form.grupoId === g.id ? 'border-[#FFD700] bg-[#FFD700]/10 text-[#FFD700]' : 'border-white/10 text-gray-400 hover:border-white/30 hover:bg-white/5'
                     }`}>
                     {g.nombre}
@@ -198,13 +198,13 @@ export default function AdminSesiones({ user, atletas = [] }) {
                   {form.esPagoExtra && (
                     <div className="flex gap-2">
                       <select value={form.tipoPagoExtra} onChange={e => setForm(f => ({ ...f, tipoPagoExtra: e.target.value }))}
-                        className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700]/50">
+                        className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50">
                         <option value="Mensual">Mensual</option>
                         <option value="Por Sesión">Por Sesión</option>
                       </select>
-                      <input type="number" placeholder="Monto $" value={form.montoExtra}
+                      <input type="number" inputMode="decimal" placeholder="Monto $" value={form.montoExtra}
                         onChange={e => setForm(f => ({ ...f, montoExtra: parseFloat(e.target.value) || 0 }))}
-                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700]/50" />
+                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
                     </div>
                   )}
                 </div>
@@ -220,7 +220,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
                   placeholder="Buscar jugador..."
                   value={busquedaAtleta}
                   onChange={e => setBusquedaAtleta(e.target.value)}
-                  className="bg-transparent text-sm text-white placeholder-gray-600 font-bold focus:outline-none w-full"
+                  className="bg-transparent text-base md:text-sm text-white placeholder-gray-600 font-bold focus:outline-none w-full"
                 />
               </div>
               {atletaSeleccionado && (
@@ -232,7 +232,8 @@ export default function AdminSesiones({ user, atletas = [] }) {
                     <p className="text-sm font-black text-[#FFD700]">{atletaSeleccionado.nombre}</p>
                     <p className="text-[9px] text-gray-500">{atletaSeleccionado.categoria}</p>
                   </div>
-                  <button onClick={() => setAtletaSeleccionado(null)} className="ml-auto text-gray-500 hover:text-white"><XCircle size={14} /></button>
+                  <button onClick={() => setAtletaSeleccionado(null)} aria-label="Quitar jugador"
+                    className="ml-auto p-2 -m-1 text-gray-500 hover:text-white"><XCircle size={14} /></button>
                 </div>
               )}
               {busquedaAtleta && !atletaSeleccionado && (
@@ -257,9 +258,9 @@ export default function AdminSesiones({ user, atletas = [] }) {
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sesión con costo adicional</span>
                 </label>
                 {form.esPagoExtra && (
-                  <input type="number" placeholder="Monto $" value={form.montoExtra}
+                  <input type="number" inputMode="decimal" placeholder="Monto $" value={form.montoExtra}
                     onChange={e => setForm(f => ({ ...f, montoExtra: parseFloat(e.target.value) || 0 }))}
-                    className="mt-2 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
+                    className="mt-2 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
                 )}
               </div>
             </div>
@@ -269,7 +270,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
           <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
             <Calendar size={14} className="text-[#FFD700]" />
             <input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))}
-              className="bg-transparent text-sm text-white font-bold focus:outline-none cursor-pointer" />
+              className="bg-transparent text-base md:text-sm text-white font-bold focus:outline-none cursor-pointer" />
           </div>
 
           {/* Tipo de Objetivo */}
@@ -296,7 +297,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
             <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.25em] mb-3">
               Ejercicios ({ejerciciosFiltrados.length} disponibles)
             </label>
-            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-64 md:max-h-48 overflow-y-auto overscroll-contain pr-1">
               {ejerciciosFiltrados.length === 0 && (
                 <p className="text-xs text-gray-600 italic">No hay ejercicios para este tipo en este grupo.</p>
               )}
@@ -323,7 +324,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
                 <p className="text-[9px] text-[#FFD700] font-bold">{form.ejerciciosIds.length} ejercicio(s) seleccionado(s)</p>
                 <textarea placeholder="Notas adicionales sobre los ejercicios..."
                   value={form.ejerciciosNotas} onChange={e => setForm(f => ({ ...f, ejerciciosNotas: e.target.value }))}
-                  rows={2} className="mt-2 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 resize-none" />
+                  rows={2} className="mt-2 w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 resize-none" />
               </div>
             )}
           </div>
@@ -336,7 +337,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
               value={form.objetivoDesc}
               onChange={e => setForm(f => ({ ...f, objetivoDesc: e.target.value }))}
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 resize-none transition-colors"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 resize-none transition-colors"
             />
           </div>
 
@@ -396,25 +397,25 @@ export default function AdminSesiones({ user, atletas = [] }) {
                         <span>Se logró: {s.se_logro}</span>
                       </div>
                       <button onClick={() => abrirWA(s)}
-                        className="flex items-center space-x-1 text-[9px] text-emerald-400 hover:text-emerald-300 font-bold transition-colors">
-                        <MessageSquare size={11} />
+                        className="flex items-center gap-1.5 px-3 py-2.5 min-h-11 rounded-lg border border-emerald-500/30 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors">
+                        <MessageSquare size={13} />
                         <span>WhatsApp</span>
                       </button>
                     </div>
                   ) : (
                     evaluandoId === s.id ? (
                       <div className="space-y-2">
-                        <div className="flex gap-1.5">
+                        <div className="flex gap-2">
                           {['Sí', 'Parcial', 'No'].map(v => (
                             <button key={v} onClick={() => setEvalData(e => ({ ...e, se_logro: v }))}
-                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase border transition-all ${
+                              className={`flex-1 py-3 min-h-11 rounded-lg text-xs font-black uppercase border transition-all ${
                                 evalData.se_logro === v ? LOGRO_CONFIG[v].color : 'border-white/10 text-gray-500 hover:bg-white/5'
                               }`}>{v}</button>
                           ))}
                         </div>
                         <textarea rows={2} placeholder="Notas de evaluación..."
                           value={evalData.notas} onChange={e => setEvalData(d => ({ ...d, notas: e.target.value }))}
-                          className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none resize-none" />
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none resize-none" />
                         <div className="flex gap-2">
                           <button onClick={() => handleEvaluar(s.id)}
                             className="flex-1 py-2 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-[10px] font-black rounded-xl uppercase tracking-widest hover:bg-[#FFD700]/20">
@@ -428,7 +429,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
                       </div>
                     ) : (
                       <button onClick={() => { setEvaluandoId(s.id); setEvalData({ se_logro: 'Sí', notas: '' }); }}
-                        className="flex items-center space-x-1.5 text-[10px] font-bold text-yellow-400/70 hover:text-yellow-400 transition-colors">
+                        className="flex items-center space-x-1.5 px-3 py-2.5 min-h-11 rounded-lg border border-yellow-500/30 bg-yellow-500/5 text-xs font-bold text-yellow-400/80 hover:text-yellow-400 hover:bg-yellow-500/10 transition-colors">
                         <Clock size={12} />
                         <span>Pendiente de evaluación → Evaluar</span>
                         <ChevronRight size={10} />

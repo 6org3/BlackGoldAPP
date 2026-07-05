@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { completarMision } from '../api/misionesService';
 import QuizModal from './QuizModal';
 import LevelUpAnimation from './LevelUpAnimation';
@@ -22,7 +22,6 @@ export default function MisionesPanel({ atletaId }) {
   const [loading, setLoading] = useState(true);
   const [expandedMision, setExpandedMision] = useState(null);
   const [showQuiz, setShowQuiz] = useState(null);
-  const [videoWatched, setVideoWatched] = useState({});
   const [sesionHoy, setSesionHoy] = useState(null);
   const [evaValue, setEvaValue] = useState(0);
   const [evaSaved, setEvaSaved] = useState(false);
@@ -38,18 +37,22 @@ export default function MisionesPanel({ atletaId }) {
   // ── Carga datos del atleta ──────────────
   useMisionesPanelAtletaData(atletaId, setAtletaData);
 
-  const deficits = atletaData ? evaluarDeficits({
+  // Id de la fila en `atletas` (≠ usuario_id), resuelto una sola vez
+  // por useMisionesPanelAtletaData y reutilizado por los demás hooks.
+  const atletaRowId = atletaData?.id ?? null;
+
+  const deficits = useMemo(() => (atletaData ? evaluarDeficits({
     ...atletaData,
     eva_registro: evaValue,
     sesion_hoy: sesionHoy,
     observacion_hoy: observacionHoy,
-  }) : [];
+  }) : []), [atletaData, evaValue, sesionHoy, observacionHoy]);
 
   // ── Carga misiones ──────────────────────
   useMisionesPanelMisiones(atletaId, setMisiones, setLoading);
 
   // ── Carga sesión y observación del día ──
-  useMisionesPanelSesionYObservacion(atletaId, setSesionHoy, setEvaValue, setIsRpeLocked, setObservacionHoy);
+  useMisionesPanelSesionYObservacion(atletaRowId, setSesionHoy, setEvaValue, setIsRpeLocked, setObservacionHoy);
 
   // ── Handlers ───────────────────────────
   const handleSaveEva = async () => {
@@ -63,11 +66,11 @@ export default function MisionesPanel({ atletaId }) {
     });
   };
 
-  const handleToggle = (misionId) => {
-    setExpandedMision(expandedMision === misionId ? null : misionId);
-  };
+  const handleToggle = useCallback((misionId) => {
+    setExpandedMision(prev => (prev === misionId ? null : misionId));
+  }, []);
 
-  const handleQuizPass = async (misionId) => {
+  const handleQuizPass = useCallback(async (misionId) => {
     await completarMision(atletaId, misionId);
     setMisiones(prev => prev.map(m =>
       m.id === misionId
@@ -76,13 +79,17 @@ export default function MisionesPanel({ atletaId }) {
     ));
     setShowQuiz(null);
     setExpandedMision(null);
-  };
+  }, [atletaId]);
+
+  const handleShowQuiz = useCallback((mision) => setShowQuiz(mision), []);
 
   // ── Agrupación por estado ───────────────
-  const pendientes        = misiones.filter(m => m.estado === 'pendiente');
-  const enRevision        = misiones.filter(m => m.estado === 'pendiente_aprobacion');
-  const aprobadas         = misiones.filter(m => m.estado === 'aprobada');
-  const rechazadas        = misiones.filter(m => m.estado === 'rechazada');
+  const { pendientes, enRevision, aprobadas, rechazadas } = useMemo(() => ({
+    pendientes: misiones.filter(m => m.estado === 'pendiente'),
+    enRevision: misiones.filter(m => m.estado === 'pendiente_aprobacion'),
+    aprobadas:  misiones.filter(m => m.estado === 'aprobada'),
+    rechazadas: misiones.filter(m => m.estado === 'rechazada'),
+  }), [misiones]);
 
   if (loading) {
     return (
@@ -148,9 +155,9 @@ export default function MisionesPanel({ atletaId }) {
             mision={mision}
             index={index}
             expanded={expandedMision === mision.id}
-            onToggle={() => handleToggle(mision.id)}
-            onComplete={() => handleQuizPass(mision.id)}
-            onQuiz={() => setShowQuiz(mision)}
+            onToggle={handleToggle}
+            onComplete={handleQuizPass}
+            onQuiz={handleShowQuiz}
           />
         ))}
       </div>

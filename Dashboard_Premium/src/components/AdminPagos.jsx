@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  DollarSign, CheckCircle2, AlertTriangle, Clock, Users,
-  MessageSquare, Plus, RefreshCw, Shield
+  DollarSign, CheckCircle2, AlertTriangle, Clock,
+  MessageSquare, Plus, RefreshCw, Shield, ChevronDown
 } from 'lucide-react';
 import {
   fetchPagosMes, marcarPagado, actualizarEstadoVencidos,
@@ -32,27 +32,40 @@ export default function AdminPagos({ user, atletas = [] }) {
   const [marcandoId, setMarcandoId] = useState(null);
   const [formaPago, setFormaPago] = useState('Efectivo');
   const [generando, setGenerando] = useState(false);
+  const [vencidosListos, setVencidosListos] = useState(false);
+
+  // Marcar vencidos una sola vez al entrar (es una escritura en DB);
+  // cambiar mes/año/grupo solo debe leer.
+  useEffect(() => {
+    actualizarEstadoVencidos().finally(() => setVencidosListos(true));
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
-    await actualizarEstadoVencidos();
     const data = await fetchPagosMes(mes, anio, grupo);
     setPagos(data);
     setLoading(false);
   }, [mes, anio, grupo]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!vencidosListos) return;
+    load();
+  }, [vencidosListos, load]);
 
-  // Métricas
-  const total = pagos.length;
-  const pagados = pagos.filter(p => p.estado === 'Pagado').length;
-  const pendientes = pagos.filter(p => p.estado === 'Pendiente').length;
-  const vencidos = pagos.filter(p => p.estado === 'Vencido').length;
-  const becados = pagos.filter(p => p.estado === 'Becado').length;
-  const recaudado = pagos.filter(p => p.estado === 'Pagado').reduce((s, p) => s + (p.monto_final || 0), 0);
-  const porCobrar = pagos.filter(p => ['Pendiente','Vencido'].includes(p.estado)).reduce((s, p) => s + (p.monto_final || 0), 0);
+  // Métricas (una sola pasada, memoizada)
+  const { pagados, pendientes, vencidos, becados, recaudado, porCobrar } = useMemo(() => {
+    const m = { pagados: 0, pendientes: 0, vencidos: 0, becados: 0, recaudado: 0, porCobrar: 0 };
+    pagos.forEach(p => {
+      const monto = p.monto_final || 0;
+      if (p.estado === 'Pagado') { m.pagados += 1; m.recaudado += monto; }
+      else if (p.estado === 'Pendiente') { m.pendientes += 1; m.porCobrar += monto; }
+      else if (p.estado === 'Vencido') { m.vencidos += 1; m.porCobrar += monto; }
+      else if (p.estado === 'Becado') { m.becados += 1; }
+    });
+    return m;
+  }, [pagos]);
 
-  const handleMarcarPagado = async (pagoId, atleta) => {
+  const handleMarcarPagado = async (pagoId) => {
     await marcarPagado(pagoId, { forma_pago: formaPago });
     setMarcandoId(null);
     load();
@@ -78,12 +91,12 @@ export default function AdminPagos({ user, atletas = [] }) {
       <div className="fixed top-[-20%] right-[10%] w-[600px] h-[500px] bg-[#FFD700]/4 blur-[150px] pointer-events-none rounded-full" />
 
       {/* Header */}
-      <header className="mb-8 border-b border-white/5 pb-8 relative z-10">
-        <div className="flex items-center justify-between">
+      <header className="mb-6 md:mb-8 border-b border-white/5 pb-6 md:pb-8 relative z-10">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center space-x-3">
             <DollarSign className="text-[#FFD700]" size={28} />
             <div>
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
+              <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">
                 Control de{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#D4AF37]">Pagos</span>
               </h2>
@@ -93,7 +106,7 @@ export default function AdminPagos({ user, atletas = [] }) {
             </div>
           </div>
           <button onClick={handleGenerarMes} disabled={generando}
-            className="flex items-center space-x-2 px-4 py-2.5 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-xs font-black rounded-xl uppercase tracking-widest hover:bg-[#FFD700]/20 disabled:opacity-50 transition-all">
+            className="flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-xs font-black rounded-xl uppercase tracking-widest hover:bg-[#FFD700]/20 disabled:opacity-50 transition-all">
             <Plus size={14} />
             <span>{generando ? 'Generando...' : 'Generar Mes'}</span>
           </button>
@@ -104,12 +117,15 @@ export default function AdminPagos({ user, atletas = [] }) {
       <div className="relative z-10 flex flex-wrap gap-3 mb-6">
         {/* Mes / Año */}
         <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
-          <select value={mes} onChange={e => setMes(Number(e.target.value))}
-            className="bg-transparent text-sm text-white font-bold focus:outline-none cursor-pointer appearance-none">
-            {MESES.slice(1).map((m, i) => <option key={i+1} value={i+1} className="bg-[#121214]">{m}</option>)}
-          </select>
+          <div className="relative flex items-center">
+            <select value={mes} onChange={e => setMes(Number(e.target.value))}
+              className="bg-transparent text-sm text-white font-bold focus:outline-none cursor-pointer appearance-none pr-5">
+              {MESES.slice(1).map((m, i) => <option key={i+1} value={i+1} className="bg-[#121214]">{m}</option>)}
+            </select>
+            <ChevronDown size={12} className="absolute right-0 text-gray-500 pointer-events-none" />
+          </div>
           <span className="text-gray-500">/</span>
-          <input type="number" value={anio} onChange={e => setAnio(Number(e.target.value))}
+          <input type="number" inputMode="numeric" min={2024} max={2099} value={anio} onChange={e => setAnio(Number(e.target.value))}
             className="bg-transparent w-16 text-sm text-white font-bold focus:outline-none" />
         </div>
 
@@ -117,13 +133,13 @@ export default function AdminPagos({ user, atletas = [] }) {
         <div className="flex items-center space-x-1 bg-white/5 border border-white/10 rounded-xl p-1">
           {GRUPOS.map(g => (
             <button key={g} onClick={() => setGrupo(g)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+              className={`px-3 py-2 min-h-10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                 grupo === g ? 'bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30' : 'text-gray-500 hover:text-white'
               }`}>{g}</button>
           ))}
         </div>
 
-        <button onClick={load} className="flex items-center space-x-1.5 px-3 py-2.5 border border-white/10 rounded-xl text-gray-500 hover:text-white text-xs font-bold transition-colors">
+        <button onClick={load} className="flex items-center space-x-1.5 px-3 py-2.5 min-h-11 border border-white/10 rounded-xl text-gray-500 hover:text-white text-xs font-bold transition-colors">
           <RefreshCw size={13} />
           <span>Actualizar</span>
         </button>
@@ -139,16 +155,16 @@ export default function AdminPagos({ user, atletas = [] }) {
         ].map(stat => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className={`glass-card rounded-2xl p-4 border ${stat.border}`}>
-            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-500 mb-1">{stat.label}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-1">{stat.label}</p>
             <p className={`text-3xl font-black ${stat.color}`}>{stat.value}</p>
-            <p className="text-[9px] text-gray-500 mt-0.5">{stat.sub}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">{stat.sub}</p>
           </motion.div>
         ))}
       </div>
 
-      {/* Tabla de Pagos */}
+      {/* Tabla de Pagos (cards apiladas en móvil, grid en md+) */}
       <div className="relative z-10 glass-card rounded-2xl overflow-hidden border border-white/8">
-        <div className="bg-black/40 border-b border-white/10 px-4 py-3 grid grid-cols-[1fr_80px_90px_100px_auto] gap-4 text-[8px] font-black uppercase tracking-widest text-gray-500">
+        <div className="hidden md:grid bg-black/40 border-b border-white/10 px-4 py-3 grid-cols-[1fr_80px_90px_100px_auto] gap-4 text-[8px] font-black uppercase tracking-widest text-gray-500">
           <span>Jugador</span>
           <span>Grupo</span>
           <span>Monto</span>
@@ -176,8 +192,8 @@ export default function AdminPagos({ user, atletas = [] }) {
             const alertaVencimiento = pago.estado === 'Pendiente' && dias !== null && dias <= 3;
 
             return (
-              <motion.div key={pago.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.02 }}
-                className={`px-4 py-3.5 border-b border-white/5 grid grid-cols-[1fr_80px_90px_100px_auto] gap-4 items-center hover:bg-white/3 transition-colors ${
+              <motion.div key={pago.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(idx, 10) * 0.02 }}
+                className={`px-4 py-3.5 border-b border-white/5 flex flex-col gap-3 md:grid md:grid-cols-[1fr_80px_90px_100px_auto] md:gap-4 md:items-center hover:bg-white/3 transition-colors ${
                   alertaVencimiento ? 'bg-red-500/3' : ''
                 }`}>
 
@@ -189,51 +205,50 @@ export default function AdminPagos({ user, atletas = [] }) {
                   <div>
                     <p className="text-sm font-bold text-white leading-tight">{atletaNombre}</p>
                     {alertaVencimiento && (
-                      <p className="text-[8px] text-red-400 font-bold">⚠ Vence en {dias} día(s)</p>
+                      <p className="text-[11px] text-red-400 font-bold">⚠ Vence en {dias} día(s)</p>
                     )}
                   </div>
                 </div>
 
-                {/* Grupo */}
-                <span className="text-[10px] text-gray-400 font-bold">{pago.atletas?.grupo_nombre || '—'}</span>
-
-                {/* Monto */}
-                <span className="text-sm font-black text-white">${(pago.monto_final || 0).toFixed(0)}</span>
-
-                {/* Estado */}
-                <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-[9px] font-black ${cfg?.color}`}>
-                  {Icon && <Icon size={11} />}
-                  <span>{pago.estado}</span>
+                {/* Grupo · Monto · Estado (fila compacta en móvil, columnas del grid en md+) */}
+                <div className="flex items-center justify-between gap-2 md:contents">
+                  <span className="text-[10px] text-gray-400 font-bold">{pago.atletas?.grupo_nombre || '—'}</span>
+                  <span className="text-lg md:text-sm font-black text-white">${(pago.monto_final || 0).toFixed(0)}</span>
+                  <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-[9px] font-black ${cfg?.color}`}>
+                    {Icon && <Icon size={11} />}
+                    <span>{pago.estado}</span>
+                  </div>
                 </div>
 
                 {/* Acciones */}
-                <div className="flex items-center space-x-2 justify-end">
+                <div className="flex items-center gap-2 md:justify-end">
                   {pago.estado !== 'Pagado' && pago.estado !== 'Becado' && (
                     <>
                       {marcandoId === pago.id ? (
-                        <div className="flex items-center space-x-1.5">
+                        <div className="flex flex-1 md:flex-none items-center gap-2">
                           <select value={formaPago} onChange={e => setFormaPago(e.target.value)}
-                            className="bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none">
+                            className="flex-1 md:flex-none bg-black/60 border border-white/10 rounded-lg px-2 py-2 min-h-11 md:min-h-10 text-[10px] text-white focus:outline-none">
                             {['Efectivo', 'Transferencia', 'Otro'].map(f => (
                               <option key={f} value={f} className="bg-[#121214]">{f}</option>
                             ))}
                           </select>
-                          <button onClick={() => handleMarcarPagado(pago.id)}
-                            className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-black rounded-lg">✓</button>
-                          <button onClick={() => setMarcandoId(null)}
-                            className="px-2 py-1 border border-white/10 text-gray-500 text-[10px] font-black rounded-lg">✕</button>
+                          <button onClick={() => handleMarcarPagado(pago.id)} aria-label="Confirmar pago"
+                            className="px-3.5 py-2 min-h-11 md:min-h-10 bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-black rounded-lg">✓</button>
+                          <button onClick={() => setMarcandoId(null)} aria-label="Cancelar"
+                            className="px-3.5 py-2 min-h-11 md:min-h-10 border border-white/10 text-gray-500 text-[10px] font-black rounded-lg">✕</button>
                         </div>
                       ) : (
                         <button onClick={() => setMarcandoId(pago.id)}
-                          className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-black rounded-lg hover:bg-emerald-500/20 transition-all uppercase tracking-widest">
+                          className="flex-1 md:flex-none px-3.5 py-2 min-h-11 md:min-h-10 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black rounded-lg hover:bg-emerald-500/20 transition-all uppercase tracking-widest">
                           Marcar Pagado
                         </button>
                       )}
                       <button
                         onClick={() => window.open(generarLinkWhatsApp('', generarMensajeRecordatorioPago(atletaNombre, pago.monto_final?.toFixed(0), mes)), '_blank')}
                         title="Recordar por WhatsApp"
-                        className="p-1.5 text-emerald-600 hover:text-emerald-400 transition-colors">
-                        <MessageSquare size={14} />
+                        aria-label="Recordar por WhatsApp"
+                        className="p-2.5 min-w-11 min-h-11 flex items-center justify-center text-emerald-600 hover:text-emerald-400 transition-colors">
+                        <MessageSquare size={16} />
                       </button>
                     </>
                   )}

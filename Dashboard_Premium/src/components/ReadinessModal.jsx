@@ -48,13 +48,14 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-[#0A0A0C] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg bg-[#0A0A0C] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto"
       >
-        <button 
+        <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors"
+          aria-label="Cerrar check-in"
+          className="absolute top-3 right-3 text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-3 transition-colors"
         >
-          <X size={16} />
+          <X size={18} />
         </button>
 
         <div className="flex items-center space-x-3 mb-6">
@@ -73,7 +74,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* SUEÑO */}
           <div className="space-y-4">
             <div className="flex justify-between items-end">
@@ -86,7 +87,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
             <input 
               type="range" min="1" max="10" 
               value={sueno} onChange={(e) => setSueno(e.target.value)}
-              className="w-full accent-blue-500 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-8 accent-blue-500 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
               <span>Pésimo (1)</span>
@@ -106,7 +107,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
             <input 
               type="range" min="1" max="10" 
               value={fatiga} onChange={(e) => setFatiga(e.target.value)}
-              className="w-full accent-rose-500 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-8 accent-rose-500 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
               <span>Agotado (1)</span>
@@ -132,6 +133,8 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
                   key={c.value}
                   type="button"
                   onClick={() => setColorOrina(c.value)}
+                  aria-label={`Nivel ${c.value}: ${c.label}`}
+                  aria-pressed={colorOrina === c.value}
                   className={`h-12 rounded-lg border-2 transition-all ${
                     colorOrina === c.value ? 'border-white scale-105 shadow-lg' : 'border-transparent opacity-70 hover:opacity-100'
                   }`}

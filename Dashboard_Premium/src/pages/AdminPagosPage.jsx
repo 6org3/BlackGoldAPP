@@ -14,9 +14,9 @@ export default function AdminPagosPage() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="flex h-screen bg-[#09090b] overflow-hidden text-white">
+    <div className="flex h-dvh bg-[#09090b] overflow-hidden text-white">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
         <AdminPagos user={user} atletas={atletas} />
       </main>
     </div>

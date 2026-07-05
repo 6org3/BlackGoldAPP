@@ -6,7 +6,6 @@ import { crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 import { INSIGNIAS } from './ModoCanchaModalConstants';
-import { useModoCanchaModalClock } from './useModoCanchaModalClock';
 import ModoCanchaModalHeader from './ModoCanchaModalHeader';
 import ModoCanchaModalSesionesActivas from './ModoCanchaModalSesionesActivas';
 import ModoCanchaModalTipoClase from './ModoCanchaModalTipoClase';
@@ -45,7 +44,6 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   const [activeSessions, setActiveSessions] = useState([]);
   const [activeSession, setActiveSession] = useState(null); // La que está siendo evaluada
   const [evaluadosIds, setEvaluadosIds] = useState([]);
-  const { formatTiempo, calcularTiemposSession } = useModoCanchaModalClock(isOpen, step);
 
   useEffect(() => {
     if (isOpen) {
@@ -54,13 +52,21 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     }
   }, [isOpen]);
 
+  // Bloquea el scroll del fondo mientras el modal está abierto (iOS scrollea el body detrás)
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen]);
+
   const loadData = async () => {
     const atls = await fetchTodosLosAtletas(user);
     setAtletas(atls);
   };
 
   const checkActiveSession = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('sesiones_programadas')
       .select('*')
       .eq('coach_id', user.id)
@@ -105,11 +111,11 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     setSuccessMsg('');
   };
 
-  const atletasFiltradosIndividual = atletas.filter(a =>
+  const atletasFiltradosIndividual = useMemo(() => atletas.filter(a =>
     a.nombre.toLowerCase().includes(busquedaAtleta.toLowerCase()) ||
     (a.categoria || '').toLowerCase().includes(busquedaAtleta.toLowerCase()) ||
     (a.cedula || '').toLowerCase().includes(busquedaAtleta.toLowerCase())
-  ).slice(0, 5);
+  ).slice(0, 5), [atletas, busquedaAtleta]);
 
   const uniqueCategorias = useMemo(() => {
     const cats = new Set();
@@ -127,7 +133,7 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     return Array.from(edades).sort((a, b) => parseInt(a) - parseInt(b));
   }, [atletas]);
 
-  const getAtletasParaSesion = () => {
+  const atletasParaSesion = useMemo(() => {
     if (tipoClase === 'privada_1v1') return atletaIndividual ? [atletaIndividual] : [];
     if (tipoClase === 'grupal_ind') {
       return atletas.filter(a => {
@@ -141,16 +147,15 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
       });
     }
     return atletas.filter(a => a.nivel_desarrollo === nivelSeleccionado);
-  };
+  }, [atletas, tipoClase, atletaIndividual, busquedaAtleta, nivelSeleccionado]);
 
   const handleMarcarAsistencia = (id, presente) => {
     setAsistencia(prev => ({ ...prev, [id]: presente }));
   };
 
   const checkAllAsistencia = (presente) => {
-    const list = getAtletasParaSesion();
     const newAsistencia = { ...asistencia };
-    list.forEach(a => newAsistencia[a.atleta_id] = presente);
+    atletasParaSesion.forEach(a => newAsistencia[a.atleta_id] = presente);
     setAsistencia(newAsistencia);
   };
 
@@ -197,16 +202,15 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
 
       if (errProg) throw errProg;
 
-      // 2. Crear las Sesiones de Entrenamiento (Historial por atleta)
-      for (const a of presentes) {
-        await crearSesionEntrenamiento({
-          atleta_id: a.atleta_id,
-          pilar_objetivo: pilarObjetivo,
-          volumen_series_reps: '',
-          notas: `[MODO_CANCHA: ${programadaData.id}] ${tipoStr}`,
-          eva_registro: 0 // Placeholder
-        });
-      }
+      // 2. Crear las Sesiones de Entrenamiento (Historial por atleta) en paralelo:
+      // secuencial tardaba N roundtrips con la red del celular en la cancha.
+      await Promise.all(presentes.map(a => crearSesionEntrenamiento({
+        atleta_id: a.atleta_id,
+        pilar_objetivo: pilarObjetivo,
+        volumen_series_reps: '',
+        notas: `[MODO_CANCHA: ${programadaData.id}] ${tipoStr}`,
+        eva_registro: 0 // Placeholder
+      })));
 
       // Cerramos el modal para que el coach dé la clase
       alert("Clase iniciada. Cuando termine, vuelve a abrir el Modo Cancha (se detectará la sesión activa).");
@@ -255,9 +259,10 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     setSaving(false);
   };
 
-  const getAtletasResumed = () => {
-    return atletas.filter(a => asistencia[a.atleta_id]);
-  };
+  const atletasResumed = useMemo(
+    () => atletas.filter(a => asistencia[a.atleta_id]),
+    [atletas, asistencia]
+  );
 
   const handleSubmitEvaluation = async () => {
     if (!atletaEvaluando) return;
@@ -333,8 +338,10 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
       else if (activeSession.pilar_objetivo.includes('Táctica')) statToBoost = 'eficiencia_tactica';
       else if (activeSession.pilar_objetivo.includes('Resiliencia') || activeSession.pilar_objetivo.includes('Liderazgo')) statToBoost = 'resiliencia_psicologica';
 
-      const presentes = getAtletasResumed();
-      for (const a of presentes) {
+      // Un atleta a la vez tardaba 2 roundtrips secuenciales por cabeza (10-30s
+      // con 15-20 presentes en la red de la cancha); en paralelo cierra en ~1-2s.
+      const presentes = atletasResumed;
+      await Promise.all(presentes.map(async (a) => {
         const { data: atData } = await supabase.from('atletas').select('xp_total, fisico_atletico, eficiencia_tactica, resiliencia_psicologica').eq('id', a.atleta_id).single();
         if (atData) {
           const updates = { xp_total: (atData.xp_total || 0) + baseXP };
@@ -343,7 +350,7 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
           }
           await supabase.from('atletas').update(updates).eq('id', a.atleta_id);
         }
-      }
+      }));
 
       // 2. Cerrar la sesión (cambiar notas para que no aparezca como 'En Curso')
       const notasLimpias = (activeSession.notas || '').replace('[EN_CURSO] ', '');
@@ -391,23 +398,23 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-black/90 md:bg-black/80 md:backdrop-blur-md"
         >
           <motion.div
             initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-            className="w-full max-w-2xl bg-[#09090b] rounded-3xl border border-[#FFD700]/30 shadow-[0_0_50px_rgba(255,215,0,0.15)] overflow-hidden flex flex-col max-h-[90vh]"
+            className="w-full max-w-2xl bg-[#09090b] rounded-none md:rounded-3xl border border-[#FFD700]/30 shadow-[0_0_50px_rgba(255,215,0,0.15)] overflow-hidden flex flex-col h-dvh md:h-auto md:max-h-[90vh] pt-[env(safe-area-inset-top)] md:pt-0"
           >
             <ModoCanchaModalHeader step={step} setStep={setStep} onClose={onClose} />
 
-            <div className="p-6 overflow-y-auto flex-1">
+            {/* En el paso 3 (asistencia) solo scrollea la lista interna: así el CTA
+                "Empezar Clase" queda siempre visible sin doble scroll anidado. */}
+            <div className={`p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 flex-1 ${step === 3 ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'}`}>
 
               {/* STEP 0: Sesiones Activas */}
               {step === 0 && (
                 <ModoCanchaModalSesionesActivas
                   activeSessions={activeSessions}
                   setStep={setStep}
-                  calcularTiemposSession={calcularTiemposSession}
-                  formatTiempo={formatTiempo}
                   handleResumeSession={handleResumeSession}
                 />
               )}
@@ -446,7 +453,7 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
                   setNivelSeleccionado={setNivelSeleccionado}
                   uniqueCategorias={uniqueCategorias}
                   uniqueEdades={uniqueEdades}
-                  atletasParaSesion={getAtletasParaSesion()}
+                  atletasParaSesion={atletasParaSesion}
                   asistencia={asistencia}
                   handleMarcarAsistencia={handleMarcarAsistencia}
                   checkAllAsistencia={checkAllAsistencia}
@@ -458,7 +465,7 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
               {/* STEP 4: Grid de Evaluación (Cierre de sesión) */}
               {step === 4 && (
                 <ModoCanchaModalGridAtletas
-                  atletasResumed={getAtletasResumed()}
+                  atletasResumed={atletasResumed}
                   evaluadosIds={evaluadosIds}
                   setAtletaEvaluando={setAtletaEvaluando}
                   setStep={setStep}

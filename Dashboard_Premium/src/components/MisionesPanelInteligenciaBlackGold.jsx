@@ -30,15 +30,17 @@ export default function InteligenciaBlackGold({ deficits }) {
                 deficit.prioridad === 'alta'    ? 'bg-amber-500' :
                                                   'bg-white/50'
               }`} />
-              <span className={`text-[9px] font-black uppercase tracking-widest ${
+              <span className={`text-xs font-black uppercase tracking-widest ${
                 deficit.prioridad === 'critica' ? 'text-red-400' :
                 deficit.prioridad === 'alta'    ? 'text-amber-400' :
                                                   'text-gray-400'
               }`}>
-                Prioridad {deficit.prioridad}
+                {deficit.prioridad === 'critica' ? 'Prioridad Crítica'
+                  : deficit.prioridad === 'alta' ? 'Prioridad Alta'
+                  : `Prioridad ${deficit.prioridad}`}
               </span>
             </div>
-            <p className="text-xs text-gray-300 leading-relaxed">{deficit.mensaje}</p>
+            <p className="text-sm text-gray-300 leading-relaxed">{deficit.mensaje}</p>
           </motion.div>
         ))}
       </div>

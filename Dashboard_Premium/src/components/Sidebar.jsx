@@ -1,47 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, Users, ShieldAlert, Cross, Sparkles, Plus, Filter, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaModal from './ModoCanchaModal';
 import { supabase } from '../api/supabaseClient';
 
-export default function Sidebar({ filtros, onFiltroChange, isMobileMenuOpen, setIsMobileMenuOpen }) {
+export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [showFiltros, setShowFiltros] = useState(true);
-
-  const posiciones = ['Todas', 'Generador', 'Alero Físico', 'Ancla Fuerte', 'Escolta', 'Ala-Pívot'];
-  const nivelesDesarrollo = [
-    'Todos',
-    'Micro Nv.1', 'Micro Nv.2', 'Micro Nv.3',
-    'Desarrollo Nv.1', 'Desarrollo Nv.2', 'Desarrollo Nv.3',
-    'Elite Nv.1', 'Elite Nv.2', 'Elite Nv.3',
-  ];
 
   const [showModoCancha, setShowModoCancha] = useState(false);
   const [activeSessionCount, setActiveSessionCount] = useState(0);
 
+  // Deps primitivas: un setUser con objeto nuevo pero mismo usuario no debe
+  // destruir/recrear la suscripción realtime ni repetir el fetch.
+  const userId = user?.id;
+  const userRol = user?.rol;
+
   useEffect(() => {
-    if (user && (user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin')) {
+    if (userId && (userRol === 'coach' || userRol === 'owner' || userRol === 'superadmin')) {
       const fetchActiveSession = async () => {
         const { data } = await supabase
           .from('sesiones_programadas')
           .select('id')
-          .eq('coach_id', user.id)
+          .eq('coach_id', userId)
           .eq('estado', 'Programada')
           .ilike('notas', '[EN_CURSO]%');
         if (data) setActiveSessionCount(data.length);
       };
       fetchActiveSession();
-      
+
       const channel = supabase.channel('sesiones_sidebar')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'sesiones_programadas', filter: `coach_id=eq.${user.id}` }, fetchActiveSession)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'sesiones_programadas', filter: `coach_id=eq.${userId}` }, fetchActiveSession)
         .subscribe();
-        
+
       return () => { supabase.removeChannel(channel); };
     }
-  }, [user]);
+  }, [userId, userRol]);
+
+  // Bloquea el scroll del contenido de fondo mientras el drawer está abierto.
+  useEffect(() => {
+    if (!isMobileMenuOpen) return undefined;
+    const previo = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previo; };
+  }, [isMobileMenuOpen]);
 
   return (
     <>
@@ -53,7 +57,7 @@ export default function Sidebar({ filtros, onFiltroChange, isMobileMenuOpen, set
         />
       )}
 
-      <aside className={`w-72 border-r border-white/5 bg-[#09090b]/95 backdrop-blur-xl flex-col fixed md:relative z-50 h-full transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} flex`}>
+      <aside className={`w-72 max-w-[85vw] border-r border-white/5 bg-[#09090b]/95 backdrop-blur-xl flex-col fixed md:relative z-50 h-dvh md:h-full transition-[transform,visibility] duration-300 ${isMobileMenuOpen ? 'translate-x-0 visible' : '-translate-x-full invisible md:visible md:translate-x-0'} flex`}>
       <div className="p-8 border-b border-white/5 relative">
         <div className="flex items-center space-x-3 mb-2">
           <Sparkles className="text-[#FFD700]" size={24} />
@@ -62,9 +66,10 @@ export default function Sidebar({ filtros, onFiltroChange, isMobileMenuOpen, set
         <p className="text-[10px] text-[#FFD700] font-bold tracking-[0.3em] uppercase ml-9">Intelligence</p>
         
         {/* Close Button Mobile */}
-        <button 
+        <button
           onClick={() => setIsMobileMenuOpen(false)}
-          className="absolute top-8 right-4 md:hidden text-gray-500 hover:text-white"
+          aria-label="Cerrar menú"
+          className="absolute top-6 right-2 md:hidden text-gray-500 hover:text-white p-3"
         >
           <Cross size={20} className="rotate-45" />
         </button>
@@ -185,7 +190,8 @@ export default function Sidebar({ filtros, onFiltroChange, isMobileMenuOpen, set
       <>
         <button
           onClick={() => setShowModoCancha(true)}
-          className="fixed bottom-6 right-6 z-40 bg-[#FFD700] text-black p-4 rounded-full shadow-[0_0_20px_rgba(255,215,0,0.4)] hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition-all flex items-center justify-center md:hidden"
+          aria-label="Abrir Modo Cancha"
+          className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-[#FFD700] text-black p-4 rounded-full shadow-[0_0_20px_rgba(255,215,0,0.4)] hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition-all flex items-center justify-center md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
         >
           <Zap size={24} fill="currentColor" />
         </button>

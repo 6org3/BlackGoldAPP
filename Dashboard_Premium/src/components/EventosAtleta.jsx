@@ -213,22 +213,22 @@ function EventoCard({ evento, index, past, onRsvp, updating }) {
       </div>
 
       {/* Info row */}
-      <div className="flex flex-wrap gap-3 text-[10px] text-gray-500 font-bold mb-4">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-gray-400 font-bold mb-4">
         {evento.hora_llegada && (
           <span className="flex items-center gap-1">
-            <Clock size={10} />
+            <Clock size={13} />
             Llegada: {evento.hora_llegada.slice(0,5)}
           </span>
         )}
         {evento.sede && (
           <span className="flex items-center gap-1">
-            <MapPin size={10} />
+            <MapPin size={13} />
             {evento.sede}
           </span>
         )}
         {evento.uniforme && (
           <span className="flex items-center gap-1">
-            <Users size={10} />
+            <Users size={13} />
             {evento.uniforme}
           </span>
         )}
@@ -263,11 +263,11 @@ function EventoCard({ evento, index, past, onRsvp, updating }) {
                 key={estado}
                 onClick={() => onRsvp(evento.convocadoId, estado)}
                 disabled={updating}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all ${
+                className={`flex flex-1 items-center justify-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-lg border text-[11px] font-black uppercase tracking-widest transition-all ${
                   isActive ? cfg.bg + ' ' + cfg.color : 'bg-white/5 border-white/10 text-gray-600 hover:text-gray-400 hover:border-white/20'
                 }`}
               >
-                <Icon size={11} />
+                <Icon size={14} />
                 {cfg.label}
               </button>
             );

@@ -59,7 +59,7 @@ export default function TiendaRecompensas({ rangoId, atletaId }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="glass-card rounded-3xl p-8 relative overflow-hidden glow-border"
+      className="glass-card rounded-3xl p-4 sm:p-8 relative overflow-hidden glow-border"
     >
       {/* Ambient gold glow */}
       <div className="absolute -top-32 -left-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-30 bg-[#FFD700]" />
@@ -125,10 +125,12 @@ export default function TiendaRecompensas({ rangoId, atletaId }) {
               />
             </div>
             <div className="flex space-x-1">
-              {RANGOS.map((r, i) => (
+              {RANGOS.map((r) => (
                 <span
                   key={r.id}
                   title={r.nombre}
+                  role="img"
+                  aria-label={r.nombre}
                   className={`text-xs transition-opacity ${
                     r.id === rangoId ? 'opacity-100' : 'opacity-30'
                   }`}

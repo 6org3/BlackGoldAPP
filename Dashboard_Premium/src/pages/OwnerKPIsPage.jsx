@@ -30,6 +30,20 @@ const CATEGORY_COLORS = {
   'Mayores': '#ec4899',              // pink
 };
 
+// Detecta viewport móvil (<sm) para adaptar los gráficos Recharts
+function useEsMovil() {
+  const [esMovil, setEsMovil] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    const onChange = (e) => setEsMovil(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return esMovil;
+}
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -43,6 +57,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function OwnerKPIsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const esMovil = useEsMovil();
 
   const [atletas, setAtletas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -72,7 +87,8 @@ export default function OwnerKPIsPage() {
       const { data, error } = await supabase
         .from('asistencia')
         .select('estado')
-        .in('atleta_id', atletas.map(a => a.id))
+        // a.id es el id de usuarios; asistencia.atleta_id referencia a la tabla atletas
+        .in('atleta_id', atletas.map(a => a.atleta_id))
         .gte('fecha', sevenDaysAgo.toISOString().split('T')[0]);
 
       if (!error && data && data.length > 0) {
@@ -95,7 +111,7 @@ export default function OwnerKPIsPage() {
       const { count, error } = await supabase
         .from('progreso_misiones')
         .select('*', { count: 'exact', head: true })
-        .in('atleta_id', atletas.map(a => a.id))
+        .in('atleta_id', atletas.map(a => a.atleta_id))
         .eq('completada', true);
 
       if (!error) {
@@ -190,8 +206,8 @@ export default function OwnerKPIsPage() {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white relative overflow-hidden">
-      {/* Ambient Glow Effects */}
-      <div className="fixed inset-0 pointer-events-none z-0">
+      {/* Ambient Glow Effects (solo desktop: composición GPU cara en gama baja) */}
+      <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-[#FFD700]/[0.03] rounded-full blur-[150px]" />
         <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-purple-500/[0.03] rounded-full blur-[150px]" />
       </div>
@@ -200,7 +216,7 @@ export default function OwnerKPIsPage() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center space-x-4 mb-10">
-            <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-white transition-colors">
+            <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard" className="p-3 -ml-3 rounded-full text-gray-500 hover:text-white hover:bg-white/5 transition-colors">
               <ArrowLeft size={20} />
             </button>
             <div className="flex items-center space-x-3">
@@ -240,7 +256,7 @@ export default function OwnerKPIsPage() {
                     className={`glass-card rounded-2xl border border-white/10 p-6 ${card.glow}`}
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">{card.label}</p>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest pr-2">{card.label}</p>
                       <card.icon size={20} className={card.color} />
                     </div>
                     <p className={`text-4xl font-black ${card.color}`}>{card.value}</p>
@@ -260,10 +276,21 @@ export default function OwnerKPIsPage() {
                 </h3>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={metricData} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
+                    <BarChart
+                      data={metricData}
+                      layout="vertical"
+                      margin={esMovil ? { top: 0, right: 12, left: 0, bottom: 0 } : { top: 0, right: 30, left: 20, bottom: 0 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                       <XAxis type="number" domain={[0, 100]} tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                      <YAxis dataKey="name" type="category" width={130} tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 700 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                      <YAxis
+                        dataKey="name"
+                        type="category"
+                        width={esMovil ? 84 : 130}
+                        tick={{ fill: '#9ca3af', fontSize: esMovil ? 10 : 11, fontWeight: 700 }}
+                        tickFormatter={esMovil ? (v) => v.replace('Efic. ', '').replace('Técnica ', '') : undefined}
+                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      />
                       <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
                       <Bar dataKey="promedio" radius={[0, 8, 8, 0]}>
                         {metricData.map((entry) => (
@@ -329,12 +356,12 @@ export default function OwnerKPIsPage() {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 w-full lg:w-1/2">
+                  <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 w-full lg:w-1/2">
                     {categoryData.map((cat) => (
-                      <div key={cat.name} className="flex items-center space-x-3 bg-white/[0.02] rounded-xl px-4 py-3 border border-white/5">
+                      <div key={cat.name} className="flex items-center space-x-3 min-w-0 bg-white/[0.02] rounded-xl px-4 py-3 border border-white/5">
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                        <div>
-                          <p className="text-xs font-bold text-white">{cat.name}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white truncate">{cat.name}</p>
                           <p className="text-[10px] text-gray-500 font-bold">{cat.value} atletas</p>
                         </div>
                       </div>

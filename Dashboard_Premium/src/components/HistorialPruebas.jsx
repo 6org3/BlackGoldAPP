@@ -54,11 +54,16 @@ export default function HistorialPruebas({ atletaId }) {
   const [pruebaActiva, setPruebaActiva] = useState(null); // drill-down: prueba concreta
 
   useEffect(() => {
-    if (!atletaId) { setLoading(false); return; }
+    if (!atletaId) { setLoading(false); return undefined; }
+    // Cancelación: si atletaId cambia rápido, la respuesta vieja no debe pisar
+    // a la nueva ni hacer setState tras el unmount.
+    let cancelado = false;
+    setLoading(true);
     fetchEvaluacionesAtleta(atletaId)
-      .then(data => setEvaluaciones(data || []))
+      .then(data => { if (!cancelado) setEvaluaciones(data || []); })
       .catch(err => console.error('Error historial:', err))
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelado) setLoading(false); });
+    return () => { cancelado = true; };
   }, [atletaId]);
 
   // Series por sub-pilar: los 7 ejes del radar salen de analytics-core;
@@ -156,7 +161,7 @@ export default function HistorialPruebas({ atletaId }) {
             <button
               key={p.id}
               onClick={() => { setPilarActivo(p.id); setPruebaActiva(null); }}
-              className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
+              className={`px-3.5 py-2.5 min-h-[40px] rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
                 activo
                   ? 'border-current text-white'
                   : 'border-white/10 text-gray-600 hover:text-gray-400 hover:border-white/20'
@@ -178,7 +183,7 @@ export default function HistorialPruebas({ atletaId }) {
           <span className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">Prueba:</span>
           <button
             onClick={() => setPruebaActiva(null)}
-            className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-all ${
+            className={`px-3 py-2 min-h-[36px] rounded-md text-[10px] font-bold uppercase tracking-widest border transition-all ${
               !pruebaActiva ? 'bg-white/10 border-white/30 text-white' : 'border-white/10 text-gray-600 hover:text-gray-400'
             }`}
           >
@@ -188,7 +193,7 @@ export default function HistorialPruebas({ atletaId }) {
             <button
               key={pt}
               onClick={() => setPruebaActiva(pt)}
-              className={`px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-all ${
+              className={`px-3 py-2 min-h-[36px] rounded-md text-[10px] font-bold uppercase tracking-widest border transition-all ${
                 pruebaActiva === pt
                   ? 'border-current text-white'
                   : 'border-white/10 text-gray-600 hover:text-gray-400'
@@ -228,8 +233,12 @@ export default function HistorialPruebas({ atletaId }) {
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             {pruebaActiva && (
-              <button onClick={() => setPruebaActiva(null)} className="text-gray-500 hover:text-white transition-colors">
-                <ChevronLeft size={14} />
+              <button
+                onClick={() => setPruebaActiva(null)}
+                aria-label="Volver al promedio del sub-pilar"
+                className="p-2.5 -m-1 rounded-lg text-gray-500 hover:text-white active:bg-white/5 transition-colors"
+              >
+                <ChevronLeft size={18} />
               </button>
             )}
             <h3

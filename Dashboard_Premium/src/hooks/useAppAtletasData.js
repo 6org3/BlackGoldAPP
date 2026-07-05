@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { fetchTodosLosAtletas } from '../api/atletasService';
+import { fetchReadinessHoy } from '../api/readinessService';
 import { calcularCategoriaFEB } from '../api/utilsAtletas';
 
 const FASE_ORDEN = { 'Micro': 0, 'Desarrollo': 1, 'Elite': 2 };
@@ -103,16 +104,16 @@ export function useAppAtletasData({ user, busqueda, filtros, ordenarPor }) {
     if (user.rol === 'atleta' && user.atleta_id) {
       const horaActual = new Date().getHours();
       if (horaActual >= 6) {
-        import('../api/readinessService').then(({ fetchReadinessHoy }) => {
-          fetchReadinessHoy(user.atleta_id).then(data => {
-            if (!data) {
-              setShowReadinessModal(true);
-            }
-          }).catch(err => console.error("Error checking readiness", err));
-        });
+        fetchReadinessHoy(user.atleta_id).then(data => {
+          if (!data) {
+            setShowReadinessModal(true);
+          }
+        }).catch(err => console.error("Error checking readiness", err));
       }
     }
-  }, [user]);
+    // Deps primitivas: una identidad nueva del objeto `user` (refresh de token,
+    // re-fetch del perfil) no debe repetir la query ni reabrir el modal.
+  }, [user.rol, user.atleta_id]);
 
   // Recarga desde el servidor cuando cambia el usuario, la búsqueda
   // (debounced), los filtros o el orden — antes esto se resolvía filtrando

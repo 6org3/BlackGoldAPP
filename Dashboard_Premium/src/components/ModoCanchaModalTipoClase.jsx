@@ -60,8 +60,8 @@ export default function ModoCanchaModalTipoClase({
           <p className="text-xs text-cyan-400 font-bold uppercase tracking-widest">Buscar Atleta</p>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
-            <input type="text" placeholder="Buscar por nombre o cédula..." value={busquedaAtleta} onChange={(e) => setBusquedaAtleta(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-gray-500 focus:border-cyan-400 focus:outline-none transition-colors" />
+            <input type="search" autoComplete="off" placeholder="Buscar por nombre o cédula..." value={busquedaAtleta} onChange={(e) => setBusquedaAtleta(e.target.value)}
+              className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-base text-white placeholder-gray-500 focus:border-cyan-400 focus:outline-none transition-colors" />
           </div>
 
           {busquedaAtleta && (

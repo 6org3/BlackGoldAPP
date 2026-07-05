@@ -1,6 +1,13 @@
 import { Star, Check, Target, ChevronLeft } from 'lucide-react';
 import { INSIGNIAS } from './ModoCanchaModalConstants';
 
+const METRIC_LABELS = {
+  esfuerzo: 'Esfuerzo Físico',
+  actitud: 'Actitud',
+  foco: 'Foco / Atención',
+  trabajo_equipo: 'Trabajo en Eq.'
+};
+
 export default function ModoCanchaModalEvaluarAtleta({
   atletaEvaluando,
   setStep,
@@ -30,16 +37,20 @@ export default function ModoCanchaModalEvaluarAtleta({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {['esfuerzo', 'actitud', 'foco', 'trabajo_equipo'].map(metric => (
-              <div key={metric} className="flex flex-col space-y-2 bg-white/5 p-3 rounded-xl border border-white/10 items-center hover:bg-white/10 transition-colors">
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center w-full">
-                  {metric === 'esfuerzo' ? 'Esfuerzo Físico' : metric === 'actitud' ? 'Actitud' : metric === 'foco' ? 'Foco / Atención' : 'Trabajo en Eq.'}
+              <div key={metric} role="group" aria-label={METRIC_LABELS[metric]}
+                className="flex flex-col space-y-2 bg-white/5 p-3 rounded-xl border border-white/10 items-center hover:bg-white/10 transition-colors">
+                <span className="text-xs text-gray-300 font-bold uppercase tracking-widest text-center w-full">
+                  {METRIC_LABELS[metric]}
                 </span>
-                <div className="flex space-x-1">
+                <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map(star => (
-                    <button key={star} type="button" onClick={() => handleRatingChange(metric, star)} className="transition-transform active:scale-90 hover:scale-110">
-                      <Star size={24} fill={star <= ratings[metric] ? '#FFD700' : 'transparent'} color={star <= ratings[metric] ? '#FFD700' : '#4b5563'} />
+                    <button key={star} type="button" onClick={() => handleRatingChange(metric, star)}
+                      aria-label={`${star} de 5 estrellas en ${METRIC_LABELS[metric]}`}
+                      aria-pressed={star <= ratings[metric]}
+                      className="w-11 h-11 flex items-center justify-center transition-transform active:scale-90 hover:scale-110">
+                      <Star size={28} fill={star <= ratings[metric] ? '#FFD700' : 'transparent'} color={star <= ratings[metric] ? '#FFD700' : '#4b5563'} />
                     </button>
                   ))}
                 </div>

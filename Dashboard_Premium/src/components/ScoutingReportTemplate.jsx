@@ -5,9 +5,9 @@ const ScoutingReportTemplate = forwardRef(({ atleta, todosLosAtletas }, ref) => 
   if (!atleta) return null;
 
   return (
-    <div 
-      ref={ref} 
-      className="bg-[#09090b] text-white p-8 w-[800px] h-[1130px] flex flex-col font-sans"
+    <div
+      ref={ref}
+      className="bg-[#09090b] text-white p-8 w-[800px] min-h-[1130px] flex flex-col font-sans"
       style={{ boxSizing: 'border-box' }}
     >
       {/* HEADER */}
@@ -21,7 +21,7 @@ const ScoutingReportTemplate = forwardRef(({ atleta, todosLosAtletas }, ref) => 
             )}
           </div>
           <div>
-            <h1 className="text-4xl font-bold uppercase tracking-widest text-white mb-2">{atleta.nombre}</h1>
+            <h1 className="text-4xl font-bold uppercase tracking-widest text-white mb-2 truncate max-w-[420px]">{atleta.nombre}</h1>
             <div className="flex gap-4 text-sm font-bold tracking-widest text-[#FFD700]">
               <span>ID: {atleta.cedula}</span>
               <span>•</span>
@@ -113,4 +113,5 @@ function MetricRow({ label, value, isDanger = false }) {
   );
 }
 
-export default ScoutingReportTemplate;
+// Memoizado: sus props (atleta, todosLosAtletas) son estables entre renders del padre
+export default React.memo(ScoutingReportTemplate);

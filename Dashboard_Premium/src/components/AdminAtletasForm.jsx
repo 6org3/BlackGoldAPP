@@ -24,7 +24,7 @@ export default function AdminAtletasForm({
       animate={{ opacity: 1, y: 0, height: 'auto' }}
       exit={{ opacity: 0, y: -20, height: 0 }}
       onSubmit={handleSubmit}
-      className="glass-card rounded-2xl p-8 mb-8 overflow-hidden"
+      className="glass-card rounded-2xl p-5 sm:p-8 mb-8 overflow-hidden"
     >
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center space-x-3">
@@ -33,16 +33,17 @@ export default function AdminAtletasForm({
           </span>
           <span>{editingId ? 'Editar Atleta' : 'Registrar Nuevo Atleta'}</span>
         </h3>
-        <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="text-gray-500 hover:text-white transition-colors">
+        <button type="button" aria-label="Cerrar formulario" onClick={() => { setShowForm(false); setEditingId(null); }} className="p-2.5 -m-2.5 rounded-lg text-gray-500 hover:text-white transition-colors">
           <X size={18} />
         </button>
       </div>
 
-      {/* Datos del atleta */}
+      {/* Datos personales */}
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-3">Datos Personales</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <InputField label="Cédula" value={form.cedula} onChange={v => handleChange('cedula', v)} disabled={!!editingId} placeholder="Ej. 1234567890" />
-        <InputField label="Nombre Completo" value={form.nombre} onChange={v => handleChange('nombre', v)} placeholder="Ej. Juan Pérez" />
-        <InputField label="Correo Electrónico" type="email" value={form.correo} onChange={v => handleChange('correo', v)} placeholder="ejemplo@correo.com" />
+        <InputField label="Cédula" value={form.cedula} onChange={v => handleChange('cedula', v)} disabled={!!editingId} placeholder="Ej. 1234567890" inputMode="numeric" autoComplete="off" maxLength={10} />
+        <InputField label="Nombre Completo" value={form.nombre} onChange={v => handleChange('nombre', v)} placeholder="Ej. Juan Pérez" autoComplete="name" />
+        <InputField label="Correo Electrónico" type="email" value={form.correo} onChange={v => handleChange('correo', v)} placeholder="ejemplo@correo.com" autoComplete="email" />
         <InputField
           label="Fecha de Nacimiento"
           type="date"
@@ -53,6 +54,9 @@ export default function AdminAtletasForm({
           }}
         />
       </div>
+
+      {/* Perfil deportivo */}
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-3">Perfil Deportivo</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <SelectField label="Género" value={form.genero} options={['Masculino', 'Femenino']} onChange={v => handleChange('genero', v)} />
         <SelectField label="Posición" value={form.posicion} options={POSICIONES} onChange={v => handleChange('posicion', v)} />
@@ -92,9 +96,9 @@ export default function AdminAtletasForm({
                 initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                 className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 overflow-hidden"
               >
-                <InputField label="Nombre del Representante" value={form.padre_nombre} onChange={v => handleChange('padre_nombre', v)} placeholder="Ej. María Méndez" />
-                <InputField label="Teléfono Representante" value={form.padre_telefono} onChange={v => handleChange('padre_telefono', v)} placeholder="Ej. 0991234567" />
-                <InputField label="Correo Representante" type="email" value={form.padre_correo} onChange={v => handleChange('padre_correo', v)} placeholder="padre@correo.com" />
+                <InputField label="Nombre del Representante" value={form.padre_nombre} onChange={v => handleChange('padre_nombre', v)} placeholder="Ej. María Méndez" autoComplete="name" />
+                <InputField label="Teléfono Representante" type="tel" value={form.padre_telefono} onChange={v => handleChange('padre_telefono', v)} placeholder="Ej. 0991234567" inputMode="tel" autoComplete="tel" />
+                <InputField label="Correo Representante" type="email" value={form.padre_correo} onChange={v => handleChange('padre_correo', v)} placeholder="padre@correo.com" autoComplete="email" />
               </motion.div>
             )}
           </AnimatePresence>

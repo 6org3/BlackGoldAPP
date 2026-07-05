@@ -51,7 +51,7 @@ export default function MicroCard({ atleta }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="glass-card rounded-3xl p-8 relative overflow-hidden border border-white/5"
+      className="glass-card rounded-none md:rounded-3xl p-5 sm:p-8 relative overflow-hidden border border-white/5"
     >
       {/* Ambient glow */}
       <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full blur-[80px] pointer-events-none opacity-40 bg-[#FFD700]" />

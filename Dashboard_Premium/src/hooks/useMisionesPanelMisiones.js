@@ -4,11 +4,16 @@ import { fetchMisiones } from '../api/misionesService';
 // ── Carga misiones ──────────────────────
 export function useMisionesPanelMisiones(atletaId, setMisiones, setLoading) {
   useEffect(() => {
-    const load = async () => {
-      const data = await fetchMisiones(atletaId);
-      setMisiones(data);
-      setLoading(false);
-    };
-    load();
-  }, [atletaId]);
+    // Flag de cancelación: una respuesta tardía no debe pisar el estado
+    // de un componente desmontado ni los datos de otro atleta.
+    let alive = true;
+    setLoading(true);
+    fetchMisiones(atletaId).then(data => {
+      if (alive) {
+        setMisiones(data);
+        setLoading(false);
+      }
+    });
+    return () => { alive = false; };
+  }, [atletaId, setMisiones, setLoading]);
 }

@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 // ─── Gold particle generator ────────────────────────────────
 // Creates randomized sparkle/particle positions and animation params
-const PARTICLE_COUNT = 28;
+// Menos partículas en pantallas pequeñas (celulares de gama media/baja)
+const PARTICLE_COUNT = typeof window !== 'undefined' && window.innerWidth < 480 ? 14 : 28;
 const particles = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
   id: i,
   x: Math.random() * 100,             // vw-based spread
@@ -24,6 +25,8 @@ const RINGS = [
 ];
 
 export default function LevelUpAnimation({ rango, onComplete }) {
+  const shouldReduceMotion = useReducedMotion();
+
   // Auto-dismiss after 4 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -62,7 +65,7 @@ export default function LevelUpAnimation({ rango, onComplete }) {
         />
 
         {/* ─── Expanding glow rings ────────────────────────── */}
-        {RINGS.map((ring, i) => (
+        {!shouldReduceMotion && RINGS.map((ring, i) => (
           <motion.div
             key={`ring-${i}`}
             initial={{ scale: 0, opacity: 0 }}
@@ -86,52 +89,56 @@ export default function LevelUpAnimation({ rango, onComplete }) {
         ))}
 
         {/* ─── Gold particles / sparkles ───────────────────── */}
-        {particles.map((p) => (
-          <motion.div
-            key={`particle-${p.id}`}
-            initial={{
-              opacity: 0,
-              scale: 0,
-              x: 0,
-              y: 0,
-            }}
-            animate={{
-              opacity: [0, 1, 1, 0],
-              scale: [0, 1.5, 1, 0.3],
-              x: Math.cos((p.angle * Math.PI) / 180) * p.distance,
-              y: Math.sin((p.angle * Math.PI) / 180) * p.distance,
-              rotate: p.rotation,
-            }}
-            transition={{
-              duration: p.duration,
-              delay: 0.3 + p.delay,
-              ease: 'easeOut',
-            }}
-            className="absolute pointer-events-none"
-            style={{
-              width: p.size,
-              height: p.size,
-              borderRadius: p.id % 3 === 0 ? '50%' : '2px',
-              background:
-                p.id % 4 === 0
-                  ? '#FFD700'
-                  : p.id % 4 === 1
-                  ? '#D4AF37'
-                  : p.id % 4 === 2
-                  ? '#FFF8DC'
-                  : rangoColorHex,
-              boxShadow: `0 0 ${p.size * 2}px ${p.id % 2 === 0 ? '#FFD700' : rangoColorHex}`,
-            }}
-          />
-        ))}
+        {/* Glow con radial-gradient (solo compositing) en vez de box-shadow (repaint por frame) */}
+        {!shouldReduceMotion && particles.map((p) => {
+          const particleColor =
+            p.id % 4 === 0
+              ? '#FFD700'
+              : p.id % 4 === 1
+              ? '#D4AF37'
+              : p.id % 4 === 2
+              ? '#FFF8DC'
+              : rangoColorHex;
+          return (
+            <motion.div
+              key={`particle-${p.id}`}
+              initial={{
+                opacity: 0,
+                scale: 0,
+                x: 0,
+                y: 0,
+              }}
+              animate={{
+                opacity: [0, 1, 1, 0],
+                scale: [0, 1.5, 1, 0.3],
+                x: Math.cos((p.angle * Math.PI) / 180) * p.distance,
+                y: Math.sin((p.angle * Math.PI) / 180) * p.distance,
+                rotate: p.rotation,
+              }}
+              transition={{
+                duration: p.duration,
+                delay: 0.3 + p.delay,
+                ease: 'easeOut',
+              }}
+              className="absolute pointer-events-none"
+              style={{
+                width: p.size * 2,
+                height: p.size * 2,
+                borderRadius: '50%',
+                background: `radial-gradient(circle, ${particleColor} 0%, ${particleColor} 45%, transparent 70%)`,
+                willChange: 'transform, opacity',
+              }}
+            />
+          );
+        })}
 
         {/* ─── Central content ──────────────────────────────── */}
         <div className="relative z-10 flex flex-col items-center text-center px-6">
           {/* Rank emoji — big scale-in with bounce */}
           <motion.div
-            initial={{ scale: 0, rotate: -20 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{
+            initial={shouldReduceMotion ? { opacity: 0 } : { scale: 0, rotate: -20 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { scale: 1, rotate: 0 }}
+            transition={shouldReduceMotion ? { duration: 0.3 } : {
               type: 'spring',
               damping: 10,
               stiffness: 200,
@@ -147,9 +154,9 @@ export default function LevelUpAnimation({ rango, onComplete }) {
 
           {/* Title: ¡RANGO ASCENDIDO! */}
           <motion.h1
-            initial={{ opacity: 0, y: 30, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 0.6, duration: 0.6, ease: 'easeOut' }}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 30, scale: 0.8 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            transition={shouldReduceMotion ? { duration: 0.3 } : { delay: 0.6, duration: 0.6, ease: 'easeOut' }}
             className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-3"
             style={{
               background: 'linear-gradient(135deg, #FFD700, #D4AF37, #FFD700)',
@@ -164,9 +171,9 @@ export default function LevelUpAnimation({ rango, onComplete }) {
 
           {/* Rank name line */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0, duration: 0.5 }}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+            animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+            transition={shouldReduceMotion ? { duration: 0.3 } : { delay: 1.0, duration: 0.5 }}
             className="text-lg text-gray-300 font-medium"
           >
             Has alcanzado{' '}
@@ -191,21 +198,23 @@ export default function LevelUpAnimation({ rango, onComplete }) {
           </motion.p>
 
           {/* Bottom glow pulse */}
-          <motion.div
-            animate={{
-              opacity: [0.3, 0.6, 0.3],
-              scale: [1, 1.05, 1],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            className="absolute -bottom-20 w-64 h-16 rounded-full pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse, ${rangoColorHex}33, transparent)`,
-            }}
-          />
+          {!shouldReduceMotion && (
+            <motion.div
+              animate={{
+                opacity: [0.3, 0.6, 0.3],
+                scale: [1, 1.05, 1],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              className="absolute -bottom-20 w-64 h-16 rounded-full pointer-events-none"
+              style={{
+                background: `radial-gradient(ellipse, ${rangoColorHex}33, transparent)`,
+              }}
+            />
+          )}
         </div>
       </motion.div>
     </AnimatePresence>

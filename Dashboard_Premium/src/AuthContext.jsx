@@ -1,12 +1,16 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback, useMemo } from 'react';
 import { loginUsuario, fetchUsuarioPorAuthId } from './api/authService';
 import { supabase } from './api/supabaseClient';
+import PageLoader from './components/PageLoader.jsx';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Último auth id resuelto: permite ignorar eventos de Supabase Auth que no
+  // cambian de usuario (evita refetch + re-render global de toda la app).
+  const lastAuthIdRef = useRef(null);
 
   // La sesión real (JWT + refresh token) la persiste supabase-js por su
   // cuenta; acá solo reaccionamos a sus cambios y resolvemos el perfil
@@ -15,6 +19,7 @@ export const AuthProvider = ({ children }) => {
     let activo = true;
 
     const cargarPerfil = async (session) => {
+      lastAuthIdRef.current = session?.user?.id ?? null;
       if (!session) {
         if (activo) setUser(null);
         return;
@@ -34,7 +39,11 @@ export const AuthProvider = ({ children }) => {
       });
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      // TOKEN_REFRESHED se dispara ~cada hora y al volver la PWA al primer
+      // plano en móvil: el perfil no cambió, no hay que recargar nada.
+      if (event === 'TOKEN_REFRESHED') return;
+      if ((session?.user?.id ?? null) === lastAuthIdRef.current) return;
       cargarPerfil(session);
     });
 
@@ -44,7 +53,7 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = async (identificador, password) => {
+  const login = useCallback(async (identificador, password) => {
     try {
       const userData = await loginUsuario(identificador, password);
       setUser(userData);
@@ -52,16 +61,21 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return { success: false, error: error.message };
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, login, logout, loading }),
+    [user, loading, login, logout]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={value}>
+      {loading ? <PageLoader /> : children}
     </AuthContext.Provider>
   );
 };

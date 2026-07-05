@@ -1,9 +1,14 @@
-import { Search, ListFilter, Target } from 'lucide-react';
+import { Search, ListFilter, Target, ChevronDown } from 'lucide-react';
 
 const categorias = ['Todas', 'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)', 'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores'];
 const posiciones = ['Todas', 'Generador', 'Escolta', 'Alero Físico', 'Ala-Pívot', 'Ancla Fuerte'];
 const nivelesDesarrollo = ['Todos', 'Micro', 'Desarrollo', 'Elite'];
 const generos = ['Todos', 'Masculino', 'Femenino'];
+
+// Reemplazo visible del chevron nativo que appearance-none elimina.
+const SelectChevron = () => (
+  <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
+);
 
 export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltroChange, ordenarPor, setOrdenarPor, setShowAsignador }) {
   return (
@@ -16,55 +21,69 @@ export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltr
           <input
             type="text"
             placeholder="Buscar cédula o nombre..."
+            aria-label="Buscar cédula o nombre"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full bg-[#121214] border border-[#FFD700]/30 text-white text-[11px] font-bold tracking-wide rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:border-[#FFD700]/60 focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] transition-all"
+            className="w-full bg-[#121214] border border-[#FFD700]/30 text-white text-base md:text-[11px] font-bold tracking-wide rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:border-[#FFD700]/60 focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] transition-all"
           />
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto pb-2 lg:pb-0">
         <div className="flex flex-col">
-          <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Género</span>
-          <select value={filtros.genero} onChange={e => handleFiltroChange('genero', e.target.value)}
-            className="bg-[#121214] border border-[#FFD700]/30 text-white text-[10px] font-black uppercase tracking-widest rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer appearance-none shadow-[0_0_10px_rgba(255,215,0,0.05)]">
-            {generos.map(g => <option key={g} value={g}>{g === 'Todos' ? 'Todos' : g}</option>)}
-          </select>
+          <label htmlFor="filtro-genero" className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Género</label>
+          <div className="relative">
+            <select id="filtro-genero" value={filtros.genero} onChange={e => handleFiltroChange('genero', e.target.value)}
+              className="w-full bg-[#121214] border border-[#FFD700]/30 text-white text-base md:text-[10px] font-black uppercase tracking-widest rounded-lg pl-2 pr-6 py-2.5 md:py-1.5 focus:outline-none cursor-pointer appearance-none shadow-[0_0_10px_rgba(255,215,0,0.05)]">
+              {generos.map(g => <option key={g} value={g}>{g === 'Todos' ? 'Todos' : g}</option>)}
+            </select>
+            <SelectChevron />
+          </div>
         </div>
 
         <div className="flex flex-col">
-          <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Categoría FEB</span>
-          <select value={filtros.categoria} onChange={e => handleFiltroChange('categoria', e.target.value)}
-            className="bg-[#121214] border border-[#FFD700]/30 text-[#FFD700] text-[10px] font-black uppercase tracking-widest rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer appearance-none shadow-[0_0_10px_rgba(255,215,0,0.1)]">
-            {categorias.map(c => <option key={c} value={c}>{c === 'Todas' ? 'Todas' : c}</option>)}
-          </select>
+          <label htmlFor="filtro-categoria" className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Categoría FEB</label>
+          <div className="relative">
+            <select id="filtro-categoria" value={filtros.categoria} onChange={e => handleFiltroChange('categoria', e.target.value)}
+              className="w-full bg-[#121214] border border-[#FFD700]/30 text-[#FFD700] text-base md:text-[10px] font-black uppercase tracking-widest rounded-lg pl-2 pr-6 py-2.5 md:py-1.5 focus:outline-none cursor-pointer appearance-none shadow-[0_0_10px_rgba(255,215,0,0.1)]">
+              {categorias.map(c => <option key={c} value={c}>{c === 'Todas' ? 'Todas' : c}</option>)}
+            </select>
+            <SelectChevron />
+          </div>
         </div>
 
         <div className="flex flex-col">
-          <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Posición</span>
-          <select value={filtros.posicion} onChange={e => handleFiltroChange('posicion', e.target.value)}
-            className="bg-[#121214] border border-white/10 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer appearance-none hover:border-white/30 transition-colors">
-            {posiciones.map(p => <option key={p} value={p}>{p === 'Todas' ? 'Todas' : p}</option>)}
-          </select>
+          <label htmlFor="filtro-posicion" className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Posición</label>
+          <div className="relative">
+            <select id="filtro-posicion" value={filtros.posicion} onChange={e => handleFiltroChange('posicion', e.target.value)}
+              className="w-full bg-[#121214] border border-white/10 text-white text-base md:text-[10px] font-bold uppercase tracking-widest rounded-lg pl-2 pr-6 py-2.5 md:py-1.5 focus:outline-none cursor-pointer appearance-none hover:border-white/30 transition-colors">
+              {posiciones.map(p => <option key={p} value={p}>{p === 'Todas' ? 'Todas' : p}</option>)}
+            </select>
+            <SelectChevron />
+          </div>
         </div>
 
         <div className="flex flex-col">
-          <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Nivel</span>
-          <select value={filtros.nivelDesarrollo} onChange={e => handleFiltroChange('nivelDesarrollo', e.target.value)}
-            className="bg-[#121214] border border-white/10 text-emerald-400 text-[10px] font-bold uppercase tracking-widest rounded-lg px-2 py-1.5 focus:outline-none cursor-pointer appearance-none hover:border-emerald-500/30 transition-colors">
-            {nivelesDesarrollo.map(n => <option key={n} value={n}>{n === 'Todos' ? 'Todos' : n}</option>)}
-          </select>
+          <label htmlFor="filtro-nivel" className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 ml-1">Nivel</label>
+          <div className="relative">
+            <select id="filtro-nivel" value={filtros.nivelDesarrollo} onChange={e => handleFiltroChange('nivelDesarrollo', e.target.value)}
+              className="w-full bg-[#121214] border border-white/10 text-emerald-400 text-base md:text-[10px] font-bold uppercase tracking-widest rounded-lg pl-2 pr-6 py-2.5 md:py-1.5 focus:outline-none cursor-pointer appearance-none hover:border-emerald-500/30 transition-colors">
+              {nivelesDesarrollo.map(n => <option key={n} value={n}>{n === 'Todos' ? 'Todos' : n}</option>)}
+            </select>
+            <SelectChevron />
+          </div>
         </div>
       </div>
 
       <div className="flex items-center space-x-3 w-full lg:w-auto mt-2 lg:mt-0 pt-2 lg:pt-0 border-t border-white/10 lg:border-none">
         <div className="flex flex-col items-end w-full lg:w-auto">
-          <span className="text-[8px] text-gray-500 font-bold uppercase tracking-widest mb-1 mr-1">Ordenar Por</span>
-          <div className="flex items-center space-x-2 bg-[#121214] border border-white/10 rounded-xl px-3 py-1.5">
+          <label htmlFor="ordenar-por" className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1 mr-1">Ordenar Por</label>
+          <div className="flex items-center space-x-2 bg-[#121214] border border-white/10 rounded-xl px-3 py-2.5 md:py-1.5">
             <ListFilter size={14} className="text-[#FFD700]" />
             <select
+              id="ordenar-por"
               value={ordenarPor} onChange={e => setOrdenarPor(e.target.value)}
-              className="bg-transparent border-none text-[10px] text-white font-bold uppercase tracking-widest focus:outline-none cursor-pointer"
+              className="bg-transparent border-none text-base md:text-[10px] text-white font-bold uppercase tracking-widest focus:outline-none cursor-pointer"
             >
               <option value="overall" className="bg-[#121214]">Experiencia Total</option>
               <option value="nombre" className="bg-[#121214]">Nombre</option>
@@ -76,6 +95,7 @@ export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltr
 
         <button
           onClick={() => setShowAsignador(true)}
+          aria-label="Asignar misiones"
           className="flex items-center justify-center space-x-2 bg-[#FFD700]/10 border border-[#FFD700]/50 text-[#FFD700] hover:bg-[#FFD700]/20 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(255,215,0,0.2)] shrink-0 self-end"
         >
           <Target size={16} />

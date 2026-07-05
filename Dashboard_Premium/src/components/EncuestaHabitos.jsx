@@ -174,7 +174,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="glass-card rounded-3xl p-8 relative overflow-hidden glow-border"
+      className="glass-card rounded-3xl p-4 sm:p-8 relative overflow-hidden glow-border"
     >
       {/* Ambient gold glow */}
       <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-40 bg-[#FFD700]" />
@@ -233,7 +233,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: qIdx * 0.08, duration: 0.4 }}
-                className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5"
+                className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-5"
               >
                 {/* Question header */}
                 <div className="flex items-center space-x-2.5 mb-4">
@@ -247,7 +247,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                 <p className="text-sm text-white/90 font-semibold mb-4 leading-relaxed">{pregunta.texto}</p>
 
                 {/* Options as radio buttons */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2.5">
                   {pregunta.opciones.map((opcion, oIdx) => {
                     const isSelected = selectedIdx === oIdx;
                     return (
@@ -259,7 +259,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                         whileTap={!yaRespondida ? { scale: 0.97 } : {}}
                         onClick={() => handleSelect(pregunta.id, oIdx)}
                         className={`
-                          flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold
+                          flex flex-1 items-center justify-center space-x-2 min-h-12 px-4 py-2.5 rounded-xl text-xs font-bold
                           transition-all duration-200 cursor-pointer
                           ${isSelected
                             ? 'bg-[#FFD700]/15 border-[#FFD700]/60 text-[#FFD700] shadow-[0_0_12px_rgba(255,215,0,0.15)]'

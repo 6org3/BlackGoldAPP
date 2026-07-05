@@ -7,6 +7,12 @@
   --color-black-bg: #09090b;
   --color-black-card: #121214;
   --color-danger-red: #ff3333;
+
+  --animate-fade-in-up: fade-in-up 0.3s ease-out both;
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
 
 html, body, #root {
@@ -20,6 +26,45 @@ html, body, #root {
   max-width: 100vw;
   /* Premium dark noise texture overlay */
   background-image: radial-gradient(circle at 50% 0%, rgba(255,215,0,0.03) 0%, transparent 70%);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* En la PWA instalada, arrastrar hacia abajo al inicio de una lista no debe
+   disparar pull-to-refresh (perdería p. ej. una asistencia a medio pasar). */
+html, body {
+  overscroll-behavior-y: none;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Elimina el retraso/zoom por doble tap en controles táctiles */
+button, a, select, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* iOS hace auto-zoom al enfocar campos con fuente < 16px. Con el viewport
+   ya sin maximum-scale (accesibilidad), esta regla es la que lo evita.
+   max() preserva tamaños mayores intencionales y el !important blinda
+   contra cualquier utilidad text-* pequeña en los controles. */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* Respeta la preferencia de reducción de movimiento del sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .glass-card {

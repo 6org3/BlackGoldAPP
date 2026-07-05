@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '../api/supabaseClient';
 import { calcularEdad } from '../api/utilsAtletas';
 
@@ -27,7 +27,8 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleEdit = async (atleta) => {
+  // Referencia estable: las cards memoizadas la reciben como prop directa.
+  const handleEdit = useCallback(async (atleta) => {
     const { data: dataUsuario } = await supabase
       .from('usuarios')
       .select('correo, fecha_nacimiento, genero, club')
@@ -50,7 +51,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     setEditingId(atleta.atleta_id);
     setShowForm(true);
     setShowParentForm(false);
-  };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

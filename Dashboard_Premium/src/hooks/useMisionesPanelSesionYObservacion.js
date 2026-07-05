@@ -3,23 +3,20 @@ import { fetchSesionesAtleta } from '../api/sesionesEntrenamientoService';
 import { supabase } from '../api/supabaseClient';
 
 // ── Carga sesión y observación del día ──
+// Recibe el id de la fila en `atletas` ya resuelto por
+// useMisionesPanelAtletaData (evita repetir el lookup usuario→atleta).
 export function useMisionesPanelSesionYObservacion(
-  atletaId,
+  atletaRowId,
   setSesionHoy,
   setEvaValue,
   setIsRpeLocked,
   setObservacionHoy
 ) {
   useEffect(() => {
-    const loadSesion = async () => {
-      const { data: ad } = await supabase
-        .from('atletas')
-        .select('id')
-        .eq('usuario_id', atletaId)
-        .single();
-      if (!ad) return;
+    if (!atletaRowId) return;
 
-      const sesiones = await fetchSesionesAtleta(ad.id);
+    const loadSesion = async () => {
+      const sesiones = await fetchSesionesAtleta(atletaRowId);
       const today = new Date().toISOString().split('T')[0];
 
       if (sesiones.length > 0) {
@@ -34,7 +31,7 @@ export function useMisionesPanelSesionYObservacion(
       const { data: observaciones } = await supabase
         .from('observaciones_cancha')
         .select('*')
-        .eq('atleta_id', ad.id)
+        .eq('atleta_id', atletaRowId)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -44,7 +41,7 @@ export function useMisionesPanelSesionYObservacion(
       }
     };
     loadSesion();
-  }, [atletaId]);
+  }, [atletaRowId, setSesionHoy, setEvaValue, setIsRpeLocked, setObservacionHoy]);
 }
 
 // ── Handler de guardar RPE ──────────────

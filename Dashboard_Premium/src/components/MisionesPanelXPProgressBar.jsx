@@ -36,10 +36,10 @@ export default function XPProgressBar({ xpTotal, misionesAprobadas }) {
       {/* Progress bar */}
       <div className="mb-2">
         <div className="flex justify-between items-center mb-1.5">
-          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+          <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest">
             {isMax ? 'Nivel Máximo Alcanzado' : `Hacia ${nextLevelName}`}
           </span>
-          <span className="text-[9px] font-black text-[#FFD700]">{percentage}%</span>
+          <span className="text-[11px] font-black text-[#FFD700]">{percentage}%</span>
         </div>
         <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
           <motion.div
@@ -50,7 +50,7 @@ export default function XPProgressBar({ xpTotal, misionesAprobadas }) {
           />
         </div>
         {!isMax && (
-          <p className="text-[9px] text-gray-600 mt-1.5 text-right font-bold">
+          <p className="text-[11px] text-gray-500 mt-1.5 text-right font-bold">
             {(required - current).toLocaleString()} XP para el siguiente nivel
           </p>
         )}

@@ -179,7 +179,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
             <div className="glass-card rounded-2xl p-4 border border-white/8">
               <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.25em] mb-3">Destinatario</label>
               <select value={params.atleta_id || ''} onChange={(e) => setParams({ atleta_id: e.target.value })}
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none appearance-none cursor-pointer">
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-base md:text-sm text-white focus:outline-none appearance-none cursor-pointer">
                 <option value="" className="bg-[#121214]">Seleccionar jugador...</option>
                 {atletas.map((a) => <option key={a.atleta_id} value={a.atleta_id} className="bg-[#121214]">{a.nombre} ({a.categoria})</option>)}
               </select>
@@ -241,13 +241,13 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
             <div className="glass-card rounded-2xl p-4 border border-white/8">
               <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.25em] mb-3">Rango de edad</label>
               <div className="flex items-center gap-3">
-                <input type="number" min="0" placeholder="Mín" value={params.edad_min ?? ''}
+                <input type="number" inputMode="numeric" min="0" placeholder="Mín" value={params.edad_min ?? ''}
                   onChange={(e) => setParams((p) => ({ ...p, edad_min: e.target.value === '' ? undefined : Number(e.target.value) }))}
-                  className="w-24 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" />
+                  className="w-24 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-base md:text-sm text-white focus:outline-none" />
                 <span className="text-gray-500 text-xs font-bold">a</span>
-                <input type="number" min="0" placeholder="Máx" value={params.edad_max ?? ''}
+                <input type="number" inputMode="numeric" min="0" placeholder="Máx" value={params.edad_max ?? ''}
                   onChange={(e) => setParams((p) => ({ ...p, edad_max: e.target.value === '' ? undefined : Number(e.target.value) }))}
-                  className="w-24 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none" />
+                  className="w-24 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-base md:text-sm text-white focus:outline-none" />
                 <span className="text-gray-500 text-xs">años</span>
               </div>
             </div>
@@ -275,9 +275,11 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
               {destinatariosCustom.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {destinatariosCustom.map((d) => (
-                    <span key={d.id} className="flex items-center space-x-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full px-2.5 py-1 text-[10px] text-purple-400 font-bold">
+                    <span key={d.id} className="flex items-center space-x-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full px-2.5 py-1.5 text-[10px] text-purple-400 font-bold">
                       <span>{d.nombre}</span>
-                      <button onClick={() => setDestinatariosCustom((p) => p.filter((x) => x.id !== d.id))} className="hover:text-white">✕</button>
+                      <button aria-label={`Quitar ${d.nombre}`}
+                        onClick={() => setDestinatariosCustom((p) => p.filter((x) => x.id !== d.id))}
+                        className="p-1.5 -m-1 min-w-[24px] min-h-[24px] flex items-center justify-center hover:text-white">✕</button>
                     </span>
                   ))}
                 </div>
@@ -286,7 +288,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
                 <Search size={13} className="text-gray-500" />
                 <input type="text" placeholder="Agregar por nombre..." value={busquedaDest}
                   onChange={(e) => setBusquedaDest(e.target.value)}
-                  className="bg-transparent text-sm text-white placeholder-gray-600 focus:outline-none w-full" />
+                  className="bg-transparent text-base md:text-sm text-white placeholder-gray-600 focus:outline-none w-full" />
               </div>
               {atletasFiltrados.slice(0, 5).map((a) => (
                 <button key={a.id} onClick={() => { setDestinatariosCustom((p) => [...p, a]); setBusquedaDest(''); }}
@@ -319,10 +321,10 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
           {/* Título y Mensaje */}
           <input type="text" placeholder="Título del mensaje (opcional)"
             value={titulo} onChange={(e) => setTitulo(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 transition-colors" />
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 transition-colors" />
           <textarea rows={4} placeholder="Escribe el mensaje..."
             value={mensaje} onChange={(e) => setMensaje(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 resize-none transition-colors" />
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 resize-none transition-colors" />
 
           <button onClick={handleEnviar} disabled={saving || !puedeEnviar}
             className={`w-full flex items-center justify-center space-x-2 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all ${
@@ -339,7 +341,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
         {/* PANEL DERECHO: Feed de mensajes */}
         <div>
           <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Feed Reciente</h3>
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          <div className="space-y-3 lg:max-h-[70vh] lg:overflow-y-auto overscroll-contain lg:pr-1">
             {comunicaciones.length === 0 && (
               <div className="text-center py-16 text-gray-600">
                 <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
@@ -363,8 +365,8 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
                   <p className="text-xs text-gray-400 leading-relaxed">{c.mensaje}</p>
                   <div className="mt-3 pt-3 border-t border-white/5 flex justify-end">
                     <button onClick={() => abrirWA(c)}
-                      className="flex items-center space-x-1.5 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
-                      <MessageSquare size={12} />
+                      className="flex items-center gap-1.5 px-3 py-2.5 min-h-11 rounded-lg border border-emerald-500/30 text-xs font-bold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors">
+                      <MessageSquare size={13} />
                       <span>Abrir en WhatsApp</span>
                     </button>
                   </div>

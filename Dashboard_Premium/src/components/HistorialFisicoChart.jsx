@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Activity } from 'lucide-react';
 
 export default function HistorialFisicoChart({ evaluaciones }) {
@@ -72,11 +72,13 @@ export default function HistorialFisicoChart({ evaluaciones }) {
             <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={10} tickMargin={10} />
             <YAxis yAxisId="left" stroke="rgba(255,255,255,0.2)" fontSize={10} domain={['dataMin - 2', 'dataMax + 2']} />
             <YAxis yAxisId="right" orientation="right" stroke="rgba(255,255,255,0.2)" fontSize={10} domain={['dataMin - 1', 'dataMax + 1']} />
-            <Tooltip 
+            <Tooltip
               contentStyle={{ backgroundColor: '#18181B', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
               itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
               labelStyle={{ fontSize: '10px', color: '#9CA3AF', marginBottom: '4px' }}
             />
+            {/* Leyenda visible: en móvil no hay hover para distinguir las series */}
+            <Legend wrapperStyle={{ fontSize: 10, textTransform: 'uppercase' }} iconType="circle" iconSize={7} />
             <Area yAxisId="left" type="monotone" dataKey="peso" stroke="#34D399" name="Peso (kg)" strokeWidth={2} fillOpacity={1} fill="url(#colorPeso)" />
             <Area yAxisId="right" type="monotone" dataKey="imc" stroke="#A855F7" name="IMC" strokeWidth={2} fillOpacity={1} fill="url(#colorImc)" />
           </AreaChart>

@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight, User, Phone, Loader2, CheckCircle2 } from 'lucide-react';
+import { Sparkles, User, Phone, Loader2, CheckCircle2 } from 'lucide-react';
 import { registrarDesdeFormularioPublico } from '../api/registroPublicoService';
 import { calcularEdad } from '../api/utilsAtletas';
 
 export default function RegistroPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -84,57 +83,57 @@ export default function RegistroPage() {
           {error && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3 rounded-lg mb-6 text-center">{error}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
               <h3 className="text-lg font-black uppercase text-[#FFD700] mb-6 flex items-center"><User className="mr-2" size={20}/> Datos del Atleta</h3>
               <div className="space-y-4">
                 
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Cédula del Jugador</label>
-                  <input type="text" name="cedula" value={datosAtleta.cedula} onChange={handleAtletaChange} required className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="Cédula o ID" />
+                  <label htmlFor="reg-cedula" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Cédula del Jugador</label>
+                  <input id="reg-cedula" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={10} name="cedula" value={datosAtleta.cedula} onChange={handleAtletaChange} required className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="Cédula o ID" />
                 </div>
                 
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nombre Completo <span className="text-red-500">*</span></label>
-                  <input type="text" name="nombre" value={datosAtleta.nombre} onChange={handleAtletaChange} required className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="Ej. Michael Jordan" />
+                  <label htmlFor="reg-nombre" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nombre Completo <span className="text-red-500">*</span></label>
+                  <input id="reg-nombre" type="text" name="nombre" autoComplete="section-atleta name" value={datosAtleta.nombre} onChange={handleAtletaChange} required className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="Ej. Michael Jordan" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Género <span className="text-red-500">*</span></label>
-                    <select name="genero" value={datosAtleta.genero} onChange={handleAtletaChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors">
+                    <label htmlFor="reg-genero" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Género <span className="text-red-500">*</span></label>
+                    <select id="reg-genero" name="genero" value={datosAtleta.genero} onChange={handleAtletaChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors">
                       <option value="Masculino">Masculino</option>
                       <option value="Femenino">Femenino</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Posición</label>
-                    <select name="posicion" value={datosAtleta.posicion} onChange={handleAtletaChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors">
+                    <label htmlFor="reg-posicion" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Posición</label>
+                    <select id="reg-posicion" name="posicion" value={datosAtleta.posicion} onChange={handleAtletaChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors">
                       {posiciones.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Teléfono (Opcional)</label>
-                    <input type="tel" name="telefono" value={datosAtleta.telefono} onChange={handleAtletaChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="0999999999" />
+                    <label htmlFor="reg-telefono" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Teléfono (Opcional)</label>
+                    <input id="reg-telefono" type="tel" name="telefono" autoComplete="section-atleta tel" value={datosAtleta.telefono} onChange={handleAtletaChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="0999999999" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Correo Electrónico (Opcional)</label>
-                    <input type="email" name="correo" value={datosAtleta.correo} onChange={handleAtletaChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="ejemplo@correo.com" />
+                    <label htmlFor="reg-correo" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Correo Electrónico (Opcional)</label>
+                    <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="ejemplo@correo.com" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Fecha de Nacimiento <span className="text-red-500">*</span></label>
-                    <input type="date" name="fecha_nacimiento" value={datosAtleta.fecha_nacimiento} onChange={handleAtletaChange} required className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" />
+                    <label htmlFor="reg-fecha-nacimiento" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Fecha de Nacimiento <span className="text-red-500">*</span></label>
+                    <input id="reg-fecha-nacimiento" type="date" name="fecha_nacimiento" autoComplete="section-atleta bday" value={datosAtleta.fecha_nacimiento} onChange={handleAtletaChange} required className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Club (Selecciona o Escribe)</label>
-                  <input type="text" name="club" list="clubesList" value={datosAtleta.club} onChange={handleAtletaChange} required className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="Ej. Black Gold" />
+                  <label htmlFor="reg-club" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Club (Selecciona o Escribe)</label>
+                  <input id="reg-club" type="text" name="club" list="clubesList" value={datosAtleta.club} onChange={handleAtletaChange} required className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="Ej. Black Gold" />
                   <datalist id="clubesList">
                     {clubes.map(c => <option key={c} value={c} />)}
                   </datalist>
@@ -149,18 +148,18 @@ export default function RegistroPage() {
                   </h3>
                   
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nombre Completo del Representante <span className="text-red-500">*</span></label>
-                    <input type="text" name="nombre" value={datosPadre.nombre} onChange={handlePadreChange} required={esMenorEdad} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="Nombre del Padre/Madre" />
+                    <label htmlFor="reg-rep-nombre" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Nombre Completo del Representante <span className="text-red-500">*</span></label>
+                    <input id="reg-rep-nombre" type="text" name="nombre" autoComplete="section-representante name" value={datosPadre.nombre} onChange={handlePadreChange} required={esMenorEdad} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="Nombre del Padre/Madre" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Teléfono <span className="text-red-500">*</span></label>
-                      <input type="tel" name="telefono" value={datosPadre.telefono} onChange={handlePadreChange} required={esMenorEdad} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="0999999999" />
+                      <label htmlFor="reg-rep-telefono" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Teléfono <span className="text-red-500">*</span></label>
+                      <input id="reg-rep-telefono" type="tel" name="telefono" autoComplete="section-representante tel" value={datosPadre.telefono} onChange={handlePadreChange} required={esMenorEdad} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="0999999999" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Correo Electrónico (Opcional)</label>
-                      <input type="email" name="correo" value={datosPadre.correo} onChange={handlePadreChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="correo@ejemplo.com" />
+                      <label htmlFor="reg-rep-correo" className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Correo Electrónico (Opcional)</label>
+                      <input id="reg-rep-correo" type="email" name="correo" autoComplete="section-representante email" value={datosPadre.correo} onChange={handlePadreChange} className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm focus:border-[#FFD700]/50 outline-none transition-colors" placeholder="correo@ejemplo.com" />
                     </div>
                   </div>
                 </motion.div>

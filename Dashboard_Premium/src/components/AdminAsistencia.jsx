@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, FileText, AlertTriangle, Search, Calendar, Users, Save, ClipboardList } from 'lucide-react';
+import { CheckCircle2, XCircle, FileText, AlertTriangle, Search, Calendar, Users, Save, ClipboardList, ChevronDown } from 'lucide-react';
 import { fetchAsistenciaPorFecha, upsertAsistencia } from '../api/asistenciaService';
 
 const CATEGORIAS = ['Todas', 'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)', 'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores'];
@@ -23,24 +23,21 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const [asistencias, setAsistencias] = useState({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
 
-  // Inicializar todos como Presente por defecto
-  const initAsistencias = useCallback((lista) => {
-    const map = {};
-    lista.forEach(a => { map[a.id] = map[a.id] || 'Presente'; });
-    return map;
-  }, []);
-
-  // Cargar asistencias existentes para la fecha/categoría seleccionada
+  // Cargar asistencias existentes para la fecha/categoría seleccionada.
+  // El universo lo define la categoría, no la búsqueda (que es solo un
+  // filtro visual): así cambiar fecha/categoría con texto en el buscador
+  // no descarta las marcas del resto del grupo.
   const loadAsistencias = useCallback(async () => {
     const registros = await fetchAsistenciaPorFecha(fecha, filtroCategoria === 'Todas' ? null : filtroCategoria);
-    setAsistencias(prev => {
-      // Iniciar todos como Presente, luego sobrescribir con lo que haya en DB
-      const base = initAsistencias(atletasFiltrados);
-      registros.forEach(r => { if (r.atleta_id) base[r.atleta_id] = r.estado; });
-      return base;
-    });
-  }, [fecha, filtroCategoria, atletas]); // eslint-disable-line
+    const base = {};
+    atletas
+      .filter(a => filtroCategoria === 'Todas' || a.categoria === filtroCategoria)
+      .forEach(a => { base[a.id] = 'Presente'; });
+    registros.forEach(r => { if (r.atleta_id) base[r.atleta_id] = r.estado; });
+    setAsistencias(base);
+  }, [fecha, filtroCategoria, atletas]);
 
   useEffect(() => { loadAsistencias(); }, [loadAsistencias]);
 
@@ -62,16 +59,24 @@ export default function AdminAsistencia({ user, atletas = [] }) {
 
   const handleGuardar = async () => {
     setSaving(true);
-    const promises = atletasFiltrados.map(a =>
-      upsertAsistencia({
-        atleta_id: a.id,
-        coach_id: user.id,
-        fecha,
-        estado: asistencias[a.id] || 'Presente',
-      })
+    setErrorGuardar('');
+    const resultados = await Promise.all(
+      atletasFiltrados.map(a =>
+        upsertAsistencia({
+          atleta_id: a.id,
+          coach_id: user.id,
+          fecha,
+          estado: asistencias[a.id] || 'Presente',
+        })
+      )
     );
-    await Promise.all(promises);
     setSaving(false);
+    // upsertAsistencia devuelve null cuando falla (no lanza)
+    const fallidos = resultados.filter(r => r === null).length;
+    if (fallidos > 0) {
+      setErrorGuardar(`No se pudo guardar la asistencia de ${fallidos} atleta(s). Revisa tu conexión e intenta de nuevo.`);
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -120,13 +125,15 @@ export default function AdminAsistencia({ user, atletas = [] }) {
           >
             {CATEGORIAS.map(c => <option key={c} value={c} className="bg-[#121214]">{c}</option>)}
           </select>
+          <ChevronDown size={12} className="text-gray-500 pointer-events-none" />
         </div>
 
         {/* Buscador */}
         <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 flex-1 min-w-[200px]">
           <Search size={14} className="text-gray-500" />
           <input
-            type="text"
+            type="search"
+            enterKeyHint="search"
             placeholder="Buscar jugador..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
@@ -149,9 +156,9 @@ export default function AdminAsistencia({ user, atletas = [] }) {
             animate={{ opacity: 1, y: 0 }}
             className={`glass-card rounded-2xl p-4 border ${stat.border}`}
           >
-            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-500 mb-1">{stat.label}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-1">{stat.label}</p>
             <p className={`text-3xl font-black ${stat.color}`}>{stat.value}</p>
-            <p className="text-[9px] text-gray-500 mt-0.5">{stat.unit}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">{stat.unit}</p>
           </motion.div>
         ))}
       </div>
@@ -175,8 +182,8 @@ export default function AdminAsistencia({ user, atletas = [] }) {
                 key={atleta.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: idx * 0.02 }}
-                className="flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/3 transition-colors"
+                transition={{ delay: Math.min(idx, 10) * 0.02 }}
+                className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-4 py-3 border-b border-white/5 hover:bg-white/3 transition-colors"
               >
                 {/* Atleta Info */}
                 <div className="flex items-center space-x-3">
@@ -191,8 +198,8 @@ export default function AdminAsistencia({ user, atletas = [] }) {
                   </div>
                 </div>
 
-                {/* Botones de Estado */}
-                <div className="flex items-center space-x-1.5">
+                {/* Botones de Estado — grandes en móvil para pasar lista con el pulgar */}
+                <div className="grid grid-cols-4 gap-2 md:flex md:items-center">
                   {Object.entries(ESTADO_CONFIG).map(([estado, cfg]) => {
                     const Icon = cfg.icon;
                     const isActive = estadoActual === estado;
@@ -200,13 +207,15 @@ export default function AdminAsistencia({ user, atletas = [] }) {
                       <button
                         key={estado}
                         title={cfg.label}
+                        aria-label={cfg.label}
+                        aria-pressed={isActive}
                         onClick={() => setAsistencias(prev => ({ ...prev, [atleta.id]: estado }))}
-                        className={`p-2 rounded-lg border transition-all text-[10px] font-bold flex items-center space-x-1 ${
+                        className={`min-h-11 md:min-w-11 p-2 md:p-2.5 rounded-lg border transition-all font-bold flex flex-col md:flex-row items-center justify-center gap-1 ${
                           isActive ? cfg.color : 'text-gray-600 border-white/5 hover:bg-white/5 hover:text-gray-400'
                         }`}
                       >
-                        <Icon size={13} />
-                        <span className="hidden md:inline">{cfg.label}</span>
+                        <Icon size={18} />
+                        <span className="text-[9px] md:text-[10px] leading-none">{cfg.label}</span>
                       </button>
                     );
                   })}
@@ -217,8 +226,11 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         )}
       </div>
 
-      {/* Botón Guardar */}
-      <div className="relative z-10 flex justify-end">
+      {/* Botón Guardar — sticky para que la acción principal quede siempre al alcance del pulgar */}
+      <div className="sticky bottom-0 z-20 -mx-6 md:-mx-12 -mb-6 md:-mb-12 px-6 md:px-12 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] bg-[#09090b]/90 backdrop-blur border-t border-white/5 flex flex-col items-end gap-2">
+        {errorGuardar && (
+          <p className="text-xs text-red-400 font-bold" role="alert">{errorGuardar}</p>
+        )}
         <button
           onClick={handleGuardar}
           disabled={saving}

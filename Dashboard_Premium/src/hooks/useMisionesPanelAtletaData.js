@@ -12,11 +12,14 @@ export function useMisionesPanelAtletaData(atletaId, setAtletaData) {
         .single();
 
       if (data) {
+        // Solo las columnas que consumen radarCalc/didacticEngine y este hook,
+        // acotadas a las 100 más recientes (aquí solo importa la última por prueba).
         const { data: evaluaciones } = await supabase
           .from('evaluaciones_pruebas')
-          .select('*')
+          .select('prueba_tipo, valor_crudo, puntuacion_normalizada, sub_pilar, created_at')
           .eq('atleta_id', data.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(100);
 
         const latestEvals = {};
         (evaluaciones || []).forEach(e => {
@@ -52,5 +55,5 @@ export function useMisionesPanelAtletaData(atletaId, setAtletaData) {
       }
     };
     loadAtleta();
-  }, [atletaId]);
+  }, [atletaId, setAtletaData]);
 }

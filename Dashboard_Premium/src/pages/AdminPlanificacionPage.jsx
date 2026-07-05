@@ -1,9 +1,13 @@
 import AdminPlanificacion from '../components/AdminPlanificacion';
+import Sidebar from '../components/Sidebar';
 
 export default function AdminPlanificacionPage() {
   return (
-    <div className="min-h-screen bg-[#09090b] text-white p-6 md:p-12">
-      <AdminPlanificacion />
+    <div className="flex h-dvh bg-[#09090b] overflow-hidden text-white">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-12">
+        <AdminPlanificacion />
+      </main>
     </div>
   );
 }

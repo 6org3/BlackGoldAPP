@@ -1,11 +1,31 @@
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Loader2 } from 'lucide-react'
 import { AuthProvider, useAuth } from './AuthContext'
 import './index.css'
 import Login from './components/Login.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import InstallPrompt from './components/InstallPrompt.jsx'
+import PageLoader from './components/PageLoader.jsx'
+
+// En Android, beforeinstallprompt suele dispararse justo tras el load (antes
+// de que el usuario termine el login). Se captura a nivel módulo para que
+// InstallPrompt pueda ofrecer la instalación aunque monte más tarde.
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault()
+  window.__bgDeferredPrompt = e
+})
+
+// Tras un deploy, un chunk lazy del build anterior puede ya no existir en el
+// servidor: recargar trae el build nuevo en vez de morir en el ErrorBoundary.
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault()
+  const ultimaRecarga = Number(sessionStorage.getItem('bg-preload-reload') || 0)
+  if (Date.now() - ultimaRecarga > 10000) {
+    sessionStorage.setItem('bg-preload-reload', String(Date.now()))
+    window.location.reload()
+  }
+})
 
 // Carga diferida: cada vista se descarga solo cuando se navega a ella.
 const App = lazy(() => import('./App.jsx'))
@@ -20,11 +40,13 @@ const PadreDashboard = lazy(() => import('./pages/PadreDashboard.jsx'))
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
 
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen bg-zinc-950">
-    <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
-  </div>
-)
+// La PWA instalada abre en '/': si supabase-js aún tiene sesión válida no hay
+// que volver a pedir credenciales, se entra directo al panel según el rol.
+const RootRedirect = () => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={user.rol === 'padre' ? '/padre' : '/dashboard'} replace />;
+};
 
 const PrivateRoute = ({ children, roles }) => {
   const { user, loading } = useAuth();
@@ -128,9 +150,13 @@ createRoot(document.getElementById('root')).render(
               </PrivateRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/" element={<RootRedirect />} />
+          {/* Cualquier URL desconocida (typo, deep-link viejo) vuelve al
+              redirect raíz en vez de renderizar una pantalla negra. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>
+        <InstallPrompt />
       </BrowserRouter>
       </AuthProvider>
     </ErrorBoundary>

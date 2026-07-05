@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Target, Users, CheckCircle2, Loader2, X, Bookmark, Lightbulb, Plus } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
@@ -30,57 +30,57 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const [sugerenciaXP, setSugerenciaXP] = useState(null);
 
-  const categorias = [...new Set(todosLosAtletas.map(a => a.categoria).filter(Boolean))];
+  const categorias = useMemo(
+    () => [...new Set(todosLosAtletas.map(a => a.categoria).filter(Boolean))],
+    [todosLosAtletas]
+  );
+  // todosLosAtletas llega async desde el padre: al montar `categorias` puede
+  // estar vacío, así que se deriva el valor efectivo en vez de fijarlo una
+  // sola vez (el select mostraba la 1ª opción pero el filtro usaba '').
+  const categoriaEfectiva = categoriaSeleccionada || categorias[0] || '';
 
+  // Scroll-lock del fondo mientras el modal está abierto (en iOS el body
+  // scrollea por detrás del overlay).
   useEffect(() => {
-    if (categorias.length > 0) setCategoriaSeleccionada(categorias[0]);
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
   }, []);
 
   useEffect(() => {
-    loadBancoMisiones();
+    let cancelado = false;
+    supabase
+      .from('misiones')
+      .select('id, titulo, pilar, xp_recompensa')
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (cancelado) return;
+        if (error) console.error('Error cargando banco de misiones:', error);
+        else if (data) setBancoMisiones(data);
+        setLoadingBanco(false);
+      });
+    return () => { cancelado = true; };
   }, [user]);
 
-  const loadBancoMisiones = async () => {
-    setLoadingBanco(true);
-    try {
-      const { data, error } = await supabase
-        .from('misiones')
-        .select('id, titulo, pilar, xp_recompensa')
-        .order('created_at', { ascending: false });
-
-      if (!error && data) setBancoMisiones(data);
-    } catch (err) {
-      console.error('Error cargando banco de misiones:', err);
+  // Sugerencia de XP basada en déficit del atleta (derivada, sin estado extra)
+  const sugerenciaXP = useMemo(() => {
+    if (asignacionTipo !== 'atleta' || !atletaSeleccionado) return null;
+    const atleta = todosLosAtletas.find(a => a.id === atletaSeleccionado);
+    if (!atleta || !atleta._evaluaciones) return null;
+    const scores = getSubPilarScores(atleta._evaluaciones);
+    let weakest = null;
+    let minScore = 999;
+    Object.entries(scores).forEach(([k, v]) => {
+      if (v < minScore) { minScore = v; weakest = k; }
+    });
+    if (weakest && minScore < 50) {
+      return {
+        pilar: weakest,
+        xp: 25,
+        msg: `Su ${weakest} está bajo (${minScore} XP). Sugerimos +25 XP para motivar este hábito.`
+      };
     }
-    setLoadingBanco(false);
-  };
-
-  // Sugerencia de XP basada en déficit del atleta
-  useEffect(() => {
-    if (asignacionTipo === 'atleta' && atletaSeleccionado) {
-      const atleta = todosLosAtletas.find(a => a.id === atletaSeleccionado);
-      if (atleta && atleta._evaluaciones) {
-        const scores = getSubPilarScores(atleta._evaluaciones);
-        let weakest = null;
-        let minScore = 999;
-        Object.entries(scores).forEach(([k, v]) => {
-          if (v < minScore) { minScore = v; weakest = k; }
-        });
-        if (weakest && minScore < 50) {
-          setSugerenciaXP({
-            pilar: weakest,
-            xp: 25,
-            msg: `Su ${weakest} está bajo (${minScore} XP). Sugerimos +25 XP para motivar este hábito.`
-          });
-        } else {
-          setSugerenciaXP(null);
-        }
-      }
-    } else {
-      setSugerenciaXP(null);
-    }
+    return null;
   }, [asignacionTipo, atletaSeleccionado, todosLosAtletas]);
 
   const handleMisionSelect = (e) => {
@@ -126,7 +126,7 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
         if (!found) throw new Error('Atleta no encontrado');
         targetAtletas.push(found);
       } else if (asignacionTipo === 'categoria') {
-        targetAtletas = todosLosAtletas.filter(a => a.categoria === categoriaSeleccionada);
+        targetAtletas = todosLosAtletas.filter(a => a.categoria === categoriaEfectiva);
       } else {
         targetAtletas = todosLosAtletas;
       }
@@ -155,16 +155,14 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
         misionIdFinal = newMision.id;
       }
 
-      // Asignar a cada atleta (ignorar duplicados)
-      for (const atleta of targetAtletas) {
-        const atletaId = atleta.atleta_id || atleta.id;
-        try {
-          await asignarMisionAAtleta(atletaId, misionIdFinal);
-        } catch (err) {
-          // Ignorar duplicate key (ya asignada)
-          if (err.code !== '23505') throw err;
-        }
-      }
+      // Asignar a todos en paralelo: un round-trip por atleta en serie dejaba
+      // el spinner colgado varios segundos en red móvil.
+      const resultados = await Promise.allSettled(
+        targetAtletas.map(atleta => asignarMisionAAtleta(atleta.atleta_id || atleta.id, misionIdFinal))
+      );
+      // Ignorar duplicate key (ya asignada); propagar cualquier otro error
+      const falloReal = resultados.find(r => r.status === 'rejected' && r.reason?.code !== '23505');
+      if (falloReal) throw falloReal.reason;
 
       setSuccess(true);
       setTimeout(() => { onClose(); }, 2000);
@@ -176,11 +174,11 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card w-full max-w-lg rounded-2xl p-6 border border-zinc-800 max-h-[90vh] overflow-y-auto custom-scrollbar"
+        className="glass-card w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border border-zinc-800 max-h-[85dvh] overflow-y-auto custom-scrollbar"
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -190,14 +188,14 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
             </div>
             <h2 className="text-xl font-bold text-white">Asignar Misión</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} aria-label="Cerrar" className="p-2 -m-2 text-gray-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <div className="space-y-4">
           {/* Tipo de asignación */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Asignar a:</label>
               <select
@@ -231,7 +229,7 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Categoría</label>
                 <select
-                  value={categoriaSeleccionada}
+                  value={categoriaEfectiva}
                   onChange={(e) => setCategoriaSeleccionada(e.target.value)}
                   className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none"
                 >
@@ -307,7 +305,7 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Pilar</label>
                       <select
@@ -328,7 +326,7 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
                         value={videoUrl}
                         onChange={(e) => setVideoUrl(e.target.value)}
                         placeholder="https://youtube.com/..."
-                        className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none text-xs"
+                        className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none"
                       />
                     </div>
                   </div>
@@ -341,6 +339,8 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
                 <div className="flex space-x-2">
                   <input
                     type="number"
+                    inputMode="numeric"
+                    min="0"
                     value={recompensa}
                     onChange={(e) => setRecompensa(e.target.value)}
                     disabled={!modoCreacion}

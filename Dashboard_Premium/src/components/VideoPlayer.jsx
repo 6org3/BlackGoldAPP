@@ -16,6 +16,7 @@ export default function VideoPlayer({ url }) {
         <iframe
           src={`https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1`}
           title="Video Educativo"
+          loading="lazy"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
           className="w-full h-full"
@@ -30,6 +31,8 @@ export default function VideoPlayer({ url }) {
       <video
         src={url}
         controls
+        preload="metadata"
+        playsInline
         className="w-full h-full object-contain"
       >
         Tu navegador no soporta la reproducción de video.

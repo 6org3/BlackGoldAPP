@@ -1,37 +1,59 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Droplets } from 'lucide-react';
 
 
-// Recovery dot color
-function recoveryDot(estado) {
+// Clases de la pill de recuperación según el estado (clases completas para
+// que Tailwind las genere; no concatenar colores dinámicamente).
+function recoveryPill(estado) {
   if (!estado || estado === 'Óptimo') return null;
-  if (estado === 'Agotamiento Activo') return 'bg-amber-500';
-  if (estado === 'Fatiga Silenciosa') return 'bg-purple-500';
-  return 'bg-red-500';
+  if (estado === 'Agotamiento Activo') return 'border-amber-500/40 text-amber-400 bg-amber-500/10';
+  if (estado === 'Fatiga Silenciosa') return 'border-purple-500/40 text-purple-400 bg-purple-500/10';
+  return 'border-red-500/40 text-red-400 bg-red-500/10';
 }
 
 export default function AthleteGridCard({ atleta, onClick }) {
-  const dotColor = recoveryDot(atleta.estado_recuperacion);
+  const pillColor = recoveryPill(atleta.estado_recuperacion);
+  const deshidratado = atleta.readiness_hoy && atleta.readiness_hoy.color_orina >= 5;
 
   return (
     <motion.div
       whileHover={{ y: -2 }}
       onClick={onClick}
-      className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-[#FFD700]/30 transition-all cursor-pointer relative group"
+      role="button"
+      tabIndex={0}
+      aria-label={`Ver perfil de ${atleta.nombre}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-[#FFD700]/30 focus-visible:ring-2 focus-visible:ring-[#FFD700]/60 focus-visible:outline-none transition-all cursor-pointer relative group"
     >
-      {/* Recovery / Readiness alerts */}
-      <div className="absolute top-3 right-3 flex items-center gap-1.5">
-        {atleta.readiness_hoy && atleta.readiness_hoy.color_orina >= 5 && (
-          <span title={`Deshidratación (Color ${atleta.readiness_hoy.color_orina})`} className="text-[#FFD700] animate-pulse">
-            <Droplets size={14} fill="currentColor" />
-          </span>
-        )}
-        {dotColor && (
-          <span className={`w-2.5 h-2.5 rounded-full ${dotColor} animate-pulse`} 
-                title={atleta.estado_recuperacion} />
-        )}
-      </div>
+      {/* Recovery / Readiness alerts: pills con texto visible (nada de
+          significado solo-hover en información médica) */}
+      {(deshidratado || pillColor) && (
+        <div className="flex flex-wrap items-center justify-end gap-1.5 mb-3">
+          {deshidratado && (
+            <span
+              aria-label={`Alerta de hidratación (color de orina ${atleta.readiness_hoy.color_orina})`}
+              className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/10"
+            >
+              <Droplets size={11} fill="currentColor" className="animate-pulse" />
+              Hidratación
+            </span>
+          )}
+          {pillColor && (
+            <span
+              aria-label={`Estado de recuperación: ${atleta.estado_recuperacion}`}
+              className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${pillColor}`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+              {atleta.estado_recuperacion}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Top: Avatar + Identity */}
       <div className="flex items-center space-x-3 mb-4">
@@ -54,17 +76,17 @@ export default function AthleteGridCard({ atleta, onClick }) {
           <span className={`text-[10px] font-black uppercase tracking-widest ${atleta.rango?.textColor || 'text-gray-400'}`}>
             {atleta.rango?.nombre}
           </span>
-          <span className="text-[9px] text-gray-500 font-bold">{atleta.rango?.tier}</span>
+          <span className="text-[10px] text-gray-500 font-bold">{atleta.rango?.tier}</span>
         </div>
-        
+
         <div className="flex flex-wrap gap-1">
           {atleta.perfil_mental && (
-            <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
+            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
               {atleta.perfil_mental}
             </span>
           )}
           {atleta.prevencion_impacto && (
-            <span title="Sensibilidad al Impacto" className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-orange-500/30 text-orange-400 bg-orange-500/5 flex items-center">
+            <span title="Sensibilidad al Impacto" className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-orange-500/30 text-orange-400 bg-orange-500/5 flex items-center">
               ⚠ Impacto
             </span>
           )}
@@ -73,16 +95,16 @@ export default function AthleteGridCard({ atleta, onClick }) {
 
       {/* Mini metric pills - Anthropometry */}
       <div className="flex items-center gap-2 flex-wrap mt-2 pt-3 border-t border-white/5">
-        <span title="Estatura" className="text-[10px] font-bold px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400">
+        <span title="Estatura" className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400">
           {atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'}
         </span>
-        <span title="Peso" className="text-[10px] font-bold px-2 py-1 rounded-lg bg-green-500/10 text-green-400">
+        <span title="Peso" className="text-xs font-bold px-2 py-1 rounded-lg bg-green-500/10 text-green-400">
           {atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'}
         </span>
-        <span title="Índice de Masa Corporal (IMC)" className="text-[10px] font-bold px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400">
+        <span title="Índice de Masa Corporal (IMC)" className="text-xs font-bold px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400">
           IMC: {atleta.imc || '—'}
         </span>
-        <span title="Brazada Relativa" className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#FFD700]/10 text-[#FFD700]">
+        <span title="Brazada Relativa" className="text-xs font-bold px-2 py-1 rounded-lg bg-[#FFD700]/10 text-[#FFD700]">
           BR: {atleta.brazada_relativa || '—'}
         </span>
       </div>

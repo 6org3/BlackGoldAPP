@@ -17,7 +17,7 @@ export default function AdminAtletasHeader({
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center space-x-4">
-        <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-white transition-colors">
+        <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard" className="p-2.5 -ml-2.5 rounded-lg text-gray-500 hover:text-white transition-colors">
           <ArrowLeft size={20} />
         </button>
         <div>
@@ -51,6 +51,7 @@ export default function AdminAtletasHeader({
         {/* Botón Nuevo */}
         <button
           onClick={() => { setShowForm(!showForm); setEditingId(null); setForm(emptyForm); setShowParentForm(false); }}
+          aria-label="Nuevo atleta"
           className="flex items-center space-x-2 bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] hover:scale-[1.02] transition-all"
         >
           <UserPlus size={16} />

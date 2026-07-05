@@ -86,9 +86,9 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card max-w-lg w-full rounded-2xl p-6 relative"
+        className="glass-card max-w-lg w-full rounded-2xl p-6 relative max-h-[90dvh] overflow-y-auto"
       >
-        <button onClick={onClose} className="absolute right-4 top-4 text-gray-500 hover:text-white">
+        <button onClick={onClose} aria-label="Cerrar" className="absolute right-2 top-2 p-3 text-gray-500 hover:text-white">
           <X size={20} />
         </button>
 
@@ -107,42 +107,46 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+              <label htmlFor="antropometria-peso" className="block text-xs text-gray-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
                 <Scale size={12}/> Peso (kg)
               </label>
               <input
-                type="number" step="0.1" value={pesoKg} onChange={e => setPesoKg(e.target.value)}
-                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
+                id="antropometria-peso"
+                type="number" step="0.1" inputMode="decimal" value={pesoKg} onChange={e => setPesoKg(e.target.value)}
+                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
                 placeholder="Ej: 75.5"
               />
             </div>
             <div>
-              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+              <label htmlFor="antropometria-talla" className="block text-xs text-gray-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
                 <Ruler size={12}/> Talla / Altura (cm)
               </label>
               <input
-                type="number" step="0.1" value={tallaCm} onChange={e => setTallaCm(e.target.value)}
-                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
+                id="antropometria-talla"
+                type="number" step="0.1" inputMode="decimal" value={tallaCm} onChange={e => setTallaCm(e.target.value)}
+                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
                 placeholder="Ej: 185.0"
               />
             </div>
             <div>
-              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">
+              <label htmlFor="antropometria-talla-sentado" className="block text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">
                 Talla Sentado (cm)
               </label>
               <input
-                type="number" step="0.1" value={tallaSentadoCm} onChange={e => setTallaSentadoCm(e.target.value)}
-                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
+                id="antropometria-talla-sentado"
+                type="number" step="0.1" inputMode="decimal" value={tallaSentadoCm} onChange={e => setTallaSentadoCm(e.target.value)}
+                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
                 placeholder="Ej: 90.0"
               />
             </div>
             <div>
-              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">
+              <label htmlFor="antropometria-envergadura" className="block text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">
                 Brazada / Envergadura (cm)
               </label>
               <input
-                type="number" step="0.1" value={envergaduraCm} onChange={e => setEnvergaduraCm(e.target.value)}
-                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
+                id="antropometria-envergadura"
+                type="number" step="0.1" inputMode="decimal" value={envergaduraCm} onChange={e => setEnvergaduraCm(e.target.value)}
+                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
                 placeholder="Ej: 190.0"
               />
             </div>

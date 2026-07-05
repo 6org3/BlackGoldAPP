@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 
 export const DURACION_CLASE = 60 * 60; // 1 hora en segundos
 
-export function useModoCanchaModalClock(isOpen, step) {
-  const [currentTime, setCurrentTime] = useState(new Date()); // Ticker global
+// Se llama desde ModoCanchaModalSesionesActivas (el único consumidor del ticker),
+// que solo está montado en el paso 0 del modal: así el re-render por segundo no
+// arrastra a todo el árbol del Modo Cancha.
+export function useModoCanchaModalClock(active = true) {
+  const [currentTime, setCurrentTime] = useState(new Date()); // Ticker
 
-  // Ticker global que actualiza currentTime cada segundo
+  // Ticker que actualiza currentTime cada segundo
   useEffect(() => {
-    if (!isOpen || step !== 0) return;
+    if (!active) return;
     const intervalo = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(intervalo);
-  }, [isOpen, step]);
+  }, [active]);
 
   const formatTiempo = (segundos) => {
     if (segundos === null) return '--:--';

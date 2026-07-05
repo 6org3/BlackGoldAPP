@@ -71,9 +71,9 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="glass-card max-w-lg w-full rounded-2xl p-6 relative"
+        className="glass-card max-w-lg w-full rounded-2xl p-6 relative max-h-[90dvh] overflow-y-auto"
       >
-        <button onClick={onClose} className="absolute right-4 top-4 text-gray-500 hover:text-white">
+        <button onClick={onClose} aria-label="Cerrar" className="absolute right-2 top-2 p-3 text-gray-500 hover:text-white">
           <X size={20} />
         </button>
 
@@ -93,30 +93,30 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
             <div>
-              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre Completo</label>
-              <input type="text" value={form.nombre} onChange={e => handleChange('nombre', e.target.value)}
+              <label htmlFor="perfil-nombre" className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Nombre Completo</label>
+              <input id="perfil-nombre" type="text" autoComplete="name" value={form.nombre} onChange={e => handleChange('nombre', e.target.value)}
                 className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cédula</label>
-                <input type="text" value={form.cedula} onChange={e => handleChange('cedula', e.target.value)}
+                <label htmlFor="perfil-cedula" className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Cédula</label>
+                <input id="perfil-cedula" type="text" inputMode="numeric" autoComplete="off" value={form.cedula} onChange={e => handleChange('cedula', e.target.value)}
                   className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
               </div>
               <div>
-                <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Teléfono</label>
-                <input type="text" value={form.telefono} onChange={e => handleChange('telefono', e.target.value)}
+                <label htmlFor="perfil-telefono" className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Teléfono</label>
+                <input id="perfil-telefono" type="tel" inputMode="tel" autoComplete="tel" value={form.telefono} onChange={e => handleChange('telefono', e.target.value)}
                   className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
               </div>
             </div>
             <div>
-              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Correo Electrónico</label>
-              <input type="email" value={form.correo} onChange={e => handleChange('correo', e.target.value)}
+              <label htmlFor="perfil-correo" className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Correo Electrónico</label>
+              <input id="perfil-correo" type="email" autoComplete="email" value={form.correo} onChange={e => handleChange('correo', e.target.value)}
                 className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
             </div>
             <div>
-              <label className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Fecha de Nacimiento</label>
-              <input type="date" value={form.fecha_nacimiento} onChange={e => handleChange('fecha_nacimiento', e.target.value)}
+              <label htmlFor="perfil-fecha-nacimiento" className="block text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Fecha de Nacimiento</label>
+              <input id="perfil-fecha-nacimiento" type="date" max={new Date().toISOString().split('T')[0]} value={form.fecha_nacimiento} onChange={e => handleChange('fecha_nacimiento', e.target.value)}
                 className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
             </div>
           </div>

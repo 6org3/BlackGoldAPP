@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   Home, Target, Calendar, BarChart2, TrendingUp,
   LogOut, User, Shield, Eye, EyeOff
@@ -28,16 +28,26 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('inicio');
+  // Tabs ya visitados: se mantienen montados (ocultos con CSS) para no
+  // refetchear todo su contenido en cada cambio de pestaña.
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set(['inicio']));
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
+
+  const handleTabChange = (id) => {
+    setVisitedTabs(prev => (prev.has(id) ? prev : new Set(prev).add(id)));
+    setActiveTab(id);
+    setShowMobileMenu(false);
+  };
 
   if (!atleta) return null;
 
   return (
-    <div className="flex h-screen bg-[#09090b] text-white overflow-hidden">
-      {/* ── SIDEBAR ────────────────────────────────────────────── */}
-      <aside className="w-64 shrink-0 flex flex-col bg-[#0d0d0f] border-r border-white/5 overflow-y-auto">
+    <div className="flex h-dvh bg-[#09090b] text-white overflow-hidden">
+      {/* ── SIDEBAR (solo md+) ─────────────────────────────────── */}
+      <aside className="hidden md:flex w-64 shrink-0 flex-col bg-[#0d0d0f] border-r border-white/5 overflow-y-auto">
         {/* Brand */}
         <div className="px-5 pt-6 pb-4 border-b border-white/5">
           <div className="flex items-center space-x-2 mb-1">
@@ -99,7 +109,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
             return (
               <button
                 key={id}
-                onClick={() => setActiveTab(id)}
+                onClick={() => handleTabChange(id)}
                 className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 ${
                   active
                     ? 'bg-[#FFD700]/10 border border-[#FFD700]/20 text-[#FFD700]'
@@ -142,7 +152,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
         <div className="absolute top-0 right-0 w-[600px] h-[400px] bg-[#FFD700]/4 blur-[150px] pointer-events-none rounded-full mix-blend-screen" />
 
         {/* Tab header */}
-        <div className="sticky top-0 z-10 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/5 px-8 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-[#09090b]/80 backdrop-blur-xl border-b border-white/5 px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {(() => {
               const tab = TABS.find(t => t.id === activeTab);
@@ -155,40 +165,94 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
               );
             })()}
           </div>
-          <div className="flex items-center space-x-2 text-[9px] text-gray-500 font-bold uppercase tracking-widest">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-            <span>{user.nombre}</span>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center space-x-2 text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+              <span>{user.nombre}</span>
+            </div>
+            {/* Menú de perfil (solo móvil): Editar Perfil / Cerrar Sesión */}
+            <div className="relative md:hidden">
+              <button
+                onClick={() => setShowMobileMenu(v => !v)}
+                aria-label="Menú de perfil"
+                className="min-h-11 min-w-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white transition-colors"
+              >
+                <User size={18} />
+              </button>
+              {showMobileMenu && (
+                <>
+                  <div className="fixed inset-0" onClick={() => setShowMobileMenu(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-[#0d0d0f] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+                    <button
+                      onClick={() => { setShowMobileMenu(false); setShowEditProfile(true); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-gray-300 hover:bg-white/5 transition-colors"
+                    >
+                      <User size={16} className="text-gray-500" />
+                      <span className="text-[11px] font-black uppercase tracking-widest">Editar Perfil</span>
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-gray-300 hover:bg-red-500/10 hover:text-red-400 transition-colors border-t border-white/5"
+                    >
+                      <LogOut size={16} className="text-gray-500" />
+                      <span className="text-[11px] font-black uppercase tracking-widest">Cerrar Sesión</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Tab content */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="p-6 md:p-8"
-          >
-            {activeTab === 'inicio' && (
+        {/* Tab content: los tabs visitados quedan montados y solo se ocultan,
+            así volver a un tab no re-dispara sus fetches */}
+        <div className="p-4 pb-24 sm:p-6 sm:pb-24 md:p-8 md:pb-8">
+          {visitedTabs.has('inicio') && (
+            <div className={activeTab === 'inicio' ? undefined : 'hidden'}>
               <TabInicio atleta={atleta} todosLosAtletas={todosLosAtletas} />
-            )}
-            {activeTab === 'misiones' && (
+            </div>
+          )}
+          {visitedTabs.has('misiones') && (
+            <div className={activeTab === 'misiones' ? undefined : 'hidden'}>
               <MisionesPanel atletaId={user.id} />
-            )}
-            {activeTab === 'eventos' && (
+            </div>
+          )}
+          {visitedTabs.has('eventos') && (
+            <div className={activeTab === 'eventos' ? undefined : 'hidden'}>
               <EventosAtleta atletaId={user.atleta_id} />
-            )}
-            {activeTab === 'kpis' && (
+            </div>
+          )}
+          {visitedTabs.has('kpis') && (
+            <div className={activeTab === 'kpis' ? undefined : 'hidden'}>
               <TabKPIs atleta={atleta} todosLosAtletas={todosLosAtletas} />
-            )}
-            {activeTab === 'historial' && (
+            </div>
+          )}
+          {visitedTabs.has('historial') && (
+            <div className={activeTab === 'historial' ? undefined : 'hidden'}>
               <HistorialPruebas atletaId={user.atleta_id} />
-            )}
-          </motion.div>
-        </AnimatePresence>
+            </div>
+          )}
+        </div>
       </main>
+
+      {/* ── BOTTOM NAV (solo móvil) ────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-[#0d0d0f]/95 backdrop-blur-xl border-t border-white/5 flex pb-[env(safe-area-inset-bottom)]">
+        {TABS.map(({ id, label, icon: Icon }) => {
+          const active = activeTab === id;
+          return (
+            <button
+              key={id}
+              onClick={() => handleTabChange(id)}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 min-h-[52px] transition-colors ${
+                active ? 'text-[#FFD700]' : 'text-gray-500'
+              }`}
+            >
+              <Icon size={20} />
+              <span className="text-[10px] font-bold uppercase">{label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       {/* Modals */}
       {showEditProfile && (
@@ -201,11 +265,26 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
   );
 }
 
+/* ── Toggle Categoría/Club del radar ─────────────────────────── */
+function ToggleChip({ active, label, activeClasses, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-3 py-2 min-h-[36px] rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${
+        active ? activeClasses : 'bg-white/5 text-gray-500 border border-white/10'
+      }`}
+    >
+      {active ? <Eye size={13} /> : <EyeOff size={13} />}
+      <span>{label}</span>
+    </button>
+  );
+}
+
 /* ── TAB: INICIO ─────────────────────────────────────────────── */
 function TabInicio({ atleta, todosLosAtletas }) {
   const [showCategoria, setShowCategoria] = useState(true);
   const [showClub, setShowClub] = useState(true);
-  const deficits = evaluarDeficits(atleta);
+  const deficits = useMemo(() => evaluarDeficits(atleta), [atleta]);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -242,31 +321,21 @@ function TabInicio({ atleta, todosLosAtletas }) {
 
       {/* Radar */}
       <div className="bg-[#0d0d0f] border border-white/5 rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Radar de Pilares</h3>
-          <div className="flex space-x-2">
-            <button
+          <div className="flex gap-2">
+            <ToggleChip
+              active={showCategoria}
+              label="Categoría"
+              activeClasses="bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30"
               onClick={() => setShowCategoria(!showCategoria)}
-              className={`flex items-center space-x-1 px-2 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-colors ${
-                showCategoria
-                  ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30'
-                  : 'bg-white/5 text-gray-500 border border-white/10'
-              }`}
-            >
-              {showCategoria ? <Eye size={9} /> : <EyeOff size={9} />}
-              <span>Categoría</span>
-            </button>
-            <button
+            />
+            <ToggleChip
+              active={showClub}
+              label="Club"
+              activeClasses="bg-white/20 text-white border border-white/30"
               onClick={() => setShowClub(!showClub)}
-              className={`flex items-center space-x-1 px-2 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-colors ${
-                showClub
-                  ? 'bg-white/20 text-white border border-white/30'
-                  : 'bg-white/5 text-gray-500 border border-white/10'
-              }`}
-            >
-              {showClub ? <Eye size={9} /> : <EyeOff size={9} />}
-              <span>Club</span>
-            </button>
+            />
           </div>
         </div>
         <RadarChartComp
@@ -350,20 +419,20 @@ function TabInicio({ atleta, todosLosAtletas }) {
 }
 
 /* ── TAB: KPIs ───────────────────────────────────────────────── */
+const PILARES = [
+  { key: 'fuerza',       label: 'Fuerza',       color: '#f97316' },
+  { key: 'explosividad', label: 'Explosividad',  color: '#eab308' },
+  { key: 'movilidad',    label: 'Movilidad',     color: '#22c55e' },
+  { key: 'tiro',         label: 'Técnica Tiro',  color: '#3b82f6' },
+  { key: 'agilidad',     label: 'Agilidad',      color: '#a855f7' },
+  { key: 'tactica',      label: 'Efic. Táctica', color: '#ec4899' },
+  { key: 'resiliencia',  label: 'Resiliencia',   color: '#FFD700' },
+];
+
 function TabKPIs({ atleta, todosLosAtletas }) {
-  const subPilarScores = getSubPilarScores(atleta._evaluaciones || []);
+  const subPilarScores = useMemo(() => getSubPilarScores(atleta._evaluaciones || []), [atleta._evaluaciones]);
   const [showCategoria, setShowCategoria] = useState(true);
   const [showClub, setShowClub] = useState(true);
-
-  const PILARES = [
-    { key: 'fuerza',       label: 'Fuerza',       color: '#f97316' },
-    { key: 'explosividad', label: 'Explosividad',  color: '#eab308' },
-    { key: 'movilidad',    label: 'Movilidad',     color: '#22c55e' },
-    { key: 'tiro',         label: 'Técnica Tiro',  color: '#3b82f6' },
-    { key: 'agilidad',     label: 'Agilidad',      color: '#a855f7' },
-    { key: 'tactica',      label: 'Efic. Táctica', color: '#ec4899' },
-    { key: 'resiliencia',  label: 'Resiliencia',   color: '#FFD700' },
-  ];
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -376,31 +445,21 @@ function TabKPIs({ atleta, todosLosAtletas }) {
 
       {/* Radar con toggles */}
       <div className="bg-[#0d0d0f] border border-white/5 rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Comparativa de Pilares</h3>
-          <div className="flex space-x-2">
-            <button
+          <div className="flex gap-2">
+            <ToggleChip
+              active={showCategoria}
+              label="Categoría"
+              activeClasses="bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30"
               onClick={() => setShowCategoria(!showCategoria)}
-              className={`flex items-center space-x-1 px-2 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-colors ${
-                showCategoria
-                  ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30'
-                  : 'bg-white/5 text-gray-500 border border-white/10'
-              }`}
-            >
-              {showCategoria ? <Eye size={9} /> : <EyeOff size={9} />}
-              <span>Categoría</span>
-            </button>
-            <button
+            />
+            <ToggleChip
+              active={showClub}
+              label="Club"
+              activeClasses="bg-white/20 text-white border border-white/30"
               onClick={() => setShowClub(!showClub)}
-              className={`flex items-center space-x-1 px-2 py-1 rounded text-[8px] font-bold uppercase tracking-widest transition-colors ${
-                showClub
-                  ? 'bg-white/20 text-white border border-white/30'
-                  : 'bg-white/5 text-gray-500 border border-white/10'
-              }`}
-            >
-              {showClub ? <Eye size={9} /> : <EyeOff size={9} />}
-              <span>Club</span>
-            </button>
+            />
           </div>
         </div>
         <RadarChartComp

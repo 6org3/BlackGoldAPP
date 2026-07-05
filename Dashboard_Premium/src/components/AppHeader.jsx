@@ -3,10 +3,11 @@ import { LogOut, Menu, Shield, User } from 'lucide-react';
 
 export default function AppHeader({ user, setIsMobileMenuOpen, setShowEditProfile, handleLogout }) {
   return (
-    <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 relative z-10 gap-6">
+    <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-12 relative z-10 gap-3 md:gap-6">
       <div className="flex items-center">
         <button
-          className="md:hidden mr-4 text-[#FFD700] p-2 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
+          aria-label="Abrir menú"
+          className="md:hidden mr-4 text-[#FFD700] p-2.5 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
           onClick={() => setIsMobileMenuOpen(true)}
         >
           <Menu size={24} />
@@ -45,6 +46,7 @@ export default function AppHeader({ user, setIsMobileMenuOpen, setShowEditProfil
             onClick={handleLogout}
             className="group p-3 rounded-xl bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/30 transition-all duration-300"
             title="Cerrar sesión"
+            aria-label="Cerrar sesión"
             data-testid="btn-logout"
           >
             <LogOut size={16} className="text-gray-400 group-hover:text-red-400 transition-colors" />

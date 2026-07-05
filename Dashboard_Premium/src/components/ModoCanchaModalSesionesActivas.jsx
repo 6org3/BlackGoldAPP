@@ -1,13 +1,15 @@
 import { Check } from 'lucide-react';
-import { DURACION_CLASE } from './useModoCanchaModalClock';
+import { DURACION_CLASE, useModoCanchaModalClock } from './useModoCanchaModalClock';
 
 export default function ModoCanchaModalSesionesActivas({
   activeSessions,
   setStep,
-  calcularTiemposSession,
-  formatTiempo,
   handleResumeSession
 }) {
+  // El ticker vive aquí (y no en ModoCanchaModal) para que el re-render por
+  // segundo no reconcilie todo el árbol del modal en gama baja.
+  const { formatTiempo, calcularTiemposSession } = useModoCanchaModalClock();
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-2">
@@ -15,7 +17,7 @@ export default function ModoCanchaModalSesionesActivas({
           {activeSessions.length} clase{activeSessions.length !== 1 ? 's' : ''} activa{activeSessions.length !== 1 ? 's' : ''}
         </p>
         <button onClick={() => setStep(1)}
-          className="text-[10px] bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest transition-colors">
+          className="text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white px-4 py-2.5 min-h-11 rounded-lg font-bold uppercase tracking-widest transition-colors">
           + Nueva clase
         </button>
       </div>
@@ -82,16 +84,16 @@ export default function ModoCanchaModalSesionesActivas({
             {/* Fila inferior: Inicio · Transcurrido · Finaliza */}
             <div className="flex space-x-4 mt-3 pt-3 border-t border-white/5 text-center">
               <div className="flex-1">
-                <p className="text-[9px] text-gray-500 uppercase tracking-widest">Inicio</p>
-                <p className="text-xs font-bold text-white">{(session.hora_inicio || '').substring(0,5)}</p>
+                <p className="text-[11px] text-gray-400 uppercase tracking-widest">Inicio</p>
+                <p className="text-sm font-bold text-white">{(session.hora_inicio || '').substring(0,5)}</p>
               </div>
               <div className="flex-1">
-                <p className="text-[9px] text-gray-500 uppercase tracking-widest">Transcurrido</p>
-                <p className="text-xs font-bold text-white">{formatTiempo(t.transcurridos)}</p>
+                <p className="text-[11px] text-gray-400 uppercase tracking-widest">Transcurrido</p>
+                <p className="text-sm font-bold text-white">{formatTiempo(t.transcurridos)}</p>
               </div>
               <div className="flex-1">
-                <p className="text-[9px] text-gray-500 uppercase tracking-widest">Finaliza</p>
-                <p className="text-xs font-bold text-white">{t.horaFin}</p>
+                <p className="text-[11px] text-gray-400 uppercase tracking-widest">Finaliza</p>
+                <p className="text-sm font-bold text-white">{t.horaFin}</p>
               </div>
             </div>
 
@@ -109,7 +111,7 @@ export default function ModoCanchaModalSesionesActivas({
       })}
 
       {/* Nota explicativa de qué pasa al terminar */}
-      <p className="text-[10px] text-gray-600 text-center pt-2">
+      <p className="text-xs text-gray-400 text-center pt-2">
         Al terminar la hora el botón cambia a verde. Tócalo para evaluar a los atletas y cerrar la clase.
       </p>
     </div>

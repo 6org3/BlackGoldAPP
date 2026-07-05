@@ -26,11 +26,13 @@ export default function AdminAtletasFiltersPanel({
         <div className="flex-1 relative">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
-            type="text"
+            type="search"
+            enterKeyHint="search"
+            autoComplete="off"
             placeholder="Buscar por nombre o cédula..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/40 focus:shadow-[0_0_15px_rgba(255,215,0,0.08)] transition-all"
+            className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-11 pr-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/40 focus:shadow-[0_0_15px_rgba(255,215,0,0.08)] transition-all"
           />
         </div>
         <button
@@ -65,7 +67,7 @@ export default function AdminAtletasFiltersPanel({
               <FilterSelect label="Género" value={filtroGenero} options={['Todos', 'Masculino', 'Femenino']} onChange={setFiltroGenero} />
             </div>
             {filtrosActivos && (
-              <button onClick={clearFilters} className="mt-2 text-xs text-gray-500 hover:text-[#FFD700] transition-colors underline">
+              <button onClick={clearFilters} className="mt-2 py-2.5 px-1 text-xs text-gray-500 hover:text-[#FFD700] transition-colors underline inline-block">
                 Limpiar todos los filtros
               </button>
             )}

@@ -76,22 +76,28 @@ export default function SesionDelDia({
               {evaValue}/10
             </span>
           </div>
+          {/* Track de 8px + input de 44px de alto (área táctil) y thumb dorado
+              de 24px: sin las reglas de thumb, appearance-none lo deja invisible
+              en Chrome Android / Safari iOS. */}
           <input
             type="range" min="1" max="10" step="0.5" value={evaValue}
             onChange={e => setEvaValue(parseFloat(e.target.value))}
             disabled={isRpeLocked}
-            className={`w-full h-2 rounded-full appearance-none ${isRpeLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-            style={{ background: 'linear-gradient(to right, #3b82f6 0%, #fbbf24 60%, #ef4444 100%)' }}
+            className={`w-full h-11 appearance-none bg-transparent ${isRpeLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+              [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-[linear-gradient(to_right,#3b82f6_0%,#fbbf24_60%,#ef4444_100%)]
+              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:-mt-2 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#FFD700] [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(255,215,0,0.6)]
+              [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-[linear-gradient(to_right,#3b82f6_0%,#fbbf24_60%,#ef4444_100%)]
+              [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#FFD700]`}
           />
           <div className="flex justify-between mt-1">
-            <span className="text-[8px] text-blue-400 font-bold">1 - Mínimo</span>
-            <span className="text-[8px] text-yellow-400 font-bold">5 - Medio</span>
-            <span className="text-[8px] text-red-400 font-bold">10 - Máximo</span>
+            <span className="text-[10px] text-blue-400 font-bold">1 - Mínimo</span>
+            <span className="text-[10px] text-yellow-400 font-bold">5 - Medio</span>
+            <span className="text-[10px] text-red-400 font-bold">10 - Máximo</span>
           </div>
           <button
             onClick={handleSaveEva}
             disabled={isRpeLocked}
-            className={`mt-4 flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest px-6 py-2.5 rounded-xl transition-all w-full ${isRpeLocked ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5' : 'bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)]'}`}
+            className={`mt-4 flex items-center justify-center gap-2 font-black text-xs uppercase tracking-widest px-6 py-2.5 min-h-11 rounded-xl transition-all w-full ${isRpeLocked ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-white/5' : 'bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)]'}`}
           >
             {isRpeLocked ? '✅ RPE Registrado' : evaSaved ? '✅ Guardado' : 'Guardar RPE'}
           </button>

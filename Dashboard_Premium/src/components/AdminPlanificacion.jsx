@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchSesionesAtleta, crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
 import { evaluateSessionRules } from '../lib/trainingRules';
-import { ArrowLeft, Save, FlaskConical, ShieldAlert, AlertTriangle, Info, Activity, Clock, Zap, Dumbbell } from 'lucide-react';
+import { ArrowLeft, Save, FlaskConical, ShieldAlert, AlertTriangle, Info, Activity, Clock, Zap, Dumbbell, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
@@ -23,6 +23,8 @@ export default function AdminPlanificacion() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [busqueda, setBusqueda] = useState('');
+  const formColRef = useRef(null);
 
   const emptySession = {
     meta_entrenamiento: 'Fuerza',
@@ -70,7 +72,15 @@ export default function AdminPlanificacion() {
     setForm(emptySession);
     setSuccess('');
     setError('');
+    // En móvil el formulario queda debajo de la lista completa: llevar al coach directo a él
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      setTimeout(() => formColRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    }
   };
+
+  const atletasFiltrados = busqueda
+    ? atletas.filter(a => a.nombre?.toLowerCase().includes(busqueda.toLowerCase()))
+    : atletas;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -127,7 +137,8 @@ export default function AdminPlanificacion() {
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center space-x-4 mb-10">
-        <button onClick={() => navigate('/dashboard')} className="text-gray-500 hover:text-white transition-colors">
+        <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard"
+          className="p-2 -m-2 text-gray-500 hover:text-white transition-colors">
           <ArrowLeft size={20} />
         </button>
         <div>
@@ -147,13 +158,21 @@ export default function AdminPlanificacion() {
           <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-3">
             <FlaskConical size={12} className="inline mr-1" /> Seleccionar Atleta
           </p>
-          {atletas.map(atleta => (
-            <motion.button
+          <div className="flex items-center space-x-2 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 mb-3">
+            <Search size={13} className="text-gray-500" />
+            <input
+              type="text"
+              placeholder="Buscar atleta..."
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              className="bg-transparent text-sm text-white placeholder-gray-600 font-bold focus:outline-none w-full"
+            />
+          </div>
+          {atletasFiltrados.map(atleta => (
+            <button
               key={atleta.id}
               onClick={() => handleSelectAtleta(atleta)}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`w-full text-left p-4 rounded-xl border transition-all ${
+              className={`w-full text-left p-4 rounded-xl border transition-all active:scale-[0.99] ${
                 selectedAtleta?.id === atleta.id
                   ? 'bg-[#FFD700]/5 border-[#FFD700]/40 shadow-[0_0_15px_rgba(255,215,0,0.1)]'
                   : 'bg-white/[0.02] border-white/5 hover:border-white/15 hover:bg-white/[0.04]'
@@ -170,28 +189,28 @@ export default function AdminPlanificacion() {
                   {atleta.rango?.nombre}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1 mt-2">
-                <span className={`text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full border ${getBadgeClass(atleta.nivel_desarrollo)}`}>
+              <div className="flex flex-wrap items-center gap-1 mt-2">
+                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${getBadgeClass(atleta.nivel_desarrollo)}`}>
                   {atleta.nivel_desarrollo || 'Micro'}
                 </span>
-                <span className="text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
                   {atleta.perfil_mental || 'Estable'}
                 </span>
-                <span className={`text-[7px] font-bold uppercase tracking-widest ${getRecoveryColor(atleta.estado_recuperacion)}`}>
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${getRecoveryColor(atleta.estado_recuperacion)}`}>
                   {atleta.estado_recuperacion || 'Óptimo'}
                 </span>
               </div>
               {atleta.restriccion_movilidad && atleta.restriccion_movilidad !== 'Ninguna' && (
-                <span className="inline-block mt-1.5 text-[7px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-orange-500/30 text-orange-400 bg-orange-500/5">
+                <span className="inline-block mt-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-orange-500/30 text-orange-400 bg-orange-500/5">
                   {atleta.restriccion_movilidad}
                 </span>
               )}
-            </motion.button>
+            </button>
           ))}
         </div>
 
         {/* Right Column: Session Form + Rules Console */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 scroll-mt-4" ref={formColRef}>
           {!selectedAtleta ? (
             <div className="flex flex-col items-center justify-center h-64 text-gray-500">
               <FlaskConical size={48} className="mb-4 opacity-20" />
@@ -211,7 +230,7 @@ export default function AdminPlanificacion() {
                   <span>Configurar Sesión — {selectedAtleta.nombre}</span>
                 </h3>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <SelectField label="Meta del Entrenamiento" value={form.meta_entrenamiento} options={METAS} onChange={v => handleChange('meta_entrenamiento', v)} />
                   <SelectField label="Tipo de Pausa / Densidad" value={form.tipo_pausa} options={PAUSAS} onChange={v => handleChange('tipo_pausa', v)} />
                   <SelectField label="Nivel de Esfuerzo (BPM)" value={form.intensidad_bpm} options={INTENSIDADES} onChange={v => handleChange('intensidad_bpm', v)} />
@@ -223,18 +242,20 @@ export default function AdminPlanificacion() {
                         <label className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Volumen Específico (%)</label>
                         <span className={`text-xs font-black ${form.volumen_especifico_pct > 30 ? 'text-red-400' : 'text-[#FFD700]'}`}>{form.volumen_especifico_pct}%</span>
                       </div>
-                      <input
-                        type="range" min="0" max="100" value={form.volumen_especifico_pct}
-                        onChange={e => handleChange('volumen_especifico_pct', parseInt(e.target.value))}
-                        className="w-full h-1.5 rounded-full appearance-none cursor-pointer accent-[#FFD700] bg-white/10"
-                      />
+                      <div className="py-2">
+                        <input
+                          type="range" min="0" max="100" value={form.volumen_especifico_pct}
+                          onChange={e => handleChange('volumen_especifico_pct', parseInt(e.target.value))}
+                          className="w-full h-2 rounded-full appearance-none cursor-pointer accent-[#FFD700] bg-white/10 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#FFD700] [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-[#FFD700]"
+                        />
+                      </div>
                     </div>
                   )}
 
                   <div>
                     <label className="block text-[9px] text-gray-400 font-bold uppercase tracking-widest mb-2">Duración (minutos)</label>
                     <input
-                      type="number" value={form.duracion_minutos} min="15" max="180"
+                      type="number" inputMode="numeric" value={form.duracion_minutos} min="15" max="180"
                       onChange={e => handleChange('duracion_minutos', e.target.value)}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50 transition-colors"
                     />

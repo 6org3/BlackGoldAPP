@@ -16,6 +16,11 @@ export default function ModoCanchaModalGridAtletas({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {atletasResumed.map(a => {
           const yaEvaluado = evaluadosIds.includes(a.atleta_id);
+          // Nombre + inicial del apellido para distinguir atletas con el mismo
+          // primer nombre ("Juan P." vs "Juan G."). En nombres de 4 tokens el
+          // apellido paterno es el tercero; en los de 2, el segundo.
+          const partes = a.nombre.trim().split(/\s+/);
+          const inicialApellido = partes.length > 1 ? `${(partes[2] || partes[1]).charAt(0)}.` : '';
           return (
             <button key={a.atleta_id} onClick={() => { setAtletaEvaluando(a); setStep(5); }}
               className={`p-4 rounded-2xl border flex flex-col items-center text-center transition-all ${
@@ -26,7 +31,7 @@ export default function ModoCanchaModalGridAtletas({
               <div className={`w-12 h-12 rounded-full mb-3 flex items-center justify-center ${yaEvaluado ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-white'}`}>
                 {yaEvaluado ? <Check size={20} /> : <User size={20} />}
               </div>
-              <span className={`text-xs font-bold uppercase tracking-widest ${yaEvaluado ? 'text-emerald-400' : 'text-white'}`}>{a.nombre.split(' ')[0]}</span>
+              <span className={`text-xs font-bold uppercase tracking-widest truncate w-full ${yaEvaluado ? 'text-emerald-400' : 'text-white'}`}>{partes[0]} {inicialApellido}</span>
             </button>
           );
         })}
