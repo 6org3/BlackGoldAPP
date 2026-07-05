@@ -51,6 +51,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registro manual en main.jsx: el script auto-inyectado por defecto
+      // solo llama a navigator.serviceWorker.register() y no recarga la
+      // pestaña cuando un SW nuevo toma el control, así que una PWA instalada
+      // (que casi nunca se cierra del todo) se queda mostrando el build viejo.
+      injectRegister: false,
       devOptions: {
         enabled: true
       },

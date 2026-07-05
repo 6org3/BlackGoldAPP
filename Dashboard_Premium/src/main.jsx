@@ -27,6 +27,31 @@ window.addEventListener('vite:preloadError', (event) => {
   }
 })
 
+// Registro manual del Service Worker (injectRegister: false en vite.config.js),
+// solo en build de producción: en dev no existe un /sw.js real (404 -> HTML del
+// SPA fallback -> MIME type inválido); VitePWA ya registra su propio dev-sw ahí.
+// El SW nuevo hace skipWaiting()+clientsClaim() en cuanto activa (workbox,
+// registerType: 'autoUpdate'), pero eso por sí solo NO recarga la pestaña ya
+// abierta. Instalada en el celular, la app casi nunca se cierra del todo, así
+// que sin este listener se queda mostrando el build viejo indefinidamente.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  let recargandoPorSW = false
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (recargandoPorSW) return
+    recargandoPorSW = true
+    window.location.reload()
+  })
+
+  window.addEventListener('load', async () => {
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    // La revisión pasiva del navegador tarda hasta ~24h; forzarla cada vez
+    // que la app vuelve a primer plano hace que un deploy se note en minutos.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') registration.update()
+    })
+  })
+}
+
 // Carga diferida: cada vista se descarga solo cuando se navega a ella.
 const App = lazy(() => import('./App.jsx'))
 const AdminAtletasPage = lazy(() => import('./pages/AdminAtletasPage.jsx'))
