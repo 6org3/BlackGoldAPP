@@ -41,3 +41,9 @@ lerna-debug.log*
 # Artefactos del montaje FUSE / sandbox
 **/.fuse_hidden*
 .vercel
+
+# Skills de agentes instalados localmente (vercel-labs/agent-skills). Se
+# instalan por worktree con `npx skills add ...` y no se versionan.
+**/.agents/
+**/.claude/skills/
+**/skills-lock.json
