@@ -147,34 +147,60 @@ Esto hace que "cuadre" todo: una sesión cuyo objetivo es *tiro* usa las mismas 
   formatos (Grupal por niveles / Grupal individualizada / Privada 1v1), contra una
   **tabla de asistencia real** (no el hack de notas) — ver §3.3, la tabla ya existe.
 
-**Decisión del owner (2026-07-05): tabla nueva `sesiones_plantilla`** (no el flag
-`es_plantilla` en `sesiones_control`):
+**Decisión del owner (2026-07-05, revisada tras el baseline de P1): reutilizar
+`catalogo_sesiones`**, NO crear `sesiones_plantilla` desde cero (y tampoco el flag
+`es_plantilla` en `sesiones_control`).
+
+**Hallazgo del baseline (§7, P1):** el `npx supabase db dump` reveló una tabla
+`catalogo_sesiones` que **ni el documento original ni el código mencionaban** —
+verificado con `grep -r catalogo_sesiones` en `Dashboard_Premium` y `blackgold-mcp`:
+**cero referencias en ningún archivo**. Es una tabla huérfana, con **0 filas**
+(confirmado por query), que ya tiene casi exactamente la forma de una plantilla:
 
 ```sql
--- ADITIVO, propuesto — NO aplicado todavía
-CREATE TABLE IF NOT EXISTS sesiones_plantilla (
-  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  nombre             TEXT NOT NULL,
-  pilar              TEXT REFERENCES ... ,   -- valida contra PILARES de taxonomia.js
-  sub_pilar          TEXT,                   -- valida contra SUB_PILARES de taxonomia.js (incluye 'resistencia' tras P1.5)
-  tipo_clase         TEXT,                   -- 'Grupal (Niveles)' | 'Grupal Individualizada' | 'Privada 1v1' | NULL=cualquiera
-  ejercicios_ids     UUID[] DEFAULT '{}',    -- referencias a ejercicios_catalogo
-  descripcion        TEXT,
-  notas_metodologicas TEXT,
-  creado_por         UUID REFERENCES usuarios(id),
-  activa             BOOLEAN DEFAULT true,
-  created_at         TIMESTAMPTZ DEFAULT now()
+-- YA EXISTE en producción (ver supabase/migrations/00000000000000_baseline.sql:258-267), vacía y sin código que la use
+CREATE TABLE IF NOT EXISTS "public"."catalogo_sesiones" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "titulo" "text" NOT NULL,
+    "enfoque_principal" "text",
+    "descripcion" "text",
+    "ejercicios_ids" "jsonb",
+    "creado_por" "uuid",
+    "club_id" "text",
+    "fecha_creacion" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"())
 );
 ```
 
-**Por qué tabla nueva y no `es_plantilla` en `sesiones_control`:** una fila de
-`sesiones_control` representa una sesión *concreta* (fecha, grupo/atleta, evaluación
-`se_logro`). Una plantilla no tiene fecha ni atleta ni evaluación — es reutilizable. Meter
-ambos conceptos en la misma tabla obliga a que columnas obligatorias-en-espíritu
-(`fecha`, `grupo_id`/`atleta_id`) queden huérfanas en las filas-plantilla, y cada query
-de historial (`fetchSesionesControl`, ya usado en `AdminSesiones.jsx:369`) necesitaría
-un `WHERE es_plantilla = false` que hoy no existe y es fácil de olvidar en queries
-nuevas.
+Dado que está vacía y sin código dependiente, reutilizarla es estrictamente más seguro
+que crear una tabla nueva (cero filas que migrar, cero riesgo) y evita sumar una octava
+tabla de sesión/plantilla al esquema cuando ya hay una construida para esto. Extensión
+aditiva propuesta:
+
+```sql
+-- ADITIVO, propuesto — NO aplicado todavía
+ALTER TABLE catalogo_sesiones
+  ADD COLUMN IF NOT EXISTS pilar     TEXT,   -- valida contra PILARES de taxonomia.js
+  ADD COLUMN IF NOT EXISTS sub_pilar TEXT,   -- valida contra SUB_PILARES de taxonomia.js (incluye 'resistencia' tras P1.5)
+  ADD COLUMN IF NOT EXISTS tipo_clase TEXT,  -- 'Grupal (Niveles)' | 'Grupal Individualizada' | 'Privada 1v1' | NULL=cualquiera
+  ADD COLUMN IF NOT EXISTS activa    BOOLEAN DEFAULT true;
+-- ejercicios_ids ya existe (jsonb) — Modo Cancha/AdminSesiones lo leen como array de ids de ejercicios_catalogo.
+-- titulo/enfoque_principal/descripcion/creado_por/fecha_creacion ya cubren nombre + objetivo libre + notas + autor.
+```
+
+`enfoque_principal` (texto libre, ya existe) puede quedar como la descripción humana del
+objetivo, mientras `pilar`/`sub_pilar` (nuevos) son el valor canónico que consume
+`taxonomia.js`. `club_id` (ya existe, tipo `text` no `uuid` — revisar si el club es
+mono-tenant hoy y ese campo es vestigial de un diseño multi-club) se puede ignorar por
+ahora o limpiar aparte; no bloquea esta fase.
+
+**Por qué no `es_plantilla` en `sesiones_control` (esa parte de la decisión no cambió):**
+una fila de `sesiones_control` representa una sesión *concreta* (fecha, grupo/atleta,
+evaluación `se_logro`). Una plantilla no tiene fecha ni atleta ni evaluación — es
+reutilizable. Meter ambos conceptos en la misma tabla obliga a que columnas
+obligatorias-en-espíritu (`fecha`, `grupo_id`/`atleta_id`) queden huérfanas en las
+filas-plantilla, y cada query de historial (`fetchSesionesControl`, ya usado en
+`AdminSesiones.jsx:369`) necesitaría un `WHERE es_plantilla = false` que hoy no existe y
+es fácil de olvidar en queries nuevas.
 
 ### 3.3 Convergencia de datos (propuesta concreta, aditiva)
 
@@ -201,9 +227,18 @@ Con esto: `AdminAsistencia.jsx` sigue funcionando exactamente igual (sigue escri
 con `sesion_id = NULL`, pase de lista manual del día); Modo Cancha, al "Pasar Lista"
 (paso 3), hace upsert por cada presente con `estado='Presente'` + `sesion_id` de la
 clase; `OwnerKPIsPage` automáticamente empieza a contar la asistencia de Modo Cancha sin
-tocar su query. Riesgo a validar con datos reales antes de aplicar: si ya existen días
-con más de un registro por atleta que dependían de la unicidad vieja, el `ALTER` de la
-constraint podría fallar — hay que revisar duplicados existentes primero.
+tocar su query.
+
+**Sobre el riesgo de duplicados (revisado tras el baseline, P1):** confirmado en el
+baseline (`asistencia_atleta_id_fecha_key`, línea 729 de
+`supabase/migrations/00000000000000_baseline.sql`) — el nombre real de la constraint
+coincide exactamente con lo asumido arriba. Además, **el `ALTER` no puede fallar por
+datos existentes**: relajar `UNIQUE(atleta_id, fecha)` a `UNIQUE(atleta_id, fecha,
+sesion_id)` solo añade una columna a la clave — cualquier par que ya cumplía la
+restricción vieja (más estricta) automáticamente cumple la nueva (más laxa); Postgres ya
+viene garantizando desde antes que no hay duplicados (atleta_id, fecha) en las 3936 filas
+actuales de `asistencia`, así que no hace falta auditar duplicados antes de aplicar este
+`ALTER` en particular.
 
 *(Alternativa descartada: tabla nueva `sesion_asistencia` separada solo para Modo
 Cancha. Más simple pero deja a `OwnerKPIsPage` ciega a las clases de Modo Cancha a
@@ -398,11 +433,23 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
 - ~~**P0 — Quick wins de UI**~~ ✅ HECHO: fix baremo Sub-14, UX móvil de evaluación,
   catálogos espejo (código), taxonomía única `pilar→sub_pilar`, servicio único de XP,
   recuperación→MCP→misiones.
-- **P1 — Baseline técnico (bloquea P2 y P1.5, siguiente sesión):**
-  - Capturar `npx supabase db dump --schema public` antes de tocar `asistencia`,
-    `sesiones_control` o crear `sesiones_plantilla` (requiere `supabase login`).
-  - Revisar datos reales de `asistencia` por posibles duplicados atleta+fecha antes de
-    relajar su `UNIQUE(atleta_id, fecha)` (§3.3.a).
+- ~~**P1 — Baseline técnico**~~ ✅ HECHO (2026-07-05): `npx supabase db dump --schema
+  public -f supabase/migrations/00000000000000_baseline.sql` capturado (1922 líneas).
+  Bloqueado dos veces en el camino (ambos resueltos): CLI necesitaba Docker Desktop
+  (instalado); luego la conexión a Postgres colgaba en el protocolo por la IP de salida
+  de una VPN activa (ProtonVPN) — se resolvió desconectándola. Hallazgos del baseline:
+  - Constraint real de `asistencia` confirmada: `asistencia_atleta_id_fecha_key` (línea
+    729), coincide con lo asumido en §3.3.a. Filas actuales: `asistencia` 3936,
+    `sesiones_control` 312, `sesiones_programadas` 15.
+  - **Relajar `UNIQUE(atleta_id, fecha)`→`UNIQUE(atleta_id, fecha, sesion_id)` no
+    requiere auditar duplicados**: es una relajación estricta→laxa, matemáticamente no
+    puede fallar con datos que ya cumplían la restricción vieja (§3.3.a, corregido).
+  - **Hallazgo nuevo que cambió una decisión ya tomada:** existe `catalogo_sesiones`
+    (`titulo, enfoque_principal, descripcion, ejercicios_ids jsonb, creado_por,
+    club_id`), **0 filas, sin ninguna referencia en el código** (`Dashboard_Premium` ni
+    `blackgold-mcp`) — una tabla de plantillas ya construida y nunca conectada. Decisión
+    de plantillas (§3.2, §8) **revisada**: reutilizarla en vez de crear
+    `sesiones_plantilla` desde cero.
 - **P1.5 — Contenido de resistencia (independiente, puede correr en paralelo a P2/P3):**
   - Definir con el cuerpo técnico qué prueba(s) miden `resistencia` (Course
     Navette/Léger, Cooper, Yo-Yo IR1, RSA…) y sus umbrales por categoría FEB (§3.4.3).
@@ -410,9 +457,10 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
   - Redactar misiones `pilar='fisico'` orientadas a resistencia.
   - Solo entonces: añadir `resistencia` a `SUB_PILARES` (`taxonomia.js`) — el radar pasa
     de 7 a 8 ejes automáticamente.
-- **P2 — Migraciones aditivas (tras el baseline de P1):**
-  1. `CREATE TABLE sesiones_plantilla` (§3.2, decidida) + poblarla con las plantillas
-     que hoy son objetivos de Modo Cancha.
+- **P2 — Migraciones aditivas (baseline de P1 ya capturado, lista para empezar):**
+  1. `ALTER TABLE catalogo_sesiones ADD pilar/sub_pilar/tipo_clase/activa` (§3.2,
+     decisión revisada) + poblarla con las plantillas que hoy son objetivos de Modo
+     Cancha.
   2. `ALTER TABLE asistencia ADD sesion_id` + ajuste de `UNIQUE` (§3.3.a, decidida).
   3. Migrar `OBJETIVOS_CLASE`/`TIPOS` a consumir `taxonomia.js`: Agilidad→Técnico,
      Liderazgo→`resiliencia` (§3.4, decididas), separando `pilar/sub_pilar` de
@@ -436,7 +484,9 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
 3. **Resistencia → sub-pilar físico NUEVO** con pruebas/baremos/misiones propios, no un
    tag transversal. (§3.4.3) Es el ítem con más trabajo pendiente: requiere diseño de
    baremos reales (ver P1.5) antes de tocar `taxonomia.js`/radar.
-4. **Plantillas → tabla nueva `sesiones_plantilla`.** (§3.2)
+4. **Plantillas → reutilizar `catalogo_sesiones`** (tabla existente, vacía, sin código
+   que la use — hallazgo del baseline de P1), no crear `sesiones_plantilla` desde cero.
+   (§3.2, revisada 2026-07-05)
 5. **Asistencia → extender la tabla `asistencia` ya existente** con `sesion_id` +
    relajar su `UNIQUE`. (§3.3.a)
 
