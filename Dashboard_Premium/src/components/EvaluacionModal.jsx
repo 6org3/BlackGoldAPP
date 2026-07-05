@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ClipboardCheck, ChevronDown, FlaskConical, Save, Loader2, CheckCircle2, ChevronLeft } from 'lucide-react';
-import { TIER_CONFIG, normalizarValor } from '../lib/baremosEngine';
+import { TIER_CONFIG, normalizarValor, categoriaABucketBaremo } from '../lib/baremosEngine';
 import { supabase } from '../api/supabaseClient';
 import { recalcularOverall } from '../api/evaluacionesService';
 import { useAuth } from '../AuthContext';
@@ -137,11 +138,19 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     return catalogoEjercicios.find(e => e.id === pruebaTipo) || null;
   }, [pruebaTipo, catalogoEjercicios]);
 
-  // Check if the athlete's category has thresholds for this test
+  // Check if the athlete's category has thresholds for this test.
+  // Debe usar el MISMO mapeo FEB→bucket que normalizarValor (categoriaABucketBaremo),
+  // si no, categorías FEB con guión ("Menores (Sub-14)", "Prejuvenil (Sub-16)") nunca
+  // coincidían con las llaves de baremo (Sub12/Sub15/Sub18/Senior) y el aviso "no tiene
+  // baremo" salía aunque sí existiera el umbral. Ver packages/analytics-core/baremos.js.
   const categoryAvailable = useMemo(() => {
-    const cat = atleta?.categoria || 'Todas';
     if (!selectedBaremo) return true;
-    return !!Object.keys(selectedBaremo.thresholds || {}).find(k => cat.includes(k) || k === 'Todas');
+    const cat = atleta?.categoria || 'Todas';
+    const thresholds = selectedBaremo.thresholds || {};
+    const catKey = categoriaABucketBaremo(cat)
+      || Object.keys(thresholds).find(k => cat.includes(k))
+      || 'Sub15';
+    return Array.isArray(thresholds[catKey]);
   }, [selectedBaremo, atleta]);
 
   // Real-time normalization preview
@@ -253,7 +262,11 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     setSaving(false);
   };
 
-  return (
+  // Portalizado a document.body: si se renderiza anidado (p.ej. dentro del modal de
+  // perfil del atleta, cuyo glass-card tiene backdrop-filter), ese ancestro crea un
+  // containing block que atrapa el `position: fixed` y descuadra el modal fuera de
+  // pantalla en móvil (h-dvh centrado contra un contenedor más alto que el viewport).
+  return createPortal(
     <>
       <AnimatePresence>
       <motion.div
@@ -325,7 +338,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       placeholder="Buscar ejercicio..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]/50"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]/50"
                     />
                     {user?.rol !== 'atleta' && (
                       <button
@@ -337,8 +350,9 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                     )}
                   </div>
 
-                  {/* Tabs */}
-                  <div className="flex px-2 pt-2 gap-1 overflow-x-auto scrollbar-hide border-b border-white/5">
+                  {/* Objetivos: chips que envuelven en varias filas (antes era una barra
+                      con overflow-x horizontal que en móvil obligaba a un swipe incómodo). */}
+                  <div className="flex flex-wrap px-3 pt-2 pb-3 gap-2 border-b border-white/5">
                     {OBJETIVOS.filter(obj => {
                       if (user?.rol === 'atleta') {
                         return obj.id === 'recuperacion';
@@ -352,8 +366,9 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       <button
                         key={obj.id}
                         onClick={() => setActiveTab(obj.id)}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap
-                          ${activeTab === obj.id ? `${obj.bgActive} ${obj.text} border-b-2 ${obj.border}` : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'}`}
+                        aria-pressed={activeTab === obj.id}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[11px] font-bold uppercase tracking-widest transition-all
+                          ${activeTab === obj.id ? `${obj.bgActive} ${obj.text} ${obj.border}` : 'bg-white/5 text-gray-400 border-transparent hover:bg-white/10 hover:text-gray-200'}`}
                       >
                         <span>{obj.icon}</span> {obj.label}
                       </button>
@@ -561,6 +576,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
           }}
         />
       )}
-    </>
+    </>,
+    document.body
   );
 }
