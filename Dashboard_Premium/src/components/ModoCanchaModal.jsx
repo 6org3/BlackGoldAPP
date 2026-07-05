@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { insertarObservacion } from '../api/observacionesService';
 import { crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
+import { otorgarXP } from '../api/xpService';
+import { xpBaseSesion } from '../../../packages/analytics-core/xp.js';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 import { INSIGNIAS } from './ModoCanchaModalConstants';
@@ -287,19 +289,14 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
 
       await insertarObservacion(obsData);
 
-      // Subir pilar táctico o resiliencia extra por las estrellitas
+      // XP + subida de pilar táctico/resiliencia por las estrellitas (fuente única otorgarXP).
       const boostResiliencia = (ratings.esfuerzo + ratings.actitud) / 2;
       const boostTactica = (ratings.foco + ratings.trabajo_equipo) / 2;
 
-      const { data: currentAtleta } = await supabase.from('atletas').select('xp_total, resiliencia_psicologica, eficiencia_tactica').eq('id', atletaEvaluando.atleta_id).single();
-
-      if (currentAtleta) {
-        await supabase.from('atletas').update({
-          xp_total: (currentAtleta.xp_total || 0) + xpGanada,
-          resiliencia_psicologica: Math.min(100, (currentAtleta.resiliencia_psicologica || 0) + boostResiliencia),
-          eficiencia_tactica: Math.min(100, (currentAtleta.eficiencia_tactica || 0) + boostTactica)
-        }).eq('id', atletaEvaluando.atleta_id);
-      }
+      await otorgarXP(atletaEvaluando.atleta_id, xpGanada, {
+        resiliencia_psicologica: boostResiliencia,
+        eficiencia_tactica: boostTactica,
+      });
 
 
 
@@ -321,16 +318,7 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   const handleCerrarClase = async () => {
     setSaving(true);
     try {
-      let baseXP = 20; // Default Micro
-      if (activeSession.notas?.includes('Privada 1v1')) {
-        baseXP = 50;
-      } else if (activeSession.notas?.includes('Grupal Individualizada')) {
-        baseXP = 35;
-      } else if (activeSession.notas?.includes('Grupal (Niveles)')) {
-        if (activeSession.notas.includes('Micro')) baseXP = 20;
-        else if (activeSession.notas.includes('Desarrollo')) baseXP = 30;
-        else if (activeSession.notas.includes('Elite')) baseXP = 40;
-      }
+      const baseXP = xpBaseSesion(activeSession.notas);
 
       // Determine stat to boost
       let statToBoost = null;
@@ -340,17 +328,11 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
 
       // Un atleta a la vez tardaba 2 roundtrips secuenciales por cabeza (10-30s
       // con 15-20 presentes en la red de la cancha); en paralelo cierra en ~1-2s.
+      // La mutación de XP + boost (tope 100) pasa por otorgarXP (fuente única).
       const presentes = atletasResumed;
-      await Promise.all(presentes.map(async (a) => {
-        const { data: atData } = await supabase.from('atletas').select('xp_total, fisico_atletico, eficiencia_tactica, resiliencia_psicologica').eq('id', a.atleta_id).single();
-        if (atData) {
-          const updates = { xp_total: (atData.xp_total || 0) + baseXP };
-          if (statToBoost) {
-            updates[statToBoost] = Math.min(100, (atData[statToBoost] || 0) + 1.5); // Micro boost
-          }
-          await supabase.from('atletas').update(updates).eq('id', a.atleta_id);
-        }
-      }));
+      await Promise.all(presentes.map(a =>
+        otorgarXP(a.atleta_id, baseXP, statToBoost ? { [statToBoost]: 1.5 } : {}),
+      ));
 
       // 2. Cerrar la sesión (cambiar notas para que no aparezca como 'En Curso')
       const notasLimpias = (activeSession.notas || '').replace('[EN_CURSO] ', '');

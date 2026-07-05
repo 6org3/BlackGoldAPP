@@ -1,5 +1,6 @@
 // src/api/observacionesService.js
 import { supabase } from './supabaseClient';
+import { otorgarXP } from './xpService';
 
 // ============================
 // OBSERVACIONES CANCHA (Phase 4)
@@ -28,18 +29,7 @@ export const insertarObservacion = async (data) => {
   if (error) throw error;
 
   if (data.xp_agregado) {
-    const { data: atletaData } = await supabase
-      .from('atletas')
-      .select('id, xp_total')
-      .eq('id', data.atleta_id)
-      .single();
-
-    if (atletaData) {
-      await supabase
-        .from('atletas')
-        .update({ xp_total: (atletaData.xp_total || 0) + data.xp_agregado })
-        .eq('id', data.atleta_id);
-    }
+    await otorgarXP(data.atleta_id, data.xp_agregado);
   }
 
   return obsData;

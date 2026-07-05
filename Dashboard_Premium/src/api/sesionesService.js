@@ -1,5 +1,7 @@
 // src/api/sesionesService.js
 import { supabase } from './supabaseClient';
+import { xpBaseSesion } from '../../../packages/analytics-core/xp.js';
+import { otorgarXP } from './xpService';
 
 export async function fetchEjercicios(tipo = null) {
   let q = supabase.from('ejercicios_catalogo').select('*').order('tipo').order('nombre');
@@ -37,35 +39,13 @@ export async function evaluarSesion(sesionId, { se_logro, notas_evaluacion }) {
     .single();
   if (error) throw error;
 
-  // Asignar XP si es un atleta individual y se logró o parcial
+  // Asignar XP si es un atleta individual y se logró o parcial.
+  // XP base por tipo de sesión desde la fuente única (analytics-core/xp.js);
+  // la mutación de xp_total pasa por otorgarXP (xpService).
   if (data.atleta_id && (se_logro === 'Sí' || se_logro === 'Parcial')) {
-    let xpBase = 20;
-    if (data.tipo === 'Privada 1v1') xpBase = 50;
-    else if (data.tipo === 'Grupal Individualizada') xpBase = 35;
-    else if (data.tipo?.startsWith('Grupal (Niveles)')) {
-      if (data.tipo.includes('Micro')) xpBase = 20;
-      else if (data.tipo.includes('Desarrollo')) xpBase = 30;
-      else if (data.tipo.includes('Elite')) xpBase = 40;
-    }
-
-    if (se_logro === 'Parcial') {
-      xpBase = Math.floor(xpBase / 2);
-    }
-
-    if (xpBase > 0) {
-      const { data: atletaData } = await supabase
-        .from('atletas')
-        .select('xp_total')
-        .eq('id', data.atleta_id)
-        .single();
-      
-      if (atletaData) {
-        await supabase
-          .from('atletas')
-          .update({ xp_total: (atletaData.xp_total || 0) + xpBase })
-          .eq('id', data.atleta_id);
-      }
-    }
+    let xpBase = xpBaseSesion(data.tipo);
+    if (se_logro === 'Parcial') xpBase = Math.floor(xpBase / 2);
+    if (xpBase > 0) await otorgarXP(data.atleta_id, xpBase);
   }
 
   return data;

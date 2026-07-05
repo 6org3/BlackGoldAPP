@@ -9,3 +9,4 @@ export * from './readiness.js';
 export * from './recomendaciones.js';
 export * from './taxonomia.js';
 export * from './tendencias.js';
+export * from './xp.js';
