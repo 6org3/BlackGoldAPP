@@ -4,7 +4,7 @@
 
 import { SUB_PILARES } from './taxonomia.js';
 
-// Los ejes del radar SON los 7 sub-pilares de rendimiento. Fuente única: taxonomia.js
+// Los ejes del radar SON los sub-pilares de rendimiento (8 desde 2026-07-05, con resistencia). Fuente única: taxonomia.js
 // (antes esta lista estaba duplicada aquí y podía divergir del resto de la app).
 const RADAR_AXES = SUB_PILARES;
 

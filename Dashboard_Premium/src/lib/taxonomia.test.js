@@ -16,7 +16,9 @@ import { RADAR_AXES } from '../../../packages/analytics-core/radar.js';
 describe('taxonomía — invariantes', () => {
   it('RADAR_AXES es exactamente SUB_PILARES (única fuente)', () => {
     expect(RADAR_AXES).toBe(SUB_PILARES);
-    expect(RADAR_AXES).toHaveLength(7);
+    // 8 ejes desde 2026-07-05: 'resistencia' entró como 4º sub-pilar físico (P1.5)
+    // al insertarse sus primeras pruebas con baremos vía el MCP.
+    expect(RADAR_AXES).toHaveLength(8);
   });
 
   it('cada sub-pilar de rendimiento pertenece a un pilar existente', () => {
@@ -59,7 +61,7 @@ describe('taxonomía — helpers', () => {
   });
 
   it('subPilaresDePilar filtra por pilar', () => {
-    expect(subPilaresDePilar('fisico').map(s => s.key)).toEqual(['fuerza', 'explosividad', 'movilidad']);
+    expect(subPilaresDePilar('fisico').map(s => s.key)).toEqual(['fuerza', 'explosividad', 'resistencia', 'movilidad']);
     expect(subPilaresDePilar('mental').map(s => s.key)).toEqual(['tactica', 'resiliencia']);
   });
 });

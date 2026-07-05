@@ -494,9 +494,31 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
     `blackgold-mcp`) — una tabla de plantillas ya construida y nunca conectada. Decisión
     de plantillas (§3.2, §8) **revisada**: reutilizarla en vez de crear
     `sesiones_plantilla` desde cero.
-- **P1.5 — Autoría de pruebas/baremos vía MCP** — ✅ TOOLING IMPLEMENTADO (2026-07-05;
-  falta el CONTENIDO: redactar/validar las pruebas en conversación MCP con el owner).
-  Lo construido:
+- ~~**P1.5 — Autoría de pruebas/baremos vía MCP**~~ ✅ COMPLETA (2026-07-05): tooling
+  + CONTENIDO. El lote de pruebas fue redactado con la guía Vinueza, **aprobado
+  explícitamente por el owner** e insertado en producción **llamando a la tool real del
+  MCP** (`insertar_pruebas_evaluacion` vía cliente stdio — e2e del tooling):
+  - 6 pruebas nuevas con capas género×nivel: Course Navette (Léger/Tomkinson 2017),
+    Carrera 600m y 1000m (batería Vinueza, cortes provisionales a calibrar con datos
+    del club — así marcado en su justificación), Salto de Longitud sin Impulso (Sub12
+    anclado en la tabla Vinueza 2002 con datos ecuatorianos reales), Carrera 30m
+    (ídem, convertida de su tabla de 40m) y Abdominales en 30s (batería Vinueza +
+    FitnessGram). Regla de niveles: Desarrollo = norma poblacional, Micro -10% /
+    Elite +10% (metodología interna documentada en cada justificación).
+  - 2 reclasificaciones aprobadas: Yo-Yo IR1 `recuperacion`→`resistencia` y
+    Dorsiflexión (WBLT) `flexibilidad`→`movilidad` (ambas eran invisibles al radar).
+  - **`resistencia` entró a `SUB_PILARES` en `taxonomia.js` → el radar es de 8 ejes**
+    (tests actualizados: 7→8). Catálogo final: 8 sub-pilares canónicos, 0 huérfanos,
+    resistencia con 4 pruebas.
+  - Verificado e2e contra producción: 6 paliers de Navette = `average` 55 para chica
+    Sub-16 Desarrollo vs `poor` 15 para chico Sub-16 Elite (género y nivel operando);
+    Yo-Yo IR1 revivido (`above_avg` con su shape legacy por género). Suite 229/229.
+  - Pendiente de contenido futuro (no bloquea): conseguir las tablas originales de
+    Vinueza para reemplazar los cortes provisionales de 600m/1000m; misiones
+    `pilar='fisico'` orientadas a resistencia; pruebas para `tactica` (solo 1, rating
+    subjetivo).
+
+  Lo construido (tooling):
   - `blackgold-mcp/knowledge/fundamentos_iniciacion_vinueza.md` — la guía metodológica
     ecuatoriana (Vinueza) aportada por el owner, como base de conocimiento del MCP.
   - Tools nuevas: `consultar_metodologia_iniciacion` (devuelve la guía),
@@ -642,6 +664,8 @@ fusionan); XP (§2.4, ya consolidado en `analytics-core/xp.js`).
    tarjeta individual del atleta: el coach podrá programar pruebas específicas para un
    grupo y capturarlas en un solo flujo (P3 en §7).
 
-**Sigue pendiente de decisión (no bloquea el resto, ver P1.5):** qué prueba(s) exactas
-por sub-pilar y sus cortes — ahora se resuelve en conversación con el MCP (que propone
-con fuentes) + validación del cuerpo técnico, no como decisión previa de ingeniería.
+~~**Sigue pendiente de decisión (no bloquea el resto, ver P1.5):** qué prueba(s) exactas
+por sub-pilar y sus cortes.~~ ✅ RESUELTO (2026-07-05): el owner aprobó el lote completo
+propuesto (6 pruebas + 2 reclasificaciones) — ver P1.5 en §7. `resistencia` ya es el 8º
+eje del radar. Quedan como contenido futuro los cortes definitivos de 600m/1000m (tablas
+originales de Vinueza) y ampliar `tactica`.

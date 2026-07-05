@@ -7,7 +7,7 @@
 //     AdminSesiones (TIPOS).
 // Este módulo las unifica. REGLAS DEL PAQUETE: ES modules planos, sin dependencias.
 //
-// Los 3 pilares y sus pesos coinciden con PILLAR_WEIGHTS de baremos.js. Los 7 sub-pilares
+// Los 3 pilares y sus pesos coinciden con PILLAR_WEIGHTS de baremos.js. Los 8 sub-pilares
 // (y su orden) coinciden EXACTAMENTE con RADAR_AXES — radar.js los deriva de aquí.
 
 export const PILARES = [
@@ -16,10 +16,14 @@ export const PILARES = [
   { key: 'mental',  label: 'Mental-Táctico',          peso: 0.25 },
 ];
 
-// Sub-pilares que forman el radar y el overall (7 ejes). El orden ES el del radar.
+// Sub-pilares que forman el radar y el overall (8 ejes). El orden ES el del radar.
+// 'resistencia' entró el 2026-07-05 (fase P1.5): decisión del owner de tratarla como
+// sub-pilar físico de pleno derecho, habilitada al insertarse sus primeras pruebas con
+// baremos (Course Navette, 600m/1000m Vinueza, Yo-Yo IR1) vía el MCP.
 export const SUB_PILARES = [
   { key: 'fuerza',       label: 'Fuerza',        pilar: 'fisico'  },
   { key: 'explosividad', label: 'Explosividad',  pilar: 'fisico'  },
+  { key: 'resistencia',  label: 'Resistencia',   pilar: 'fisico'  },
   { key: 'movilidad',    label: 'Movilidad',     pilar: 'fisico'  },
   { key: 'tiro',         label: 'Técnica Tiro',  pilar: 'tecnico' },
   { key: 'agilidad',     label: 'Agilidad',      pilar: 'tecnico' },

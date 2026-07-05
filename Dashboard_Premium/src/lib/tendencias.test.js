@@ -93,10 +93,10 @@ describe('seriesPorSubPilar', () => {
     expect(series.explosividad).toEqual([{ fecha: '2026-01-10', score: 55 }]);
   });
 
-  it('siempre expone los 7 ejes del radar, con array vacío si no hay datos', () => {
+  it('siempre expone los 8 ejes del radar, con array vacío si no hay datos', () => {
     const series = seriesPorSubPilar([]);
     expect(Object.keys(series).sort()).toEqual(
-      ['agilidad', 'explosividad', 'fuerza', 'movilidad', 'resiliencia', 'tactica', 'tiro'],
+      ['agilidad', 'explosividad', 'fuerza', 'movilidad', 'resiliencia', 'resistencia', 'tactica', 'tiro'],
     );
     expect(series.fuerza).toEqual([]);
   });
