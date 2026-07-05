@@ -289,16 +289,12 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
 
       await insertarObservacion(obsData);
 
-      // XP + subida de pilar táctico/resiliencia por las estrellitas (fuente única otorgarXP).
-      const boostResiliencia = (ratings.esfuerzo + ratings.actitud) / 2;
-      const boostTactica = (ratings.foco + ratings.trabajo_equipo) / 2;
-
-      await otorgarXP(atletaEvaluando.atleta_id, xpGanada, {
-        resiliencia_psicologica: boostResiliencia,
-        eficiencia_tactica: boostTactica,
-      });
-
-
+      // Solo XP (fuente única otorgarXP). Antes se pasaba también un boost a
+      // resiliencia_psicologica/eficiencia_tactica, pero esas columnas de
+      // atletas ya no existen (v14 las eliminó) — otorgarXP hace un SELECT
+      // que incluye las columnas del statBoosts, así que fallaba entera y
+      // ni siquiera el XP se guardaba.
+      await otorgarXP(atletaEvaluando.atleta_id, xpGanada);
 
       setSuccessMsg('Evaluación guardada exitosamente.');
       setEvaluadosIds(prev => [...prev, atletaEvaluando.atleta_id]);
@@ -320,25 +316,22 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     try {
       const baseXP = xpBaseSesion(activeSession.notas);
 
-      // Determine stat to boost
-      let statToBoost = null;
-      if (activeSession.pilar_objetivo.includes('Físico')) statToBoost = 'fisico_atletico';
-      else if (activeSession.pilar_objetivo.includes('Táctica')) statToBoost = 'eficiencia_tactica';
-      else if (activeSession.pilar_objetivo.includes('Resiliencia') || activeSession.pilar_objetivo.includes('Liderazgo')) statToBoost = 'resiliencia_psicologica';
-
       // Un atleta a la vez tardaba 2 roundtrips secuenciales por cabeza (10-30s
       // con 15-20 presentes en la red de la cancha); en paralelo cierra en ~1-2s.
-      // La mutación de XP + boost (tope 100) pasa por otorgarXP (fuente única).
+      // La mutación de XP pasa por otorgarXP (fuente única). Antes se pasaba
+      // también un statBoost (fisico_atletico/eficiencia_tactica/
+      // resiliencia_psicologica) derivado de pilar_objetivo, pero esas
+      // columnas de atletas ya no existen (v14 las eliminó) — otorgarXP hace
+      // un SELECT que incluye las columnas del statBoosts, así que fallaba
+      // entera y ni siquiera el XP se guardaba.
       const presentes = atletasResumed;
-      await Promise.all(presentes.map(a =>
-        otorgarXP(a.atleta_id, baseXP, statToBoost ? { [statToBoost]: 1.5 } : {}),
-      ));
+      await Promise.all(presentes.map(a => otorgarXP(a.atleta_id, baseXP)));
 
       // 2. Cerrar la sesión (cambiar notas para que no aparezca como 'En Curso')
       const notasLimpias = (activeSession.notas || '').replace('[EN_CURSO] ', '');
       await supabase.from('sesiones_programadas').update({ estado: 'Completada', notas: notasLimpias }).eq('id', activeSession.id);
 
-      alert(`Clase finalizada. ${presentes.length} atletas recibieron +${baseXP} XP y un bonus en ${activeSession.pilar_objetivo}.`);
+      alert(`Clase finalizada. ${presentes.length} atletas recibieron +${baseXP} XP.`);
       onClose();
     } catch (err) {
       alert("Error al finalizar clase: " + err.message);

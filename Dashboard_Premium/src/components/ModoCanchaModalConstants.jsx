@@ -7,11 +7,14 @@ export const INSIGNIAS = [
   { id: 'ice', label: 'Sangre Fría', icon: <Snowflake size={16} className="text-cyan-300" />, desc: 'Resiliencia ante el error', xp: 50 }
 ];
 
+// Agilidad va bajo Técnico (no Físico): alineado con packages/analytics-core/taxonomia.js,
+// baremos.js y el radar, que ya la clasifican como sub-pilar técnico. Antes decía
+// "Físico - Velocidad/Agilidad", lo que contradecía el resto del sistema de puntuación.
 export const OBJETIVOS_CLASE = [
   'Físico - Fuerza',
   'Físico - Explosividad',
-  'Físico - Velocidad/Agilidad',
   'Físico - Resistencia',
+  'Técnico - Agilidad',
   'Eficiencia Táctica',
   'Resiliencia Psicológica',
   'Liderazgo y Comunicación'

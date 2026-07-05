@@ -422,6 +422,50 @@ guardado coinciden. Se incluyó en el pase de UX móvil por bloquear el mismo mo
 
 Fuentes de bugs futuros. Consolidar en la fase de datos (§3.3).
 
+### 6.3 BUG — XP de Modo Cancha nunca se guardaba — ✅ CORREGIDO (2026-07-05, fase P2)
+
+Hallado al tocar `ModoCanchaModal.jsx` para la fase P2 (no estaba buscándolo). La
+migración `20260622000003_v14_cleanup_legacy.sql` eliminó de `atletas` las columnas
+`fisico_atletico`, `eficiencia_tactica`, `resiliencia_psicologica` (limpieza legacy,
+intencional — el `overall_score` ahora se calcula dinámicamente desde
+`evaluaciones_pruebas`). Pero `handleCerrarClase` y `handleSubmitEvaluation` en
+`ModoCanchaModal.jsx` seguían llamando a `otorgarXP(atletaId, xp, { resiliencia_psicologica: ..., eficiencia_tactica: ... })` (o `fisico_atletico`).
+
+`otorgarXP` (`src/api/xpService.js`) hace un único `SELECT` que incluye `xp_total` +
+las columnas del `statBoosts` recibido. Si alguna de esas columnas no existe, el
+`SELECT` entero falla y la función retorna `null` **antes de tocar nada** — ni siquiera
+`xp_total` se actualiza. Como las 7 opciones de `OBJETIVOS_CLASE` siempre disparaban un
+`statToBoost` no-nulo (todas contienen "Físico", "Táctica", "Resiliencia" o
+"Liderazgo"), **cada cierre de clase y cada evaluación subjetiva en Modo Cancha fallaba
+en silencio**: el coach veía el `alert` de éxito, pero ningún atleta recibía XP.
+Alcance: desde que se aplicó v14 (2026-06-22) hasta este fix.
+
+**Corregido:** se quitaron los `statBoosts` de ambas llamadas (las columnas destino ya
+no existen y no hay reemplazo vigente — revivir un "bonus de stat" por objetivo de
+clase requeriría diseñar columnas/lógica nuevas, fuera de alcance aquí). Ahora ambas
+funciones solo otorgan `xp_total`, que es lo que sí existe y sí debe funcionar. El
+`alert` de `handleCerrarClase` dejó de prometer un "bonus" que nunca ocurría.
+
+### 6.4 Hallazgo: `sesiones_programadas.pilar_objetivo` existe y no se usa
+
+Al revisar el esquema para P2 apareció una columna real `pilar_objetivo TEXT` en
+`sesiones_programadas` (baseline línea 696) que **`handleStartSession` nunca escribe**
+— el pilar de la clase se sigue codificando solo dentro de `notas`
+(`[EN_CURSO] Pilar:X | tipo`, ver §2.5). No se tocó en esta fase (leer/escribir esa
+columna en vez del hack de `notas` es tema de la fase P3, "retirar el parseo de
+notas"), pero acelera esa fase: la columna de destino ya existe, no hace falta
+migrarla.
+
+### 6.5 Quinto vocabulario de "qué se entrena": `AdminPlanificacion.jsx`
+
+Hallado de pasada al revisar referencias cruzadas de `OBJETIVOS_CLASE`. Existe
+`AdminPlanificacion.jsx` con su propia lista `METAS = ['Fuerza', 'Velocidad',
+'Resistencia', 'Coordinación', 'Flexibilidad', 'Recuperación Activa']` y un campo
+`meta_entrenamiento` (usado también por `src/lib/trainingRules.js`) — un **quinto**
+vocabulario paralelo, no los 4 de §2.2. **No está ruteado en `main.jsx`** (confirmado
+por grep): es código muerto, ningún coach lo ve hoy. No se tocó — se registra para
+cuando se decida limpiar código muerto o si algún día se reactiva ese módulo.
+
 ---
 
 ## 7. Plan por fases (actualizado 2026-07-05 — las 4 decisiones de producto ya están tomadas, §8)
@@ -457,14 +501,47 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
   - Redactar misiones `pilar='fisico'` orientadas a resistencia.
   - Solo entonces: añadir `resistencia` a `SUB_PILARES` (`taxonomia.js`) — el radar pasa
     de 7 a 8 ejes automáticamente.
-- **P2 — Migraciones aditivas (baseline de P1 ya capturado, lista para empezar):**
-  1. `ALTER TABLE catalogo_sesiones ADD pilar/sub_pilar/tipo_clase/activa` (§3.2,
-     decisión revisada) + poblarla con las plantillas que hoy son objetivos de Modo
-     Cancha.
-  2. `ALTER TABLE asistencia ADD sesion_id` + ajuste de `UNIQUE` (§3.3.a, decidida).
-  3. Migrar `OBJETIVOS_CLASE`/`TIPOS` a consumir `taxonomia.js`: Agilidad→Técnico,
-     Liderazgo→`resiliencia` (§3.4, decididas), separando `pilar/sub_pilar` de
-     `tipo_actividad`.
+- ~~**P2 — Migraciones aditivas**~~ ✅ APLICADA A PRODUCCIÓN (2026-07-05, confirmado
+  por el owner). El baseline (`00000000000000`) se marcó `applied` en el historial
+  remoto vía `supabase migration repair` (sin ejecutar su SQL — ya reflejaba el estado
+  real) antes del push, para que `db push` no intentara recrear políticas/objetos ya
+  existentes. `db push` mostró un warning no-fatal ("failed to cache migrations
+  catalog", un contenedor auxiliar de `edge-runtime` sin certificado SSL para su caché
+  propia) — **verificado aparte, directamente contra producción vía API**, que la
+  migración sí aplicó: las 7 filas de `catalogo_sesiones` y la columna
+  `asistencia.sesion_id` existen y son consultables en la BD real.
+  1. ✅ `Dashboard_Premium/supabase/migrations/20260705165638_v21_unificacion_sesiones_fase_p2.sql`:
+     `ALTER TABLE catalogo_sesiones ADD pilar/sub_pilar/tipo_clase/activa` (§3.2,
+     decisión revisada) + siembra de 7 plantillas (una por objetivo actual de Modo
+     Cancha, `club_id=NULL`=global, `sub_pilar` de Resistencia queda `NULL` a propósito
+     hasta P1.5) + fix de una política RLS obsoleta en `catalogo_sesiones`
+     ("Insertar Sesiones" usaba roles `coach_head`/`coach_asistente` que ya no existen
+     — el `CHECK` de `usuarios.rol` solo permite `superadmin/owner/coach/atleta/padre`;
+     sin este fix ningún coach real podría crear una plantilla en la fase P3) +
+     `ALTER TABLE asistencia ADD sesion_id` y swap de `UNIQUE` (§3.3.a, decidida).
+     **Validada localmente**: aplicada sin errores contra un Postgres 17.6.1 desechable
+     en Docker (misma versión que producción), reconstruido desde el baseline de P1 —
+     cero impacto en datos reales, se descartó el contenedor después.
+  2. ✅ `ModoCanchaModalConstants.jsx`: `OBJETIVOS_CLASE` — "Físico - Velocidad/Agilidad"
+     → "Técnico - Agilidad" (decisión #1, agilidad ya no se agrupa con Físico).
+  3. ✅ Bug encontrado y corregido de paso (§6.3): `handleCerrarClase`/
+     `handleSubmitEvaluation` en `ModoCanchaModal.jsx` otorgaban XP con `statBoosts` a
+     columnas que v14 ya había eliminado de `atletas` — el `SELECT` fallaba entero y
+     **ningún atleta recibía XP al cerrar una clase o evaluar en Modo Cancha**, desde
+     2026-06-22 hasta ahora. Corregido: se quitaron esos `statBoosts`, queda solo el
+     otorgamiento de `xp_total`.
+  4. **No se tocó todavía** `AdminSesiones.TIPOS` ni el "tipo_actividad" separado de
+     decisión #4 (§3.4): `TIPOS` filtra datos reales de `ejercicios_catalogo.tipo`
+     (`e.tipo === form.objetivoTipo`), y tocarlo sin revisar los valores reales de esa
+     columna en producción podría romper el filtro de ejercicios para los coaches —
+     se dejó para revisar con más cuidado en P3, junto con la reescritura de flujo.
+  - **Verificación:** suite de tests 215/215 sin regresiones; lint de los 2 archivos
+    editados sin problemas nuevos (los 2 errores/1 warning que reporta ESLint en
+    `ModoCanchaModal.jsx` ya existían antes de este cambio, confirmado con
+    `git stash`/`git stash pop`, no relacionados). **No se pudo verificar en navegador**:
+    el subsistema de preview de esta sesión quedó anclado al worktree original
+    (`gracious-meninsky-05daeb`, otra rama, sin `node_modules` instalado) y no siguió el
+    cambio de `EnterWorktree` — confirmado con una marca de prueba en `launch.json`.
 - **P3 — Reescritura de flujo (código, tras P2 en producción):**
   - `ModoCanchaModalConfigPilar` pasa de "elegir pilar" a "elegir/sugerir plantilla".
   - Paso "Pasar Lista" de Modo Cancha escribe en `asistencia` en vez de inferir por
