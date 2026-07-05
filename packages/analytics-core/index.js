@@ -3,6 +3,8 @@
 // motor de recomendación de misiones y tendencias multi-punto.
 export * from './baremos.js';
 export * from './categoriaFEB.js';
+export * from './didactica.js';
 export * from './radar.js';
+export * from './readiness.js';
 export * from './recomendaciones.js';
 export * from './tendencias.js';
