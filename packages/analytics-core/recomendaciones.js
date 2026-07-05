@@ -97,7 +97,7 @@ export function scoreATier(score) {
  *
  * Pipeline: ultimasPorPrueba → agregación por sub-pilar → filtro de tiers débiles.
  *
- * - Solo agrega los 7 sub-pilares presentes en RADAR_AXES. Esto excluye de forma
+ * - Solo agrega los sub-pilares presentes en RADAR_AXES (8 desde 2026-07-05). Esto excluye de forma
  *   natural 'recuperacion' y 'composicion_corporal', que también existen en la tabla
  *   evaluaciones_pruebas pero no forman parte del radar ni tienen misiones asociadas.
  * - El promedio por sub-pilar replica la agregación de getSubPilarScores (radar.js):

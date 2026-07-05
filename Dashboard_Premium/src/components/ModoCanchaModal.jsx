@@ -3,6 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { insertarObservacion } from '../api/observacionesService';
 import { crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
+import { fetchPlantillas, fetchPruebasEvaluacion, fetchEvaluacionesProgramadasHoy } from '../api/sesionesService';
+import { upsertAsistencia } from '../api/asistenciaService';
+import { guardarEvaluacionesLote, recalcularOverall } from '../api/evaluacionesService';
+import { otorgarXP } from '../api/xpService';
+import { xpBaseSesion } from '../../../packages/analytics-core/xp.js';
+import { labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 import { INSIGNIAS } from './ModoCanchaModalConstants';
@@ -13,6 +19,8 @@ import ModoCanchaModalConfigPilar from './ModoCanchaModalConfigPilar';
 import ModoCanchaModalAsistencia from './ModoCanchaModalAsistencia';
 import ModoCanchaModalGridAtletas from './ModoCanchaModalGridAtletas';
 import ModoCanchaModalEvaluarAtleta from './ModoCanchaModalEvaluarAtleta';
+import ModoCanchaModalSeleccionPruebas from './ModoCanchaModalSeleccionPruebas';
+import ModoCanchaModalCapturaEvaluacion from './ModoCanchaModalCapturaEvaluacion';
 
 export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   const { user } = useAuth();
@@ -28,7 +36,20 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   const [busquedaAtleta, setBusquedaAtleta] = useState('');
   const [atletaIndividual, setAtletaIndividual] = useState(null);
 
-  const [pilarObjetivo, setPilarObjetivo] = useState('Eficiencia Táctica');
+  // Plantillas de sesión (catalogo_sesiones, fase P3): el paso 2 elige una plantilla
+  // con objetivo canónico pilar/sub_pilar en vez de un string de pilar abstracto.
+  const [plantillas, setPlantillas] = useState([]);
+  const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
+
+  // Evaluación grupal (fase P3b): pruebas del catálogo de evaluación + captura por
+  // estaciones. sesionEvaluacion es la fila de sesiones_programadas en ejecución.
+  const [pruebasCatalogo, setPruebasCatalogo] = useState([]);
+  const [pruebasSeleccionadasIds, setPruebasSeleccionadasIds] = useState([]);
+  const [evaluacionesHoy, setEvaluacionesHoy] = useState([]);
+  const [sesionEvaluacion, setSesionEvaluacion] = useState(null);
+  const [capturas, setCapturas] = useState({});           // { pruebaId: { atletaId: { inputId: valor } } }
+  const [estacionIdx, setEstacionIdx] = useState(0);
+  const [estacionesGuardadas, setEstacionesGuardadas] = useState([]); // pruebaIds ya guardadas
 
   const [asistencia, setAsistencia] = useState({}); // { id: true/false }
   const [atletaEvaluando, setAtletaEvaluando] = useState(null);
@@ -61,8 +82,16 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   }, [isOpen]);
 
   const loadData = async () => {
-    const atls = await fetchTodosLosAtletas(user);
+    const [atls, plts, pruebas, evalsHoy] = await Promise.all([
+      fetchTodosLosAtletas(user),
+      fetchPlantillas(),
+      fetchPruebasEvaluacion(),
+      fetchEvaluacionesProgramadasHoy(user.id),
+    ]);
     setAtletas(atls);
+    setPlantillas(plts);
+    setPruebasCatalogo(pruebas);
+    setEvaluacionesHoy(evalsHoy);
   };
 
   const checkActiveSession = async () => {
@@ -74,14 +103,22 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
       .ilike('notas', '[EN_CURSO]%');
 
     if (data && data.length > 0) {
-      // Enriquecer cada sesión con el pilar extraído de las notas
+      // Enriquecer cada sesión con una etiqueta legible del objetivo y del grupo.
+      // Sesiones nuevas (P3): pilar_objetivo es columna real (key canónica de
+      // taxonomia) y las notas son "[EN_CURSO] <tipo>". Sesiones viejas en curso:
+      // el pilar venía codificado en notas como "Pilar:X | tipo" — fallback.
       const sesionesEnriquecidas = data.map(s => {
-        const match = s.notas?.match(/Pilar:([^|]+)/);
-        const grupoMatch = s.notas?.match(/\| (.+)$/);
+        const notasSinMarker = (s.notas || '').replace('[EN_CURSO]', '').trim();
+        const matchLegacy = notasSinMarker.match(/Pilar:([^|]+)/);
+        const grupoLegacy = notasSinMarker.match(/\| (.+)$/);
         return {
           ...s,
-          pilar_objetivo: match ? match[1].trim() : '',
-          grupo_label: grupoMatch ? grupoMatch[1].trim() : s.tipo
+          pilar_label: s.pilar_objetivo
+            ? labelSubPilar(s.pilar_objetivo)
+            : (matchLegacy ? matchLegacy[1].trim() : ''),
+          grupo_label: matchLegacy
+            ? (grupoLegacy ? grupoLegacy[1].trim() : s.tipo)
+            : (notasSinMarker || s.tipo),
         };
       });
       setActiveSessions(sesionesEnriquecidas);
@@ -101,7 +138,12 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     setAsistencia({});
     setEvaluadosIds([]);
     setAtletaEvaluando(null);
-    setPilarObjetivo('Eficiencia Táctica');
+    setPlantillaSeleccionada(null);
+    setPruebasSeleccionadasIds([]);
+    setSesionEvaluacion(null);
+    setCapturas({});
+    setEstacionIdx(0);
+    setEstacionesGuardadas([]);
     resetEvalForm();
   };
 
@@ -135,7 +177,9 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
 
   const atletasParaSesion = useMemo(() => {
     if (tipoClase === 'privada_1v1') return atletaIndividual ? [atletaIndividual] : [];
-    if (tipoClase === 'grupal_ind') {
+    // Evaluación grupal usa el mismo pase de lista libre que Grupal Individualizada
+    // (búsqueda + filtro); si viene de una programada, el grupo llega premarcado.
+    if (tipoClase === 'grupal_ind' || tipoClase === 'evaluacion_grupal') {
       return atletas.filter(a => {
         const matchText = busquedaAtleta === '' ||
                           a.nombre.toLowerCase().includes(busquedaAtleta.toLowerCase()) ||
@@ -175,6 +219,8 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
       const ahora = new Date();
       const horaStr = ahora.toTimeString().split(' ')[0]; // HH:MM:SS
 
+      const esEvaluacion = tipoClase === 'evaluacion_grupal';
+
       let tipoStr = 'Grupal (Niveles)';
       let tipoDB = 'Grupal';
       if (tipoClase === 'privada_1v1') {
@@ -186,40 +232,105 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
         tipoDB = 'Grupal';
       } else if (tipoClase === 'grupal_nivel') {
         tipoStr = `Grupal (Niveles) - ${nivelSeleccionado}`;
+      } else if (esEvaluacion) {
+        tipoStr = 'Evaluación Grupal';
       }
 
-      const notasStr = `[EN_CURSO] Pilar:${pilarObjetivo} | ${tipoStr}`;
+      // El marker [EN_CURSO] se conserva (checkActiveSession y el badge del Sidebar
+      // filtran por él), pero el pilar YA NO se codifica en notas: va en la columna
+      // real pilar_objetivo (key canónica de taxonomia, desde la plantilla elegida).
+      const notasStr = `[EN_CURSO] ${tipoStr}`;
+      const fechaStr = ahora.toISOString().split('T')[0];
+      const objetivoCanonico = plantillaSeleccionada?.sub_pilar || plantillaSeleccionada?.pilar || null;
 
-      const { data: programadaData, error: errProg } = await supabase.from('sesiones_programadas').insert({
-        coach_id: user.id,
-        fecha: ahora.toISOString().split('T')[0],
-        hora_inicio: horaStr,
-        hora_fin: horaStr,
-        estado: 'Programada',
-        tipo: tipoDB,
-        notas: notasStr
-      }).select().single();
+      let programadaData;
+      if (esEvaluacion && sesionEvaluacion?.id) {
+        // Evaluación PROGRAMADA (AdminSesiones) que se inicia ahora: se estampa la
+        // hora real y el marker; las pruebas ya venían en la fila.
+        const { data, error: errUpd } = await supabase.from('sesiones_programadas')
+          .update({ hora_inicio: horaStr, hora_fin: horaStr, notas: notasStr })
+          .eq('id', sesionEvaluacion.id)
+          .select().single();
+        if (errUpd) throw errUpd;
+        programadaData = data;
+      } else {
+        const { data, error: errProg } = await supabase.from('sesiones_programadas').insert({
+          coach_id: user.id,
+          fecha: fechaStr,
+          hora_inicio: horaStr,
+          hora_fin: horaStr,
+          estado: 'Programada',
+          tipo: tipoDB,
+          pilar_objetivo: esEvaluacion ? null : objetivoCanonico,
+          pruebas_ids: esEvaluacion ? pruebasSeleccionadasIds : null,
+          notas: notasStr
+        }).select().single();
+        if (errProg) throw errProg;
+        programadaData = data;
+      }
 
-      if (errProg) throw errProg;
+      // 2. Asistencia REAL en la tabla `asistencia` (sesion_id = esta clase), que es
+      // la misma que alimenta el KPI del owner — reemplaza el hack de inferir
+      // presencia por notas de sesiones_entrenamiento. Se registran también los
+      // marcados explícitamente como ausentes. 3. Historial por atleta
+      // (sesiones_entrenamiento) solo para presentes y solo en clases de
+      // entrenamiento (una evaluación no es historial de entrenamiento).
+      // Todo en paralelo: secuencial tardaba N roundtrips con la red de la cancha.
+      const marcados = atletas.filter(a => asistencia[a.atleta_id] !== undefined);
+      await Promise.all([
+        ...marcados.map(a => upsertAsistencia({
+          atleta_id: a.atleta_id,
+          coach_id: user.id,
+          fecha: fechaStr,
+          estado: asistencia[a.atleta_id] ? 'Presente' : 'Ausente',
+          notas: tipoStr,
+          sesion_id: programadaData.id,
+        })),
+        ...(esEvaluacion ? [] : presentes.map(a => crearSesionEntrenamiento({
+          atleta_id: a.atleta_id,
+          pilar_objetivo: plantillaSeleccionada?.titulo || '',
+          volumen_series_reps: '',
+          notas: tipoStr,
+          eva_registro: 0 // Placeholder
+        }))),
+      ]);
 
-      // 2. Crear las Sesiones de Entrenamiento (Historial por atleta) en paralelo:
-      // secuencial tardaba N roundtrips con la red del celular en la cancha.
-      await Promise.all(presentes.map(a => crearSesionEntrenamiento({
-        atleta_id: a.atleta_id,
-        pilar_objetivo: pilarObjetivo,
-        volumen_series_reps: '',
-        notas: `[MODO_CANCHA: ${programadaData.id}] ${tipoStr}`,
-        eva_registro: 0 // Placeholder
-      })));
-
-      // Cerramos el modal para que el coach dé la clase
-      alert("Clase iniciada. Cuando termine, vuelve a abrir el Modo Cancha (se detectará la sesión activa).");
-      onRefresh && onRefresh();
-      onClose();
+      if (esEvaluacion) {
+        // La captura se hace DURANTE la sesión: directo a las estaciones.
+        setSesionEvaluacion(programadaData);
+        setPruebasSeleccionadasIds(programadaData.pruebas_ids || pruebasSeleccionadasIds);
+        setEstacionIdx(0);
+        setCapturas({});
+        setEstacionesGuardadas([]);
+        setStep(6);
+      } else {
+        // Cerramos el modal para que el coach dé la clase
+        alert("Clase iniciada. Cuando termine, vuelve a abrir el Modo Cancha (se detectará la sesión activa).");
+        onRefresh && onRefresh();
+        onClose();
+      }
     } catch (err) {
       alert("Error al iniciar clase: " + err.message);
     }
     setSaving(false);
+  };
+
+  // Iniciar una evaluación PROGRAMADA (creada desde AdminSesiones): premarca la
+  // asistencia con los atletas del grupo (ratificable en el paso 3) y sigue el
+  // flujo normal de pasar lista → captura.
+  const handleIniciarEvaluacionProgramada = (sesion) => {
+    setTipoClase('evaluacion_grupal');
+    setSesionEvaluacion(sesion);
+    setPruebasSeleccionadasIds(Array.isArray(sesion.pruebas_ids) ? sesion.pruebas_ids : []);
+    const pre = {};
+    atletas.forEach(a => {
+      if ((sesion.grupo_id && a.grupo_id === sesion.grupo_id) ||
+          (sesion.atleta_id && a.atleta_id === sesion.atleta_id)) {
+        pre[a.atleta_id] = true;
+      }
+    });
+    setAsistencia(pre);
+    setStep(3);
   };
 
   // =============== FLUJO FINAL (EVALUACIÓN Y XP) ===============
@@ -227,31 +338,62 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     setActiveSession(session);
     setSaving(true);
 
-    // Buscar los atletas que fueron registrados exactamente en esta clase usando el ID de la sesión
-    const { data: sesAtletas } = await supabase
-      .from('sesiones_entrenamiento')
-      .select('atleta_id')
-      .ilike('notas', `%[MODO_CANCHA: ${session.id}]%`);
+    // Fuente de verdad (P3): la tabla `asistencia` con sesion_id de esta clase.
+    const { data: asistRows } = await supabase
+      .from('asistencia')
+      .select('atleta_id, estado')
+      .eq('sesion_id', session.id)
+      .eq('estado', 'Presente');
 
-    if (sesAtletas && sesAtletas.length > 0) {
-      const idsPresentes = sesAtletas.map(s => s.atleta_id);
+    // Sesión de EVALUACIÓN en curso (pruebas_ids no nulo): reanudar va a la
+    // captura por estaciones, no al grid de evaluación subjetiva.
+    if (Array.isArray(session.pruebas_ids) && session.pruebas_ids.length > 0) {
       const newAsist = {};
-      idsPresentes.forEach(id => newAsist[id] = true);
+      (asistRows || []).forEach(r => newAsist[r.atleta_id] = true);
+      setTipoClase('evaluacion_grupal');
+      setAsistencia(newAsist);
+      setSesionEvaluacion(session);
+      setPruebasSeleccionadasIds(session.pruebas_ids);
+      setEstacionIdx(0);
+      setCapturas({});
+      setEstacionesGuardadas([]);
+      setStep(6);
+      setSaving(false);
+      return;
+    }
+
+    if (asistRows && asistRows.length > 0) {
+      const newAsist = {};
+      asistRows.forEach(r => newAsist[r.atleta_id] = true);
       setTipoClase('resumed');
       setAsistencia(newAsist);
     } else {
-      // Fallback por si hay sesiones antiguas sin el ID (carga todos los de hoy)
-      const hoy = new Date().toISOString().split('T')[0];
-      const { data: fallbackAtletas } = await supabase
+      // Fallback 1 (sesiones iniciadas ANTES del deploy de P3): la presencia se
+      // infería por el marker [MODO_CANCHA: id] en sesiones_entrenamiento.notas.
+      const { data: sesAtletas } = await supabase
         .from('sesiones_entrenamiento')
         .select('atleta_id')
-        .gte('created_at', hoy + 'T00:00:00Z');
+        .ilike('notas', `%[MODO_CANCHA: ${session.id}]%`);
 
-      if (fallbackAtletas) {
+      if (sesAtletas && sesAtletas.length > 0) {
         const newAsist = {};
-        fallbackAtletas.forEach(s => newAsist[s.atleta_id] = true);
+        sesAtletas.forEach(s => newAsist[s.atleta_id] = true);
         setTipoClase('resumed');
         setAsistencia(newAsist);
+      } else {
+        // Fallback 2 (sesiones aún más antiguas, sin ID): todos los de hoy.
+        const hoy = new Date().toISOString().split('T')[0];
+        const { data: fallbackAtletas } = await supabase
+          .from('sesiones_entrenamiento')
+          .select('atleta_id')
+          .gte('created_at', hoy + 'T00:00:00Z');
+
+        if (fallbackAtletas) {
+          const newAsist = {};
+          fallbackAtletas.forEach(s => newAsist[s.atleta_id] = true);
+          setTipoClase('resumed');
+          setAsistencia(newAsist);
+        }
       }
     }
 
@@ -263,6 +405,66 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     () => atletas.filter(a => asistencia[a.atleta_id]),
     [atletas, asistencia]
   );
+
+  // =============== CAPTURA GRUPAL POR ESTACIONES (P3b) ===============
+  // Las pruebas de la sesión de evaluación, en el orden en que se seleccionaron.
+  const pruebasDeSesion = useMemo(
+    () => pruebasSeleccionadasIds
+      .map(id => pruebasCatalogo.find(p => p.id === id))
+      .filter(Boolean),
+    [pruebasSeleccionadasIds, pruebasCatalogo]
+  );
+
+  /**
+   * Guarda la estación actual: una fila de evaluaciones_pruebas por atleta con
+   * inputs completos (los vacíos se saltan — no todos hacen todas las pruebas).
+   * recalcular=false: el overall se recalcula UNA vez por atleta al finalizar.
+   */
+  const handleGuardarEstacion = async (prueba, registros) => {
+    if (registros.length === 0) {
+      alert('No hay resultados capturados en esta estación.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await guardarEvaluacionesLote(registros, { recalcular: false });
+      setEstacionesGuardadas(prev => [...prev, prueba.id]);
+      if (estacionIdx < pruebasDeSesion.length - 1) setEstacionIdx(estacionIdx + 1);
+    } catch (err) {
+      alert('Error al guardar la estación: ' + err.message);
+    }
+    setSaving(false);
+  };
+
+  const handleFinalizarEvaluacion = async () => {
+    setSaving(true);
+    try {
+      // Recalcular overall/rango (y disparar el pipeline de misiones) UNA vez por
+      // atleta que haya recibido al menos un registro en cualquier estación.
+      const atletasCapturados = new Set();
+      Object.values(capturas).forEach(porAtleta => {
+        Object.entries(porAtleta).forEach(([atletaId, inputs]) => {
+          if (inputs && Object.values(inputs).some(v => v !== '' && v !== undefined)) {
+            atletasCapturados.add(atletaId);
+          }
+        });
+      });
+      await Promise.all([...atletasCapturados].map(id => recalcularOverall(id)));
+
+      // Cerrar la sesión de evaluación (mismo cierre que una clase normal).
+      const notasLimpias = (sesionEvaluacion?.notas || 'Evaluación Grupal').replace('[EN_CURSO] ', '');
+      await supabase.from('sesiones_programadas')
+        .update({ estado: 'Completada', notas: notasLimpias })
+        .eq('id', sesionEvaluacion.id);
+
+      alert(`Evaluación finalizada: ${estacionesGuardadas.length}/${pruebasDeSesion.length} estaciones guardadas, ${atletasCapturados.size} atleta(s) evaluado(s).`);
+      onRefresh && onRefresh();
+      onClose();
+    } catch (err) {
+      alert('Error al finalizar la evaluación: ' + err.message);
+    }
+    setSaving(false);
+  };
 
   const handleSubmitEvaluation = async () => {
     if (!atletaEvaluando) return;
@@ -287,21 +489,12 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
 
       await insertarObservacion(obsData);
 
-      // Subir pilar táctico o resiliencia extra por las estrellitas
-      const boostResiliencia = (ratings.esfuerzo + ratings.actitud) / 2;
-      const boostTactica = (ratings.foco + ratings.trabajo_equipo) / 2;
-
-      const { data: currentAtleta } = await supabase.from('atletas').select('xp_total, resiliencia_psicologica, eficiencia_tactica').eq('id', atletaEvaluando.atleta_id).single();
-
-      if (currentAtleta) {
-        await supabase.from('atletas').update({
-          xp_total: (currentAtleta.xp_total || 0) + xpGanada,
-          resiliencia_psicologica: Math.min(100, (currentAtleta.resiliencia_psicologica || 0) + boostResiliencia),
-          eficiencia_tactica: Math.min(100, (currentAtleta.eficiencia_tactica || 0) + boostTactica)
-        }).eq('id', atletaEvaluando.atleta_id);
-      }
-
-
+      // Solo XP (fuente única otorgarXP). Antes se pasaba también un boost a
+      // resiliencia_psicologica/eficiencia_tactica, pero esas columnas de
+      // atletas ya no existen (v14 las eliminó) — otorgarXP hace un SELECT
+      // que incluye las columnas del statBoosts, así que fallaba entera y
+      // ni siquiera el XP se guardaba.
+      await otorgarXP(atletaEvaluando.atleta_id, xpGanada);
 
       setSuccessMsg('Evaluación guardada exitosamente.');
       setEvaluadosIds(prev => [...prev, atletaEvaluando.atleta_id]);
@@ -321,42 +514,24 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   const handleCerrarClase = async () => {
     setSaving(true);
     try {
-      let baseXP = 20; // Default Micro
-      if (activeSession.notas?.includes('Privada 1v1')) {
-        baseXP = 50;
-      } else if (activeSession.notas?.includes('Grupal Individualizada')) {
-        baseXP = 35;
-      } else if (activeSession.notas?.includes('Grupal (Niveles)')) {
-        if (activeSession.notas.includes('Micro')) baseXP = 20;
-        else if (activeSession.notas.includes('Desarrollo')) baseXP = 30;
-        else if (activeSession.notas.includes('Elite')) baseXP = 40;
-      }
-
-      // Determine stat to boost
-      let statToBoost = null;
-      if (activeSession.pilar_objetivo.includes('Físico')) statToBoost = 'fisico_atletico';
-      else if (activeSession.pilar_objetivo.includes('Táctica')) statToBoost = 'eficiencia_tactica';
-      else if (activeSession.pilar_objetivo.includes('Resiliencia') || activeSession.pilar_objetivo.includes('Liderazgo')) statToBoost = 'resiliencia_psicologica';
+      const baseXP = xpBaseSesion(activeSession.notas);
 
       // Un atleta a la vez tardaba 2 roundtrips secuenciales por cabeza (10-30s
       // con 15-20 presentes en la red de la cancha); en paralelo cierra en ~1-2s.
+      // La mutación de XP pasa por otorgarXP (fuente única). Antes se pasaba
+      // también un statBoost (fisico_atletico/eficiencia_tactica/
+      // resiliencia_psicologica) derivado de pilar_objetivo, pero esas
+      // columnas de atletas ya no existen (v14 las eliminó) — otorgarXP hace
+      // un SELECT que incluye las columnas del statBoosts, así que fallaba
+      // entera y ni siquiera el XP se guardaba.
       const presentes = atletasResumed;
-      await Promise.all(presentes.map(async (a) => {
-        const { data: atData } = await supabase.from('atletas').select('xp_total, fisico_atletico, eficiencia_tactica, resiliencia_psicologica').eq('id', a.atleta_id).single();
-        if (atData) {
-          const updates = { xp_total: (atData.xp_total || 0) + baseXP };
-          if (statToBoost) {
-            updates[statToBoost] = Math.min(100, (atData[statToBoost] || 0) + 1.5); // Micro boost
-          }
-          await supabase.from('atletas').update(updates).eq('id', a.atleta_id);
-        }
-      }));
+      await Promise.all(presentes.map(a => otorgarXP(a.atleta_id, baseXP)));
 
       // 2. Cerrar la sesión (cambiar notas para que no aparezca como 'En Curso')
       const notasLimpias = (activeSession.notas || '').replace('[EN_CURSO] ', '');
       await supabase.from('sesiones_programadas').update({ estado: 'Completada', notas: notasLimpias }).eq('id', activeSession.id);
 
-      alert(`Clase finalizada. ${presentes.length} atletas recibieron +${baseXP} XP y un bonus en ${activeSession.pilar_objetivo}.`);
+      alert(`Clase finalizada. ${presentes.length} atletas recibieron +${baseXP} XP.`);
       onClose();
     } catch (err) {
       alert("Error al finalizar clase: " + err.message);
@@ -410,12 +585,14 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
                 "Empezar Clase" queda siempre visible sin doble scroll anidado. */}
             <div className={`p-4 md:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-6 flex-1 ${step === 3 ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'}`}>
 
-              {/* STEP 0: Sesiones Activas */}
+              {/* STEP 0: Sesiones Activas + evaluaciones programadas de hoy */}
               {step === 0 && (
                 <ModoCanchaModalSesionesActivas
                   activeSessions={activeSessions}
+                  evaluacionesHoy={evaluacionesHoy}
                   setStep={setStep}
                   handleResumeSession={handleResumeSession}
+                  handleIniciarEvaluacionProgramada={handleIniciarEvaluacionProgramada}
                 />
               )}
 
@@ -434,11 +611,20 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
                 />
               )}
 
-              {/* STEP 2: Session Setup (Pilares) */}
-              {step === 2 && (
+              {/* STEP 2: Objetivo de la sesión — plantilla (clase) o pruebas (evaluación) */}
+              {step === 2 && tipoClase !== 'evaluacion_grupal' && (
                 <ModoCanchaModalConfigPilar
-                  pilarObjetivo={pilarObjetivo}
-                  setPilarObjetivo={setPilarObjetivo}
+                  plantillas={plantillas}
+                  plantillaSeleccionada={plantillaSeleccionada}
+                  setPlantillaSeleccionada={setPlantillaSeleccionada}
+                  setStep={setStep}
+                />
+              )}
+              {step === 2 && tipoClase === 'evaluacion_grupal' && (
+                <ModoCanchaModalSeleccionPruebas
+                  pruebasCatalogo={pruebasCatalogo}
+                  pruebasSeleccionadasIds={pruebasSeleccionadasIds}
+                  setPruebasSeleccionadasIds={setPruebasSeleccionadasIds}
                   setStep={setStep}
                 />
               )}
@@ -484,6 +670,23 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
                   handleRatingChange={handleRatingChange}
                   insigniasSeleccionadas={insigniasSeleccionadas}
                   handleSubmitEvaluation={handleSubmitEvaluation}
+                  saving={saving}
+                />
+              )}
+
+              {/* STEP 6: Captura grupal por estaciones (evaluación, P3b) */}
+              {step === 6 && sesionEvaluacion && (
+                <ModoCanchaModalCapturaEvaluacion
+                  pruebas={pruebasDeSesion}
+                  atletasPresentes={atletasResumed}
+                  capturas={capturas}
+                  setCapturas={setCapturas}
+                  estacionIdx={estacionIdx}
+                  setEstacionIdx={setEstacionIdx}
+                  estacionesGuardadas={estacionesGuardadas}
+                  registradoPor={user?.id || null}
+                  handleGuardarEstacion={handleGuardarEstacion}
+                  handleFinalizarEvaluacion={handleFinalizarEvaluacion}
                   saving={saving}
                 />
               )}

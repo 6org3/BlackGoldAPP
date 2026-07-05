@@ -32,6 +32,21 @@ en esta auditoría (ver `baremos.js`) para no aparentar un soporte que no existe
 Esto es una iniciativa aparte, no algo para resolver dentro del loop de misiones — se
 deja documentado aquí para que quede en el radar del equipo técnico/científico.
 
+**Actualización (2026-07-05, fase P1.5):** el punto 1 y la mecánica de código ya están
+resueltos — la auditoría original no vio que `usuarios.genero` SÍ existe (default
+`'Masculino'`, confirmado en el baseline `00000000000000_baseline.sql`; consistente con
+la segmentación por género de comunicaciones v18). `normalizarValor()` recupera la
+dimensión vía su 4º parámetro `perfil` (`{ nivel_desarrollo, genero }`) y el nuevo
+`resolverUmbrales()` consulta umbrales anidados por género (`{ Masculino: {...},
+Femenino: {...} }` — shape que `NuevaPruebaModal` ya producía sin que el motor lo
+entendiera) y por nivel de desarrollo (Micro/Desarrollo/Elite, dimensión nueva pedida
+por el owner). **Sigue faltando el punto 2 (contenido):** umbrales por sexo con fuente
+citable, ahora autorables vía las tools del MCP (`generar_catalogo_pruebas` /
+`insertar_pruebas_evaluacion`) con la guía ecuatoriana de Vinueza
+(`blackgold-mcp/knowledge/fundamentos_iniciacion_vinueza.md`) como referencia
+poblacional. El punto 3 quedó con fallback técnico documentado (género ausente → primer
+género definido en el umbral), pendiente de decisión de producto.
+
 ## 2. Umbrales idénticos en las 4 categorías de edad — revisar
 
 `dorsiflexion`, `cadera_ri`, `cadera_re`, `hombro_re`, `hombro_ri` repiten exactamente

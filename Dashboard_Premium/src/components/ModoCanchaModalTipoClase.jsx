@@ -1,4 +1,4 @@
-import { Search, Users, User, ArrowRight } from 'lucide-react';
+import { Search, Users, User, ArrowRight, FlaskConical } from 'lucide-react';
 
 export default function ModoCanchaModalTipoClase({
   tipoClase,
@@ -14,7 +14,7 @@ export default function ModoCanchaModalTipoClase({
   return (
     <div className="space-y-6">
       <p className="text-sm text-fg-secondary font-bold uppercase tracking-widest text-center">Paso 1: ¿Qué tipo de clase darás hoy?</p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button onClick={() => { setTipoClase('grupal_nivel'); }}
           className={`p-4 bg-white/5 hover:bg-white/10 border ${tipoClase === 'grupal_nivel' ? 'border-brand' : 'border-white/10'} rounded-panel flex flex-col items-center justify-center space-y-3 transition-colors`}>
           <Users size={28} className="text-brand"/>
@@ -29,6 +29,11 @@ export default function ModoCanchaModalTipoClase({
           className={`p-4 bg-white/5 hover:bg-white/10 border ${tipoClase === 'privada_1v1' ? 'border-cyan-400' : 'border-white/10'} rounded-panel flex flex-col items-center justify-center space-y-3 transition-colors`}>
           <User size={28} className="text-cyan-400"/>
           <span className="font-bold text-white text-xs uppercase tracking-widest text-center">Privada<br/>1v1</span>
+        </button>
+        <button onClick={() => { setTipoClase('evaluacion_grupal'); }}
+          className={`p-4 bg-white/5 hover:bg-white/10 border ${tipoClase === 'evaluacion_grupal' ? 'border-success-soft' : 'border-white/10'} rounded-panel flex flex-col items-center justify-center space-y-3 transition-colors`}>
+          <FlaskConical size={28} className="text-success-soft"/>
+          <span className="font-bold text-white text-xs uppercase tracking-widest text-center">Evaluación<br/>Grupal</span>
         </button>
       </div>
 
@@ -51,6 +56,15 @@ export default function ModoCanchaModalTipoClase({
           <button onClick={() => setStep(2)}
             className="px-8 py-3 bg-caution hover:bg-caution-soft text-black font-black uppercase tracking-widest rounded-control transition shadow-[0_0_15px_rgba(249,115,22,0.3)]">
             Continuar a Configuración <ArrowRight size={18} className="inline ml-2" />
+          </button>
+        </div>
+      )}
+
+      {tipoClase === 'evaluacion_grupal' && (
+        <div className="mt-8 flex justify-center animate-in fade-in slide-in-from-bottom-4">
+          <button onClick={() => setStep(2)}
+            className="px-8 py-3 bg-success hover:bg-success-soft text-black font-black uppercase tracking-widest rounded-control transition shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+            Elegir Pruebas <ArrowRight size={18} className="inline ml-2" />
           </button>
         </div>
       )}

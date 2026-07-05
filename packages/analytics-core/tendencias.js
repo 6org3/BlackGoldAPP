@@ -18,7 +18,7 @@ import { ultimasPorPrueba, scoreATier } from './recomendaciones.js';
 // HELPERS INTERNOS
 // ===================================================================
 
-// Sub-pilares válidos: solo los 7 ejes del radar.
+// Sub-pilares válidos: solo los ejes del radar (8 desde 2026-07-05, con resistencia).
 const SUB_PILARES_RADAR = new Set(RADAR_AXES.map(a => a.key));
 
 /** Promedio aritmético simple (asume array no vacío). */

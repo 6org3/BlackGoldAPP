@@ -8,8 +8,10 @@ import {
 } from 'lucide-react';
 import {
   fetchGrupos, fetchEjercicios,
-  crearSesionControl, evaluarSesion, fetchSesionesControl
+  crearSesionControl, evaluarSesion, fetchSesionesControl,
+  crearPlantilla, fetchPruebasEvaluacion, programarEvaluacionGrupal
 } from '../api/sesionesService';
+import { labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { generarMensajeSesion, generarLinkWhatsApp } from '../api/comunicacionesService';
 
 const TIPOS = ['Técnico', 'Físico', 'Táctico', 'Evaluación', 'Recuperación'];
@@ -30,12 +32,24 @@ const LOGRO_CONFIG = {
   'No':      { color: 'text-danger-soft border-danger/40 bg-danger/10',            icon: XCircle },
 };
 
+// Mapeo TIPOS (eje "qué clase de actividad") → objetivo canónico de taxonomia.js
+// para las plantillas. Evaluación/Recuperación son formatos de sesión, no pilares
+// (decisión #4 de la unificación) → quedan sin objetivo canónico.
+const TIPO_A_OBJETIVO = {
+  'Técnico':      { pilar: 'tecnico', sub_pilar: null },
+  'Físico':       { pilar: 'fisico',  sub_pilar: null },
+  'Táctico':      { pilar: 'mental',  sub_pilar: 'tactica' },
+  'Evaluación':   { pilar: null,      sub_pilar: null },
+  'Recuperación': { pilar: null,      sub_pilar: null },
+};
+
 function getTodayStr() { return new Date().toISOString().split('T')[0]; }
 
 export default function AdminSesiones({ user, atletas = [] }) {
   const [modo, setModo] = useState('Grupal'); // 'Grupal' | 'Individual'
   const [grupos, setGrupos] = useState([]);
   const [ejerciciosCatalogo, setEjerciciosCatalogo] = useState([]);
+  const [pruebasCatalogo, setPruebasCatalogo] = useState([]);
   const [historial, setHistorial] = useState([]);
   const [evaluandoId, setEvaluandoId] = useState(null);
   const [evalData, setEvalData] = useState({ se_logro: 'Sí', notas: '' });
@@ -51,6 +65,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
     objetivoTipo: 'Técnico',
     objetivoDesc: '',
     ejerciciosIds: [],
+    pruebasIds: [],
     ejerciciosNotas: '',
     esPagoExtra: false,
     montoExtra: 0,
@@ -58,13 +73,15 @@ export default function AdminSesiones({ user, atletas = [] }) {
   });
 
   const load = useCallback(async () => {
-    const [g, e, h] = await Promise.all([
+    const [g, e, p, h] = await Promise.all([
       fetchGrupos(),
       fetchEjercicios(),
+      fetchPruebasEvaluacion(),
       fetchSesionesControl({ limit: 15 }),
     ]);
     setGrupos(g);
     setEjerciciosCatalogo(e);
+    setPruebasCatalogo(p);
     setHistorial(h);
     if (g.length > 0) setForm(f => ({ ...f, grupoId: g[0].id }));
   }, []);
@@ -87,12 +104,27 @@ export default function AdminSesiones({ user, atletas = [] }) {
     }));
   };
 
+  const togglePrueba = (id) => {
+    setForm(f => ({
+      ...f,
+      pruebasIds: f.pruebasIds.includes(id)
+        ? f.pruebasIds.filter(x => x !== id)
+        : [...f.pruebasIds, id]
+    }));
+  };
+
+  const esEvaluacion = form.objetivoTipo === 'Evaluación';
+
   const atletasFiltrados = atletas.filter(a =>
     busquedaAtleta && a.nombre?.toLowerCase().includes(busquedaAtleta.toLowerCase())
   );
 
   const handleGuardar = async () => {
     if (!form.objetivoDesc.trim()) return;
+    if (esEvaluacion && form.pruebasIds.length === 0) {
+      alert('Una sesión de Evaluación necesita al menos una prueba seleccionada.');
+      return;
+    }
     setSaving(true);
     try {
       await crearSesionControl({
@@ -108,8 +140,22 @@ export default function AdminSesiones({ user, atletas = [] }) {
         es_pago_extra: (modo === 'Privada 1v1' || modo === 'Grupal Individualizada') ? form.esPagoExtra : false,
         monto_extra: form.esPagoExtra ? form.montoExtra : 0,
       });
+
+      // Evaluación (P3b): además del registro, se crea la sesión EJECUTABLE con sus
+      // pruebas — el Modo Cancha la mostrará el día de la fecha para pasar lista y
+      // capturar los resultados del grupo por estaciones.
+      if (esEvaluacion) {
+        await programarEvaluacionGrupal({
+          coach_id: user.id,
+          fecha: form.fecha,
+          grupo_id: modo.startsWith('Grupal') ? form.grupoId : null,
+          atleta_id: modo === 'Privada 1v1' ? atletaSeleccionado?.atleta_id : null,
+          pruebas_ids: form.pruebasIds,
+        });
+      }
+
       setSaved(true);
-      setForm(f => ({ ...f, objetivoDesc: '', ejerciciosIds: [], ejerciciosNotas: '' }));
+      setForm(f => ({ ...f, objetivoDesc: '', ejerciciosIds: [], pruebasIds: [], ejerciciosNotas: '' }));
       const h = await fetchSesionesControl({ limit: 15 });
       setHistorial(h);
       setTimeout(() => setSaved(false), 2000);
@@ -122,6 +168,34 @@ export default function AdminSesiones({ user, atletas = [] }) {
     setEvaluandoId(null);
     const h = await fetchSesionesControl({ limit: 15 });
     setHistorial(h);
+  };
+
+  // Guarda el formulario actual como plantilla reutilizable (catalogo_sesiones):
+  // aparece en el paso "Objetivo de la Sesión" del Modo Cancha.
+  const handleGuardarPlantilla = async () => {
+    const titulo = window.prompt('Nombre de la plantilla:', form.objetivoDesc.trim().slice(0, 60));
+    if (!titulo || !titulo.trim()) return;
+    setSaving(true);
+    try {
+      const objetivo = TIPO_A_OBJETIVO[form.objetivoTipo] || { pilar: null, sub_pilar: null };
+      await crearPlantilla({
+        titulo: titulo.trim(),
+        enfoque_principal: form.objetivoTipo,
+        descripcion: form.objetivoDesc.trim() || null,
+        pilar: objetivo.pilar,
+        sub_pilar: objetivo.sub_pilar,
+        tipo_clase: modo,
+        ejercicios_ids: form.ejerciciosIds,
+        creado_por: user.id,
+        // La RLS de catalogo_sesiones exige club_id = club del usuario para owner/coach.
+        club: user.club,
+      });
+      alert(`Plantilla "${titulo.trim()}" guardada. Ya está disponible en el Modo Cancha.`);
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo guardar la plantilla: ' + (e.message || 'error desconocido'));
+    }
+    setSaving(false);
   };
 
   const abrirWA = (sesion) => {
@@ -291,7 +365,42 @@ export default function AdminSesiones({ user, atletas = [] }) {
             </div>
           </div>
 
-          {/* Selector de Ejercicios */}
+          {/* Selector de Pruebas (tipo Evaluación, P3b): programa la sesión ejecutable */}
+          {esEvaluacion && (
+            <div className="glass-card rounded-panel p-5 border border-brand/20">
+              <label className="block text-3xs text-brand font-black uppercase tracking-[0.25em] mb-3">
+                Pruebas de evaluación ({form.pruebasIds.length} seleccionadas)
+              </label>
+              <p className="text-2xs text-fg-muted mb-3">
+                El día {form.fecha} esta evaluación aparecerá en el Modo Cancha para pasar lista y capturar los resultados del grupo.
+              </p>
+              <div className="space-y-1.5 max-h-64 md:max-h-48 overflow-y-auto overscroll-contain pr-1">
+                {pruebasCatalogo.length === 0 && (
+                  <p className="text-xs text-fg-faint italic">No hay pruebas en el catálogo de evaluación.</p>
+                )}
+                {pruebasCatalogo.map(p => {
+                  const sel = form.pruebasIds.includes(p.id);
+                  return (
+                    <button key={p.id} onClick={() => togglePrueba(p.id)}
+                      className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-control border text-left transition ${
+                        sel ? 'text-brand bg-brand/10 border-brand/30 opacity-100' : 'border-white/5 hover:bg-white/5 opacity-70 hover:opacity-100'
+                      }`}>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${sel ? 'bg-current border-current' : 'border-white/20'}`}>
+                        {sel && <div className="w-2 h-2 rounded-full bg-surface-base" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white truncate">{p.nombre}</p>
+                        <p className="text-3xs text-fg-muted">{labelSubPilar(p.sub_pilar)} · {p.unidad}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Selector de Ejercicios (tipos de entrenamiento) */}
+          {!esEvaluacion && (
           <div className="glass-card rounded-panel p-5 border border-white/8">
             <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">
               Ejercicios ({ejerciciosFiltrados.length} disponibles)
@@ -327,6 +436,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
               </div>
             )}
           </div>
+          )}
 
           {/* Objetivo (texto libre) */}
           <div>
@@ -349,6 +459,13 @@ export default function AdminSesiones({ user, atletas = [] }) {
             {saving ? <span className="animate-pulse">Registrando...</span>
               : saved ? <><CheckCircle2 size={16} /><span>¡Sesión Registrada!</span></>
               : <><Plus size={16} /><span>Registrar Sesión</span></>}
+          </button>
+
+          {/* Guardar como plantilla (biblioteca del Modo Cancha) */}
+          <button onClick={handleGuardarPlantilla} disabled={saving || !form.objetivoDesc.trim()}
+            className="w-full flex items-center justify-center space-x-2 py-3 rounded-2xl font-bold uppercase tracking-widest text-xs border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+            <ClipboardList size={14} />
+            <span>Guardar como plantilla del Modo Cancha</span>
           </button>
         </div>
 

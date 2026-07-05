@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 // El shim src/lib/baremosEngine.js solo reexporta baremos.js, por eso se importa
 // directo del paquete.
 import { calcularXPMision } from '../../../packages/analytics-core/recomendaciones.js';
+import { otorgarXP } from './xpService';
 
 // ============================
 // MISIONES (Supabase)
@@ -126,20 +127,17 @@ export const aprobarMision = async (progresoId) => {
   if (progresoData && progresoData.misiones) {
     const atletaId = progresoData.atleta_id;
 
-    // Obtener XP y Nivel actual del atleta
+    // Nivel actual del atleta (para calcularXPMision); la mutación de xp_total
+    // pasa por otorgarXP (fuente única).
     const { data: atletaData } = await supabase
       .from('atletas')
-      .select('xp_total, nivel_desarrollo')
+      .select('nivel_desarrollo')
       .eq('id', atletaId)
       .single();
 
     if (atletaData) {
       const finalXP = calcularXPMision(progresoData.misiones, atletaData);
-
-      await supabase
-        .from('atletas')
-        .update({ xp_total: (atletaData.xp_total || 0) + finalXP })
-        .eq('id', atletaId);
+      await otorgarXP(atletaId, finalXP);
     }
   }
 

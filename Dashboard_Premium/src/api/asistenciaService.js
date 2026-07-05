@@ -40,16 +40,27 @@ export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
 
 /**
  * Guarda o actualiza la asistencia de un atleta en una fecha (UPSERT).
- * Si ya existe un registro para ese atleta en esa fecha, lo actualiza.
- * @param {{ atleta_id: string, coach_id: string, fecha: string, estado: string, notas?: string }} payload
+ *
+ * Dos modos, distinguidos por sesion_id (v21/v22, unificación de sesiones):
+ * - sesion_id = null  → pase de lista DIARIO (AdminAsistencia): un registro por
+ *   atleta y fecha.
+ * - sesion_id = uuid  → asistencia de una CLASE concreta (Modo Cancha, FK a
+ *   sesiones_programadas): un registro por atleta y sesión, coexiste con el diario.
+ *
+ * El conflict target debe ser la terna completa: la constraint real es
+ * UNIQUE NULLS NOT DISTINCT (atleta_id, fecha, sesion_id) — v22. (El target viejo
+ * 'atleta_id,fecha' dejó de existir con v21 y rompía este upsert con "no unique or
+ * exclusion constraint matching the ON CONFLICT specification".)
+ *
+ * @param {{ atleta_id: string, coach_id: string, fecha: string, estado: string, notas?: string, sesion_id?: string|null }} payload
  */
-export async function upsertAsistencia({ atleta_id, coach_id, fecha, estado, notas = '' }) {
+export async function upsertAsistencia({ atleta_id, coach_id, fecha, estado, notas = '', sesion_id = null }) {
   try {
     const { data, error } = await supabase
       .from('asistencia')
       .upsert(
-        { atleta_id, coach_id, fecha, estado, notas },
-        { onConflict: 'atleta_id,fecha' }
+        { atleta_id, coach_id, fecha, estado, notas, sesion_id },
+        { onConflict: 'atleta_id,fecha,sesion_id' }
       )
       .select();
 

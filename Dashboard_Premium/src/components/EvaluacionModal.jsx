@@ -1,17 +1,22 @@
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ClipboardCheck, Save, Loader2, CheckCircle2, ChevronLeft } from 'lucide-react';
-import { normalizarValor } from '../lib/baremosEngine';
+import { normalizarValor, resolverUmbrales, categoriaABucketBaremo } from '../lib/baremosEngine';
+import { labelPilar, labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { supabase } from '../api/supabaseClient';
+import { TABLA_PRUEBAS_EVALUACION } from '../api/tablas';
 import { recalcularOverall } from '../api/evaluacionesService';
 import { useAuth } from '../AuthContext';
 import NuevaPruebaModal from './NuevaPruebaModal';
 
 // ─── PILAR DISPLAY CONFIG ──────────────────────────────────
+// La etiqueta viene de la taxonomía compartida (analytics-core/taxonomia.js); el ícono
+// es presentación local de este modal.
 const PILAR_LABELS = {
-  fisico: { label: 'Físico-Atlético', icon: '💪' },
-  tecnico: { label: 'Técnico-Baloncestístico', icon: '🏀' },
-  mental: { label: 'Mental-Táctico', icon: '🧠' },
+  fisico: { label: labelPilar('fisico'), icon: '💪' },
+  tecnico: { label: labelPilar('tecnico'), icon: '🏀' },
+  mental: { label: labelPilar('mental'), icon: '🧠' },
 };
 
 const TREN_LABELS = {
@@ -20,16 +25,18 @@ const TREN_LABELS = {
   null: null,
 };
 
+// Pestañas de objetivo: el `id` es la key del sub-pilar (taxonomía compartida) y el
+// `label` se deriva de ella con labelSubPilar; ícono/colores son presentación local.
 const OBJETIVOS = [
   { id: 'todas', label: 'Todas', icon: '📋', filter: () => true, border: 'border-gray-500/30', bgActive: 'bg-gray-500/20', text: 'text-fg-secondary' },
-  { id: 'fuerza', label: 'Fuerza', icon: '💪', filter: (b) => b.sub_pilar === 'fuerza', border: 'border-danger/30', bgActive: 'bg-danger/20', text: 'text-danger-soft' },
-  { id: 'explosividad', label: 'Explosividad', icon: '🚀', filter: (b) => b.sub_pilar === 'explosividad', border: 'border-caution/30', bgActive: 'bg-caution/20', text: 'text-caution-soft' },
-  { id: 'movilidad', label: 'Movilidad', icon: '🤸', filter: (b) => b.sub_pilar === 'movilidad', border: 'border-success/30', bgActive: 'bg-success/20', text: 'text-success-soft' },
-  { id: 'tiro', label: 'Técnica de Tiro', icon: '🎯', filter: (b) => b.sub_pilar === 'tiro', border: 'border-cyan-500/30', bgActive: 'bg-cyan-500/20', text: 'text-cyan-400' },
-  { id: 'agilidad', label: 'Agilidad', icon: '⚡', filter: (b) => b.sub_pilar === 'agilidad', border: 'border-yellow-500/30', bgActive: 'bg-yellow-500/20', text: 'text-yellow-400' },
-  { id: 'tactica', label: 'Efic. Táctica', icon: '🧠', filter: (b) => b.sub_pilar === 'tactica', border: 'border-mental/30', bgActive: 'bg-mental/20', text: 'text-mental-soft' },
-  { id: 'resiliencia', label: 'Resiliencia', icon: '🛡️', filter: (b) => b.sub_pilar === 'resiliencia', border: 'border-pink-500/30', bgActive: 'bg-pink-500/20', text: 'text-pink-400' },
-  { id: 'recuperacion', label: 'Carga/Sueño', icon: '🔋', filter: (b) => b.sub_pilar === 'recuperacion', border: 'border-info/30', bgActive: 'bg-info/20', text: 'text-info-soft' },
+  { id: 'fuerza', label: labelSubPilar('fuerza'), icon: '💪', filter: (b) => b.sub_pilar === 'fuerza', border: 'border-danger/30', bgActive: 'bg-danger/20', text: 'text-danger-soft' },
+  { id: 'explosividad', label: labelSubPilar('explosividad'), icon: '🚀', filter: (b) => b.sub_pilar === 'explosividad', border: 'border-caution/30', bgActive: 'bg-caution/20', text: 'text-caution-soft' },
+  { id: 'movilidad', label: labelSubPilar('movilidad'), icon: '🤸', filter: (b) => b.sub_pilar === 'movilidad', border: 'border-success/30', bgActive: 'bg-success/20', text: 'text-success-soft' },
+  { id: 'tiro', label: labelSubPilar('tiro'), icon: '🎯', filter: (b) => b.sub_pilar === 'tiro', border: 'border-cyan-500/30', bgActive: 'bg-cyan-500/20', text: 'text-cyan-400' },
+  { id: 'agilidad', label: labelSubPilar('agilidad'), icon: '⚡', filter: (b) => b.sub_pilar === 'agilidad', border: 'border-yellow-500/30', bgActive: 'bg-yellow-500/20', text: 'text-yellow-400' },
+  { id: 'tactica', label: labelSubPilar('tactica'), icon: '🧠', filter: (b) => b.sub_pilar === 'tactica', border: 'border-mental/30', bgActive: 'bg-mental/20', text: 'text-mental-soft' },
+  { id: 'resiliencia', label: labelSubPilar('resiliencia'), icon: '🛡️', filter: (b) => b.sub_pilar === 'resiliencia', border: 'border-pink-500/30', bgActive: 'bg-pink-500/20', text: 'text-pink-400' },
+  { id: 'recuperacion', label: labelSubPilar('recuperacion'), icon: '🔋', filter: (b) => b.sub_pilar === 'recuperacion', border: 'border-info/30', bgActive: 'bg-info/20', text: 'text-info-soft' },
 ];
 
 // Salvaguarda defensiva: si catalogo_ejercicios llegara a tener filas
@@ -111,7 +118,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     setLoadingCatalogo(true);
     try {
       const { data, error } = await supabase
-        .from('catalogo_ejercicios')
+        .from(TABLA_PRUEBAS_EVALUACION)
         .select('*');
       if (data && !error) {
         setCatalogoEjercicios(dedupePorNombre(data));
@@ -137,11 +144,27 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     return catalogoEjercicios.find(e => e.id === pruebaTipo) || null;
   }, [pruebaTipo, catalogoEjercicios]);
 
-  // Check if the athlete's category has thresholds for this test
+  // Check if the athlete's category has thresholds for this test.
+  // Debe usar el MISMO mapeo FEB→bucket que normalizarValor (categoriaABucketBaremo),
+  // si no, categorías FEB con guión ("Menores (Sub-14)", "Prejuvenil (Sub-16)") nunca
+  // coincidían con las llaves de baremo (Sub12/Sub15/Sub18/Senior) y el aviso "no tiene
+  // baremo" salía aunque sí existiera el umbral. Ver packages/analytics-core/baremos.js.
   const categoryAvailable = useMemo(() => {
-    const cat = atleta?.categoria || 'Todas';
     if (!selectedBaremo) return true;
-    return !!Object.keys(selectedBaremo.thresholds || {}).find(k => cat.includes(k) || k === 'Todas');
+    const cat = atleta?.categoria || 'Todas';
+    const thresholds = selectedBaremo.thresholds || {};
+    const catKey = categoriaABucketBaremo(cat)
+      || Object.keys(thresholds).find(k => cat.includes(k))
+      || 'Sub15';
+    // resolverUmbrales entiende TODAS las convenciones del catálogo (bucket→array,
+    // por nivel de desarrollo, por género, 'Todas', tiers legacy) — el check anterior
+    // (Array.isArray(thresholds[catKey])) marcaba "no hay baremo" en pruebas anidadas
+    // que sí lo tenían. Debe usar el MISMO resolver que normalizarValor.
+    return resolverUmbrales(thresholds, {
+      bucket: catKey,
+      nivelDesarrollo: atleta?.nivel_desarrollo ?? null,
+      genero: atleta?.genero ?? null,
+    }) !== null;
   }, [selectedBaremo, atleta]);
 
   // Real-time normalization preview
@@ -170,7 +193,12 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
       label: selectedBaremo.nombre
     };
     
-    return normalizarValor(baremoParam, vals, cat);
+    // El perfil (nivel de desarrollo / género) solo influye si los umbrales de la
+    // prueba están segmentados por esas dimensiones (ver resolverUmbrales, P1.5).
+    return normalizarValor(baremoParam, vals, cat, {
+      nivel_desarrollo: atleta?.nivel_desarrollo ?? null,
+      genero: atleta?.genero ?? null,
+    });
   }, [pruebaTipo, valoresCrudos, atleta, selectedBaremo]);
 
   // Is valid for submit?
@@ -253,7 +281,11 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     setSaving(false);
   };
 
-  return (
+  // Portalizado a document.body: si se renderiza anidado (p.ej. dentro del modal de
+  // perfil del atleta, cuyo glass-card tiene backdrop-filter), ese ancestro crea un
+  // containing block que atrapa el `position: fixed` y descuadra el modal fuera de
+  // pantalla en móvil (h-dvh centrado contra un contenedor más alto que el viewport).
+  return createPortal(
     <>
       <AnimatePresence>
       <motion.div
@@ -325,7 +357,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       placeholder="Buscar ejercicio..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-control px-4 py-2 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand/50"
+                      className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-control px-4 py-2 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand/50"
                     />
                     {user?.rol !== 'atleta' && (
                       <button
@@ -337,8 +369,9 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                     )}
                   </div>
 
-                  {/* Tabs */}
-                  <div className="flex px-2 pt-2 gap-1 overflow-x-auto scrollbar-hide border-b border-white/5">
+                  {/* Objetivos: chips que envuelven en varias filas (antes era una barra
+                      con overflow-x horizontal que en móvil obligaba a un swipe incómodo). */}
+                  <div className="flex flex-wrap px-3 pt-2 pb-3 gap-2 border-b border-white/5">
                     {OBJETIVOS.filter(obj => {
                       if (user?.rol === 'atleta') {
                         return obj.id === 'recuperacion';
@@ -352,8 +385,9 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       <button
                         key={obj.id}
                         onClick={() => setActiveTab(obj.id)}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs font-bold uppercase tracking-widest transition whitespace-nowrap
-                          ${activeTab === obj.id ? `${obj.bgActive} ${obj.text} border-b-2 ${obj.border}` : 'text-fg-muted hover:bg-white/5 hover:text-gray-300'}`}
+                        aria-pressed={activeTab === obj.id}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[11px] font-bold uppercase tracking-widest transition
+                          ${activeTab === obj.id ? `${obj.bgActive} ${obj.text} ${obj.border}` : 'bg-white/5 text-fg-muted border-transparent hover:bg-white/10 hover:text-gray-200'}`}
                       >
                         <span>{obj.icon}</span> {obj.label}
                       </button>
@@ -561,6 +595,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
           }}
         />
       )}
-    </>
+    </>,
+    document.body
   );
 }

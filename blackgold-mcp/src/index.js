@@ -5,8 +5,14 @@ import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
-import { BAREMOS, categoriaABucketBaremo } from "../../packages/analytics-core/baremos.js";
+import { BAREMOS, categoriaABucketBaremo, resolverUmbrales } from "../../packages/analytics-core/baremos.js";
+import { SUB_PILARES as SUB_PILARES_TAXONOMIA, getSubPilar } from "../../packages/analytics-core/taxonomia.js";
+// Motor de recomendación COMPARTIDO (un solo cerebro): el mismo que usa la web
+// (vía el shim src/lib/didacticEngine.js) y la Edge Function.
+import { evaluarDeficits, emparejarMisionesPorCondicion } from "../../packages/analytics-core/didactica.js";
+import { calcularReadinessScore, detectarAlertasRecuperacion } from "../../packages/analytics-core/readiness.js";
 
 // Resuelto contra la ubicación del script, no contra process.cwd(): un cliente MCP
 // (Claude Code, Claude Desktop) lanza este proceso con el cwd del host, no de este paquete.
@@ -167,6 +173,102 @@ server.tool(
   }
 );
 
+// Condiciones de recuperación (déficits de disponibilidad/riesgo) que produce el motor
+// compartido evaluarDeficits/detectarAlertasRecuperacion. Sirven de `condicion_trigger`
+// para las misiones de recuperación (pilar='recuperacion').
+const RECUPERACION_TRIGGERS = [
+  "deshidratado_extremo",
+  "hidratacion_baja",
+  "sueno_deficiente",
+  "fatiga_alta",
+  "sobreentrenamiento_activo",
+  "fatiga_silenciosa",
+  "rpe_extremo",
+];
+const RECUPERACION_CONDICIONES = new Set([...RECUPERACION_TRIGGERS, "percepcion_alterada"]);
+
+// Tool 6: Analizar Readiness / Recuperación y recomendar misiones
+server.tool(
+  "analyze_athlete_readiness",
+  "Analiza la recuperación del atleta (check-in diario: sueño, fatiga, hidratación de la tabla atleta_readiness + estado_recuperacion) usando el motor compartido, y recomienda misiones de recuperación del catálogo. La recuperación es una señal de disponibilidad/riesgo, NO una nota de rendimiento.",
+  {
+    athlete_id: z.string().describe("UUID del atleta (atletas.id)")
+  },
+  async ({ athlete_id }) => {
+    try {
+      // Último check-in de readiness + estado de recuperación del atleta.
+      const [{ data: readiness }, { data: atleta }] = await Promise.all([
+        supabase
+          .from("atleta_readiness")
+          .select("sueno_calidad, fatiga_fisica, color_orina, fecha")
+          .eq("atleta_id", athlete_id)
+          .order("fecha", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("atletas")
+          .select("estado_recuperacion")
+          .eq("id", athlete_id)
+          .maybeSingle(),
+      ]);
+
+      if (!readiness && !(atleta && atleta.estado_recuperacion)) {
+        return { content: [{ type: "text", text: `El atleta ${athlete_id} no tiene check-in de readiness ni estado de recuperación registrado. Pídele completar el Check-in Diario.` }] };
+      }
+
+      const score = calcularReadinessScore(readiness);
+
+      // Déficits de recuperación con el MISMO motor que la web/Edge. Se pasan evals
+      // vacías a propósito: aquí solo interesan las condiciones de recuperación, no las
+      // debilidades de rendimiento (esas las cubren analyze_athlete_pillars / el loop).
+      const atletaObj = {
+        readiness_hoy: readiness || null,
+        estado_recuperacion: atleta?.estado_recuperacion || null,
+        _evaluaciones: [],
+      };
+      const deficits = evaluarDeficits(atletaObj).filter(d => RECUPERACION_CONDICIONES.has(d.condicion));
+
+      // Misiones de recuperación del catálogo activo cuyo trigger coincide con una
+      // condición activa. Emparejamiento vía la función COMPARTIDA (misma que getAutoMissions).
+      const { data: misiones } = await supabase
+        .from("misiones")
+        .select("id, titulo, condicion_trigger, complejidad, xp_recompensa, activa, pilar")
+        .eq("activa", true)
+        .eq("pilar", "recuperacion");
+
+      const recomendadas = emparejarMisionesPorCondicion(deficits, misiones || []);
+
+      let out = `=== READINESS / RECUPERACIÓN ===\n`;
+      out += `Atleta: ${athlete_id}\n`;
+      out += readiness
+        ? `Check-in (${readiness.fecha}): sueño ${readiness.sueno_calidad}/10, fatiga ${readiness.fatiga_fisica}/10, hidratación (orina) ${readiness.color_orina}/8.\n`
+        : `Sin check-in diario reciente.\n`;
+      out += score != null ? `Readiness score: ${score}/100 (más = mejor recuperado; NO entra al overall ni al radar).\n` : "";
+      if (atleta?.estado_recuperacion) out += `Estado de recuperación: ${atleta.estado_recuperacion}.\n`;
+
+      out += `\n--- ALERTAS ---\n`;
+      out += deficits.length
+        ? deficits.map(d => `- [${d.prioridad.toUpperCase()}] ${d.mensaje}`).join("\n")
+        : "Sin alertas de recuperación: disponibilidad adecuada.";
+
+      out += `\n\n--- MISIONES DE RECUPERACIÓN RECOMENDADAS ---\n`;
+      if (!misiones || misiones.length === 0) {
+        out += `El catálogo NO tiene misiones de recuperación (pilar='recuperacion'). Redáctalas con justificación científica (higiene de sueño, hidratación, recuperación activa, manejo de carga) y créalas con insertar_misiones_recuperacion.`;
+      } else if (recomendadas.length === 0) {
+        out += `Hay misiones de recuperación en el catálogo pero ninguna aplica a las condiciones activas de hoy.`;
+      } else {
+        out += recomendadas.map(m => `- ${m.titulo} (${m.complejidad}, ${m.xp_recompensa ?? "?"} XP) → trigger: ${m.condicion_trigger}`).join("\n");
+      }
+
+      out += `\n\nINSTRUCCIÓN PARA LA IA: prioriza recuperación sobre carga cuando haya alertas críticas. Sugiere hábitos accionables por el propio atleta y, si el coach lo aprueba, asigna las misiones recomendadas.`;
+
+      return { content: [{ type: "text", text: out }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
 // ============================================================
 // CATÁLOGO DE MISIONES (D3 del spec loop misiones-baremo):
 // el MCP propone misiones con justificación científica, el coach
@@ -174,9 +276,14 @@ server.tool(
 // 7 sub-pilares × 3 niveles × 4 buckets de edad = 84 celdas.
 // ============================================================
 
-const SUB_PILARES = ["fuerza", "explosividad", "movilidad", "tiro", "agilidad", "tactica", "resiliencia"];
+// Derivado de la taxonomía compartida (fuente única) — hoy 7 sub-pilares; cuando
+// 'resistencia' entre a taxonomia.js (tras sus primeras pruebas, ver
+// insertar_pruebas_evaluacion), la matriz de misiones crece sola a 8.
+const SUB_PILARES = SUB_PILARES_TAXONOMIA.map(s => s.key);
 const NIVELES = ["Micro", "Desarrollo", "Elite"];
 const BUCKETS = ["Sub12", "Sub15", "Sub18", "Senior"];
+
+const TOTAL_CELDAS = () => SUB_PILARES.length * NIVELES.length * BUCKETS.length;
 
 const claveCelda = (subPilar, nivel, bucket) => `${subPilar}|${nivel}|${bucket}`;
 
@@ -259,7 +366,7 @@ server.tool(
       });
 
       let prompt = `=== COBERTURA DEL CATÁLOGO DE MISIONES ===\n`;
-      prompt += `Celdas cubiertas: ${cubiertas}/84 (cubierta = ≥1 general Y ≥1 específica).\n`;
+      prompt += `Celdas cubiertas: ${cubiertas}/${TOTAL_CELDAS()} (cubierta = ≥1 general Y ≥1 específica).\n`;
       prompt += `Buckets con atletas reales en el club (PRIORIDAD): ${[...bucketsConAtletas].join(", ") || "ninguno"}.\n\n`;
       prompt += `=== CELDAS FALTANTES (priorizadas) ===\n`;
       pendientes.slice(0, 30).forEach(f => {
@@ -340,9 +447,294 @@ server.tool(
       return {
         content: [{
           type: "text",
-          text: `✅ ${filas.length} misión(es) insertada(s) con activa=false (pendientes de curaduría del coach en AdminMisiones).\nCobertura de la matriz tras el insert: ${cubiertas}/84 celdas.`,
+          text: `✅ ${filas.length} misión(es) insertada(s) con activa=false (pendientes de curaduría del coach en AdminMisiones).\nCobertura de la matriz tras el insert: ${cubiertas}/${TOTAL_CELDAS()} celdas.`,
         }],
       };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 7: Insertar Misiones de Recuperación al Catálogo
+server.tool(
+  "insertar_misiones_recuperacion",
+  "Inserta misiones de recuperación (pilar='recuperacion', nivel/bucket agnósticos) que analyze_athlete_readiness recomendará cuando el atleta tenga alertas de sueño/fatiga/hidratación/carga. Nacen inactivas (activa=false); el coach las activa desde AdminMisiones. Son la contraparte de contenido del motor de recuperación.",
+  {
+    misiones: z.array(z.object({
+      titulo: z.string().min(5),
+      descripcion: z.string().min(20),
+      justificacion: z.string().min(30).describe("Fundamento científico con fuente (higiene de sueño, hidratación, recuperación activa, gestión de carga)."),
+      condicion_trigger: z.enum(RECUPERACION_TRIGGERS).describe("Condición de recuperación que activa la misión (la produce el motor compartido)."),
+      complejidad: z.enum(["general", "especifica"]).default("general").describe("'general' = hábito auto-asignable al atleta; 'especifica' = requiere criterio del coach."),
+      xp_recompensa: z.number().int().positive(),
+      video_url: z.string().url().optional(),
+    })).min(1).describe("Lote de misiones de recuperación a insertar"),
+  },
+  async ({ misiones }) => {
+    try {
+      const filas = misiones.map(m => ({
+        titulo: m.titulo,
+        descripcion: m.descripcion,
+        justificacion: m.justificacion,
+        pilar: "recuperacion",
+        // Recuperación es agnóstica de nivel/edad: aplica a todos (null = comodín).
+        nivel_objetivo: null,
+        categoria_bucket: null,
+        complejidad: m.complejidad ?? "general",
+        condicion_trigger: m.condicion_trigger,
+        xp_recompensa: m.xp_recompensa,
+        video_url: m.video_url ?? null,
+        activa: false,
+        is_ai_generated: true,
+      }));
+
+      const { error: insError } = await supabase.from("misiones").insert(filas);
+      if (insError) {
+        throw new Error("Error insertando misiones de recuperación: " + insError.message);
+      }
+
+      return {
+        content: [{
+          type: "text",
+          text: `✅ ${filas.length} misión(es) de recuperación insertada(s) con activa=false (pendientes de curaduría del coach en AdminMisiones). Triggers: ${[...new Set(filas.map(f => f.condicion_trigger))].join(", ")}.`,
+        }],
+      };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// ============================================================
+// AUTORÍA DE PRUEBAS DE EVALUACIÓN + BAREMOS (fase P1.5):
+// el MCP propone pruebas con umbrales fundamentados en la guía
+// metodológica ecuatoriana (Vinueza, knowledge/) y las inserta en
+// catalogo_ejercicios. Cubre los 3 pilares / 8 sub-pilares
+// (los 7 del radar + 'resistencia', pendiente de taxonomía).
+// ============================================================
+
+const KNOWLEDGE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "knowledge");
+const DOC_METODOLOGIA = path.join(KNOWLEDGE_DIR, "fundamentos_iniciacion_vinueza.md");
+
+// 'resistencia' se acepta en autoría ANTES de existir en taxonomia.js: la regla del
+// club es que el sub-pilar entra al radar (7→8 ejes) recién cuando tiene pruebas con
+// baremos — este tool es justamente la vía para crearlas.
+const SUB_PILARES_PRUEBAS = [...new Set([...SUB_PILARES, "resistencia"])];
+const GENEROS = ["Masculino", "Femenino"];
+const BUCKETS_PRUEBA = [...BUCKETS, "Todas"];
+
+const pilarDeSubPilar = (subPilar) =>
+  subPilar === "resistencia" ? "fisico" : (getSubPilar(subPilar)?.pilar ?? null);
+
+// --- Validación estructural de thresholds (mismas convenciones que resolverUmbrales) ---
+function validarCortes(arr, ruta) {
+  if (!Array.isArray(arr) || arr.length !== 4 || !arr.every(Number.isFinite)) {
+    return `${ruta}: debe ser un array de exactamente 4 números [t1,t2,t3,t4]`;
+  }
+  for (let i = 1; i < 4; i++) {
+    if (arr[i] <= arr[i - 1]) return `${ruta}: los cortes deben ser estrictamente ascendentes (t1<t2<t3<t4; también en pruebas menos_es_mejor, ej. lane_agility [13.0,13.9,14.9,16.0])`;
+  }
+  return null;
+}
+
+function validarPorBucket(obj, ruta) {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return `${ruta}: debe ser un objeto { bucket: cortes }`;
+  const keys = Object.keys(obj);
+  if (keys.length === 0) return `${ruta}: sin buckets definidos`;
+  for (const k of keys) {
+    if (!BUCKETS_PRUEBA.includes(k)) return `${ruta}.${k}: bucket desconocido (usa ${BUCKETS_PRUEBA.join("/")})`;
+    const v = obj[k];
+    if (Array.isArray(v)) {
+      const e = validarCortes(v, `${ruta}.${k}`);
+      if (e) return e;
+    } else if (v && typeof v === "object") {
+      const niveles = Object.keys(v);
+      if (niveles.length === 0) return `${ruta}.${k}: objeto por nivel vacío`;
+      for (const n of niveles) {
+        if (!NIVELES.includes(n)) return `${ruta}.${k}.${n}: nivel desconocido (usa ${NIVELES.join("/")})`;
+        const e = validarCortes(v[n], `${ruta}.${k}.${n}`);
+        if (e) return e;
+      }
+    } else {
+      return `${ruta}.${k}: debe ser un array de 4 cortes o un objeto { Micro/Desarrollo/Elite: cortes }`;
+    }
+  }
+  return null;
+}
+
+function validarThresholds(t) {
+  if (!t || typeof t !== "object" || Array.isArray(t)) return "thresholds: debe ser un objeto";
+  const keys = Object.keys(t);
+  const conGenero = keys.filter(k => GENEROS.includes(k));
+  if (conGenero.length > 0) {
+    if (conGenero.length !== keys.length) return "thresholds: no mezcles claves de género (Masculino/Femenino) con claves de bucket en el mismo nivel";
+    for (const g of conGenero) {
+      const e = validarPorBucket(t[g], `thresholds.${g}`);
+      if (e) return e;
+    }
+    return null;
+  }
+  return validarPorBucket(t, "thresholds");
+}
+
+// Tool 8: Consultar la guía metodológica de iniciación (Vinueza, Ecuador)
+server.tool(
+  "consultar_metodologia_iniciacion",
+  "Devuelve la guía metodológica de referencia del club para iniciación deportiva ('Fundamentos Técnico Metodológicos de la Planificación del Entrenamiento en la Iniciación Deportiva', Edwin Vinueza Tapia, Ecuador): fases sensibles por edad, pruebas de detección con normas ecuatorianas, dimorfismo sexual, planificación y sistema de evaluación. Consultarla ANTES de redactar pruebas/baremos con generar_catalogo_pruebas.",
+  {},
+  async () => {
+    try {
+      const texto = fs.readFileSync(DOC_METODOLOGIA, "utf8");
+      return { content: [{ type: "text", text: texto }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error leyendo la guía metodológica (${DOC_METODOLOGIA}): ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 9: Generar Catálogo de Pruebas de Evaluación
+server.tool(
+  "generar_catalogo_pruebas",
+  "Analiza la cobertura del catálogo de pruebas de evaluación (catalogo_ejercicios) por sub-pilar — los 7 del radar + 'resistencia' — detectando huecos y pruebas con umbrales irresolubles, y devuelve las instrucciones para redactar las pruebas/baremos faltantes fundamentadas en la guía metodológica ecuatoriana (Vinueza). Tras redactarlas y validarlas con el cuerpo técnico, insertarlas con insertar_pruebas_evaluacion.",
+  {
+    sub_pilar: z.enum(SUB_PILARES_PRUEBAS).optional().describe("Limitar el análisis a un sub-pilar"),
+  },
+  async ({ sub_pilar }) => {
+    try {
+      const { data: pruebas, error: prError } = await supabase
+        .from("catalogo_ejercicios")
+        .select("nombre, pilar, sub_pilar, unidad, thresholds");
+      if (prError) throw new Error("Error consultando catalogo_ejercicios: " + prError.message);
+
+      // Distribución real del club (para priorizar buckets/niveles/género con atletas)
+      const [{ data: usuariosAtletas }, { data: atletasNivel }] = await Promise.all([
+        supabase.from("usuarios").select("fecha_nacimiento, genero").eq("rol", "atleta").not("fecha_nacimiento", "is", null),
+        supabase.from("atletas").select("nivel_desarrollo"),
+      ]);
+      const bucketsConAtletas = new Set(
+        (usuariosAtletas || []).map(a => categoriaABucketBaremo(calcularCategoriaFEB(a.fecha_nacimiento))).filter(Boolean)
+      );
+      const generosClub = {};
+      (usuariosAtletas || []).forEach(a => { const g = a.genero || "Masculino"; generosClub[g] = (generosClub[g] || 0) + 1; });
+      const nivelesClub = {};
+      (atletasNivel || []).forEach(a => { const n = a.nivel_desarrollo || "(sin nivel)"; nivelesClub[n] = (nivelesClub[n] || 0) + 1; });
+
+      // Una prueba está "viva" si su thresholds resuelve en algún bucket (con defaults).
+      const resuelve = (t) => BUCKETS.some(b => resolverUmbrales(t, { bucket: b }) !== null);
+      const segmentadaPorNivel = (t) => JSON.stringify(t || {}).includes('"Micro"') || JSON.stringify(t || {}).includes('"Elite"');
+
+      const porSubPilar = {};
+      const fueraDeTaxonomia = [];
+      (pruebas || []).forEach(p => {
+        if (SUB_PILARES_PRUEBAS.includes(p.sub_pilar)) {
+          if (!porSubPilar[p.sub_pilar]) porSubPilar[p.sub_pilar] = { total: 0, vivas: 0, porNivel: 0, muertas: [] };
+          const s = porSubPilar[p.sub_pilar];
+          s.total++;
+          if (resuelve(p.thresholds)) s.vivas++;
+          else s.muertas.push(p.nombre);
+          if (segmentadaPorNivel(p.thresholds)) s.porNivel++;
+        } else {
+          fueraDeTaxonomia.push(`${p.nombre} (sub_pilar='${p.sub_pilar}')`);
+        }
+      });
+
+      const objetivo = sub_pilar ? [sub_pilar] : SUB_PILARES_PRUEBAS;
+      let out = `=== COBERTURA DEL CATÁLOGO DE PRUEBAS (catalogo_ejercicios) ===\n`;
+      out += `Buckets con atletas reales (PRIORIDAD): ${[...bucketsConAtletas].join(", ") || "ninguno"}.\n`;
+      out += `Atletas por género: ${Object.entries(generosClub).map(([g, n]) => `${g} ${n}`).join(", ") || "sin datos"}.\n`;
+      out += `Atletas por nivel de desarrollo: ${Object.entries(nivelesClub).map(([n, c]) => `${n} ${c}`).join(", ") || "sin datos"}.\n\n`;
+
+      objetivo.forEach(sp => {
+        const s = porSubPilar[sp] || { total: 0, vivas: 0, porNivel: 0, muertas: [] };
+        const pilar = pilarDeSubPilar(sp);
+        out += `- ${sp} (pilar ${pilar}): ${s.total} prueba(s), ${s.vivas} con umbrales resolubles, ${s.porNivel} segmentada(s) por nivel`;
+        if (sp === "resistencia") out += `  ← SUB-PILAR NUEVO: aún fuera del radar; entra a taxonomia.js con sus primeras pruebas`;
+        if (s.muertas.length) out += `\n    · umbrales irresolubles (revisar/reescribir): ${s.muertas.join("; ")}`;
+        out += `\n`;
+      });
+
+      if (fueraDeTaxonomia.length && !sub_pilar) {
+        out += `\n⚠️ Pruebas con sub_pilar FUERA de la taxonomía (no puntúan en ningún eje del radar; candidatas a reclasificar):\n`;
+        fueraDeTaxonomia.forEach(p => { out += `  · ${p}\n`; });
+      }
+
+      out += `
+=== CONTEXTO METODOLÓGICO (guía Vinueza — usa consultar_metodologia_iniciacion para el texto completo) ===
+- Normas basadas en POBLACIÓN ECUATORIANA (mismo contexto del club): preferirlas a baremos importados cuando cubran la edad/prueba.
+- Batería de detección validada (9-12 años): carrera 30m (velocidad), salto de longitud sin impulso (fuerza explosiva), abdominales 30s, flexiones de codo 30s, carrera de resistencia 600m (9-10 años) / 1000m (11-12 años).
+- Fases sensibles: fuerza 10-12 años (sin cargas máximas), velocidad 7-10, resistencia aeróbica desde 9-10 (anaeróbica post-puberal), flexibilidad 6-12.
+- Dimorfismo sexual documentado (tabla 2002): p.ej. carrera 40m a los 9 años F 9.2s vs M 8.5s → usa la capa de género en thresholds cuando la prueba lo amerite.
+
+=== INSTRUCCIONES DE REDACCIÓN ===
+Para cada prueba faltante define:
+- nombre, descripcion (qué capacidad mide), protocolo (ejecución paso a paso medible en cancha).
+- justificacion: fundamento científico CON FUENTE (Vinueza para normas ecuatorianas; NSCA/FitnessGram/PubMed como complemento).
+- sub_pilar canónico (${SUB_PILARES_PRUEBAS.join("/")}), unidad, tipo ('mas_es_mejor' | 'menos_es_mejor').
+- thresholds con 4 cortes ascendentes [t1,t2,t3,t4] por bucket (Sub12/Sub15/Sub18/Senior o 'Todas'), opcionalmente segmentados:
+    · por nivel de desarrollo: { "Sub15": { "Micro": [...], "Desarrollo": [...], "Elite": [...] } } (REQUISITO del club para pruebas nuevas)
+    · por género: { "Masculino": { ... }, "Femenino": { ... } } cuando el dimorfismo aplique (Vinueza 2002).
+
+⚠️ Las pruebas insertadas aparecen INMEDIATAMENTE en la Evaluación Científica (no hay flag de curaduría en catalogo_ejercicios): insértalas solo tras validar los cortes con el owner/cuerpo técnico. Cuando el lote esté validado, llama a insertar_pruebas_evaluacion.`;
+
+      return { content: [{ type: "text", text: out }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 10: Insertar Pruebas de Evaluación al Catálogo
+server.tool(
+  "insertar_pruebas_evaluacion",
+  "Inserta en lote pruebas de evaluación con sus baremos en catalogo_ejercicios. Valida sub_pilar contra la taxonomía (+'resistencia'), y thresholds contra las convenciones del motor (bucket→[t1,t2,t3,t4] ascendentes; capas opcionales por género Masculino/Femenino y por nivel Micro/Desarrollo/Elite). ATENCIÓN: quedan visibles de inmediato en la Evaluación Científica — insertar solo baremos ya validados con el cuerpo técnico.",
+  {
+    pruebas: z.array(z.object({
+      nombre: z.string().min(4),
+      descripcion: z.string().min(20).describe("Qué capacidad mide y por qué importa en baloncesto formativo."),
+      protocolo: z.string().min(20).describe("Ejecución paso a paso, medible en cancha con material simple."),
+      justificacion: z.string().min(30).describe("Fundamento científico CON FUENTE (Vinueza / NSCA / FitnessGram / PubMed). Se anexa a la descripción."),
+      sub_pilar: z.enum(SUB_PILARES_PRUEBAS),
+      tren: z.enum(["superior", "inferior"]).optional().describe("Solo si la prueba es específica de un tren."),
+      unidad: z.string().min(1).describe("Unidad de medida (reps, seg, cm, m, ml/kg/min…)"),
+      tipo: z.enum(["mas_es_mejor", "menos_es_mejor"]),
+      thresholds: z.record(z.string(), z.any()).describe("Cortes por bucket FEB, con capas opcionales de género y nivel de desarrollo. Ver generar_catalogo_pruebas."),
+      inputs_requeridos: z.array(z.object({ id: z.string(), label: z.string() })).optional()
+        .describe("Solo para pruebas multi-input (ej. bilateral izq/der). Default: input único en la unidad dada."),
+    })).min(1).describe("Lote de pruebas a insertar"),
+  },
+  async ({ pruebas }) => {
+    try {
+      // Validación estructural de cada prueba antes de tocar la BD (todo o nada).
+      for (const p of pruebas) {
+        const e = validarThresholds(p.thresholds);
+        if (e) throw new Error(`Prueba "${p.nombre}" — ${e}`);
+      }
+
+      const filas = pruebas.map(p => ({
+        nombre: p.nombre,
+        descripcion: `${p.descripcion}\n\nFundamento: ${p.justificacion}`,
+        descripcion_ejecucion: p.protocolo,
+        pilar: pilarDeSubPilar(p.sub_pilar),
+        sub_pilar: p.sub_pilar,
+        tren: p.tren ?? null,
+        unidad: p.unidad,
+        tipo: p.tipo,
+        invertido: p.tipo === "menos_es_mejor",
+        thresholds: p.thresholds,
+        inputs_requeridos: p.inputs_requeridos ?? [{ id: "unico", label: `Medida en ${p.unidad}` }],
+        club_id: null, // visible globalmente (club único hoy)
+      }));
+
+      const { error: insError } = await supabase.from("catalogo_ejercicios").insert(filas);
+      if (insError) throw new Error("Error insertando pruebas: " + insError.message);
+
+      let msg = `✅ ${filas.length} prueba(s) insertada(s) en catalogo_ejercicios — ya visibles en la Evaluación Científica.\n`;
+      msg += filas.map(f => `- ${f.nombre} → ${f.pilar}/${f.sub_pilar} (${f.tipo}, ${f.unidad})`).join("\n");
+      if (filas.some(f => f.sub_pilar === "resistencia") && !SUB_PILARES.includes("resistencia")) {
+        msg += `\n\n⚠️ SIGUIENTE PASO (código): 'resistencia' ya tiene pruebas pero AÚN NO está en la taxonomía. Añadir { key: 'resistencia', label: 'Resistencia', pilar: 'fisico' } a SUB_PILARES en packages/analytics-core/taxonomia.js (el radar pasa de 7 a 8 ejes automáticamente) y correr npm run functions:sync en Dashboard_Premium.`;
+      }
+      return { content: [{ type: "text", text: msg }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }] };
     }
