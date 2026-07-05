@@ -51,7 +51,7 @@ export default function ModoCanchaModalSesionesActivas({
                   }`}>{session.tipo}</span>
                   <span className="text-[10px] text-gray-500 truncate">{session.grupo_label}</span>
                 </div>
-                <p className="text-white font-bold text-sm truncate">{session.pilar_objetivo}</p>
+                <p className="text-white font-bold text-sm truncate">{session.pilar_label}</p>
               </div>
 
               {/* Mini reloj SVG */}

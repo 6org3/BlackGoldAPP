@@ -3,8 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { insertarObservacion } from '../api/observacionesService';
 import { crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
+import { fetchPlantillas } from '../api/sesionesService';
+import { upsertAsistencia } from '../api/asistenciaService';
 import { otorgarXP } from '../api/xpService';
 import { xpBaseSesion } from '../../../packages/analytics-core/xp.js';
+import { labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 import { INSIGNIAS } from './ModoCanchaModalConstants';
@@ -30,7 +33,10 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   const [busquedaAtleta, setBusquedaAtleta] = useState('');
   const [atletaIndividual, setAtletaIndividual] = useState(null);
 
-  const [pilarObjetivo, setPilarObjetivo] = useState('Eficiencia Táctica');
+  // Plantillas de sesión (catalogo_sesiones, fase P3): el paso 2 elige una plantilla
+  // con objetivo canónico pilar/sub_pilar en vez de un string de pilar abstracto.
+  const [plantillas, setPlantillas] = useState([]);
+  const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
 
   const [asistencia, setAsistencia] = useState({}); // { id: true/false }
   const [atletaEvaluando, setAtletaEvaluando] = useState(null);
@@ -63,8 +69,9 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   }, [isOpen]);
 
   const loadData = async () => {
-    const atls = await fetchTodosLosAtletas(user);
+    const [atls, plts] = await Promise.all([fetchTodosLosAtletas(user), fetchPlantillas()]);
     setAtletas(atls);
+    setPlantillas(plts);
   };
 
   const checkActiveSession = async () => {
@@ -76,14 +83,22 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
       .ilike('notas', '[EN_CURSO]%');
 
     if (data && data.length > 0) {
-      // Enriquecer cada sesión con el pilar extraído de las notas
+      // Enriquecer cada sesión con una etiqueta legible del objetivo y del grupo.
+      // Sesiones nuevas (P3): pilar_objetivo es columna real (key canónica de
+      // taxonomia) y las notas son "[EN_CURSO] <tipo>". Sesiones viejas en curso:
+      // el pilar venía codificado en notas como "Pilar:X | tipo" — fallback.
       const sesionesEnriquecidas = data.map(s => {
-        const match = s.notas?.match(/Pilar:([^|]+)/);
-        const grupoMatch = s.notas?.match(/\| (.+)$/);
+        const notasSinMarker = (s.notas || '').replace('[EN_CURSO]', '').trim();
+        const matchLegacy = notasSinMarker.match(/Pilar:([^|]+)/);
+        const grupoLegacy = notasSinMarker.match(/\| (.+)$/);
         return {
           ...s,
-          pilar_objetivo: match ? match[1].trim() : '',
-          grupo_label: grupoMatch ? grupoMatch[1].trim() : s.tipo
+          pilar_label: s.pilar_objetivo
+            ? labelSubPilar(s.pilar_objetivo)
+            : (matchLegacy ? matchLegacy[1].trim() : ''),
+          grupo_label: matchLegacy
+            ? (grupoLegacy ? grupoLegacy[1].trim() : s.tipo)
+            : (notasSinMarker || s.tipo),
         };
       });
       setActiveSessions(sesionesEnriquecidas);
@@ -103,7 +118,7 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     setAsistencia({});
     setEvaluadosIds([]);
     setAtletaEvaluando(null);
-    setPilarObjetivo('Eficiencia Táctica');
+    setPlantillaSeleccionada(null);
     resetEvalForm();
   };
 
@@ -190,29 +205,50 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
         tipoStr = `Grupal (Niveles) - ${nivelSeleccionado}`;
       }
 
-      const notasStr = `[EN_CURSO] Pilar:${pilarObjetivo} | ${tipoStr}`;
+      // El marker [EN_CURSO] se conserva (checkActiveSession y el badge del Sidebar
+      // filtran por él), pero el pilar YA NO se codifica en notas: va en la columna
+      // real pilar_objetivo (key canónica de taxonomia, desde la plantilla elegida).
+      const notasStr = `[EN_CURSO] ${tipoStr}`;
+      const fechaStr = ahora.toISOString().split('T')[0];
+      const objetivoCanonico = plantillaSeleccionada?.sub_pilar || plantillaSeleccionada?.pilar || null;
 
       const { data: programadaData, error: errProg } = await supabase.from('sesiones_programadas').insert({
         coach_id: user.id,
-        fecha: ahora.toISOString().split('T')[0],
+        fecha: fechaStr,
         hora_inicio: horaStr,
         hora_fin: horaStr,
         estado: 'Programada',
         tipo: tipoDB,
+        pilar_objetivo: objetivoCanonico,
         notas: notasStr
       }).select().single();
 
       if (errProg) throw errProg;
 
-      // 2. Crear las Sesiones de Entrenamiento (Historial por atleta) en paralelo:
-      // secuencial tardaba N roundtrips con la red del celular en la cancha.
-      await Promise.all(presentes.map(a => crearSesionEntrenamiento({
-        atleta_id: a.atleta_id,
-        pilar_objetivo: pilarObjetivo,
-        volumen_series_reps: '',
-        notas: `[MODO_CANCHA: ${programadaData.id}] ${tipoStr}`,
-        eva_registro: 0 // Placeholder
-      })));
+      // 2. Asistencia REAL en la tabla `asistencia` (sesion_id = esta clase), que es
+      // la misma que alimenta el KPI del owner — reemplaza el hack de inferir
+      // presencia por notas de sesiones_entrenamiento. Se registran también los
+      // marcados explícitamente como ausentes. 3. Historial por atleta
+      // (sesiones_entrenamiento) solo para presentes, como siempre.
+      // Todo en paralelo: secuencial tardaba N roundtrips con la red de la cancha.
+      const marcados = atletas.filter(a => asistencia[a.atleta_id] !== undefined);
+      await Promise.all([
+        ...marcados.map(a => upsertAsistencia({
+          atleta_id: a.atleta_id,
+          coach_id: user.id,
+          fecha: fechaStr,
+          estado: asistencia[a.atleta_id] ? 'Presente' : 'Ausente',
+          notas: tipoStr,
+          sesion_id: programadaData.id,
+        })),
+        ...presentes.map(a => crearSesionEntrenamiento({
+          atleta_id: a.atleta_id,
+          pilar_objetivo: plantillaSeleccionada?.titulo || '',
+          volumen_series_reps: '',
+          notas: tipoStr,
+          eva_registro: 0 // Placeholder
+        })),
+      ]);
 
       // Cerramos el modal para que el coach dé la clase
       alert("Clase iniciada. Cuando termine, vuelve a abrir el Modo Cancha (se detectará la sesión activa).");
@@ -229,31 +265,45 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     setActiveSession(session);
     setSaving(true);
 
-    // Buscar los atletas que fueron registrados exactamente en esta clase usando el ID de la sesión
-    const { data: sesAtletas } = await supabase
-      .from('sesiones_entrenamiento')
-      .select('atleta_id')
-      .ilike('notas', `%[MODO_CANCHA: ${session.id}]%`);
+    // Fuente de verdad (P3): la tabla `asistencia` con sesion_id de esta clase.
+    const { data: asistRows } = await supabase
+      .from('asistencia')
+      .select('atleta_id, estado')
+      .eq('sesion_id', session.id)
+      .eq('estado', 'Presente');
 
-    if (sesAtletas && sesAtletas.length > 0) {
-      const idsPresentes = sesAtletas.map(s => s.atleta_id);
+    if (asistRows && asistRows.length > 0) {
       const newAsist = {};
-      idsPresentes.forEach(id => newAsist[id] = true);
+      asistRows.forEach(r => newAsist[r.atleta_id] = true);
       setTipoClase('resumed');
       setAsistencia(newAsist);
     } else {
-      // Fallback por si hay sesiones antiguas sin el ID (carga todos los de hoy)
-      const hoy = new Date().toISOString().split('T')[0];
-      const { data: fallbackAtletas } = await supabase
+      // Fallback 1 (sesiones iniciadas ANTES del deploy de P3): la presencia se
+      // infería por el marker [MODO_CANCHA: id] en sesiones_entrenamiento.notas.
+      const { data: sesAtletas } = await supabase
         .from('sesiones_entrenamiento')
         .select('atleta_id')
-        .gte('created_at', hoy + 'T00:00:00Z');
+        .ilike('notas', `%[MODO_CANCHA: ${session.id}]%`);
 
-      if (fallbackAtletas) {
+      if (sesAtletas && sesAtletas.length > 0) {
         const newAsist = {};
-        fallbackAtletas.forEach(s => newAsist[s.atleta_id] = true);
+        sesAtletas.forEach(s => newAsist[s.atleta_id] = true);
         setTipoClase('resumed');
         setAsistencia(newAsist);
+      } else {
+        // Fallback 2 (sesiones aún más antiguas, sin ID): todos los de hoy.
+        const hoy = new Date().toISOString().split('T')[0];
+        const { data: fallbackAtletas } = await supabase
+          .from('sesiones_entrenamiento')
+          .select('atleta_id')
+          .gte('created_at', hoy + 'T00:00:00Z');
+
+        if (fallbackAtletas) {
+          const newAsist = {};
+          fallbackAtletas.forEach(s => newAsist[s.atleta_id] = true);
+          setTipoClase('resumed');
+          setAsistencia(newAsist);
+        }
       }
     }
 
@@ -409,11 +459,12 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
                 />
               )}
 
-              {/* STEP 2: Session Setup (Pilares) */}
+              {/* STEP 2: Objetivo de la sesión (plantilla de catalogo_sesiones) */}
               {step === 2 && (
                 <ModoCanchaModalConfigPilar
-                  pilarObjetivo={pilarObjetivo}
-                  setPilarObjetivo={setPilarObjetivo}
+                  plantillas={plantillas}
+                  plantillaSeleccionada={plantillaSeleccionada}
+                  setPlantillaSeleccionada={setPlantillaSeleccionada}
                   setStep={setStep}
                 />
               )}

@@ -12,6 +12,50 @@ export async function fetchEjercicios(tipo = null) {
   return data || [];
 }
 
+// ============================
+// PLANTILLAS DE SESIÓN (catalogo_sesiones) — fase P3 de la unificación.
+// Biblioteca de sesiones preestablecidas que alimenta el paso "Objetivo de la
+// Sesión" del Modo Cancha y el botón "Guardar como plantilla" de AdminSesiones.
+// ============================
+
+export async function fetchPlantillas() {
+  const { data, error } = await supabase
+    .from('catalogo_sesiones')
+    .select('*')
+    .eq('activa', true)
+    .order('pilar', { ascending: true })
+    .order('titulo', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+/**
+ * Crea una plantilla de sesión. `club` debe ser el club del usuario autenticado:
+ * la política RLS "Insertar Sesiones" solo permite a owner/coach insertar filas
+ * con club_id = su propio club (club_id NULL queda reservado a superadmin, que es
+ * como se sembraron las 7 plantillas globales de la migración v21).
+ */
+export async function crearPlantilla({ titulo, enfoque_principal = null, descripcion = null, pilar = null, sub_pilar = null, tipo_clase = null, ejercicios_ids = [], creado_por, club }) {
+  const { data, error } = await supabase
+    .from('catalogo_sesiones')
+    .insert({
+      titulo,
+      enfoque_principal,
+      descripcion,
+      pilar,
+      sub_pilar,
+      tipo_clase,
+      ejercicios_ids,
+      creado_por,
+      club_id: club || null,
+      activa: true,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchGrupos() {
   const { data, error } = await supabase
     .from('grupos_entrenamiento')

@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import {
   fetchGrupos, fetchEjercicios,
-  crearSesionControl, evaluarSesion, fetchSesionesControl
+  crearSesionControl, evaluarSesion, fetchSesionesControl,
+  crearPlantilla
 } from '../api/sesionesService';
 import { generarMensajeSesion, generarLinkWhatsApp } from '../api/comunicacionesService';
 
@@ -28,6 +29,17 @@ const LOGRO_CONFIG = {
   'Sí':      { color: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10', icon: CheckCircle2 },
   'Parcial': { color: 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10',   icon: AlertCircle },
   'No':      { color: 'text-red-400 border-red-500/40 bg-red-500/10',            icon: XCircle },
+};
+
+// Mapeo TIPOS (eje "qué clase de actividad") → objetivo canónico de taxonomia.js
+// para las plantillas. Evaluación/Recuperación son formatos de sesión, no pilares
+// (decisión #4 de la unificación) → quedan sin objetivo canónico.
+const TIPO_A_OBJETIVO = {
+  'Técnico':      { pilar: 'tecnico', sub_pilar: null },
+  'Físico':       { pilar: 'fisico',  sub_pilar: null },
+  'Táctico':      { pilar: 'mental',  sub_pilar: 'tactica' },
+  'Evaluación':   { pilar: null,      sub_pilar: null },
+  'Recuperación': { pilar: null,      sub_pilar: null },
 };
 
 function getTodayStr() { return new Date().toISOString().split('T')[0]; }
@@ -123,6 +135,34 @@ export default function AdminSesiones({ user, atletas = [] }) {
     setEvaluandoId(null);
     const h = await fetchSesionesControl({ limit: 15 });
     setHistorial(h);
+  };
+
+  // Guarda el formulario actual como plantilla reutilizable (catalogo_sesiones):
+  // aparece en el paso "Objetivo de la Sesión" del Modo Cancha.
+  const handleGuardarPlantilla = async () => {
+    const titulo = window.prompt('Nombre de la plantilla:', form.objetivoDesc.trim().slice(0, 60));
+    if (!titulo || !titulo.trim()) return;
+    setSaving(true);
+    try {
+      const objetivo = TIPO_A_OBJETIVO[form.objetivoTipo] || { pilar: null, sub_pilar: null };
+      await crearPlantilla({
+        titulo: titulo.trim(),
+        enfoque_principal: form.objetivoTipo,
+        descripcion: form.objetivoDesc.trim() || null,
+        pilar: objetivo.pilar,
+        sub_pilar: objetivo.sub_pilar,
+        tipo_clase: modo,
+        ejercicios_ids: form.ejerciciosIds,
+        creado_por: user.id,
+        // La RLS de catalogo_sesiones exige club_id = club del usuario para owner/coach.
+        club: user.club,
+      });
+      alert(`Plantilla "${titulo.trim()}" guardada. Ya está disponible en el Modo Cancha.`);
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo guardar la plantilla: ' + (e.message || 'error desconocido'));
+    }
+    setSaving(false);
   };
 
   const abrirWA = (sesion) => {
@@ -350,6 +390,13 @@ export default function AdminSesiones({ user, atletas = [] }) {
             {saving ? <span className="animate-pulse">Registrando...</span>
               : saved ? <><CheckCircle2 size={16} /><span>¡Sesión Registrada!</span></>
               : <><Plus size={16} /><span>Registrar Sesión</span></>}
+          </button>
+
+          {/* Guardar como plantilla (biblioteca del Modo Cancha) */}
+          <button onClick={handleGuardarPlantilla} disabled={saving || !form.objetivoDesc.trim()}
+            className="w-full flex items-center justify-center space-x-2 py-3 rounded-2xl font-bold uppercase tracking-widest text-xs border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+            <ClipboardList size={14} />
+            <span>Guardar como plantilla del Modo Cancha</span>
           </button>
         </div>
 

@@ -609,27 +609,56 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
     el subsistema de preview de esta sesión quedó anclado al worktree original
     (`gracious-meninsky-05daeb`, otra rama, sin `node_modules` instalado) y no siguió el
     cambio de `EnterWorktree` — confirmado con una marca de prueba en `launch.json`.
-- **P3 — Reescritura de flujo (código, tras P2 en producción):**
-  - `ModoCanchaModalConfigPilar` pasa de "elegir pilar" a "elegir/sugerir plantilla".
-  - Paso "Pasar Lista" de Modo Cancha escribe en `asistencia` en vez de inferir por
-    `notas`/`[MODO_CANCHA: id]`.
-  - `AdminSesiones` gana un botón "Guardar como plantilla".
-  - Retirar el parseo de `notas` (`[EN_CURSO]`, `Pilar:X | tipo`) una vez que
-    `sesiones_programadas`/`sesiones_control` tengan columnas reales para lo mismo
-    (nota: `sesiones_programadas.pilar_objetivo` ya existe y está sin usar, §6.4).
-  - **Programar pruebas por grupo** (dirección del owner 2026-07-05): hoy la evaluación
-    científica solo se dispara desde la tarjeta del atleta (botón "Evaluar" →
-    `EvaluacionModal`, un atleta a la vez). El flujo unificado debe permitir además
-    **programar una sesión de evaluación con pruebas específicas**
-    (`catalogo_ejercicios`) **para un grupo** (`atleta_grupo`, v18) en una fecha, y
-    capturar los resultados de todos los atletas del grupo en un solo recorrido en
-    cancha. Encaja con la decisión #4 (§3.4): una sesión con
-    `tipo_actividad='Evaluación'` + lista de pruebas. Diseño tentativo a detallar antes
-    de implementar: plantilla de `catalogo_sesiones` con `tipo_actividad='Evaluación'`
-    cuyo `ejercicios_ids` referencia pruebas (o columna `pruebas_ids` separada para no
-    mezclar los dos catálogos espejo, §2.3), y una vista de captura grupal que itera
-    atletas presentes × pruebas reutilizando el motor actual (`normalizarValor` +
-    guardado de `evaluaciones_pruebas` por atleta).
+- **P3a — Reescritura de flujo** ✅ CÓDIGO LISTO (2026-07-05; commit pendiente de
+  deploy). Antes de empezar se detectó y corrigió una ROTURA VIVA que v21 había
+  introducido (ver v22 abajo). Lo hecho:
+  - **HOTFIX v22 (aplicado a producción con autorización del owner):** v21 rompió el
+    guardado del pase de lista diario — su `ON CONFLICT (atleta_id, fecha)` dejó de
+    encontrar constraint (reproducido en Docker y verificado contra producción antes
+    del fix). Además con `UNIQUE` estándar las filas diarias (`sesion_id NULL`) no se
+    deduplicaban (NULLs distintos). v22: `UNIQUE NULLS NOT DISTINCT (atleta_id, fecha,
+    sesion_id)` + `upsertAsistencia` acepta `sesion_id` y apunta a la terna. Verificado
+    en prod: target viejo falla (diagnóstico), nuevo upsertea idempotente. **Lección:
+    validar migraciones también contra las QUERIES existentes (upserts con
+    onConflict), no solo contra el esquema.**
+  - ✅ `ModoCanchaModalConfigPilar` elige **plantilla** de `catalogo_sesiones`
+    (agrupadas por pilar canónico, sub-pilar visible, `aria-pressed`), con fallback a
+    `OBJETIVOS_CLASE` si la biblioteca no carga. Siguiente deshabilitado sin elección.
+  - ✅ Paso "Pasar Lista" escribe **asistencia real** (`upsertAsistencia` con
+    `sesion_id`; registra Presente Y Ausente explícitos) además del historial
+    `sesiones_entrenamiento` (solo presentes) — todo en un `Promise.all`.
+  - ✅ `sesiones_programadas.pilar_objetivo` (columna real, §6.4) guarda la key
+    canónica (`sub_pilar || pilar` de la plantilla); las notas quedan
+    `[EN_CURSO] <tipo>` (el marker se CONSERVA: `checkActiveSession` y el badge del
+    Sidebar filtran por él — retirarlo requeriría ampliar el CHECK de `estado`, se
+    difiere). `checkActiveSession` deriva la etiqueta de la columna con
+    `labelSubPilar`, con fallback al parseo legacy `Pilar:X | tipo` para sesiones en
+    curso iniciadas antes del deploy.
+  - ✅ `handleResumeSession` lee presentes de `asistencia` por `sesion_id`, con doble
+    fallback legacy (`[MODO_CANCHA: id]` en notas → todos los de hoy).
+  - ✅ `AdminSesiones` gana "Guardar como plantilla del Modo Cancha" (`crearPlantilla`
+    con `club_id` del usuario, exigido por la RLS; mapa `TIPO_A_OBJETIVO` de TIPOS →
+    pilar/sub_pilar canónico; Evaluación/Recuperación quedan sin objetivo, son
+    formatos). También se completó `sub_pilar='resistencia'` en la plantilla semilla
+    que quedó NULL en v21.
+  - `AdminSesiones.TIPOS` se queda como está: filtra `ejercicios_catalogo.tipo`, y ese
+    catálogo está **VACÍO en producción (0 filas)** — hallazgo de esta fase; poblarlo
+    es contenido pendiente, no refactor.
+  - Verificación: suite 229/229, build de producción OK, lint sin problemas nuevos
+    (los preexistentes confirmados con git stash).
+- **P3b — Programar pruebas por grupo (pendiente, requiere diseño + migración chica):**
+  (dirección del owner 2026-07-05): hoy la evaluación científica solo se dispara desde
+  la tarjeta del atleta (botón "Evaluar" → `EvaluacionModal`, un atleta a la vez). El
+  flujo unificado debe permitir además **programar una sesión de evaluación con pruebas
+  específicas** (`catalogo_ejercicios`) **para un grupo** (`atleta_grupo`, v18) en una
+  fecha, y capturar los resultados de todos los atletas del grupo en un solo recorrido
+  en cancha. Encaja con la decisión #4 (§3.4): una sesión con
+  `tipo_actividad='Evaluación'` + lista de pruebas. Diseño tentativo a detallar antes
+  de implementar: plantilla de `catalogo_sesiones` con `tipo_actividad='Evaluación'`
+  cuyo `ejercicios_ids` referencia pruebas (o columna `pruebas_ids` separada para no
+  mezclar los dos catálogos espejo, §2.3), y una vista de captura grupal que itera
+  atletas presentes × pruebas reutilizando el motor actual (`normalizarValor` +
+  guardado de `evaluaciones_pruebas` por atleta).
 
 ---
 
