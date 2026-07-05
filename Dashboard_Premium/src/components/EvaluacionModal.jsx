@@ -3,16 +3,19 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ClipboardCheck, ChevronDown, FlaskConical, Save, Loader2, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { TIER_CONFIG, normalizarValor, categoriaABucketBaremo } from '../lib/baremosEngine';
+import { labelPilar, labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { supabase } from '../api/supabaseClient';
 import { recalcularOverall } from '../api/evaluacionesService';
 import { useAuth } from '../AuthContext';
 import NuevaPruebaModal from './NuevaPruebaModal';
 
 // ─── PILAR DISPLAY CONFIG ──────────────────────────────────
+// La etiqueta viene de la taxonomía compartida (analytics-core/taxonomia.js); el ícono
+// es presentación local de este modal.
 const PILAR_LABELS = {
-  fisico: { label: 'Físico-Atlético', icon: '💪' },
-  tecnico: { label: 'Técnico-Baloncestístico', icon: '🏀' },
-  mental: { label: 'Mental-Táctico', icon: '🧠' },
+  fisico: { label: labelPilar('fisico'), icon: '💪' },
+  tecnico: { label: labelPilar('tecnico'), icon: '🏀' },
+  mental: { label: labelPilar('mental'), icon: '🧠' },
 };
 
 const TREN_LABELS = {
@@ -21,16 +24,18 @@ const TREN_LABELS = {
   null: null,
 };
 
+// Pestañas de objetivo: el `id` es la key del sub-pilar (taxonomía compartida) y el
+// `label` se deriva de ella con labelSubPilar; ícono/colores son presentación local.
 const OBJETIVOS = [
   { id: 'todas', label: 'Todas', icon: '📋', filter: () => true, border: 'border-gray-500/30', bgActive: 'bg-gray-500/20', text: 'text-gray-400' },
-  { id: 'fuerza', label: 'Fuerza', icon: '💪', filter: (b) => b.sub_pilar === 'fuerza', border: 'border-red-500/30', bgActive: 'bg-red-500/20', text: 'text-red-400' },
-  { id: 'explosividad', label: 'Explosividad', icon: '🚀', filter: (b) => b.sub_pilar === 'explosividad', border: 'border-orange-500/30', bgActive: 'bg-orange-500/20', text: 'text-orange-400' },
-  { id: 'movilidad', label: 'Movilidad', icon: '🤸', filter: (b) => b.sub_pilar === 'movilidad', border: 'border-emerald-500/30', bgActive: 'bg-emerald-500/20', text: 'text-emerald-400' },
-  { id: 'tiro', label: 'Técnica de Tiro', icon: '🎯', filter: (b) => b.sub_pilar === 'tiro', border: 'border-cyan-500/30', bgActive: 'bg-cyan-500/20', text: 'text-cyan-400' },
-  { id: 'agilidad', label: 'Agilidad', icon: '⚡', filter: (b) => b.sub_pilar === 'agilidad', border: 'border-yellow-500/30', bgActive: 'bg-yellow-500/20', text: 'text-yellow-400' },
-  { id: 'tactica', label: 'Efic. Táctica', icon: '🧠', filter: (b) => b.sub_pilar === 'tactica', border: 'border-purple-500/30', bgActive: 'bg-purple-500/20', text: 'text-purple-400' },
-  { id: 'resiliencia', label: 'Resiliencia', icon: '🛡️', filter: (b) => b.sub_pilar === 'resiliencia', border: 'border-pink-500/30', bgActive: 'bg-pink-500/20', text: 'text-pink-400' },
-  { id: 'recuperacion', label: 'Carga/Sueño', icon: '🔋', filter: (b) => b.sub_pilar === 'recuperacion', border: 'border-blue-500/30', bgActive: 'bg-blue-500/20', text: 'text-blue-400' },
+  { id: 'fuerza', label: labelSubPilar('fuerza'), icon: '💪', filter: (b) => b.sub_pilar === 'fuerza', border: 'border-red-500/30', bgActive: 'bg-red-500/20', text: 'text-red-400' },
+  { id: 'explosividad', label: labelSubPilar('explosividad'), icon: '🚀', filter: (b) => b.sub_pilar === 'explosividad', border: 'border-orange-500/30', bgActive: 'bg-orange-500/20', text: 'text-orange-400' },
+  { id: 'movilidad', label: labelSubPilar('movilidad'), icon: '🤸', filter: (b) => b.sub_pilar === 'movilidad', border: 'border-emerald-500/30', bgActive: 'bg-emerald-500/20', text: 'text-emerald-400' },
+  { id: 'tiro', label: labelSubPilar('tiro'), icon: '🎯', filter: (b) => b.sub_pilar === 'tiro', border: 'border-cyan-500/30', bgActive: 'bg-cyan-500/20', text: 'text-cyan-400' },
+  { id: 'agilidad', label: labelSubPilar('agilidad'), icon: '⚡', filter: (b) => b.sub_pilar === 'agilidad', border: 'border-yellow-500/30', bgActive: 'bg-yellow-500/20', text: 'text-yellow-400' },
+  { id: 'tactica', label: labelSubPilar('tactica'), icon: '🧠', filter: (b) => b.sub_pilar === 'tactica', border: 'border-purple-500/30', bgActive: 'bg-purple-500/20', text: 'text-purple-400' },
+  { id: 'resiliencia', label: labelSubPilar('resiliencia'), icon: '🛡️', filter: (b) => b.sub_pilar === 'resiliencia', border: 'border-pink-500/30', bgActive: 'bg-pink-500/20', text: 'text-pink-400' },
+  { id: 'recuperacion', label: labelSubPilar('recuperacion'), icon: '🔋', filter: (b) => b.sub_pilar === 'recuperacion', border: 'border-blue-500/30', bgActive: 'bg-blue-500/20', text: 'text-blue-400' },
 ];
 
 // Salvaguarda defensiva: si catalogo_ejercicios llegara a tener filas

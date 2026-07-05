@@ -2,16 +2,11 @@
 // Builds 3-layer radar data from evaluation-based metrics
 // Uses normalized scores from evaluaciones_pruebas
 
-// The radar now shows sub-pillars instead of flat metrics
-const RADAR_AXES = [
-  { key: 'fuerza',       label: 'Fuerza',       pilar: 'fisico' },
-  { key: 'explosividad', label: 'Explosividad', pilar: 'fisico' },
-  { key: 'movilidad',    label: 'Movilidad',    pilar: 'fisico' },
-  { key: 'tiro',         label: 'Técnica Tiro', pilar: 'tecnico' },
-  { key: 'agilidad',     label: 'Agilidad',     pilar: 'tecnico' },
-  { key: 'tactica',      label: 'Efic. Táctica', pilar: 'mental' },
-  { key: 'resiliencia',  label: 'Resiliencia',  pilar: 'mental' },
-];
+import { SUB_PILARES } from './taxonomia.js';
+
+// Los ejes del radar SON los 7 sub-pilares de rendimiento. Fuente única: taxonomia.js
+// (antes esta lista estaba duplicada aquí y podía divergir del resto de la app).
+const RADAR_AXES = SUB_PILARES;
 
 /**
  * Extrae las puntuaciones promedio por sub-pilar de un atleta
