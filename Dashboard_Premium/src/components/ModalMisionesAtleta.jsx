@@ -148,21 +148,21 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-[#09090b] border border-white/10 p-6 md:p-8 rounded-3xl w-full max-w-2xl relative shadow-2xl max-h-[90dvh] overflow-y-auto">
+          className="bg-surface-base border border-white/10 p-6 md:p-8 rounded-card w-full max-w-2xl relative shadow-modal max-h-[90dvh] overflow-y-auto">
 
           {/* Header */}
           <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
             <div className="min-w-0">
-              <h2 className="text-2xl font-black text-[#FFD700] uppercase tracking-tighter truncate">Misiones para {atleta.nombre.split(' ')[0]}</h2>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Elige o crea una misión educativa</p>
+              <h2 className="text-2xl font-black text-brand uppercase tracking-tighter truncate">Misiones para {atleta.nombre.split(' ')[0]}</h2>
+              <p className="text-xs text-fg-secondary font-bold uppercase tracking-widest mt-1">Elige o crea una misión educativa</p>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={handleRegenerar} disabled={regenerando}
                 title="Vuelve a ejecutar el motor de recomendación por debilidades (idempotente)"
                 aria-label="Regenerar misiones"
-                className="flex items-center gap-2 px-3 py-2 min-h-11 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 rounded-xl transition-colors disabled:opacity-50">
+                className="flex items-center gap-2 px-3 py-2 min-h-11 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 rounded-control transition-colors disabled:opacity-50">
                 <RefreshCw size={14} className={regenerando ? 'animate-spin' : ''} />
-                <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest">{regenerando ? 'Generando…' : 'Regenerar misiones'}</span>
+                <span className="hidden sm:inline text-2xs font-bold uppercase tracking-widest">{regenerando ? 'Generando…' : 'Regenerar misiones'}</span>
               </button>
               <button onClick={onClose} aria-label="Cerrar" className="min-h-11 min-w-11 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white">
                 <X size={20} />
@@ -172,17 +172,17 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
 
           {successMsg ? (
             <div className="py-12 flex flex-col items-center justify-center space-y-4">
-              <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 bg-success/20 text-success-soft rounded-full flex items-center justify-center">
                 <Check size={32} />
               </div>
-              <p className="text-emerald-400 font-bold uppercase tracking-widest">{successMsg}</p>
+              <p className="text-success-soft font-bold uppercase tracking-widest">{successMsg}</p>
             </div>
           ) : (
             <>
               {/* Tabs */}
               <div className="flex space-x-2 mb-6">
-                <button onClick={() => setTab('catalogo')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${tab === 'catalogo' ? 'bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.2)]' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}>Banco de Misiones</button>
-                <button onClick={() => setTab('crear')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${tab === 'crear' ? 'bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.2)]' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}>Crear Nueva</button>
+                <button onClick={() => setTab('catalogo')} className={`flex-1 py-3 min-h-11 text-2xs font-black uppercase tracking-eyebrow rounded-control border transition-all ${tab === 'catalogo' ? 'bg-brand/10 text-brand border-brand/20' : 'bg-white/5 text-fg-muted border-transparent hover:bg-white/10 hover:text-fg'}`}>Banco de Misiones</button>
+                <button onClick={() => setTab('crear')} className={`flex-1 py-3 min-h-11 text-2xs font-black uppercase tracking-eyebrow rounded-control border transition-all ${tab === 'crear' ? 'bg-brand/10 text-brand border-brand/20' : 'bg-white/5 text-fg-muted border-transparent hover:bg-white/10 hover:text-fg'}`}>Crear Nueva</button>
               </div>
 
               {tab === 'catalogo' && (
@@ -190,25 +190,25 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
                     <input type="text" inputMode="search" placeholder="Buscar misión..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-base md:text-sm focus:outline-none focus:border-[#FFD700]/50" />
+                      className="w-full bg-surface-sunken border border-white/10 rounded-control pl-10 pr-4 py-3 text-white text-base md:text-sm focus:outline-none focus:border-brand/50 focus:ring-2 focus:ring-brand/20" />
                   </div>
 
                   <div className="max-h-[50dvh] overflow-y-auto space-y-2 pr-2">
                     {misiones.length === 0 ? (
-                      <p className="text-center text-gray-500 py-8 text-xs font-bold uppercase tracking-widest">No hay misiones disponibles</p>
+                      <p className="text-center text-fg-muted py-8 text-xs font-bold uppercase tracking-widest">No hay misiones disponibles</p>
                     ) : (
                       misiones.map(m => (
-                        <div key={m.id} className="p-4 bg-white/5 border border-white/10 rounded-xl flex justify-between items-center hover:bg-white/10 transition-colors">
+                        <div key={m.id} className="p-4 bg-white/5 border border-white/10 rounded-panel flex justify-between items-center hover:bg-white/10 transition-colors">
                           <div>
                             <h4 className="font-bold text-white text-sm">{m.titulo}</h4>
-                            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">{PILAR_LABELS[m.pilar] || m.pilar} • {m.xp_recompensa} XP</p>
+                            <p className="text-2xs text-fg-secondary mt-1 uppercase tracking-widest">{PILAR_LABELS[m.pilar] || m.pilar} • {m.xp_recompensa} XP</p>
                           </div>
                           {misionesAsignadas.includes(m.id) ? (
-                            <button disabled className="px-4 py-2 bg-gray-800 text-gray-500 font-bold uppercase tracking-widest text-[10px] rounded-lg cursor-not-allowed">
+                            <button disabled className="px-4 py-2 bg-white/5 text-fg-muted font-bold uppercase tracking-widest text-2xs rounded-control cursor-not-allowed">
                               Asignada
                             </button>
                           ) : (
-                            <button onClick={() => handleAsignar(m.id)} disabled={saving} className="px-4 py-2 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black font-bold uppercase tracking-widest text-[10px] rounded-lg transition-all">
+                            <button onClick={() => handleAsignar(m.id)} disabled={saving} className="px-4 py-2 bg-success/20 text-success-soft hover:bg-success hover:text-black font-bold uppercase tracking-widest text-2xs rounded-control transition-all">
                               {saving ? 'Asignando...' : 'Asignar'}
                             </button>
                           )}
@@ -222,28 +222,28 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
               {tab === 'crear' && (
                 <form onSubmit={handleCrear} className="space-y-4 max-h-[50dvh] overflow-y-auto pr-2">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Título</label>
-                    <input type="text" required value={form.titulo} onChange={e => setForm({...form, titulo: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 outline-none" />
+                    <label className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Título</label>
+                    <input type="text" required value={form.titulo} onChange={e => setForm({...form, titulo: e.target.value})} className="w-full bg-surface-sunken border border-white/10 rounded-control px-4 py-3 text-white focus:border-brand/50 focus:ring-2 focus:ring-brand/20 outline-none" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Descripción</label>
-                    <textarea required value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 outline-none h-24"></textarea>
+                    <label className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Descripción</label>
+                    <textarea required value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})} className="w-full bg-surface-sunken border border-white/10 rounded-control px-4 py-3 text-white focus:border-brand/50 focus:ring-2 focus:ring-brand/20 outline-none h-24"></textarea>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">XP Recompensa</label>
-                      <input type="number" inputMode="numeric" pattern="[0-9]*" min="0" required value={form.xp_recompensa} onChange={e => setForm({...form, xp_recompensa: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 outline-none" />
+                      <label className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">XP Recompensa</label>
+                      <input type="number" inputMode="numeric" pattern="[0-9]*" min="0" required value={form.xp_recompensa} onChange={e => setForm({...form, xp_recompensa: e.target.value})} className="w-full bg-surface-sunken border border-white/10 rounded-control px-4 py-3 text-white focus:border-brand/50 focus:ring-2 focus:ring-brand/20 outline-none" />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Pilar</label>
-                      <select value={form.pilar} onChange={e => setForm({...form, pilar: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#FFD700]/50 outline-none">
+                      <label className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Pilar</label>
+                      <select value={form.pilar} onChange={e => setForm({...form, pilar: e.target.value})} className="w-full bg-surface-sunken border border-white/10 rounded-control px-4 py-3 text-white focus:border-brand/50 focus:ring-2 focus:ring-brand/20 outline-none">
                         {PILARES_OPTIONS.map(({ value, label }) => (
                           <option key={value} value={value}>{label}</option>
                         ))}
                       </select>
                     </div>
                   </div>
-                  <button type="submit" disabled={saving} className="w-full mt-4 bg-[#FFD700] text-black font-black uppercase tracking-widest py-4 rounded-xl flex items-center justify-center hover:bg-[#D4AF37] transition-all shadow-[0_0_20px_rgba(255,215,0,0.2)]">
+                  <button type="submit" disabled={saving} className="w-full mt-4 bg-brand text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control flex items-center justify-center hover:bg-brand-hover active:scale-[0.99] transition-all shadow-glow-gold">
                     {saving ? 'Guardando...' : 'Crear y Asignar Misión'} <Save size={18} className="ml-2"/>
                   </button>
                 </form>

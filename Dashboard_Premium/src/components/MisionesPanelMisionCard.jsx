@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import VideoPlayer from './VideoPlayer';
 import { CheckCircle2, Play, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { PILAR_LABELS } from '../constants/pilares';
+import { MOTION, staggerDelay } from '../lib/designTokens';
 
 // ──────────────────────────────────────────
 // Tarjeta de misión pendiente
@@ -14,25 +15,25 @@ function MisionCard({ mision, index, expanded, onToggle, onComplete, onQuiz }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="glass-card rounded-2xl overflow-hidden border border-white/5 glow-border"
+      transition={{ delay: staggerDelay(index), duration: MOTION.duration.base, ease: MOTION.ease.out }}
+      className="glass-card rounded-panel overflow-hidden border border-white/5 glow-border"
     >
       <button
         onClick={() => onToggle(mision.id)}
         className="w-full flex items-center justify-between p-5 text-left hover:bg-white/5 transition-colors"
       >
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center shrink-0">
-            <Play size={16} className="text-[#FFD700]" />
+          <div className="w-10 h-10 rounded-control bg-brand/10 border border-brand/30 flex items-center justify-center shrink-0">
+            <Play size={16} className="text-brand" />
           </div>
           <div>
             <h4 className="text-sm font-bold text-white">{mision.titulo}</h4>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+            <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">
               +{mision.xpRecompensa} XP
             </p>
           </div>
         </div>
-        {expanded ? <ChevronUp size={18} className="text-gray-400 shrink-0" /> : <ChevronDown size={18} className="text-gray-400 shrink-0" />}
+        {expanded ? <ChevronUp size={18} className="text-fg-secondary shrink-0" /> : <ChevronDown size={18} className="text-fg-secondary shrink-0" />}
       </button>
 
       <AnimatePresence>
@@ -45,7 +46,7 @@ function MisionCard({ mision, index, expanded, onToggle, onComplete, onQuiz }) {
             className="overflow-hidden"
           >
             <div className="px-5 pb-6 space-y-5">
-              <p className="text-sm text-gray-300 leading-relaxed border-l-2 border-[#FFD700]/30 pl-4">
+              <p className="text-sm text-gray-300 leading-relaxed border-l-2 border-brand/30 pl-4">
                 {mision.descripcion}
               </p>
 
@@ -55,7 +56,7 @@ function MisionCard({ mision, index, expanded, onToggle, onComplete, onQuiz }) {
                 {mision.quiz && mision.quiz.length > 0 ? (
                   <button
                     onClick={() => onQuiz(mision)}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition-all"
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 bg-brand border border-brand/50 text-on-brand font-black text-2xs uppercase tracking-eyebrow px-6 py-3 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition-all"
                   >
                     <Sparkles size={14} />
                     <span>Iniciar Cuestionario ({mision.quiz.length} preguntas)</span>
@@ -63,13 +64,13 @@ function MisionCard({ mision, index, expanded, onToggle, onComplete, onQuiz }) {
                 ) : (
                   <button
                     onClick={() => onComplete(mision.id)}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition-all"
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto min-h-11 bg-brand border border-brand/50 text-on-brand font-black text-2xs uppercase tracking-eyebrow px-6 py-3 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition-all"
                   >
                     <CheckCircle2 size={14} />
                     <span>Marcar como Completada</span>
                   </button>
                 )}
-                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                <span className="text-2xs text-fg-muted font-bold uppercase tracking-widest">
                   {(mision.pilar || mision.tipo) === 'youtube' ? '📺' : '📖'}{' '}
                   {PILAR_LABELS[mision.pilar || mision.tipo] || mision.pilar || mision.tipo}
                 </span>

@@ -94,7 +94,7 @@ export default function MisionesPanel({ atletaId }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-6 h-6 border-2 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -131,10 +131,10 @@ export default function MisionesPanel({ atletaId }) {
 
       {/* ── Header Misiones ──────────────── */}
       <div className="flex items-center gap-3 mb-8">
-        <Target className="text-[#FFD700]" size={22} />
+        <Target className="text-brand" size={22} />
         <h3 className="text-xl font-black text-white uppercase tracking-tight">Misiones Educativas</h3>
         {pendientes.length > 0 && (
-          <span className="bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-full px-3 py-1 text-[10px] font-black text-[#FFD700] uppercase tracking-widest">
+          <span className="bg-brand/10 border border-brand/30 rounded-full px-3 py-1 text-2xs font-black text-brand uppercase tracking-widest">
             {pendientes.length} Pendientes
           </span>
         )}
@@ -142,9 +142,9 @@ export default function MisionesPanel({ atletaId }) {
 
       {/* ── Misiones Pendientes ──────────── */}
       {pendientes.length === 0 && enRevision.length === 0 && aprobadas.length === 0 && rechazadas.length === 0 && (
-        <div className="text-center py-12 border border-white/5 rounded-2xl bg-white/[0.02]">
-          <Target size={32} className="text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">No tienes misiones asignadas aún</p>
+        <div className="text-center py-12 border border-white/5 rounded-panel bg-white/[0.02]">
+          <Target size={32} className="text-fg-faint mx-auto mb-3" />
+          <p className="text-fg-muted font-bold uppercase tracking-widest text-xs">No tienes misiones asignadas aún</p>
         </div>
       )}
 
