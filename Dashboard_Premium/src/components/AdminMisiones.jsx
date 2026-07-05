@@ -281,32 +281,32 @@ export default function AdminMisiones() {
 
   const ORIGEN_BADGE = {
     auto_baremo: { label: 'Por evaluación', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' },
-    ia: { label: 'IA', cls: 'bg-purple-500/10 text-purple-400 border-purple-500/30' },
-    coach: { label: 'Coach', cls: 'bg-gray-500/10 text-gray-400 border-gray-500/30' },
+    ia: { label: 'IA', cls: 'bg-mental/10 text-mental-soft border-mental/30' },
+    coach: { label: 'Coach', cls: 'bg-gray-500/10 text-fg-secondary border-gray-500/30' },
   };
 
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
         <div className="flex items-center space-x-4">
-          <button onClick={() => navigate('/dashboard')} aria-label="Volver" className="p-2 -m-2 text-gray-500 hover:text-white transition-colors">
+          <button onClick={() => navigate('/dashboard')} aria-label="Volver" className="p-2 -m-2 text-fg-muted hover:text-white transition-colors">
             <ArrowLeft size={20} />
           </button>
           <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
-            Gestionar <span className="text-[#FFD700]">Misiones</span>
+            Gestionar <span className="text-brand">Misiones</span>
           </h2>
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setForm(emptyForm); }}
-          className="flex items-center space-x-2 bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-xl shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition-all"
+          className="flex items-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-control shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition-all"
         >
           <Plus size={16} />
           <span>Nueva Misión</span>
         </button>
       </div>
 
-      {error && <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold">{error}</div>}
-      {success && <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-bold">{success}</div>}
+      {error && <div className="mb-6 p-4 rounded-control bg-danger/10 border border-danger/30 text-danger-soft text-sm font-bold">{error}</div>}
+      {success && <div className="mb-6 p-4 rounded-control bg-success/10 border border-success/30 text-success-soft text-sm font-bold">{success}</div>}
 
       {/* Formulario de Misión */}
       {showForm && (
@@ -314,51 +314,51 @@ export default function AdminMisiones() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           onSubmit={handleSubmit}
-          className="glass-card rounded-2xl p-4 sm:p-8 mb-10 space-y-6"
+          className="glass-card rounded-panel p-4 sm:p-8 mb-10 space-y-6"
         >
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-black text-white uppercase tracking-tight">Crear Misión Educativa</h3>
-            <button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar formulario" className="p-2 -m-2 text-gray-500 hover:text-white"><X size={18} /></button>
+            <button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar formulario" className="p-2 -m-2 text-fg-muted hover:text-white"><X size={18} /></button>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">Título de la Misión</label>
+              <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Título de la Misión</label>
               <input value={form.titulo} onChange={e => handleChange('titulo', e.target.value)} required
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" placeholder="Ej. Mejora tu defensa perimetral" />
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" placeholder="Ej. Mejora tu defensa perimetral" />
             </div>
             <div className="col-span-2">
-              <label className="block text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">Descripción</label>
+              <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Descripción</label>
               <textarea value={form.descripcion} onChange={e => handleChange('descripcion', e.target.value)} rows={2}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50 resize-none" placeholder="Instrucciones para el atleta..." />
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50 resize-none" placeholder="Instrucciones para el atleta..." />
             </div>
             <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">Pilar</label>
+                <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Pilar</label>
                 <select value={form.pilar} onChange={e => handleChange('pilar', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50 appearance-none cursor-pointer">
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50 appearance-none cursor-pointer">
                   {PILARES_OPTIONS.map(({ value, label }) => (
-                    <option key={value} value={value} className="bg-[#121214]">{label}</option>
+                    <option key={value} value={value} className="bg-surface-card">{label}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">URL del Video (YouTube)</label>
+                <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">URL del Video (YouTube)</label>
                 <input value={form.video_url} onChange={e => handleChange('video_url', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" placeholder="https://www.youtube.com/watch?v=..." />
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" placeholder="https://www.youtube.com/watch?v=..." />
               </div>
             </div>
             <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">XP Recompensa</label>
+                <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">XP Recompensa</label>
                 <input type="number" inputMode="numeric" min="0" value={form.xp_recompensa} onChange={e => handleChange('xp_recompensa', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50" />
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" />
               </div>
               <div>
-                <label className="block text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-2">Categoría Objetivo</label>
+                <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Categoría Objetivo</label>
                 <select value={form.categoria_objetivo} onChange={e => handleChange('categoria_objetivo', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-[#FFD700]/50 appearance-none cursor-pointer">
-                  {['Sub12', 'Sub15', 'Sub18', 'Femenino', 'Senior', 'Todos'].map(c => <option key={c} value={c} className="bg-[#121214]">{c}</option>)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50 appearance-none cursor-pointer">
+                  {['Sub12', 'Sub15', 'Sub18', 'Femenino', 'Senior', 'Todos'].map(c => <option key={c} value={c} className="bg-surface-card">{c}</option>)}
                 </select>
               </div>
             </div>
@@ -367,26 +367,26 @@ export default function AdminMisiones() {
           {/* Quiz Builder */}
           <div className="pt-4 border-t border-white/10">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">Cuestionario de Verificación</p>
-              <button type="button" onClick={addQuestion} className="text-[10px] text-[#FFD700] font-bold uppercase tracking-widest hover:text-white transition-colors">+ Agregar Pregunta</button>
+              <p className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow">Cuestionario de Verificación</p>
+              <button type="button" onClick={addQuestion} className="text-2xs text-brand font-bold uppercase tracking-widest hover:text-white transition-colors">+ Agregar Pregunta</button>
             </div>
             {form.quiz.map((q, qi) => (
-              <div key={qi} className="bg-white/[0.02] border border-white/5 rounded-xl p-4 mb-3">
+              <div key={qi} className="bg-white/[0.02] border border-white/5 rounded-control p-4 mb-3">
                 <div className="flex justify-between items-start mb-3">
-                  <label className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">Pregunta {qi + 1}</label>
+                  <label className="text-[11px] text-fg-secondary font-bold uppercase tracking-widest">Pregunta {qi + 1}</label>
                   {form.quiz.length > 1 && (
-                    <button type="button" onClick={() => removeQuestion(qi)} aria-label="Quitar pregunta" className="p-2 -m-2 text-red-500/50 hover:text-red-400"><X size={14} /></button>
+                    <button type="button" onClick={() => removeQuestion(qi)} aria-label="Quitar pregunta" className="p-2 -m-2 text-danger/50 hover:text-danger-soft"><X size={14} /></button>
                   )}
                 </div>
                 <input value={q.pregunta} onChange={e => handleQuizChange(qi, 'pregunta', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white mb-3 focus:outline-none focus:border-[#FFD700]/50" placeholder="¿Cuál es...?" />
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white mb-3 focus:outline-none focus:border-brand/50" placeholder="¿Cuál es...?" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {q.opciones.map((op, oi) => (
                     <div key={oi} className="flex items-center space-x-2">
                       <input type="radio" name={`correct-${qi}`} checked={q.correcta === oi} onChange={() => handleQuizChange(qi, 'correcta', oi)}
-                        className="w-5 h-5 shrink-0 accent-[#FFD700]" />
+                        className="w-5 h-5 shrink-0 accent-brand" />
                       <input value={op} onChange={e => handleQuizChange(qi, `opcion_${oi}`, e.target.value)}
-                        className="flex-1 bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700]/50"
+                        className="flex-1 bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-brand/50"
                         placeholder={`Opción ${String.fromCharCode(65 + oi)}`} />
                     </div>
                   ))}
@@ -397,25 +397,25 @@ export default function AdminMisiones() {
 
           {/* Asignar a Atletas */}
           <div className="pt-4 border-t border-white/10">
-            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] mb-4">Asignar a Atletas</p>
+            <p className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mb-4">Asignar a Atletas</p>
             <div className="grid grid-cols-2 gap-2">
               {atletas.map(a => (
                 <button key={a.atleta_id} type="button" onClick={() => toggleAtleta(a.atleta_id)}
                   className={`flex items-center space-x-3 p-3 rounded-lg border text-left text-xs font-medium transition-all ${
                     form.asignar_a.includes(a.atleta_id)
-                      ? 'bg-[#FFD700]/10 border-[#FFD700]/40 text-[#FFD700]'
-                      : 'bg-white/[0.02] border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                      ? 'bg-brand/10 border-brand/40 text-brand'
+                      : 'bg-white/[0.02] border-white/10 text-fg-secondary hover:text-white hover:border-white/20'
                   }`}
                 >
                   <span>{form.asignar_a.includes(a.atleta_id) ? '✓' : '○'}</span>
-                  <span>{a.nombre} <span className="text-[9px] opacity-60">({a.categoria})</span></span>
+                  <span>{a.nombre} <span className="text-3xs opacity-60">({a.categoria})</span></span>
                 </button>
               ))}
             </div>
           </div>
 
           <button type="submit" disabled={saving}
-            className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_0_20px_rgba(255,215,0,0.3)] disabled:opacity-50">
+            className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.3)] disabled:opacity-50">
             <Save size={16} />
             <span>{saving ? 'Creando en Supabase...' : 'Crear Misión y Asignar'}</span>
           </button>
@@ -426,30 +426,30 @@ export default function AdminMisiones() {
       {completadasPorAprobar.length > 0 && (
         <div className="mb-10">
           <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4 flex items-center">
-            <span className="w-2 h-2 rounded-full bg-[#FFD700] mr-2 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-brand mr-2 animate-pulse"></span>
             Completadas por Aprobar
           </h3>
           <div className="space-y-3">
             {completadasPorAprobar.map((p, i) => (
               <motion.div key={p.id}
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.04 }}
-                className="bg-white/5 border border-[#FFD700]/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="bg-white/5 border border-brand/30 rounded-control p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
                 <div>
                   <p className="text-sm font-bold text-white">{p.misiones?.titulo}</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                    Atleta: <span className="text-[#FFD700]">{p.atletas?.usuarios?.nombre}</span> ({p.atletas?.usuarios?.categoria})
+                  <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">
+                    Atleta: <span className="text-brand">{p.atletas?.usuarios?.nombre}</span> ({p.atletas?.usuarios?.categoria})
                   </p>
-                  <p className="text-[10px] text-gray-500 mt-1">
+                  <p className="text-2xs text-fg-muted mt-1">
                     Completada el: {p.fecha_completada ? new Date(p.fecha_completada).toLocaleDateString() : '—'}
                   </p>
                 </div>
                 <div className="flex gap-3 w-full sm:w-auto">
-                  <button onClick={() => handleAprobar(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 rounded-xl transition-colors">
+                  <button onClick={() => handleAprobar(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-success/10 text-success-soft border border-success/30 hover:bg-success/20 rounded-control transition-colors">
                     <CheckCircle size={16} />
                     <span className="text-sm font-bold uppercase">Aprobar (+{p.misiones?.xp_recompensa} XP)</span>
                   </button>
-                  <button onClick={() => handleRechazar(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 rounded-xl transition-colors">
+                  <button onClick={() => handleRechazar(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-danger/10 text-danger-soft border border-danger/30 hover:bg-danger/20 rounded-control transition-colors">
                     <XCircle size={16} />
                     <span className="text-sm font-bold uppercase">Rechazar</span>
                   </button>
@@ -474,31 +474,31 @@ export default function AdminMisiones() {
               return (
                 <motion.div key={p.id}
                   initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.04 }}
-                  className="bg-white/5 border border-cyan-500/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  className="bg-white/5 border border-cyan-500/30 rounded-control p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-white">{p.misiones?.titulo}</p>
-                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${badge.cls}`}>{badge.label}</span>
+                      <span className={`px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border ${badge.cls}`}>{badge.label}</span>
                       {p.sub_pilar_objetivo && (
-                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-orange-500/10 text-orange-400 border-orange-500/30">
+                        <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-caution/10 text-caution-soft border-caution/30">
                           Objetivo: {p.sub_pilar_objetivo}
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                      Atleta: <span className="text-[#FFD700]">{p.atletas?.usuarios?.nombre}</span> ({p.atletas?.usuarios?.categoria})
+                    <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">
+                      Atleta: <span className="text-brand">{p.atletas?.usuarios?.nombre}</span> ({p.atletas?.usuarios?.categoria})
                     </p>
-                    <p className="text-[10px] text-gray-500 mt-1">
+                    <p className="text-2xs text-fg-muted mt-1">
                       Propuesta el: {p.fecha_asignacion ? new Date(p.fecha_asignacion).toLocaleDateString() : '—'}
                     </p>
                   </div>
                   <div className="flex gap-3 w-full sm:w-auto">
-                    <button onClick={() => handleAprobarAsignacion(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 rounded-xl transition-colors">
+                    <button onClick={() => handleAprobarAsignacion(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-success/10 text-success-soft border border-success/30 hover:bg-success/20 rounded-control transition-colors">
                       <CheckCircle size={16} />
                       <span className="text-sm font-bold uppercase">Aprobar</span>
                     </button>
-                    <button onClick={() => handleRechazarAsignacion(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 rounded-xl transition-colors">
+                    <button onClick={() => handleRechazarAsignacion(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-danger/10 text-danger-soft border border-danger/30 hover:bg-danger/20 rounded-control transition-colors">
                       <XCircle size={16} />
                       <span className="text-sm font-bold uppercase">Rechazar</span>
                     </button>
@@ -517,10 +517,10 @@ export default function AdminMisiones() {
         <div className="flex space-x-1">
           {[['todas', 'Todas'], ['activas', 'Activas'], ['propuestas', 'Propuestas']].map(([id, label]) => (
             <button key={id} onClick={() => setFiltroBanco(id)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition-all ${
                 filtroBanco === id
-                  ? 'bg-[#FFD700]/15 border-[#FFD700]/40 text-[#FFD700]'
-                  : 'bg-white/[0.02] border-white/10 text-gray-500 hover:text-white'
+                  ? 'bg-brand/15 border-brand/40 text-brand'
+                  : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'
               }`}>
               {label}
             </button>
@@ -530,39 +530,39 @@ export default function AdminMisiones() {
       <div className="mb-4">
         <input type="text" placeholder="Buscar misión por título..."
            value={busquedaMision} onChange={e => setBusquedaMision(e.target.value)}
-           className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50" />
+           className="w-full bg-black/40 border border-white/10 rounded-control px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/50" />
       </div>
       <div className="space-y-3">
         {misionesFiltradas.map((mision, i) => (
           <motion.div key={mision.id}
             initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 10) * 0.03 }}
-            className={`glass-card rounded-xl p-5 glow-border ${mision.activa === false ? 'opacity-70' : ''}`}
+            className={`glass-card rounded-control p-5 glow-border ${mision.activa === false ? 'opacity-70' : ''}`}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center space-x-4 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center shrink-0">
-                  <Play size={16} className="text-[#FFD700]" />
+                <div className="w-10 h-10 rounded-lg bg-brand/10 border border-brand/30 flex items-center justify-center shrink-0">
+                  <Play size={16} className="text-brand" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-bold text-white">{mision.titulo}</p>
                     {mision.activa === false && (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-gray-500/10 text-gray-400 border-gray-500/30">Propuesta</span>
+                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-gray-500/10 text-fg-secondary border-gray-500/30">Propuesta</span>
                     )}
                     {mision.is_ai_generated && (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-purple-500/10 text-purple-400 border-purple-500/30">IA</span>
+                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-mental/10 text-mental-soft border-mental/30">IA</span>
                     )}
                     {mision.complejidad && (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-cyan-500/10 text-cyan-400 border-cyan-500/30">{mision.complejidad}</span>
+                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-cyan-500/10 text-cyan-400 border-cyan-500/30">{mision.complejidad}</span>
                     )}
                     {mision.nivel_objetivo && (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-orange-500/10 text-orange-400 border-orange-500/30">{mision.nivel_objetivo}</span>
+                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-caution/10 text-caution-soft border-caution/30">{mision.nivel_objetivo}</span>
                     )}
                     {mision.categoria_bucket && (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border bg-emerald-500/10 text-emerald-400 border-emerald-500/30">{mision.categoria_bucket}</span>
+                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-success/10 text-success-soft border-success/30">{mision.categoria_bucket}</span>
                     )}
                   </div>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                  <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">
                     +{mision.xp_recompensa} XP · {PILAR_LABELS[mision.pilar] || mision.pilar} · {mision.categoria_objetivo || '—'} · {(mision.quiz || []).length} preguntas
                   </p>
                 </div>
@@ -571,7 +571,7 @@ export default function AdminMisiones() {
                 {mision.justificacion && (
                   <button onClick={() => setJustifAbierta(justifAbierta === mision.id ? null : mision.id)}
                     aria-label="Ver justificación"
-                    className={`p-2 rounded-lg border transition-colors ${justifAbierta === mision.id ? 'bg-[#FFD700]/10 border-[#FFD700]/40 text-[#FFD700]' : 'bg-white/[0.02] border-white/10 text-gray-500 hover:text-white'}`}
+                    className={`p-2 rounded-lg border transition-colors ${justifAbierta === mision.id ? 'bg-brand/10 border-brand/40 text-brand' : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'}`}
                     title="Ver justificación científica">
                     <ChevronDown size={14} className={justifAbierta === mision.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                   </button>
@@ -579,21 +579,21 @@ export default function AdminMisiones() {
                 <button onClick={() => handleToggleActiva(mision)}
                   className={`flex items-center space-x-1 px-3 py-2 rounded-lg border transition-colors ${
                     mision.activa === false
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                      : 'bg-white/[0.02] text-gray-400 border-white/10 hover:text-white'
+                      ? 'bg-success/10 text-success-soft border-success/30 hover:bg-success/20'
+                      : 'bg-white/[0.02] text-fg-secondary border-white/10 hover:text-white'
                   }`}
                   title={mision.activa === false ? 'Activar (entra al catálogo del selector)' : 'Desactivar (sale del catálogo)'}>
                   <Power size={14} />
-                  <span className="text-[10px] font-bold uppercase">{mision.activa === false ? 'Activar' : 'Activa'}</span>
+                  <span className="text-2xs font-bold uppercase">{mision.activa === false ? 'Activar' : 'Activa'}</span>
                 </button>
-                <button onClick={() => handleDelete(mision)} aria-label="Eliminar misión" className="p-2 -m-1 text-gray-500 hover:text-red-500 transition-colors">
+                <button onClick={() => handleDelete(mision)} aria-label="Eliminar misión" className="p-2 -m-1 text-fg-muted hover:text-danger transition-colors">
                   <Trash2 size={16} />
                 </button>
               </div>
             </div>
             {justifAbierta === mision.id && mision.justificacion && (
               <div className="mt-3 pt-3 border-t border-white/10">
-                <p className="text-[9px] text-[#FFD700] font-bold uppercase tracking-widest mb-1">Justificación científica</p>
+                <p className="text-3xs text-brand font-bold uppercase tracking-widest mb-1">Justificación científica</p>
                 <p className="text-xs text-gray-300 leading-relaxed">{mision.justificacion}</p>
               </div>
             )}
@@ -602,7 +602,7 @@ export default function AdminMisiones() {
       </div>
       {misiones.length < totalMisiones && (
         <button onClick={() => cargarMisiones(misiones.length)} disabled={cargandoMas}
-          className="w-full mt-4 py-3 min-h-11 rounded-xl border border-white/10 bg-white/[0.02] text-gray-400 hover:text-white text-xs font-black uppercase tracking-widest transition-colors disabled:opacity-50">
+          className="w-full mt-4 py-3 min-h-11 rounded-control border border-white/10 bg-white/[0.02] text-fg-secondary hover:text-white text-xs font-black uppercase tracking-widest transition-colors disabled:opacity-50">
           {cargandoMas ? 'Cargando...' : `Cargar más (${misiones.length} de ${totalMisiones})`}
         </button>
       )}

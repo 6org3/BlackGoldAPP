@@ -9,6 +9,7 @@ import { fetchEvaluacionesDeAtletas } from '../api/evaluacionesService';
 // Agregados grupales compartidos (fuente única en analytics-core).
 import { agregarDebilidadesGrupo, serieGrupalPorSubPilar } from '../../../packages/analytics-core/tendencias.js';
 import { scoreATier } from '../../../packages/analytics-core/recomendaciones.js';
+import { COLORS, CHART, TENDENCIA_TIERS } from '../lib/designTokens';
 
 const SUB_PILAR_LABELS = {
   fuerza: 'Fuerza', explosividad: 'Explosividad', movilidad: 'Movilidad',
@@ -16,13 +17,8 @@ const SUB_PILAR_LABELS = {
 };
 
 // Color de barra según el tier del promedio del grupo.
-const TIER_BAR_COLORS = {
-  poor: '#f87171',
-  below_avg: '#fb923c',
-  average: '#22d3ee',
-  above_avg: '#FFD700',
-  excellent: '#34d399',
-};
+// Fuente única del design system (antes mapa hex local duplicado).
+const TIER_BAR_COLORS = TENDENCIA_TIERS;
 
 /**
  * Panel colapsable "Tendencias del grupo" para el dashboard del coach:
@@ -72,7 +68,7 @@ export default function GrupoTendencias({ atletas }) {
     return agregarDebilidadesGrupo(evaluacionesPorAtleta).map(d => ({
       ...d,
       label: SUB_PILAR_LABELS[d.sub_pilar] || d.sub_pilar,
-      color: TIER_BAR_COLORS[scoreATier(d.scorePromedio)] || '#9ca3af',
+      color: TIER_BAR_COLORS[scoreATier(d.scorePromedio)] || TENDENCIA_TIERS.fallback,
     }));
   }, [evaluacionesPorAtleta]);
 
@@ -84,19 +80,19 @@ export default function GrupoTendencias({ atletas }) {
   if (!atletas || atletas.length === 0) return null;
 
   return (
-    <div className="mt-8 bg-[#0d0d0f] border border-white/10 rounded-2xl overflow-hidden">
+    <div className="mt-8 bg-surface-sunken border border-white/10 rounded-panel overflow-hidden">
       <button
         onClick={handleToggle}
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
       >
         <div className="flex items-center space-x-3">
-          <Users size={16} className="text-[#FFD700]" />
+          <Users size={16} className="text-brand" />
           <span className="text-xs font-black uppercase tracking-widest text-white">Tendencias del grupo</span>
-          <span className="text-[9px] text-gray-600 font-bold uppercase tracking-widest">
+          <span className="text-3xs text-fg-faint font-bold uppercase tracking-widest">
             {atletas.length} atleta{atletas.length !== 1 ? 's' : ''} (según filtros)
           </span>
         </div>
-        <ChevronDown size={16} className={`text-gray-500 transition-transform ${abierto ? 'rotate-180' : ''}`} />
+        <ChevronDown size={16} className={`text-fg-muted transition-transform ${abierto ? 'rotate-180' : ''}`} />
       </button>
 
       <AnimatePresence>
@@ -109,28 +105,28 @@ export default function GrupoTendencias({ atletas }) {
           >
             <div className="px-5 pb-5 space-y-5">
               {loading ? (
-                <div className="flex items-center justify-center h-32 text-[#FFD700]">
+                <div className="flex items-center justify-center h-32 text-brand">
                   <Loader2 className="w-6 h-6 animate-spin" />
                 </div>
               ) : !evaluacionesPorAtleta ? (
                 /* Los filtros cambiaron con el panel abierto: la carga previa ya
                    no corresponde al grupo visible. */
                 <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                  <p className="text-gray-600 text-xs font-bold">El grupo visible cambió.</p>
+                  <p className="text-fg-faint text-xs font-bold">El grupo visible cambió.</p>
                   <button onClick={cargarGrupo}
-                    className="px-5 py-3 min-h-[44px] bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 hover:bg-[#FFD700]/20 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors">
+                    className="px-5 py-3 min-h-[44px] bg-brand/10 text-brand border border-brand/30 hover:bg-brand/20 rounded-lg text-2xs font-bold uppercase tracking-widest transition-colors">
                     Actualizar tendencias
                   </button>
                 </div>
               ) : debilidades.length === 0 ? (
-                <p className="text-gray-600 text-xs font-bold text-center py-8">
+                <p className="text-fg-faint text-xs font-bold text-center py-8">
                   Sin evaluaciones registradas en este grupo — evalúa atletas para ver su tendencia agregada.
                 </p>
               ) : (
                 <>
                   {/* (a) Debilidad agregada por sub-pilar (peor → mejor) */}
                   <div>
-                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-3">
+                    <p className="text-3xs text-fg-muted font-bold uppercase tracking-widest mb-3">
                       Debilidad del grupo (clic en una barra para ver su evolución)
                     </p>
                     <div className="h-44">
@@ -139,12 +135,12 @@ export default function GrupoTendencias({ atletas }) {
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                           {/* interval={0} + inclinación: las 7 etiquetas siempre
                               visibles aunque el viewport sea angosto */}
-                          <XAxis dataKey="label" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: '#6b7280' }}
+                          <XAxis dataKey="label" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }}
                             interval={0} angle={-35} textAnchor="end" height={55} />
-                          <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: '#6b7280' }} ticks={[0, 25, 50, 75, 100]} />
+                          <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }} ticks={[0, 25, 50, 75, 100]} />
                           <Tooltip
                             cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                            contentStyle={{ backgroundColor: '#18181B', border: '1px solid rgba(255,215,0,0.2)', borderRadius: '12px', fontSize: '11px' }}
+                            contentStyle={{ backgroundColor: CHART.tooltip.background, border: '1px solid rgba(255,215,0,0.2)', borderRadius: '12px', fontSize: '11px' }}
                             formatter={(val, _n, { payload }) => [
                               `${val}/100 — ${payload.atletasDebiles} de ${payload.totalAtletasConDatos} atletas débiles`,
                               'Promedio del grupo',
@@ -152,7 +148,7 @@ export default function GrupoTendencias({ atletas }) {
                           />
                           <Bar dataKey="scorePromedio" radius={[6, 6, 0, 0]} cursor="pointer"
                             onClick={(data) => data?.sub_pilar && setSubPilarActivo(data.sub_pilar)}>
-                            <LabelList dataKey="scorePromedio" position="top" fill="#9ca3af" fontSize={9} />
+                            <LabelList dataKey="scorePromedio" position="top" fill={CHART.label} fontSize={9} />
                             {debilidades.map(d => (
                               <Cell key={d.sub_pilar} fill={d.color}
                                 opacity={subPilarActivo && subPilarActivo !== d.sub_pilar ? 0.35 : 0.9} />
@@ -166,15 +162,15 @@ export default function GrupoTendencias({ atletas }) {
                   {/* (b) Evolución mensual del sub-pilar seleccionado */}
                   {subPilarActivo && (
                     <div>
-                      <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mb-3">
+                      <p className="text-3xs text-fg-muted font-bold uppercase tracking-widest mb-3">
                         Evolución mensual — {SUB_PILAR_LABELS[subPilarActivo] || subPilarActivo}
                       </p>
                       {serieMensual.length === 0 ? (
-                        <p className="text-gray-600 text-xs font-bold text-center py-4">Sin mediciones de este sub-pilar.</p>
+                        <p className="text-fg-faint text-xs font-bold text-center py-4">Sin mediciones de este sub-pilar.</p>
                       ) : (
                         <>
                           {serieMensual.length === 1 && (
-                            <p className="text-[9px] text-gray-600 font-bold text-center mb-2">
+                            <p className="text-3xs text-fg-faint font-bold text-center mb-2">
                               Un solo mes con datos — con ≥2 meses se verá la tendencia.
                             </p>
                           )}
@@ -182,15 +178,15 @@ export default function GrupoTendencias({ atletas }) {
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart data={serieMensual} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                                <XAxis dataKey="mes" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: '#6b7280' }} />
-                                <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: '#6b7280' }} ticks={[0, 25, 50, 75, 100]} />
+                                <XAxis dataKey="mes" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }} />
+                                <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }} ticks={[0, 25, 50, 75, 100]} />
                                 <Tooltip
-                                  contentStyle={{ backgroundColor: '#18181B', border: '1px solid rgba(255,215,0,0.2)', borderRadius: '12px', fontSize: '11px' }}
+                                  contentStyle={{ backgroundColor: CHART.tooltip.background, border: '1px solid rgba(255,215,0,0.2)', borderRadius: '12px', fontSize: '11px' }}
                                   formatter={(val, _n, { payload }) => [`${val}/100 (${payload.n} medición${payload.n !== 1 ? 'es' : ''})`, 'Promedio del grupo']}
                                 />
-                                <Line type="monotone" dataKey="score" stroke="#FFD700" strokeWidth={2.5}
-                                  dot={{ fill: '#FFD700', r: 4, strokeWidth: 2, stroke: '#09090b' }}
-                                  activeDot={{ r: 6, fill: '#FFD700', stroke: '#09090b', strokeWidth: 2 }} />
+                                <Line type="monotone" dataKey="score" stroke={COLORS.gold[500]} strokeWidth={2.5}
+                                  dot={{ fill: COLORS.gold[500], r: 4, strokeWidth: 2, stroke: COLORS.surface.base }}
+                                  activeDot={{ r: 6, fill: COLORS.gold[500], stroke: COLORS.surface.base, strokeWidth: 2 }} />
                               </LineChart>
                             </ResponsiveContainer>
                           </div>

@@ -75,6 +75,17 @@ export function getBaremoUI(value) {
 // Paleta oficial para canvas-confetti en celebraciones
 export const CONFETTI_GOLD = ['#FFD700', '#D4AF37', '#FFF8DC', '#FFEB66'];
 
+// Tiers de tendencia grupal (antes duplicado en HistorialPruebas.jsx
+// y GrupoTendencias.jsx como TIER_COLORS / TIER_BAR_COLORS).
+export const TENDENCIA_TIERS = {
+  poor: '#F87171',
+  below_avg: '#FB923C',
+  average: '#22D3EE',
+  above_avg: '#FFD700',
+  excellent: '#34D399',
+  fallback: '#9CA3AF',
+};
+
 // ── Gráficos (Recharts) ──────────────────────────────────────
 export const CHART = {
   grid:  'rgba(255,255,255,0.05)',
@@ -103,6 +114,7 @@ export const CHART = {
     agilidad: '#A855F7',
     tactica: '#EC4899',
     resiliencia: '#FFD700',
+    antropometrico: '#06B6D4',
   },
   // Paleta categórica (pie/desgloses). Las categorías FEB tienen color fijo.
   categorical: {

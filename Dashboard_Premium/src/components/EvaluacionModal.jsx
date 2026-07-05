@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ClipboardCheck, ChevronDown, FlaskConical, Save, Loader2, CheckCircle2, ChevronLeft } from 'lucide-react';
-import { TIER_CONFIG, normalizarValor } from '../lib/baremosEngine';
+import { X, ClipboardCheck, Save, Loader2, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { normalizarValor } from '../lib/baremosEngine';
 import { supabase } from '../api/supabaseClient';
 import { recalcularOverall } from '../api/evaluacionesService';
 import { useAuth } from '../AuthContext';
@@ -21,15 +21,15 @@ const TREN_LABELS = {
 };
 
 const OBJETIVOS = [
-  { id: 'todas', label: 'Todas', icon: '📋', filter: () => true, border: 'border-gray-500/30', bgActive: 'bg-gray-500/20', text: 'text-gray-400' },
-  { id: 'fuerza', label: 'Fuerza', icon: '💪', filter: (b) => b.sub_pilar === 'fuerza', border: 'border-red-500/30', bgActive: 'bg-red-500/20', text: 'text-red-400' },
-  { id: 'explosividad', label: 'Explosividad', icon: '🚀', filter: (b) => b.sub_pilar === 'explosividad', border: 'border-orange-500/30', bgActive: 'bg-orange-500/20', text: 'text-orange-400' },
-  { id: 'movilidad', label: 'Movilidad', icon: '🤸', filter: (b) => b.sub_pilar === 'movilidad', border: 'border-emerald-500/30', bgActive: 'bg-emerald-500/20', text: 'text-emerald-400' },
+  { id: 'todas', label: 'Todas', icon: '📋', filter: () => true, border: 'border-gray-500/30', bgActive: 'bg-gray-500/20', text: 'text-fg-secondary' },
+  { id: 'fuerza', label: 'Fuerza', icon: '💪', filter: (b) => b.sub_pilar === 'fuerza', border: 'border-danger/30', bgActive: 'bg-danger/20', text: 'text-danger-soft' },
+  { id: 'explosividad', label: 'Explosividad', icon: '🚀', filter: (b) => b.sub_pilar === 'explosividad', border: 'border-caution/30', bgActive: 'bg-caution/20', text: 'text-caution-soft' },
+  { id: 'movilidad', label: 'Movilidad', icon: '🤸', filter: (b) => b.sub_pilar === 'movilidad', border: 'border-success/30', bgActive: 'bg-success/20', text: 'text-success-soft' },
   { id: 'tiro', label: 'Técnica de Tiro', icon: '🎯', filter: (b) => b.sub_pilar === 'tiro', border: 'border-cyan-500/30', bgActive: 'bg-cyan-500/20', text: 'text-cyan-400' },
   { id: 'agilidad', label: 'Agilidad', icon: '⚡', filter: (b) => b.sub_pilar === 'agilidad', border: 'border-yellow-500/30', bgActive: 'bg-yellow-500/20', text: 'text-yellow-400' },
-  { id: 'tactica', label: 'Efic. Táctica', icon: '🧠', filter: (b) => b.sub_pilar === 'tactica', border: 'border-purple-500/30', bgActive: 'bg-purple-500/20', text: 'text-purple-400' },
+  { id: 'tactica', label: 'Efic. Táctica', icon: '🧠', filter: (b) => b.sub_pilar === 'tactica', border: 'border-mental/30', bgActive: 'bg-mental/20', text: 'text-mental-soft' },
   { id: 'resiliencia', label: 'Resiliencia', icon: '🛡️', filter: (b) => b.sub_pilar === 'resiliencia', border: 'border-pink-500/30', bgActive: 'bg-pink-500/20', text: 'text-pink-400' },
-  { id: 'recuperacion', label: 'Carga/Sueño', icon: '🔋', filter: (b) => b.sub_pilar === 'recuperacion', border: 'border-blue-500/30', bgActive: 'bg-blue-500/20', text: 'text-blue-400' },
+  { id: 'recuperacion', label: 'Carga/Sueño', icon: '🔋', filter: (b) => b.sub_pilar === 'recuperacion', border: 'border-info/30', bgActive: 'bg-info/20', text: 'text-info-soft' },
 ];
 
 // Salvaguarda defensiva: si catalogo_ejercicios llegara a tener filas
@@ -54,9 +54,9 @@ const TierBadge = ({ tier, tierConfig, puntuacion }) => (
   <motion.div
     initial={{ scale: 0.8, opacity: 0 }}
     animate={{ scale: 1, opacity: 1 }}
-    className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.03] border border-white/10"
+    className="flex flex-col items-center gap-2 p-4 rounded-panel bg-white/[0.03] border border-white/10"
   >
-    <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">
+    <span className="text-3xs font-bold uppercase tracking-widest text-fg-muted">
       Resultado
     </span>
     <div className="flex items-center gap-3">
@@ -65,7 +65,7 @@ const TierBadge = ({ tier, tierConfig, puntuacion }) => (
       </span>
       <span className="text-2xl font-black text-white">
         {puntuacion}
-        <span className="text-sm text-gray-500 font-medium">/100</span>
+        <span className="text-sm text-fg-muted font-medium">/100</span>
       </span>
     </div>
     <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-1">
@@ -189,7 +189,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     setError('');
 
     try {
-      const { puntuacion, tier, tierConfig } = preview;
+      const { puntuacion, tier } = preview;
       const registros = [];
 
       if (selectedBaremo.inputs_requeridos) {
@@ -268,17 +268,17 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
           animate={{ scale: 1, y: 0, opacity: 1 }}
           exit={{ scale: 0.9, y: 30, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="w-full max-w-xl bg-[#09090b] rounded-none md:rounded-3xl border border-[#FFD700]/30 shadow-[0_0_60px_rgba(255,215,0,0.12)] overflow-hidden flex flex-col h-dvh md:h-auto md:max-h-[90vh] pt-[env(safe-area-inset-top)] md:pt-0"
+          className="w-full max-w-xl bg-surface-base rounded-none md:rounded-card border border-brand/30 shadow-[0_0_60px_rgba(255,215,0,0.12)] overflow-hidden flex flex-col h-dvh md:h-auto md:max-h-[90vh] pt-[env(safe-area-inset-top)] md:pt-0"
         >
           {/* ─── Header ──────────────────────────────────────── */}
-          <div className="p-4 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-[#FFD700]/10 to-transparent">
+          <div className="p-4 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-brand/10 to-transparent">
             <div className="flex items-center space-x-2">
-              <ClipboardCheck className="text-[#FFD700]" size={20} />
+              <ClipboardCheck className="text-brand" size={20} />
               <div>
                 <h2 className="text-lg font-black text-white uppercase tracking-tight">
                   Evaluación Científica
                 </h2>
-                <p className="text-[10px] text-[#FFD700]/70 font-bold uppercase tracking-widest">
+                <p className="text-2xs text-brand/70 font-bold uppercase tracking-widest">
                   {atleta?.nombre} · {atleta?.categoria}
                 </p>
               </div>
@@ -286,7 +286,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
             <button
               onClick={onClose}
               aria-label="Cerrar evaluación"
-              className="text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-full transition-colors"
+              className="text-fg-secondary hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-full transition-colors"
             >
               <X size={20} />
             </button>
@@ -303,10 +303,10 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                   animate={{ scale: 1, opacity: 1 }}
                   className="flex flex-col items-center justify-center py-12 space-y-4 h-full"
                 >
-                  <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 bg-success/20 text-success-soft rounded-full flex items-center justify-center">
                     <CheckCircle2 size={32} />
                   </div>
-                  <p className="text-emerald-400 font-bold uppercase tracking-widest text-sm">
+                  <p className="text-success-soft font-bold uppercase tracking-widest text-sm">
                     Evaluación guardada
                   </p>
                   {preview && !preview.noAplica && (
@@ -325,12 +325,12 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       placeholder="Buscar ejercicio..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#FFD700]/50"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-control px-4 py-2 text-base md:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand/50"
                     />
                     {user?.rol !== 'atleta' && (
                       <button
                         onClick={() => setShowNuevaPruebaModal(true)}
-                        className="bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700]/30 hover:bg-[#FFD700]/20 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex-shrink-0"
+                        className="bg-brand/10 text-brand border border-brand/30 hover:bg-brand/20 px-4 py-2 rounded-control text-xs font-bold uppercase tracking-widest transition-colors flex-shrink-0"
                       >
                         + Nueva Prueba
                       </button>
@@ -353,7 +353,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                         key={obj.id}
                         onClick={() => setActiveTab(obj.id)}
                         className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap
-                          ${activeTab === obj.id ? `${obj.bgActive} ${obj.text} border-b-2 ${obj.border}` : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'}`}
+                          ${activeTab === obj.id ? `${obj.bgActive} ${obj.text} border-b-2 ${obj.border}` : 'text-fg-muted hover:bg-white/5 hover:text-gray-300'}`}
                       >
                         <span>{obj.icon}</span> {obj.label}
                       </button>
@@ -363,9 +363,9 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                   {/* List of Tests */}
                   <div className="flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-2 bg-black/20">
                     {loadingCatalogo ? (
-                      <p className="text-center text-gray-500 text-xs py-8 uppercase font-bold tracking-widest">Cargando Catálogo...</p>
+                      <p className="text-center text-fg-muted text-xs py-8 uppercase font-bold tracking-widest">Cargando Catálogo...</p>
                     ) : pruebasFiltradas.length === 0 ? (
-                      <p className="text-center text-gray-500 text-xs py-8 uppercase font-bold tracking-widest">No hay pruebas para este objetivo.</p>
+                      <p className="text-center text-fg-muted text-xs py-8 uppercase font-bold tracking-widest">No hay pruebas para este objetivo.</p>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {pruebasFiltradas.map(baremo => (
@@ -376,10 +376,10 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                               setValoresCrudos({});
                               setError('');
                             }}
-                            className="bg-white/5 border border-white/10 hover:border-[#FFD700]/50 hover:bg-white/10 rounded-xl p-4 text-left transition-all flex flex-col group"
+                            className="bg-white/5 border border-white/10 hover:border-brand/50 hover:bg-white/10 rounded-control p-4 text-left transition-all flex flex-col group"
                           >
-                            <span className="text-white font-bold text-sm mb-1 group-hover:text-[#FFD700] transition-colors">{baremo.nombre}</span>
-                            <div className="flex justify-between items-center text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                            <span className="text-white font-bold text-sm mb-1 group-hover:text-brand transition-colors">{baremo.nombre}</span>
+                            <div className="flex justify-between items-center text-2xs text-fg-muted font-bold uppercase tracking-widest">
                               <span>{baremo.unidad}</span>
                               <span>{baremo.tren ? TREN_LABELS[baremo.tren] : baremo.sub_pilar}</span>
                             </div>
@@ -392,7 +392,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
               ) : (
                 /* ─── Formulario de la Prueba ──────────────────────── */
                 <motion.div key="form" className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] overflow-y-auto flex-1 space-y-5">
-                  <button onClick={() => setPruebaTipo('')} className="text-xs text-gray-400 hover:text-white flex items-center font-bold uppercase tracking-widest mb-2 transition-colors">
+                  <button onClick={() => setPruebaTipo('')} className="text-xs text-fg-secondary hover:text-white flex items-center font-bold uppercase tracking-widest mb-2 transition-colors">
                     <ChevronLeft size={14} className="mr-1"/> Volver a las pruebas
                   </button>
                   
@@ -400,7 +400,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                     <span className="text-2xl">{PILAR_LABELS[selectedBaremo.pilar]?.icon}</span>
                     <div>
                       <h3 className="text-lg font-black text-white">{selectedBaremo.nombre}</h3>
-                      <p className="text-[10px] text-[#FFD700] font-bold uppercase tracking-widest">
+                      <p className="text-2xs text-brand font-bold uppercase tracking-widest">
                         {selectedBaremo.sub_pilar} {selectedBaremo.tren ? `· ${TREN_LABELS[selectedBaremo.tren]}` : ''}
                       </p>
                     </div>
@@ -408,24 +408,24 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
 
                   {/* ─── Category warning ────────────────────── */}
                   {selectedBaremo && !categoryAvailable && (
-                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 text-orange-400 text-xs">
+                    <div className="bg-caution/10 border border-caution/30 rounded-control p-3 text-caution-soft text-xs">
                       ⚠️ Esta prueba no tiene baremo definido para la categoría{' '}
                       <strong>{atleta?.categoria || 'actual'}</strong>. No podrás guardar un resultado hasta que exista un umbral para esta categoría.
                     </div>
                   )}
 
                   {(selectedBaremo?.descripcion || selectedBaremo?.descripcion_ejecucion) && (
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-sm space-y-2">
+                    <div className="bg-white/5 border border-white/10 rounded-control p-4 text-sm space-y-2">
                       {selectedBaremo?.descripcion && (
                         <div>
-                          <span className="text-[#FFD700] text-[10px] font-bold uppercase tracking-widest block mb-1">Objetivo de la Prueba</span>
+                          <span className="text-brand text-2xs font-bold uppercase tracking-widest block mb-1">Objetivo de la Prueba</span>
                           <p className="text-gray-300 font-medium">{selectedBaremo.descripcion}</p>
                         </div>
                       )}
                       {selectedBaremo?.descripcion_ejecucion && (
                         <div className={selectedBaremo?.descripcion ? "pt-2 border-t border-white/10" : ""}>
-                          <span className="text-[#FFD700] text-[10px] font-bold uppercase tracking-widest block mb-1">Ejecución</span>
-                          <p className="text-gray-400">{selectedBaremo.descripcion_ejecucion}</p>
+                          <span className="text-brand text-2xs font-bold uppercase tracking-widest block mb-1">Ejecución</span>
+                          <p className="text-fg-secondary">{selectedBaremo.descripcion_ejecucion}</p>
                         </div>
                       )}
                     </div>
@@ -434,13 +434,13 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                   {/* ─── Valor Inputs ─────────────────────────── */}
                   {selectedBaremo && (
                     <div className="space-y-3">
-                      <label className="text-[9px] font-bold uppercase tracking-widest text-gray-500 block">
+                      <label className="text-3xs font-bold uppercase tracking-widest text-fg-muted block">
                         Valores Medidos
                       </label>
                       <div className={`grid gap-3 ${selectedBaremo.inputs_requeridos ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
                         {(selectedBaremo.inputs_requeridos || [{ id: 'unico', label: 'Resultado' }]).map(input => (
                           <div key={input.id} className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400 max-w-[5.5rem] truncate">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-bold text-fg-secondary max-w-[5.5rem] truncate">
                               {input.label}:
                             </span>
                             <input
@@ -452,17 +452,17 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                                 setValoresCrudos(prev => ({ ...prev, [input.id]: e.target.value }));
                                 setError('');
                               }}
-                              className="w-full bg-[#121214] border border-white/10 rounded-xl pl-24 pr-16 py-4 text-base md:text-sm text-white font-bold focus:outline-none focus:border-[#FFD700]/50 transition-colors shadow-inner"
+                              className="w-full bg-surface-card border border-white/10 rounded-control pl-24 pr-16 py-4 text-base md:text-sm text-white font-bold focus:outline-none focus:border-brand/50 transition-colors shadow-inner"
                               placeholder="0.00"
                             />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-widest text-[#FFD700]/60">
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-2xs font-bold uppercase tracking-widest text-brand/60">
                               {selectedBaremo.unidad}
                             </span>
                           </div>
                         ))}
                       </div>
                       {selectedBaremo.invertido && (
-                        <p className="text-[9px] text-cyan-400/60 mt-1 ml-1 font-bold uppercase tracking-widest">
+                        <p className="text-3xs text-cyan-400/60 mt-1 ml-1 font-bold uppercase tracking-widest">
                           ↓ Menor valor = Mejor resultado
                         </p>
                       )}
@@ -475,7 +475,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 text-orange-400 text-xs mt-2"
+                        className="bg-caution/10 border border-caution/30 rounded-control p-3 text-caution-soft text-xs mt-2"
                       >
                         ⚠️ {preview.mensajeNoAplica} No se puede guardar este resultado.
                       </motion.div>
@@ -487,7 +487,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                         className="space-y-3 pt-2"
                       >
                         {preview.isAsymmetric && (
-                          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-xs flex items-start gap-2">
+                          <div className="bg-danger/10 border border-danger/30 rounded-control p-3 text-danger-soft text-xs flex items-start gap-2">
                             <span>⚠️</span>
                             <span>{preview.alertMsg}</span>
                           </div>
@@ -503,7 +503,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
 
                   {/* ─── Notas ────────────────────────────────── */}
                   <div className="pt-2">
-                    <label className="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-2 block">
+                    <label className="text-3xs font-bold uppercase tracking-widest text-fg-muted mb-2 block">
                       Notas del Coach (Opcional)
                     </label>
                     <textarea
@@ -511,13 +511,13 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                       onChange={(e) => setNotas(e.target.value)}
                       placeholder="Observaciones sobre la ejecución, técnica, condiciones..."
                       rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#FFD700]/50 transition-colors resize-none"
+                      className="w-full bg-white/5 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/50 transition-colors resize-none"
                     />
                   </div>
 
                   {/* ─── Error ────────────────────────────────── */}
                   {error && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-xs">
+                    <div className="bg-danger/10 border border-danger/30 rounded-control p-3 text-danger-soft text-xs">
                       {error}
                     </div>
                   )}
@@ -527,7 +527,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
                     <button
                       onClick={handleSubmit}
                       disabled={!isFormValid || saving}
-                      className="w-full bg-[#FFD700] hover:bg-[#D4AF37] text-black font-black uppercase tracking-widest py-4 rounded-xl shadow-[0_0_25px_rgba(255,215,0,0.2)] disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                      className="w-full bg-brand hover:bg-brand-hover text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_25px_rgba(255,215,0,0.2)] disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                     >
                       {saving ? (
                         <>
