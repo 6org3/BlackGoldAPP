@@ -9,7 +9,7 @@ import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB
 import { BAREMOS, categoriaABucketBaremo } from "../../packages/analytics-core/baremos.js";
 // Motor de recomendación COMPARTIDO (un solo cerebro): el mismo que usa la web
 // (vía el shim src/lib/didacticEngine.js) y la Edge Function.
-import { evaluarDeficits } from "../../packages/analytics-core/didactica.js";
+import { evaluarDeficits, emparejarMisionesPorCondicion } from "../../packages/analytics-core/didactica.js";
 import { calcularReadinessScore, detectarAlertasRecuperacion } from "../../packages/analytics-core/readiness.js";
 
 // Resuelto contra la ubicación del script, no contra process.cwd(): un cliente MCP
@@ -225,20 +225,16 @@ server.tool(
         _evaluaciones: [],
       };
       const deficits = evaluarDeficits(atletaObj).filter(d => RECUPERACION_CONDICIONES.has(d.condicion));
-      const condicionesActivas = new Set(deficits.map(d => d.condicion));
 
       // Misiones de recuperación del catálogo activo cuyo trigger coincide con una
-      // condición activa (mismo emparejamiento que getAutoMissions).
+      // condición activa. Emparejamiento vía la función COMPARTIDA (misma que getAutoMissions).
       const { data: misiones } = await supabase
         .from("misiones")
         .select("id, titulo, condicion_trigger, complejidad, xp_recompensa, activa, pilar")
         .eq("activa", true)
         .eq("pilar", "recuperacion");
 
-      const recomendadas = (misiones || []).filter(m => {
-        if (!m.condicion_trigger) return condicionesActivas.size > 0;
-        return m.condicion_trigger.split(",").map(t => t.trim()).some(t => condicionesActivas.has(t));
-      });
+      const recomendadas = emparejarMisionesPorCondicion(deficits, misiones || []);
 
       let out = `=== READINESS / RECUPERACIÓN ===\n`;
       out += `Atleta: ${athlete_id}\n`;

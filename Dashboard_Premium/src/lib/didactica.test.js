@@ -6,6 +6,7 @@ import {
   getFaseBiologica,
   evaluarDeficits,
   getAutoMissions,
+  emparejarMisionesPorCondicion,
 } from '../../../packages/analytics-core/didactica.js';
 
 // Se importa desde el shim para garantizar que la ruta de la web sigue viva.
@@ -47,6 +48,36 @@ describe('evaluarDeficits — integración con readiness', () => {
   it('ordena por prioridad (crítica primero)', () => {
     const deficits = evaluarDeficits({ categoria: 'Menores (Sub-14)', readiness_hoy: { color_orina: 6, sueno_calidad: 2 } });
     expect(deficits[0].prioridad).toBe('critica');
+  });
+});
+
+describe('emparejarMisionesPorCondicion — matcher compartido', () => {
+  const misiones = [
+    { id: 'm1', condicion_trigger: 'deshidratado_extremo' },
+    { id: 'm2', condicion_trigger: 'sueno_deficiente, fatiga_alta' },
+    { id: 'm3', condicion_trigger: 'resiliencia_baja' },
+    { id: 'm4' }, // sin trigger → nunca coincide
+  ];
+
+  it('selecciona solo misiones cuyo trigger coincide con un déficit', () => {
+    const deficits = [{ condicion: 'sueno_deficiente', prioridad: 'alta' }];
+    const ids = emparejarMisionesPorCondicion(deficits, misiones).map(m => m.id);
+    expect(ids).toEqual(['m2']);
+  });
+
+  it('ordena por prioridad del déficit (crítica antes que media)', () => {
+    const deficits = [
+      { condicion: 'resiliencia_baja', prioridad: 'media' },
+      { condicion: 'deshidratado_extremo', prioridad: 'critica' },
+    ];
+    const ids = emparejarMisionesPorCondicion(deficits, misiones).map(m => m.id);
+    expect(ids).toEqual(['m1', 'm3']); // m1 (critica) antes que m3 (media)
+  });
+
+  it('sin déficits o sin misiones → []', () => {
+    expect(emparejarMisionesPorCondicion([], misiones)).toEqual([]);
+    expect(emparejarMisionesPorCondicion([{ condicion: 'x' }], [])).toEqual([]);
+    expect(emparejarMisionesPorCondicion(null, null)).toEqual([]);
   });
 });
 

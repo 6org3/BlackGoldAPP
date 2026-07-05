@@ -223,37 +223,41 @@ export function evaluarDeficits(atleta) {
 }
 
 /**
- * Filtra las misiones disponibles y retorna las que deben auto-asignarse según los
- * déficits del atleta, emparejando `condicion_trigger` con la `condicion` del déficit.
+ * Empareja misiones con una lista de déficits por su `condicion_trigger`, ordenadas por
+ * la prioridad (crítica > alta > media) del déficit que las activa.
+ *
+ * FUENTE ÚNICA del emparejamiento por condicion_trigger: la usan getAutoMissions y
+ * blackgold-mcp (analyze_athlete_readiness). Antes esta lógica estaba duplicada en ambos.
+ *
+ * @param {Array<{condicion, prioridad}>} deficits - Salida de evaluarDeficits (o un subconjunto,
+ *   p.ej. solo las condiciones de recuperación).
+ * @param {Array} misionesDisponibles - Misiones con campo `condicion_trigger`.
+ * @returns {Array} Misiones cuyo trigger coincide con un déficit activo, peor prioridad primero.
+ */
+export function emparejarMisionesPorCondicion(deficits, misionesDisponibles = []) {
+  const lista = deficits || [];
+  const condicionesActivas = new Set(lista.map(d => d.condicion));
+  const prioridadOrden = { critica: 0, alta: 1, media: 2 };
+  const deficitMap = Object.fromEntries(lista.map(d => [d.condicion, d]));
+
+  const triggersDe = m => (m.condicion_trigger || '').split(',').map(t => t.trim()).filter(Boolean);
+  const prioridadDe = m => Math.min(
+    99,
+    ...triggersDe(m).filter(t => deficitMap[t]).map(t => prioridadOrden[deficitMap[t].prioridad] ?? 99),
+  );
+
+  return (misionesDisponibles || [])
+    .filter(m => m && m.condicion_trigger && triggersDe(m).some(t => condicionesActivas.has(t)))
+    .sort((a, b) => prioridadDe(a) - prioridadDe(b));
+}
+
+/**
+ * Misiones a auto-asignar según los déficits del atleta (match por condicion_trigger).
  *
  * @param {Object} atleta - Objeto del atleta.
  * @param {Array}  misionesDisponibles - Misiones del catálogo con campo `condicion_trigger`.
  * @returns {Array} Misiones filtradas que deben asignarse, ordenadas por prioridad.
  */
 export function getAutoMissions(atleta, misionesDisponibles = []) {
-  const deficits = evaluarDeficits(atleta);
-  const condicionesActivas = new Set(deficits.map(d => d.condicion));
-
-  const misionesAutoAsignadas = misionesDisponibles.filter(mision => {
-    if (!mision.condicion_trigger) return false;
-    const triggers = mision.condicion_trigger.split(',').map(t => t.trim());
-    return triggers.some(trigger => condicionesActivas.has(trigger));
-  });
-
-  const prioridadOrden = { critica: 0, alta: 1, media: 2 };
-  const deficitMap = Object.fromEntries(deficits.map(d => [d.condicion, d]));
-
-  misionesAutoAsignadas.sort((a, b) => {
-    const triggersA = a.condicion_trigger.split(',').map(t => t.trim());
-    const triggersB = b.condicion_trigger.split(',').map(t => t.trim());
-    const prioA = Math.min(
-      ...triggersA.filter(t => deficitMap[t]).map(t => prioridadOrden[deficitMap[t].prioridad] ?? 99),
-    );
-    const prioB = Math.min(
-      ...triggersB.filter(t => deficitMap[t]).map(t => prioridadOrden[deficitMap[t].prioridad] ?? 99),
-    );
-    return prioA - prioB;
-  });
-
-  return misionesAutoAsignadas;
+  return emparejarMisionesPorCondicion(evaluarDeficits(atleta), misionesDisponibles);
 }
