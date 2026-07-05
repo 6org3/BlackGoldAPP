@@ -494,13 +494,34 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
     `blackgold-mcp`) — una tabla de plantillas ya construida y nunca conectada. Decisión
     de plantillas (§3.2, §8) **revisada**: reutilizarla en vez de crear
     `sesiones_plantilla` desde cero.
-- **P1.5 — Contenido de resistencia (independiente, puede correr en paralelo a P2/P3):**
-  - Definir con el cuerpo técnico qué prueba(s) miden `resistencia` (Course
-    Navette/Léger, Cooper, Yo-Yo IR1, RSA…) y sus umbrales por categoría FEB (§3.4.3).
-  - Diseñar los baremos (mismo formato que `baremos.js`/`catalogo_ejercicios` ya usan).
-  - Redactar misiones `pilar='fisico'` orientadas a resistencia.
-  - Solo entonces: añadir `resistencia` a `SUB_PILARES` (`taxonomia.js`) — el radar pasa
-    de 7 a 8 ejes automáticamente.
+- **P1.5 — Autoría de pruebas/baremos vía MCP** (REDEFINIDA 2026-07-05, dirección del
+  owner — antes era solo "contenido de resistencia"):
+  - **Alcance nuevo:** el `blackgold-mcp` gana herramienta(s) de **autoría de pruebas de
+    evaluación con sus baremos**, no solo para `resistencia` sino para **los 3 pilares /
+    8 sub-pilares** (los 7 del radar + `resistencia`), con umbrales categorizados por
+    **edad** (categoría FEB → bucket `Sub12/Sub15/Sub18/Senior`, mecanismo actual) **y
+    por nivel de desarrollo** (`atletas.nivel_desarrollo`: Micro/Desarrollo/Elite —
+    dimensión nueva).
+  - Nueva tool MCP (patrón de `insertar_misiones_recuperacion`: schema zod + inserción
+    validada, nace inactiva/curable): p.ej. `insertar_prueba_evaluacion` — valida
+    `pilar`/`sub_pilar` contra `taxonomia.js`, exige `thresholds` bien formados y
+    escribe en `catalogo_ejercicios` (TABLA_PRUEBAS_EVALUACION). El contenido
+    científico (qué prueba, qué cortes, con qué fuente) lo propone el MCP en
+    conversación con el owner/cuerpo técnico — igual que se hizo con las misiones de
+    recuperación.
+  - **Extensión del shape de `thresholds` (retrocompatible, verificado en código):**
+    hoy `normalizarValor` (`baremos.js:422-437`) indexa `thresholds[bucket]` y **exige
+    un array** de 4 cortes; si no lo es devuelve `noAplica` (falla segura). La
+    extensión: admitir opcionalmente `{ bucket: { Micro: [...], Desarrollo: [...],
+    Elite: [...] } }` — si `thresholds[bucket]` es array → conducta actual; si es
+    objeto → indexar por `nivel_desarrollo` del atleta con fallback a `'Desarrollo'`.
+    Requiere pasar `nivel_desarrollo` como 4º parámetro opcional de `normalizarValor`
+    (retrocompatible) y propagarlo en EvaluacionModal, el guard `categoryAvailable`,
+    el MCP (`analyze_athlete_pillars`) y la Edge Function (`functions:sync`
+    obligatorio tras tocar analytics-core). Las pruebas existentes no cambian.
+  - `resistencia` se añade a `SUB_PILARES` (`taxonomia.js`, radar 7→8 automático)
+    cuando existan sus primeras pruebas con baremos — igual que antes, pero la vía de
+    creación ahora es el MCP.
 - ~~**P2 — Migraciones aditivas**~~ ✅ APLICADA A PRODUCCIÓN (2026-07-05, confirmado
   por el owner). El baseline (`00000000000000`) se marcó `applied` en el historial
   remoto vía `supabase migration repair` (sin ejecutar su SQL — ya reflejaba el estado
@@ -548,7 +569,21 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
     `notas`/`[MODO_CANCHA: id]`.
   - `AdminSesiones` gana un botón "Guardar como plantilla".
   - Retirar el parseo de `notas` (`[EN_CURSO]`, `Pilar:X | tipo`) una vez que
-    `sesiones_programadas`/`sesiones_control` tengan columnas reales para lo mismo.
+    `sesiones_programadas`/`sesiones_control` tengan columnas reales para lo mismo
+    (nota: `sesiones_programadas.pilar_objetivo` ya existe y está sin usar, §6.4).
+  - **Programar pruebas por grupo** (dirección del owner 2026-07-05): hoy la evaluación
+    científica solo se dispara desde la tarjeta del atleta (botón "Evaluar" →
+    `EvaluacionModal`, un atleta a la vez). El flujo unificado debe permitir además
+    **programar una sesión de evaluación con pruebas específicas**
+    (`catalogo_ejercicios`) **para un grupo** (`atleta_grupo`, v18) en una fecha, y
+    capturar los resultados de todos los atletas del grupo en un solo recorrido en
+    cancha. Encaja con la decisión #4 (§3.4): una sesión con
+    `tipo_actividad='Evaluación'` + lista de pruebas. Diseño tentativo a detallar antes
+    de implementar: plantilla de `catalogo_sesiones` con `tipo_actividad='Evaluación'`
+    cuyo `ejercicios_ids` referencia pruebas (o columna `pruebas_ids` separada para no
+    mezclar los dos catálogos espejo, §2.3), y una vista de captura grupal que itera
+    atletas presentes × pruebas reutilizando el motor actual (`normalizarValor` +
+    guardado de `evaluaciones_pruebas` por atleta).
 
 ---
 
@@ -571,6 +606,18 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
 Carga/Sueño (§4.1, conserva acceso); catálogos espejo (§2.3, dominios separados, no se
 fusionan); XP (§2.4, ya consolidado en `analytics-core/xp.js`).
 
+**Direcciones nuevas del owner (2026-07-05, tras aplicar P2):**
+
+6. **Autoría de pruebas/baremos → vía `blackgold-mcp`, para los 8 sub-pilares.** La
+   creación de pruebas de evaluación y baremos deja de ser un ejercicio manual de
+   "definir con el cuerpo técnico y escribir seeds": el MCP gana tooling de autoría
+   (P1.5 redefinida en §7) y cubre los 3 pilares / 8 sub-pilares, con umbrales por
+   **edad (categoría FEB) y nivel de desarrollo (Micro/Desarrollo/Elite)** — esta
+   segunda dimensión es nueva en el modelo de baremos.
+7. **Programación de pruebas por grupo.** La evaluación deja de estar limitada a la
+   tarjeta individual del atleta: el coach podrá programar pruebas específicas para un
+   grupo y capturarlas en un solo flujo (P3 en §7).
+
 **Sigue pendiente de decisión (no bloquea el resto, ver P1.5):** qué prueba(s) exactas
-miden `resistencia` y sus umbrales por categoría — requiere input del cuerpo técnico,
-no es una decisión de ingeniería.
+por sub-pilar y sus cortes — ahora se resuelve en conversación con el MCP (que propone
+con fuentes) + validación del cuerpo técnico, no como decisión previa de ingeniería.
