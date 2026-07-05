@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import { DURACION_CLASE, useModoCanchaModalClock } from './useModoCanchaModalClock';
+import { COLORS } from '../lib/designTokens';
 
 export default function ModoCanchaModalSesionesActivas({
   activeSessions,
@@ -13,7 +14,7 @@ export default function ModoCanchaModalSesionesActivas({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-2">
-        <p className="text-[10px] text-[#FFD700] font-bold uppercase tracking-[0.3em]">
+        <p className="text-2xs text-brand font-bold uppercase tracking-[0.3em]">
           {activeSessions.length} clase{activeSessions.length !== 1 ? 's' : ''} activa{activeSessions.length !== 1 ? 's' : ''}
         </p>
         <button onClick={() => setStep(1)}
@@ -24,7 +25,7 @@ export default function ModoCanchaModalSesionesActivas({
 
       {activeSessions.length === 0 && (
         <div className="flex justify-center items-center py-16">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFD700]"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
         </div>
       )}
 
@@ -34,11 +35,11 @@ export default function ModoCanchaModalSesionesActivas({
         const circumference = 2 * Math.PI * 28;
         return (
           <div key={session.id}
-            className={`rounded-2xl border p-4 transition-all ${
+            className={`rounded-panel border p-4 transition-all ${
               t.terminada
-                ? 'bg-emerald-500/10 border-emerald-500/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
+                ? 'bg-success/10 border-success/40 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
                 : t.restantes < 300
-                ? 'bg-red-500/10 border-red-500/30'
+                ? 'bg-danger/10 border-danger/30'
                 : 'bg-white/5 border-white/10'
             }`}>
 
@@ -46,10 +47,10 @@ export default function ModoCanchaModalSesionesActivas({
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest ${
-                    session.tipo === 'Individual' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-[#FFD700]/20 text-[#FFD700]'
+                  <span className={`text-2xs font-bold px-2 py-0.5 rounded-full uppercase tracking-widest ${
+                    session.tipo === 'Individual' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-brand/20 text-brand'
                   }`}>{session.tipo}</span>
-                  <span className="text-[10px] text-gray-500 truncate">{session.grupo_label}</span>
+                  <span className="text-2xs text-fg-muted truncate">{session.grupo_label}</span>
                 </div>
                 <p className="text-white font-bold text-sm truncate">{session.pilar_objetivo}</p>
               </div>
@@ -61,7 +62,7 @@ export default function ModoCanchaModalSesionesActivas({
                   <circle
                     cx="32" cy="32" r="28"
                     fill="none"
-                    stroke={t.terminada ? '#10b981' : t.restantes < 300 ? '#ef4444' : '#FFD700'}
+                    stroke={t.terminada ? COLORS.feedback.success : t.restantes < 300 ? COLORS.feedback.danger : COLORS.gold[500]}
                     strokeWidth="5"
                     strokeLinecap="round"
                     strokeDasharray={circumference}
@@ -71,9 +72,9 @@ export default function ModoCanchaModalSesionesActivas({
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   {t.terminada ? (
-                    <Check size={20} className="text-emerald-400" />
+                    <Check size={20} className="text-success-soft" />
                   ) : (
-                    <span className={`text-[11px] font-black tabular-nums ${t.restantes < 300 ? 'text-red-400' : 'text-white'}`}>
+                    <span className={`text-[11px] font-black tabular-nums ${t.restantes < 300 ? 'text-danger-soft' : 'text-white'}`}>
                       {formatTiempo(t.restantes)}
                     </span>
                   )}
@@ -84,24 +85,24 @@ export default function ModoCanchaModalSesionesActivas({
             {/* Fila inferior: Inicio · Transcurrido · Finaliza */}
             <div className="flex space-x-4 mt-3 pt-3 border-t border-white/5 text-center">
               <div className="flex-1">
-                <p className="text-[11px] text-gray-400 uppercase tracking-widest">Inicio</p>
+                <p className="text-[11px] text-fg-secondary uppercase tracking-widest">Inicio</p>
                 <p className="text-sm font-bold text-white">{(session.hora_inicio || '').substring(0,5)}</p>
               </div>
               <div className="flex-1">
-                <p className="text-[11px] text-gray-400 uppercase tracking-widest">Transcurrido</p>
+                <p className="text-[11px] text-fg-secondary uppercase tracking-widest">Transcurrido</p>
                 <p className="text-sm font-bold text-white">{formatTiempo(t.transcurridos)}</p>
               </div>
               <div className="flex-1">
-                <p className="text-[11px] text-gray-400 uppercase tracking-widest">Finaliza</p>
+                <p className="text-[11px] text-fg-secondary uppercase tracking-widest">Finaliza</p>
                 <p className="text-sm font-bold text-white">{t.horaFin}</p>
               </div>
             </div>
 
             {/* Botón Evaluar */}
             <button onClick={() => handleResumeSession(session)}
-              className={`w-full mt-3 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all ${
+              className={`w-full mt-3 py-3 rounded-control font-black uppercase tracking-widest text-xs transition-all ${
                 t.terminada
-                  ? 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                  ? 'bg-success text-black hover:bg-success-soft shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                   : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
               }`}>
               {t.terminada ? '✓ Evaluar y Finalizar' : 'Evaluar ahora (adelantar)'}
@@ -111,7 +112,7 @@ export default function ModoCanchaModalSesionesActivas({
       })}
 
       {/* Nota explicativa de qué pasa al terminar */}
-      <p className="text-xs text-gray-400 text-center pt-2">
+      <p className="text-xs text-fg-secondary text-center pt-2">
         Al terminar la hora el botón cambia a verde. Tócalo para evaluar a los atletas y cerrar la clase.
       </p>
     </div>

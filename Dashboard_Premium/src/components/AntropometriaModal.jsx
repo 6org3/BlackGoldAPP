@@ -86,86 +86,86 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card max-w-lg w-full rounded-2xl p-6 relative max-h-[90dvh] overflow-y-auto"
+        className="glass-card max-w-lg w-full rounded-panel p-6 relative max-h-[90dvh] overflow-y-auto"
       >
-        <button onClick={onClose} aria-label="Cerrar" className="absolute right-2 top-2 p-3 text-gray-500 hover:text-white">
+        <button onClick={onClose} aria-label="Cerrar" className="absolute right-2 top-2 p-3 text-fg-muted hover:text-white">
           <X size={20} />
         </button>
 
         <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FFD700]/20 to-[#D4AF37]/5 flex items-center justify-center border border-[#FFD700]/30">
-            <Ruler className="text-[#FFD700]" size={20} />
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand/20 to-brand-strong/5 flex items-center justify-center border border-brand/30">
+            <Ruler className="text-brand" size={20} />
           </div>
           <div>
             <h3 className="text-xl font-black text-white uppercase tracking-tight">Evaluación Antropométrica</h3>
-            <p className="text-[10px] text-[#FFD700] uppercase font-bold tracking-widest">{atleta.nombre}</p>
+            <p className="text-2xs text-brand uppercase font-bold tracking-widest">{atleta.nombre}</p>
           </div>
         </div>
 
-        {error && <div className="mb-4 text-red-400 text-xs font-bold bg-red-500/10 border border-red-500/20 p-2 rounded-lg">{error}</div>}
+        {error && <div className="mb-4 text-danger-soft text-xs font-bold bg-danger/10 border border-danger/20 p-2 rounded-lg">{error}</div>}
 
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="antropometria-peso" className="block text-xs text-gray-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+              <label htmlFor="antropometria-peso" className="block text-xs text-fg-secondary font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
                 <Scale size={12}/> Peso (kg)
               </label>
               <input
                 id="antropometria-peso"
                 type="number" step="0.1" inputMode="decimal" value={pesoKg} onChange={e => setPesoKg(e.target.value)}
-                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
+                className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-brand/50"
                 placeholder="Ej: 75.5"
               />
             </div>
             <div>
-              <label htmlFor="antropometria-talla" className="block text-xs text-gray-400 font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
+              <label htmlFor="antropometria-talla" className="block text-xs text-fg-secondary font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
                 <Ruler size={12}/> Talla / Altura (cm)
               </label>
               <input
                 id="antropometria-talla"
                 type="number" step="0.1" inputMode="decimal" value={tallaCm} onChange={e => setTallaCm(e.target.value)}
-                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
+                className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-brand/50"
                 placeholder="Ej: 185.0"
               />
             </div>
             <div>
-              <label htmlFor="antropometria-talla-sentado" className="block text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">
+              <label htmlFor="antropometria-talla-sentado" className="block text-xs text-fg-secondary font-bold uppercase tracking-widest mb-1">
                 Talla Sentado (cm)
               </label>
               <input
                 id="antropometria-talla-sentado"
                 type="number" step="0.1" inputMode="decimal" value={tallaSentadoCm} onChange={e => setTallaSentadoCm(e.target.value)}
-                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
+                className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-brand/50"
                 placeholder="Ej: 90.0"
               />
             </div>
             <div>
-              <label htmlFor="antropometria-envergadura" className="block text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">
+              <label htmlFor="antropometria-envergadura" className="block text-xs text-fg-secondary font-bold uppercase tracking-widest mb-1">
                 Brazada / Envergadura (cm)
               </label>
               <input
                 id="antropometria-envergadura"
                 type="number" step="0.1" inputMode="decimal" value={envergaduraCm} onChange={e => setEnvergaduraCm(e.target.value)}
-                className="w-full bg-[#121214]/80 border border-white/10 rounded-xl px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-[#FFD700]/50"
+                className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-brand/50"
                 placeholder="Ej: 190.0"
               />
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-4 space-y-2">
-            <h4 className="text-[10px] font-bold text-[#FFD700] uppercase tracking-widest border-b border-white/10 pb-2 mb-2">Resultados Calculados</h4>
+          <div className="bg-white/5 border border-white/10 rounded-control p-4 mt-4 space-y-2">
+            <h4 className="text-2xs font-bold text-brand uppercase tracking-widest border-b border-white/10 pb-2 mb-2">Resultados Calculados</h4>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-400 font-bold">Índice Córmico:</span>
+              <span className="text-fg-secondary font-bold">Índice Córmico:</span>
               <span className="text-white font-black">{indiceCormico || '--'} %</span>
             </div>
             {indiceCormico && (
-              <div className="text-right text-[10px] text-emerald-400 font-bold uppercase tracking-widest">
+              <div className="text-right text-2xs text-success-soft font-bold uppercase tracking-widest">
                 {getCormicoLabel(indiceCormico)}
               </div>
             )}
             <div className="flex justify-between items-center text-sm mt-2 border-t border-white/5 pt-2">
-              <span className="text-gray-400 font-bold">Brazada Relativa:</span>
-              <span className={`font-black ${envergaduraRelativa > 0 ? 'text-emerald-400' : envergaduraRelativa < 0 ? 'text-red-400' : 'text-white'}`}>
+              <span className="text-fg-secondary font-bold">Brazada Relativa:</span>
+              <span className={`font-black ${envergaduraRelativa > 0 ? 'text-success-soft' : envergaduraRelativa < 0 ? 'text-danger-soft' : 'text-white'}`}>
                 {envergaduraRelativa ? (envergaduraRelativa > 0 ? `+${envergaduraRelativa}` : envergaduraRelativa) : '--'} cm
               </span>
             </div>
@@ -174,7 +174,7 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
           <button
             type="submit"
             disabled={saving}
-            className="w-full mt-6 bg-gradient-to-r from-[#FFD700] to-[#D4AF37] text-black font-black uppercase tracking-widest py-3 rounded-xl hover:shadow-[0_0_20px_rgba(255,215,0,0.4)] transition-all flex items-center justify-center gap-2"
+            className="w-full mt-6 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-3 rounded-control hover:shadow-glow-gold transition-all flex items-center justify-center gap-2"
           >
             <Save size={16} />
             <span>{saving ? 'Guardando...' : 'Guardar Evaluación'}</span>

@@ -167,7 +167,7 @@ export default function LevelUpAnimation({ rango, onComplete }) {
           >
             Has alcanzado{' '}
             <span
-              className={`font-black text-xl ${rango?.color || 'text-[#FFD700]'}`}
+              className={`font-black text-xl ${rango?.color || 'text-brand'}`}
               style={{
                 filter: `drop-shadow(0 0 10px ${rangoColorHex}66)`,
               }}
@@ -181,7 +181,7 @@ export default function LevelUpAnimation({ rango, onComplete }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.8, duration: 0.6 }}
-            className="text-[10px] text-gray-600 uppercase tracking-widest mt-6"
+            className="text-2xs text-fg-faint uppercase tracking-widest mt-6"
           >
             Toca para continuar
           </motion.p>

@@ -5,10 +5,10 @@ export const NIVELES_DESARROLLO = ['Todos', 'Micro', 'Desarrollo', 'Elite', 'Por
 
 // ─── Badge Config por Nivel ───────────────────────────────────
 export const NIVEL_BADGE = {
-  Micro: { color: 'text-emerald-400', border: 'border-emerald-500/30', bg: 'bg-emerald-500/10', icon: '🌱' },
-  Desarrollo: { color: 'text-[#FFD700]', border: 'border-[#FFD700]/30', bg: 'bg-[#FFD700]/10', icon: '⚡' },
-  Elite: { color: 'text-purple-400', border: 'border-purple-500/30', bg: 'bg-purple-500/10', icon: '👑' },
-  'Por Asignar': { color: 'text-gray-400', border: 'border-gray-500/30', bg: 'bg-gray-500/10', icon: '❓' },
+  Micro: { color: 'text-success-soft', border: 'border-success/30', bg: 'bg-success/10', icon: '🌱' },
+  Desarrollo: { color: 'text-brand', border: 'border-brand/30', bg: 'bg-brand/10', icon: '⚡' },
+  Elite: { color: 'text-mental-soft', border: 'border-mental/30', bg: 'bg-mental/10', icon: '👑' },
+  'Por Asignar': { color: 'text-fg-secondary', border: 'border-gray-500/30', bg: 'bg-gray-500/10', icon: '❓' },
 };
 
 // ─── Orden de agrupamiento ────────────────────────────────────

@@ -59,29 +59,29 @@ export default function TiendaRecompensas({ rangoId, atletaId }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="glass-card rounded-3xl p-4 sm:p-8 relative overflow-hidden glow-border"
+      className="glass-card rounded-card p-4 sm:p-8 relative overflow-hidden glow-border"
     >
       {/* Ambient gold glow */}
-      <div className="absolute -top-32 -left-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-30 bg-[#FFD700]" />
-      <div className="absolute -bottom-20 -right-20 w-48 h-48 rounded-full blur-[80px] pointer-events-none opacity-20 bg-[#D4AF37]" />
+      <div className="absolute -top-32 -left-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-30 bg-brand" />
+      <div className="absolute -bottom-20 -right-20 w-48 h-48 rounded-full blur-[80px] pointer-events-none opacity-20 bg-brand-strong" />
 
       {/* Header */}
       <div className="relative z-10 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center">
-              <Gift size={20} className="text-[#FFD700]" />
+            <div className="w-10 h-10 rounded-control bg-brand/10 border border-brand/30 flex items-center justify-center">
+              <Gift size={20} className="text-brand" />
             </div>
             <div>
               <h2 className="text-lg font-black text-white tracking-tight">Tienda de Recompensas</h2>
-              <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mt-0.5">
+              <p className="text-3xs text-white/40 uppercase tracking-eyebrow font-bold mt-0.5">
                 Desbloquea con tu progreso
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5">
-            <Sparkles size={12} className="text-[#FFD700]/60" />
-            <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">
+          <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-control px-3 py-1.5">
+            <Sparkles size={12} className="text-brand/60" />
+            <span className="text-3xs font-black text-white/40 uppercase tracking-widest">
               {desbloqueados}/{total}
             </span>
           </div>
@@ -92,13 +92,13 @@ export default function TiendaRecompensas({ rangoId, atletaId }) {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15, duration: 0.5 }}
-          className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-4"
+          className="bg-white/[0.03] border border-white/[0.08] rounded-panel p-4"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <span className="text-3xl">{rangoActual.emoji}</span>
               <div>
-                <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] block mb-0.5">
+                <span className="text-3xs font-black text-white/30 uppercase tracking-eyebrow block mb-0.5">
                   Tu Rango Actual
                 </span>
                 <span className={`text-xl font-black uppercase tracking-tight ${rangoActual.color}`}>
@@ -107,8 +107,8 @@ export default function TiendaRecompensas({ rangoId, atletaId }) {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Trophy size={14} className="text-[#FFD700]/40" />
-              <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">
+              <Trophy size={14} className="text-brand/40" />
+              <span className="text-3xs font-black text-white/30 uppercase tracking-widest">
                 {rangoActual.min}–{rangoActual.max}%
               </span>
             </div>
@@ -121,7 +121,7 @@ export default function TiendaRecompensas({ rangoId, atletaId }) {
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
-                className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#FFD700]"
+                className="h-full rounded-full bg-gradient-to-r from-brand-strong to-brand"
               />
             </div>
             <div className="flex space-x-1">
@@ -148,7 +148,7 @@ export default function TiendaRecompensas({ rangoId, atletaId }) {
         <div className="relative z-10 flex flex-col items-center justify-center py-12 text-center">
           <Gift size={32} className="text-white/10 mb-3" />
           <p className="text-sm text-white/30 font-semibold">No hay recompensas disponibles aún</p>
-          <p className="text-[9px] text-white/20 uppercase tracking-widest mt-1">Sigue progresando para desbloquear</p>
+          <p className="text-3xs text-white/20 uppercase tracking-widest mt-1">Sigue progresando para desbloquear</p>
         </div>
       ) : (
         <motion.div
@@ -169,9 +169,9 @@ export default function TiendaRecompensas({ rangoId, atletaId }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="relative z-10 mt-6 flex items-center justify-center space-x-2 text-[9px] text-white/25 uppercase tracking-[0.2em] font-bold"
+          className="relative z-10 mt-6 flex items-center justify-center space-x-2 text-3xs text-white/25 uppercase tracking-eyebrow font-bold"
         >
-          <ChevronRight size={10} className="text-[#FFD700]/40" />
+          <ChevronRight size={10} className="text-brand/40" />
           <span>Sigue subiendo de rango para desbloquear más recompensas</span>
         </motion.div>
       )}
@@ -191,16 +191,16 @@ function RewardCard({ recompensa, index }) {
       variants={cardVariants}
       whileHover={desbloqueado ? { scale: 1.02, y: -2 } : {}}
       className={`
-        relative rounded-2xl p-5 transition-all duration-300 overflow-hidden
+        relative rounded-panel p-5 transition-all duration-300 overflow-hidden
         ${desbloqueado
-          ? 'bg-white/[0.04] border border-[#FFD700]/30 shadow-[0_0_20px_rgba(255,215,0,0.08)]'
+          ? 'bg-white/[0.04] border border-brand/30 shadow-[0_0_20px_rgba(255,215,0,0.08)]'
           : 'bg-white/[0.02] border border-white/[0.06] opacity-60'
         }
       `}
     >
       {/* Unlocked gold glow overlay */}
       {desbloqueado && (
-        <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full blur-[50px] pointer-events-none opacity-20 bg-[#FFD700]" />
+        <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full blur-[50px] pointer-events-none opacity-20 bg-brand" />
       )}
 
       <div className="relative z-10">
@@ -208,7 +208,7 @@ function RewardCard({ recompensa, index }) {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-2">
             <span className="text-lg">{rango.emoji}</span>
-            <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${rango.color}`}>
+            <span className={`text-3xs font-black uppercase tracking-eyebrow ${rango.color}`}>
               {rango.nombre}
             </span>
           </div>
@@ -218,9 +218,9 @@ function RewardCard({ recompensa, index }) {
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ delay: index * 0.1 + 0.3, type: 'spring', stiffness: 200 }}
-              className="w-7 h-7 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center"
+              className="w-7 h-7 rounded-full bg-success/15 border border-success/30 flex items-center justify-center"
             >
-              <CheckCircle2 size={14} className="text-emerald-400" />
+              <CheckCircle2 size={14} className="text-success-soft" />
             </motion.div>
           ) : (
             <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
@@ -243,7 +243,7 @@ function RewardCard({ recompensa, index }) {
         {!desbloqueado && (
           <div className="mt-3 flex items-center space-x-1.5">
             <Lock size={10} className="text-white/20" />
-            <span className="text-[9px] font-black text-white/25 uppercase tracking-widest">
+            <span className="text-3xs font-black text-white/25 uppercase tracking-widest">
               Requiere rango {rango.nombre}
             </span>
           </div>
@@ -252,8 +252,8 @@ function RewardCard({ recompensa, index }) {
         {/* Unlocked status tag */}
         {desbloqueado && (
           <div className="mt-3 flex items-center space-x-1.5">
-            <Sparkles size={10} className="text-[#FFD700]/50" />
-            <span className="text-[9px] font-black text-[#FFD700]/60 uppercase tracking-widest">
+            <Sparkles size={10} className="text-brand/50" />
+            <span className="text-3xs font-black text-brand/60 uppercase tracking-widest">
               Desbloqueado
             </span>
           </div>

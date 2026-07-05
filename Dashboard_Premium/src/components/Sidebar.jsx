@@ -57,19 +57,19 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         />
       )}
 
-      <aside className={`w-72 max-w-[85vw] border-r border-white/5 bg-[#09090b]/95 backdrop-blur-xl flex-col fixed md:relative z-50 h-dvh md:h-full transition-[transform,visibility] duration-300 ${isMobileMenuOpen ? 'translate-x-0 visible' : '-translate-x-full invisible md:visible md:translate-x-0'} flex`}>
+      <aside className={`w-72 max-w-[85vw] border-r border-white/5 bg-surface-base/95 backdrop-blur-xl flex-col fixed md:relative z-50 h-dvh md:h-full transition-[transform,visibility] duration-300 ${isMobileMenuOpen ? 'translate-x-0 visible' : '-translate-x-full invisible md:visible md:translate-x-0'} flex`}>
       <div className="p-8 border-b border-white/5 relative">
         <div className="flex items-center space-x-3 mb-2">
-          <Sparkles className="text-[#FFD700]" size={24} />
+          <Sparkles className="text-brand" size={24} />
           <h1 className="text-3xl font-black text-white tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(255,215,0,0.3)]">Black Gold</h1>
         </div>
-        <p className="text-[10px] text-[#FFD700] font-bold tracking-[0.3em] uppercase ml-9">Intelligence</p>
+        <p className="text-2xs text-brand font-bold tracking-[0.3em] uppercase ml-9">Intelligence</p>
         
         {/* Close Button Mobile */}
         <button
           onClick={() => setIsMobileMenuOpen(false)}
           aria-label="Cerrar menú"
-          className="absolute top-6 right-2 md:hidden text-gray-500 hover:text-white p-3"
+          className="absolute top-6 right-2 md:hidden text-fg-muted hover:text-white p-3"
         >
           <Cross size={20} className="rotate-45" />
         </button>
@@ -79,23 +79,23 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
           <button
             onClick={() => setShowModoCancha(true)}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 mb-2
+            className={`w-full flex items-center justify-between px-5 py-4 rounded-control text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 mb-2
               ${activeSessionCount > 0 
-                ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)] animate-pulse' 
+                ? 'bg-success/10 border-success/50 text-success-soft shadow-[0_0_20px_rgba(16,185,129,0.2)] animate-pulse' 
                 : showModoCancha
-                  ? 'bg-gradient-to-r from-[#FFD700]/15 to-[#D4AF37]/5 text-[#FFD700] border border-[#FFD700]/30 shadow-[0_0_20px_rgba(255,215,0,0.15)]'
-                  : 'bg-[#FFD700]/5 border border-[#FFD700]/10 text-[#FFD700]/80 hover:bg-[#FFD700]/10 hover:border-[#FFD700]/30 hover:shadow-[0_0_15px_rgba(255,215,0,0.1)]'
+                  ? 'bg-gradient-to-r from-brand/15 to-brand-strong/5 text-brand border border-brand/30 shadow-[0_0_20px_rgba(255,215,0,0.15)]'
+                  : 'bg-brand/5 border border-brand/10 text-brand/80 hover:bg-brand/10 hover:border-brand/30 hover:shadow-[0_0_15px_rgba(255,215,0,0.1)]'
               }
             `}
           >
             <div className="flex items-center space-x-4">
-              <span className={`drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] ${activeSessionCount > 0 ? 'text-emerald-400' : ''}`}>
+              <span className={`drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] ${activeSessionCount > 0 ? 'text-success-soft' : ''}`}>
                 <Zap size={18} />
               </span>
               <span>{activeSessionCount > 0 ? 'Clase en Curso' : 'Modo Cancha'}</span>
             </div>
             {activeSessionCount > 0 && (
-              <span className="bg-emerald-500 text-black px-2 py-0.5 rounded-full text-[10px] font-black">{activeSessionCount}</span>
+              <span className="bg-success text-black px-2 py-0.5 rounded-full text-2xs font-black">{activeSessionCount}</span>
             )}
           </button>
         )}
@@ -174,12 +174,12 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
 
       <div className="p-8 border-t border-white/5 bg-gradient-to-t from-black/50 to-transparent">
         <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FFD700] to-[#D4AF37] flex items-center justify-center text-black font-black shadow-[0_0_20px_rgba(255,215,0,0.4)]">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-black font-black shadow-glow-gold">
             {user.nombre?.charAt(0) || 'U'}
           </div>
           <div>
             <p className="text-sm font-bold text-white tracking-wide">{user.nombre}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] mt-1">Rol: {user.rol}</p>
+            <p className="text-2xs text-fg-secondary uppercase tracking-eyebrow mt-1">Rol: {user.rol}</p>
           </div>
         </div>
       </div>
@@ -191,7 +191,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         <button
           onClick={() => setShowModoCancha(true)}
           aria-label="Abrir Modo Cancha"
-          className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-[#FFD700] text-black p-4 rounded-full shadow-[0_0_20px_rgba(255,215,0,0.4)] hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition-all flex items-center justify-center md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
+          className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-brand text-black p-4 rounded-full shadow-glow-gold hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition-all flex items-center justify-center md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
         >
           <Zap size={24} fill="currentColor" />
         </button>
@@ -206,8 +206,8 @@ function NavItem({ icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center space-x-4 px-5 py-4 rounded-xl text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300
-        ${active ? 'bg-gradient-to-r from-[#FFD700]/10 to-transparent text-[#FFD700] border-l-2 border-[#FFD700]' : 'text-gray-500 hover:bg-white/5 hover:text-white border-l-2 border-transparent'}
+      className={`w-full flex items-center space-x-4 px-5 py-4 rounded-control text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300
+        ${active ? 'bg-gradient-to-r from-brand/10 to-transparent text-brand border-l-2 border-brand' : 'text-fg-muted hover:bg-white/5 hover:text-white border-l-2 border-transparent'}
       `}
     >
       <span className={`${active ? 'drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]' : ''}`}>

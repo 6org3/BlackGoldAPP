@@ -262,4 +262,6 @@ El rol **no** cambia tokens (mismo dark premium para todos) — cambia jerarquí
 
 **Fases sugeridas** (cada una es un PR chico y verificable): ① gamificación (rangos unificados — corrige la divergencia real 400 vs 500) → ② tarjeta de atleta + paneles de misiones → ③ dashboards admin/owner → ④ formularios y modales restantes.
 
-**Deuda que este sistema deja medida:** 254 hex en 40 archivos (`#FFD700` = 527 apariciones contando clases arbitrarias); tras la migración el objetivo es ~0 fuera de `tokens.css`/`designTokens.js`.
+**Deuda que este sistema deja medida:** al crearlo (2026-07-05) había 254 hex en 40 archivos (`#FFD700` = 527 apariciones contando clases arbitrarias).
+
+**Estado tras las fases 1–4 (mismo día):** ✅ migración completa. Quedan exactamente **dos excepciones deliberadas** fuera de `tokens.css`/`designTokens.js`: la escala clínica de hidratación de `ReadinessModal.jsx` (colores de dominio médico, no UI) y el tono decorativo `#075E54` del gradiente WhatsApp en `PortalPadreSeccion.jsx`. Cualquier otro hex nuevo en componentes es una regresión.

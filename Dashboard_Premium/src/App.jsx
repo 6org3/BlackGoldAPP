@@ -64,7 +64,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-dvh bg-[#09090b] overflow-hidden text-white selection:bg-[#FFD700] selection:text-black">
+    <div className="flex h-dvh bg-surface-base overflow-hidden text-white selection:bg-brand selection:text-black">
       {user.rol !== 'atleta' && (
         <Sidebar
           isMobileMenuOpen={isMobileMenuOpen}
@@ -75,8 +75,8 @@ function App() {
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-12 relative">
         {/* Blobs decorativos solo en desktop: el blur gigante + mix-blend
             fuerza composición GPU cara en móviles de gama baja. */}
-        <div className="hidden md:block absolute top-[-20%] left-[10%] w-[800px] h-[600px] bg-[#FFD700]/5 blur-[150px] pointer-events-none rounded-full mix-blend-screen"></div>
-        <div className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#D4AF37]/5 blur-[120px] pointer-events-none rounded-full mix-blend-screen"></div>
+        <div className="hidden md:block absolute top-[-20%] left-[10%] w-[800px] h-[600px] bg-brand/5 blur-[150px] pointer-events-none rounded-full mix-blend-screen"></div>
+        <div className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-strong/5 blur-[120px] pointer-events-none rounded-full mix-blend-screen"></div>
 
         <AppHeader
           user={user}

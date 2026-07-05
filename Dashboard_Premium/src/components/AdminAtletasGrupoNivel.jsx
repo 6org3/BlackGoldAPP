@@ -18,16 +18,16 @@ export default function AdminAtletasGrupoNivel({
     <div className="space-y-8">
       {loading && atletasAgrupados.length === 0 && (
         <div className="text-center py-16">
-          <p className="text-gray-500 text-sm font-bold animate-pulse">Buscando atletas...</p>
+          <p className="text-fg-muted text-sm font-bold animate-pulse">Buscando atletas...</p>
         </div>
       )}
 
       {!loading && atletasAgrupados.length === 0 && (
         <div className="text-center py-16">
           <div className="text-4xl mb-4">🔍</div>
-          <p className="text-gray-500 text-sm font-bold">No se encontraron atletas con estos filtros.</p>
+          <p className="text-fg-muted text-sm font-bold">No se encontraron atletas con estos filtros.</p>
           {filtrosActivos && (
-            <button onClick={clearFilters} className="mt-3 text-xs text-[#FFD700] hover:underline">
+            <button onClick={clearFilters} className="mt-3 text-xs text-brand hover:underline">
               Limpiar filtros
             </button>
           )}
@@ -44,7 +44,7 @@ export default function AdminAtletasGrupoNivel({
               <h3 className={`text-sm font-black uppercase tracking-widest ${badge.color}`}>
                 {nivel}
               </h3>
-              <span className="text-[10px] text-gray-600 font-bold">
+              <span className="text-2xs text-fg-faint font-bold">
                 ({grupoAtletas.length} atleta{grupoAtletas.length !== 1 ? 's' : ''})
               </span>
               <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />

@@ -11,6 +11,7 @@ import AdminAtletasHeader from './AdminAtletasHeader';
 import AdminAtletasForm from './AdminAtletasForm';
 import AdminAtletasFiltersPanel from './AdminAtletasFiltersPanel';
 import AdminAtletasGrupoNivel from './AdminAtletasGrupoNivel';
+import { COLORS } from '../lib/designTokens';
 
 export default function AdminAtletas({ atletas, onRefresh, user }) {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
           import('jspdf'),
         ]);
         const canvas = await html2canvas(reportRef.current, {
-          scale: 2, useCORS: true, backgroundColor: '#09090b',
+          scale: 2, useCORS: true, backgroundColor: COLORS.surface.base,
         });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -111,19 +112,19 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-bold flex items-center space-x-3"
+            className="mb-6 p-4 rounded-control bg-danger/10 border border-danger/30 text-danger-soft text-sm font-bold flex items-center space-x-3"
           >
             <AlertCircle size={18} /><span>{error}</span>
-            <button onClick={() => setError('')} aria-label="Cerrar mensaje" className="ml-auto p-2 -m-2 text-red-400/60 hover:text-red-300"><X size={16} /></button>
+            <button onClick={() => setError('')} aria-label="Cerrar mensaje" className="ml-auto p-2 -m-2 text-danger-soft/60 hover:text-red-300"><X size={16} /></button>
           </motion.div>
         )}
         {success && (
           <motion.div
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-bold"
+            className="mb-6 p-4 rounded-control bg-success/10 border border-success/30 text-success-soft text-sm font-bold"
           >
             {success}
-            <button onClick={() => setSuccess('')} aria-label="Cerrar mensaje" className="ml-4 p-2 -m-2 text-emerald-400/60 hover:text-emerald-300"><X size={16} /></button>
+            <button onClick={() => setSuccess('')} aria-label="Cerrar mensaje" className="ml-4 p-2 -m-2 text-success-soft/60 hover:text-emerald-300"><X size={16} /></button>
           </motion.div>
         )}
       </AnimatePresence>

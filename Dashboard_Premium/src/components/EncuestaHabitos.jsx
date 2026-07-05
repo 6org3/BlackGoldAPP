@@ -69,17 +69,17 @@ function calcularPuntajeTotal(respuestas) {
 }
 
 function getScoreColor(score) {
-  if (score >= 80) return 'text-emerald-400';
-  if (score >= 60) return 'text-[#FFD700]';
-  if (score >= 40) return 'text-orange-400';
-  return 'text-red-400';
+  if (score >= 80) return 'text-success-soft';
+  if (score >= 60) return 'text-brand';
+  if (score >= 40) return 'text-caution-soft';
+  return 'text-danger-soft';
 }
 
 function getScoreBarColor(score) {
-  if (score >= 80) return 'bg-emerald-500';
-  if (score >= 60) return 'bg-[#FFD700]';
-  if (score >= 40) return 'bg-orange-500';
-  return 'bg-red-500';
+  if (score >= 80) return 'bg-success';
+  if (score >= 60) return 'bg-brand';
+  if (score >= 40) return 'bg-caution';
+  return 'bg-danger';
 }
 
 // ───────────────────────────────────────────────────
@@ -162,8 +162,8 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
   // ── Render ──
   if (loading) {
     return (
-      <div className="glass-card rounded-3xl p-8 glow-border flex items-center justify-center min-h-[200px]">
-        <Loader2 className="w-6 h-6 text-[#FFD700] animate-spin" />
+      <div className="glass-card rounded-card p-8 glow-border flex items-center justify-center min-h-[200px]">
+        <Loader2 className="w-6 h-6 text-brand animate-spin" />
         <span className="ml-3 text-sm text-white/50 uppercase tracking-widest font-bold">Cargando encuesta…</span>
       </div>
     );
@@ -174,20 +174,20 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
-      className="glass-card rounded-3xl p-4 sm:p-8 relative overflow-hidden glow-border"
+      className="glass-card rounded-card p-4 sm:p-8 relative overflow-hidden glow-border"
     >
       {/* Ambient gold glow */}
-      <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-40 bg-[#FFD700]" />
+      <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-40 bg-brand" />
 
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center">
-            <ClipboardCheck size={20} className="text-[#FFD700]" />
+          <div className="w-10 h-10 rounded-control bg-brand/10 border border-brand/30 flex items-center justify-center">
+            <ClipboardCheck size={20} className="text-brand" />
           </div>
           <div>
             <h2 className="text-lg font-black text-white tracking-tight">Encuesta Semanal de Hábitos</h2>
-            <p className="text-[9px] text-white/40 uppercase tracking-[0.2em] font-bold mt-0.5">
+            <p className="text-3xs text-white/40 uppercase tracking-eyebrow font-bold mt-0.5">
               Semana del {new Date(semana + 'T00:00:00').toLocaleDateString('es-VE', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
@@ -197,10 +197,10 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-1.5"
+            className="flex items-center space-x-2 bg-success/10 border border-success/30 rounded-full px-4 py-1.5"
           >
-            <CheckCircle2 size={14} className="text-emerald-400" />
-            <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Completada</span>
+            <CheckCircle2 size={14} className="text-success-soft" />
+            <span className="text-3xs font-black text-success-soft uppercase tracking-widest">Completada</span>
           </motion.div>
         )}
       </div>
@@ -211,9 +211,9 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="relative z-10 flex items-start space-x-3 bg-blue-500/5 border border-blue-500/20 rounded-xl px-4 py-3 mb-6"
+          className="relative z-10 flex items-start space-x-3 bg-info/5 border border-info/20 rounded-control px-4 py-3 mb-6"
         >
-          <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+          <Info size={16} className="text-info-soft mt-0.5 flex-shrink-0" />
           <p className="text-xs text-blue-300/80 leading-relaxed">
             Tu representante recibirá esta encuesta para validar tus respuestas.
           </p>
@@ -233,14 +233,14 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: qIdx * 0.08, duration: 0.4 }}
-                className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 sm:p-5"
+                className="bg-white/[0.02] border border-white/[0.06] rounded-panel p-4 sm:p-5"
               >
                 {/* Question header */}
                 <div className="flex items-center space-x-2.5 mb-4">
                   <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                    <Icon size={14} className="text-[#FFD700]/70" />
+                    <Icon size={14} className="text-brand/70" />
                   </div>
-                  <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">
+                  <span className="text-3xs font-black text-white/30 uppercase tracking-eyebrow">
                     Pregunta {qIdx + 1}
                   </span>
                 </div>
@@ -259,10 +259,10 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                         whileTap={!yaRespondida ? { scale: 0.97 } : {}}
                         onClick={() => handleSelect(pregunta.id, oIdx)}
                         className={`
-                          flex flex-1 items-center justify-center space-x-2 min-h-12 px-4 py-2.5 rounded-xl text-xs font-bold
+                          flex flex-1 items-center justify-center space-x-2 min-h-12 px-4 py-2.5 rounded-control text-xs font-bold
                           transition-all duration-200 cursor-pointer
                           ${isSelected
-                            ? 'bg-[#FFD700]/15 border-[#FFD700]/60 text-[#FFD700] shadow-[0_0_12px_rgba(255,215,0,0.15)]'
+                            ? 'bg-brand/15 border-brand/60 text-brand shadow-[0_0_12px_rgba(255,215,0,0.15)]'
                             : 'bg-white/[0.03] border-white/10 text-white/50 hover:border-white/20 hover:text-white/70'
                           }
                           border
@@ -275,7 +275,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                           w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center flex-shrink-0
                           transition-all duration-200
                           ${isSelected
-                            ? 'border-[#FFD700] bg-[#FFD700]/20'
+                            ? 'border-brand bg-brand/20'
                             : 'border-white/20 bg-transparent'
                           }
                         `}>
@@ -283,7 +283,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
                             <motion.span
                               initial={{ scale: 0 }}
                               animate={{ scale: 1 }}
-                              className="w-1.5 h-1.5 rounded-full bg-[#FFD700]"
+                              className="w-1.5 h-1.5 rounded-full bg-brand"
                             />
                           )}
                         </span>
@@ -291,7 +291,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
 
                         {/* Checkmark for submitted */}
                         {yaRespondida && isSelected && (
-                          <CheckCircle2 size={12} className="text-emerald-400 ml-1" />
+                          <CheckCircle2 size={12} className="text-success-soft ml-1" />
                         )}
                       </motion.button>
                     );
@@ -313,9 +313,9 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
             transition={{ duration: 0.4 }}
             className="relative z-10 mt-6"
           >
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-panel p-5">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">
+                <span className="text-3xs font-black text-white/40 uppercase tracking-eyebrow">
                   Puntaje Total
                 </span>
                 <span className={`text-2xl font-black ${getScoreColor(puntajeTotal)}`}>
@@ -341,7 +341,7 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="relative z-10 mt-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2"
+          className="relative z-10 mt-4 text-xs text-danger-soft bg-danger/10 border border-danger/20 rounded-control px-4 py-2"
         >
           Error: {error}
         </motion.p>
@@ -361,10 +361,10 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
             whileHover={todasRespondidas ? { scale: 1.02 } : {}}
             whileTap={todasRespondidas ? { scale: 0.98 } : {}}
             className={`
-              flex items-center space-x-2 px-6 py-3 rounded-xl font-black text-sm uppercase tracking-widest
+              flex items-center space-x-2 px-6 py-3 rounded-control font-black text-sm uppercase tracking-widest
               transition-all duration-300
               ${todasRespondidas
-                ? 'bg-[#FFD700]/20 border border-[#FFD700]/50 text-[#FFD700] hover:bg-[#FFD700]/30 hover:shadow-[0_0_20px_rgba(255,215,0,0.2)]'
+                ? 'bg-brand/20 border border-brand/50 text-brand hover:bg-brand/30 hover:shadow-[0_0_20px_rgba(255,215,0,0.2)]'
                 : 'bg-white/5 border border-white/10 text-white/20 cursor-not-allowed'
               }
             `}
@@ -387,9 +387,9 @@ export default function EncuestaHabitos({ atletaId, tieneRepresentante }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.4 }}
-            className="relative z-10 mt-4 flex items-center space-x-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"
+            className="relative z-10 mt-4 flex items-center space-x-3 bg-success/10 border border-success/20 rounded-control px-4 py-3"
           >
-            <CheckCircle2 size={18} className="text-emerald-400" />
+            <CheckCircle2 size={18} className="text-success-soft" />
             <p className="text-sm text-emerald-300 font-semibold">
               ¡Encuesta enviada exitosamente! Puntaje: {puntajeTotal}/100
             </p>

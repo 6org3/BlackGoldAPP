@@ -40,8 +40,8 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
         onClick={onClose}
         className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-[110] flex items-center space-x-2 text-white bg-black/50 hover:bg-black/80 p-3 pr-4 rounded-full border border-white/10 backdrop-blur-md transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)]"
       >
-        <div className="bg-red-500/20 text-red-400 rounded-full p-1"><X size={16} /></div>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-red-100">Cerrar</span>
+        <div className="bg-danger/20 text-danger-soft rounded-full p-1"><X size={16} /></div>
+        <span className="text-2xs font-bold uppercase tracking-widest text-red-100">Cerrar</span>
       </button>
       {/* Full-screen en <md: contenido a ancho completo (radar arriba a todo
           el ancho); en desktop conserva el layout centrado con margen. */}
@@ -52,8 +52,8 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
         }
         {/* Histórico multi-punto (vista coach): mismas series que ve el atleta
             en su layout, con drill-down por prueba concreta. */}
-        <div className="bg-[#09090b]/90 border border-white/10 border-x-0 md:border-x rounded-none md:rounded-3xl p-5">
-          <h3 className="text-xs font-black uppercase tracking-widest text-[#FFD700] mb-4">
+        <div className="bg-surface-base/90 border border-white/10 border-x-0 md:border-x rounded-none md:rounded-card p-5">
+          <h3 className="text-xs font-black uppercase tracking-widest text-brand mb-4">
             Evolución de evaluaciones
           </h3>
           <HistorialPruebas atletaId={selectedAtleta.atleta_id || selectedAtleta.id} />

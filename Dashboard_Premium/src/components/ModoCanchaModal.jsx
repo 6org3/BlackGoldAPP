@@ -402,7 +402,7 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
         >
           <motion.div
             initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-            className="w-full max-w-2xl bg-[#09090b] rounded-none md:rounded-3xl border border-[#FFD700]/30 shadow-[0_0_50px_rgba(255,215,0,0.15)] overflow-hidden flex flex-col h-dvh md:h-auto md:max-h-[90vh] pt-[env(safe-area-inset-top)] md:pt-0"
+            className="w-full max-w-2xl bg-surface-base rounded-none md:rounded-card border border-brand/30 shadow-[0_0_50px_rgba(255,215,0,0.15)] overflow-hidden flex flex-col h-dvh md:h-auto md:max-h-[90vh] pt-[env(safe-area-inset-top)] md:pt-0"
           >
             <ModoCanchaModalHeader step={step} setStep={setStep} onClose={onClose} />
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Moon, Droplets, Loader2, X } from 'lucide-react';
 import { guardarReadinessDiario } from '../api/readinessService';
@@ -48,18 +48,18 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-[#0A0A0C] border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto"
+        className="relative w-full max-w-lg bg-surface-base border border-white/10 rounded-panel p-6 md:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto"
       >
         <button
           onClick={onClose}
           aria-label="Cerrar check-in"
-          className="absolute top-3 right-3 text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-3 transition-colors"
+          className="absolute top-3 right-3 text-fg-muted hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-3 transition-colors"
         >
           <X size={18} />
         </button>
 
         <div className="flex items-center space-x-3 mb-6">
-          <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+          <div className="p-3 bg-indigo-500/10 rounded-control border border-indigo-500/20">
             <Activity className="text-indigo-400" size={24} />
           </div>
           <div>
@@ -69,8 +69,8 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-            <p className="text-red-400 text-xs font-bold uppercase tracking-widest text-center">{error}</p>
+          <div className="mb-6 p-3 bg-danger/10 border border-danger/20 rounded-control">
+            <p className="text-danger-soft text-xs font-bold uppercase tracking-widest text-center">{error}</p>
           </div>
         )}
 
@@ -79,17 +79,17 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
           <div className="space-y-4">
             <div className="flex justify-between items-end">
               <label className="flex items-center space-x-2 text-sm font-bold text-white uppercase tracking-wider">
-                <Moon size={16} className="text-blue-400" />
+                <Moon size={16} className="text-info-soft" />
                 <span>¿Cómo dormiste anoche?</span>
               </label>
-              <span className="text-xl font-black text-blue-400">{sueno}/10</span>
+              <span className="text-xl font-black text-info-soft">{sueno}/10</span>
             </div>
             <input 
               type="range" min="1" max="10" 
               value={sueno} onChange={(e) => setSueno(e.target.value)}
               className="w-full h-8 accent-blue-500 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+            <div className="flex justify-between text-2xs text-fg-muted font-bold uppercase tracking-widest">
               <span>Pésimo (1)</span>
               <span>Increíble (10)</span>
             </div>
@@ -109,7 +109,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
               value={fatiga} onChange={(e) => setFatiga(e.target.value)}
               className="w-full h-8 accent-rose-500 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+            <div className="flex justify-between text-2xs text-fg-muted font-bold uppercase tracking-widest">
               <span>Agotado (1)</span>
               <span>Al 100% (10)</span>
             </div>
@@ -119,11 +119,11 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
           <div className="space-y-4">
             <div className="flex justify-between items-end mb-2">
               <label className="flex items-center space-x-2 text-sm font-bold text-white uppercase tracking-wider">
-                <Droplets size={16} className="text-[#FFD700]" />
+                <Droplets size={16} className="text-brand" />
                 <span>Color de tu primera orina hoy</span>
               </label>
             </div>
-            <p className="text-xs text-gray-400 leading-relaxed mb-4">
+            <p className="text-xs text-fg-secondary leading-relaxed mb-4">
               La Escala de Armstrong nos ayuda a medir objetivamente tu hidratación antes de entrenar. Selecciona el color que más se parezca.
             </p>
             
@@ -144,7 +144,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
               ))}
             </div>
             <div className="text-center mt-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#FFD700]">
+              <span className="text-2xs font-bold uppercase tracking-widest text-brand">
                 {URINE_COLORS.find(c => c.value === colorOrina)?.label}
               </span>
             </div>
@@ -153,10 +153,10 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full relative group overflow-hidden bg-white/5 border border-white/10 hover:border-indigo-500/50 rounded-xl p-4 transition-all"
+            className="w-full relative group overflow-hidden bg-white/5 border border-white/10 hover:border-indigo-500/50 rounded-control p-4 transition-all"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center justify-center space-x-2 text-white font-bold tracking-[0.2em] uppercase text-sm">
+            <div className="relative flex items-center justify-center space-x-2 text-white font-bold tracking-eyebrow uppercase text-sm">
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />

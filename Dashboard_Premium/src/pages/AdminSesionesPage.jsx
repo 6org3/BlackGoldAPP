@@ -14,7 +14,7 @@ export default function AdminSesionesPage() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="flex h-dvh bg-[#09090b] overflow-hidden text-white">
+    <div className="flex h-dvh bg-surface-base overflow-hidden text-white">
       <Sidebar />
       <main className="flex-1 overflow-y-auto">
         <AdminSesiones user={user} atletas={atletas} />

@@ -6,9 +6,9 @@ import { Droplets } from 'lucide-react';
 // que Tailwind las genere; no concatenar colores dinámicamente).
 function recoveryPill(estado) {
   if (!estado || estado === 'Óptimo') return null;
-  if (estado === 'Agotamiento Activo') return 'border-amber-500/40 text-amber-400 bg-amber-500/10';
-  if (estado === 'Fatiga Silenciosa') return 'border-purple-500/40 text-purple-400 bg-purple-500/10';
-  return 'border-red-500/40 text-red-400 bg-red-500/10';
+  if (estado === 'Agotamiento Activo') return 'border-warning/40 text-warning-soft bg-warning/10';
+  if (estado === 'Fatiga Silenciosa') return 'border-mental/40 text-mental-soft bg-mental/10';
+  return 'border-danger/40 text-danger-soft bg-danger/10';
 }
 
 export default function AthleteGridCard({ atleta, onClick }) {
@@ -28,7 +28,7 @@ export default function AthleteGridCard({ atleta, onClick }) {
           onClick();
         }
       }}
-      className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:border-[#FFD700]/30 focus-visible:ring-2 focus-visible:ring-[#FFD700]/60 focus-visible:outline-none transition-all cursor-pointer relative group"
+      className="bg-white/[0.03] border border-white/10 rounded-panel p-5 hover:border-brand/30 focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:outline-none transition-all cursor-pointer relative group"
     >
       {/* Recovery / Readiness alerts: pills con texto visible (nada de
           significado solo-hover en información médica) */}
@@ -37,7 +37,7 @@ export default function AthleteGridCard({ atleta, onClick }) {
           {deshidratado && (
             <span
               aria-label={`Alerta de hidratación (color de orina ${atleta.readiness_hoy.color_orina})`}
-              className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#FFD700]/40 text-[#FFD700] bg-[#FFD700]/10"
+              className="flex items-center gap-1 text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-brand/40 text-brand bg-brand/10"
             >
               <Droplets size={11} fill="currentColor" className="animate-pulse" />
               Hidratación
@@ -46,7 +46,7 @@ export default function AthleteGridCard({ atleta, onClick }) {
           {pillColor && (
             <span
               aria-label={`Estado de recuperación: ${atleta.estado_recuperacion}`}
-              className={`flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${pillColor}`}
+              className={`flex items-center gap-1 text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${pillColor}`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
               {atleta.estado_recuperacion}
@@ -61,10 +61,10 @@ export default function AthleteGridCard({ atleta, onClick }) {
           <span className="text-lg font-black text-white/50 uppercase">{atleta.nombre?.charAt(0)}</span>
         </div>
         <div className="min-w-0">
-          <p className="font-bold text-white truncate text-sm group-hover:text-[#FFD700] transition-colors">
+          <p className="font-bold text-white truncate text-sm group-hover:text-brand transition-colors">
             {atleta.nombre}
           </p>
-          <p className="text-xs text-gray-400 truncate">
+          <p className="text-xs text-fg-secondary truncate">
             {atleta.edad} años · {atleta.posicion}
           </p>
         </div>
@@ -73,20 +73,20 @@ export default function AthleteGridCard({ atleta, onClick }) {
       {/* Rango badge and profile */}
       <div className="mb-4 flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] font-black uppercase tracking-widest ${atleta.rango?.textColor || 'text-gray-400'}`}>
+          <span className={`text-2xs font-black uppercase tracking-widest ${atleta.rango?.textColor || 'text-fg-secondary'}`}>
             {atleta.rango?.nombre}
           </span>
-          <span className="text-[10px] text-gray-500 font-bold">{atleta.rango?.tier}</span>
+          <span className="text-2xs text-fg-muted font-bold">{atleta.rango?.tier}</span>
         </div>
 
         <div className="flex flex-wrap gap-1">
           {atleta.perfil_mental && (
-            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/5">
+            <span className="text-2xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-success/30 text-success-soft bg-success/5">
               {atleta.perfil_mental}
             </span>
           )}
           {atleta.prevencion_impacto && (
-            <span title="Sensibilidad al Impacto" className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-orange-500/30 text-orange-400 bg-orange-500/5 flex items-center">
+            <span title="Sensibilidad al Impacto" className="text-2xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-caution/30 text-caution-soft bg-caution/5 flex items-center">
               ⚠ Impacto
             </span>
           )}
@@ -95,16 +95,16 @@ export default function AthleteGridCard({ atleta, onClick }) {
 
       {/* Mini metric pills - Anthropometry */}
       <div className="flex items-center gap-2 flex-wrap mt-2 pt-3 border-t border-white/5">
-        <span title="Estatura" className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400">
+        <span title="Estatura" className="text-xs font-bold px-2 py-1 rounded-lg bg-info/10 text-info-soft">
           {atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'}
         </span>
         <span title="Peso" className="text-xs font-bold px-2 py-1 rounded-lg bg-green-500/10 text-green-400">
           {atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'}
         </span>
-        <span title="Índice de Masa Corporal (IMC)" className="text-xs font-bold px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400">
+        <span title="Índice de Masa Corporal (IMC)" className="text-xs font-bold px-2 py-1 rounded-lg bg-mental/10 text-mental-soft">
           IMC: {atleta.imc || '—'}
         </span>
-        <span title="Brazada Relativa" className="text-xs font-bold px-2 py-1 rounded-lg bg-[#FFD700]/10 text-[#FFD700]">
+        <span title="Brazada Relativa" className="text-xs font-bold px-2 py-1 rounded-lg bg-brand/10 text-brand">
           BR: {atleta.brazada_relativa || '—'}
         </span>
       </div>

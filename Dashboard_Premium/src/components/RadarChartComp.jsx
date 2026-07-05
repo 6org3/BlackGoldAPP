@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { build3LayerRadarData, getSubPilarScores } from '../lib/radarCalc.js';
+import { COLORS, CHART } from '../lib/designTokens';
 
 // Etiquetas abreviadas para que los ejes no se recorten en viewports angostos.
 const ETIQUETAS_CORTAS = {
@@ -25,8 +26,8 @@ function useEsMovil() {
 }
 
 export default function RadarChartComp({ atleta, todosLosAtletas, showCategoria = true, showClub = true, isAnimationActive = true }) {
-  const strokeColor = '#FFD700';
-  const fillColor = '#FFD700';
+  const strokeColor = CHART.radar.stroke;
+  const fillColor = CHART.radar.stroke;
   const esMovil = useEsMovil();
 
   // Build 3-layer data if todosLosAtletas is provided
@@ -96,10 +97,10 @@ export default function RadarChartComp({ atleta, todosLosAtletas, showCategoria 
             <Radar
               name="Categoría"
               dataKey="Categoria"
-              stroke="#10b981"
+              stroke={COLORS.feedback.success}
               strokeWidth={1.5}
               strokeDasharray="5 5"
-              fill="#10b981"
+              fill={COLORS.feedback.success}
               fillOpacity={0.08}
             />
           )}
@@ -134,19 +135,19 @@ export default function RadarChartComp({ atleta, todosLosAtletas, showCategoria 
       {use3Layer && (
         <div className="flex items-center justify-center space-x-6 mt-1">
           <div className="flex items-center space-x-1.5">
-            <div className="w-2 h-2 rounded-full bg-[#FFD700] shadow-[0_0_6px_rgba(255,215,0,0.5)]"></div>
-            <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Atleta</span>
+            <div className="w-2 h-2 rounded-full bg-brand shadow-[0_0_6px_rgba(255,215,0,0.5)]"></div>
+            <span className="text-[8px] text-fg-secondary font-bold uppercase tracking-widest">Atleta</span>
           </div>
           {showCategoria && (
             <div className="flex items-center space-x-1.5 opacity-80">
-              <div className="w-2 h-2 rounded-full bg-[#10b981]"></div>
-              <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Categoría</span>
+              <div className="w-2 h-2 rounded-full bg-success"></div>
+              <span className="text-[8px] text-fg-secondary font-bold uppercase tracking-widest">Categoría</span>
             </div>
           )}
           {showClub && (
             <div className="flex items-center space-x-1.5 opacity-60">
               <div className="w-2 h-2 rounded-full bg-white/20"></div>
-              <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Club</span>
+              <span className="text-[8px] text-fg-secondary font-bold uppercase tracking-widest">Club</span>
             </div>
           )}
         </div>
