@@ -2,7 +2,7 @@
 import { supabase } from './supabaseClient';
 import { xpBaseSesion } from '../../../packages/analytics-core/xp.js';
 import { otorgarXP } from './xpService';
-import { TABLA_EJERCICIOS_ENTRENAMIENTO } from './tablas';
+import { TABLA_EJERCICIOS_ENTRENAMIENTO, TABLA_PRUEBAS_EVALUACION } from './tablas';
 
 export async function fetchEjercicios(tipo = null) {
   let q = supabase.from(TABLA_EJERCICIOS_ENTRENAMIENTO).select('*').order('tipo').order('nombre');
@@ -54,6 +54,66 @@ export async function crearPlantilla({ titulo, enfoque_principal = null, descrip
     .single();
   if (error) throw error;
   return data;
+}
+
+// ============================
+// EVALUACIONES GRUPALES (fase P3b): sesiones de evaluación con pruebas
+// específicas para un grupo. pruebas_ids NO NULL en sesiones_programadas es el
+// discriminador de que la sesión es una evaluación (migración v23).
+// ============================
+
+/** Catálogo de PRUEBAS de evaluación (catalogo_ejercicios — no confundir con
+ *  ejercicios_catalogo, el de entrenamiento; ver src/api/tablas.js). */
+export async function fetchPruebasEvaluacion() {
+  const { data, error } = await supabase
+    .from(TABLA_PRUEBAS_EVALUACION)
+    .select('*')
+    .order('sub_pilar', { ascending: true })
+    .order('nombre', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+/**
+ * Programa una sesión de evaluación (futura o de hoy) para un grupo o un atleta.
+ * hora_inicio/hora_fin quedan en '00:00:00' hasta que el coach la INICIE en el
+ * Modo Cancha (ahí se estampan la hora real y el marker [EN_CURSO]).
+ */
+export async function programarEvaluacionGrupal({ coach_id, fecha, grupo_id = null, atleta_id = null, pruebas_ids }) {
+  const { data, error } = await supabase
+    .from('sesiones_programadas')
+    .insert({
+      coach_id,
+      fecha,
+      hora_inicio: '00:00:00',
+      hora_fin: '00:00:00',
+      estado: 'Programada',
+      tipo: atleta_id ? 'Individual' : 'Grupal',
+      grupo_id,
+      atleta_id,
+      pruebas_ids,
+      notas: 'Evaluación programada',
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/** Evaluaciones programadas de HOY del coach que aún no se iniciaron
+ *  (sin marker [EN_CURSO] — ese se estampa al iniciarlas en cancha). */
+export async function fetchEvaluacionesProgramadasHoy(coachId) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('sesiones_programadas')
+    .select('*, grupos_entrenamiento (nombre)')
+    .eq('coach_id', coachId)
+    .eq('fecha', hoy)
+    .eq('estado', 'Programada')
+    .not('pruebas_ids', 'is', null)
+    .not('notas', 'ilike', '[EN_CURSO]%');
+  if (error) { console.error(error); return []; }
+  return data || [];
 }
 
 export async function fetchGrupos() {

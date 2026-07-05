@@ -1,10 +1,12 @@
-import { Check } from 'lucide-react';
+import { Check, FlaskConical, Play } from 'lucide-react';
 import { DURACION_CLASE, useModoCanchaModalClock } from './useModoCanchaModalClock';
 
 export default function ModoCanchaModalSesionesActivas({
   activeSessions,
+  evaluacionesHoy = [],
   setStep,
-  handleResumeSession
+  handleResumeSession,
+  handleIniciarEvaluacionProgramada
 }) {
   // El ticker vive aquí (y no en ModoCanchaModal) para que el re-render por
   // segundo no reconcilie todo el árbol del modal en gama baja.
@@ -22,7 +24,35 @@ export default function ModoCanchaModalSesionesActivas({
         </button>
       </div>
 
-      {activeSessions.length === 0 && (
+      {/* Evaluaciones programadas para hoy (AdminSesiones) aún sin iniciar (P3b) */}
+      {evaluacionesHoy.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-[0.3em]">
+            Evaluaciones programadas hoy
+          </p>
+          {evaluacionesHoy.map(ev => (
+            <div key={ev.id} className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center space-x-2">
+                  <FlaskConical size={14} className="text-emerald-400 flex-shrink-0" />
+                  <p className="text-white font-bold text-sm truncate">
+                    {ev.grupos_entrenamiento?.nombre || (ev.tipo === 'Individual' ? 'Individual' : 'Grupo')}
+                  </p>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-0.5">
+                  {(ev.pruebas_ids || []).length} prueba{(ev.pruebas_ids || []).length !== 1 ? 's' : ''} · pasa lista y captura en cancha
+                </p>
+              </div>
+              <button onClick={() => handleIniciarEvaluacionProgramada(ev)}
+                className="flex-shrink-0 flex items-center px-4 py-2.5 min-h-11 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-colors">
+                <Play size={12} className="mr-1.5" /> Iniciar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeSessions.length === 0 && evaluacionesHoy.length === 0 && (
         <div className="flex justify-center items-center py-16">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFD700]"></div>
         </div>
@@ -104,7 +134,9 @@ export default function ModoCanchaModalSesionesActivas({
                   ? 'bg-emerald-500 text-black hover:bg-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                   : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10'
               }`}>
-              {t.terminada ? '✓ Evaluar y Finalizar' : 'Evaluar ahora (adelantar)'}
+              {session.pruebas_ids?.length
+                ? 'Capturar resultados'
+                : t.terminada ? '✓ Evaluar y Finalizar' : 'Evaluar ahora (adelantar)'}
             </button>
           </div>
         );

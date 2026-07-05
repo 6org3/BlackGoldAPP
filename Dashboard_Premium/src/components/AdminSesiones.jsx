@@ -9,8 +9,9 @@ import {
 import {
   fetchGrupos, fetchEjercicios,
   crearSesionControl, evaluarSesion, fetchSesionesControl,
-  crearPlantilla
+  crearPlantilla, fetchPruebasEvaluacion, programarEvaluacionGrupal
 } from '../api/sesionesService';
+import { labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { generarMensajeSesion, generarLinkWhatsApp } from '../api/comunicacionesService';
 
 const TIPOS = ['Técnico', 'Físico', 'Táctico', 'Evaluación', 'Recuperación'];
@@ -48,6 +49,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
   const [modo, setModo] = useState('Grupal'); // 'Grupal' | 'Individual'
   const [grupos, setGrupos] = useState([]);
   const [ejerciciosCatalogo, setEjerciciosCatalogo] = useState([]);
+  const [pruebasCatalogo, setPruebasCatalogo] = useState([]);
   const [historial, setHistorial] = useState([]);
   const [showForm, setShowForm] = useState(true);
   const [evaluandoId, setEvaluandoId] = useState(null);
@@ -64,6 +66,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
     objetivoTipo: 'Técnico',
     objetivoDesc: '',
     ejerciciosIds: [],
+    pruebasIds: [],
     ejerciciosNotas: '',
     esPagoExtra: false,
     montoExtra: 0,
@@ -71,13 +74,15 @@ export default function AdminSesiones({ user, atletas = [] }) {
   });
 
   const load = useCallback(async () => {
-    const [g, e, h] = await Promise.all([
+    const [g, e, p, h] = await Promise.all([
       fetchGrupos(),
       fetchEjercicios(),
+      fetchPruebasEvaluacion(),
       fetchSesionesControl({ limit: 15 }),
     ]);
     setGrupos(g);
     setEjerciciosCatalogo(e);
+    setPruebasCatalogo(p);
     setHistorial(h);
     if (g.length > 0) setForm(f => ({ ...f, grupoId: g[0].id }));
   }, []);
@@ -100,12 +105,27 @@ export default function AdminSesiones({ user, atletas = [] }) {
     }));
   };
 
+  const togglePrueba = (id) => {
+    setForm(f => ({
+      ...f,
+      pruebasIds: f.pruebasIds.includes(id)
+        ? f.pruebasIds.filter(x => x !== id)
+        : [...f.pruebasIds, id]
+    }));
+  };
+
+  const esEvaluacion = form.objetivoTipo === 'Evaluación';
+
   const atletasFiltrados = atletas.filter(a =>
     busquedaAtleta && a.nombre?.toLowerCase().includes(busquedaAtleta.toLowerCase())
   );
 
   const handleGuardar = async () => {
     if (!form.objetivoDesc.trim()) return;
+    if (esEvaluacion && form.pruebasIds.length === 0) {
+      alert('Una sesión de Evaluación necesita al menos una prueba seleccionada.');
+      return;
+    }
     setSaving(true);
     try {
       await crearSesionControl({
@@ -121,8 +141,22 @@ export default function AdminSesiones({ user, atletas = [] }) {
         es_pago_extra: (modo === 'Privada 1v1' || modo === 'Grupal Individualizada') ? form.esPagoExtra : false,
         monto_extra: form.esPagoExtra ? form.montoExtra : 0,
       });
+
+      // Evaluación (P3b): además del registro, se crea la sesión EJECUTABLE con sus
+      // pruebas — el Modo Cancha la mostrará el día de la fecha para pasar lista y
+      // capturar los resultados del grupo por estaciones.
+      if (esEvaluacion) {
+        await programarEvaluacionGrupal({
+          coach_id: user.id,
+          fecha: form.fecha,
+          grupo_id: modo.startsWith('Grupal') ? form.grupoId : null,
+          atleta_id: modo === 'Privada 1v1' ? atletaSeleccionado?.atleta_id : null,
+          pruebas_ids: form.pruebasIds,
+        });
+      }
+
       setSaved(true);
-      setForm(f => ({ ...f, objetivoDesc: '', ejerciciosIds: [], ejerciciosNotas: '' }));
+      setForm(f => ({ ...f, objetivoDesc: '', ejerciciosIds: [], pruebasIds: [], ejerciciosNotas: '' }));
       const h = await fetchSesionesControl({ limit: 15 });
       setHistorial(h);
       setTimeout(() => setSaved(false), 2000);
@@ -332,7 +366,42 @@ export default function AdminSesiones({ user, atletas = [] }) {
             </div>
           </div>
 
-          {/* Selector de Ejercicios */}
+          {/* Selector de Pruebas (tipo Evaluación, P3b): programa la sesión ejecutable */}
+          {esEvaluacion && (
+            <div className="glass-card rounded-2xl p-5 border border-[#FFD700]/20">
+              <label className="block text-[9px] text-[#FFD700] font-black uppercase tracking-[0.25em] mb-3">
+                Pruebas de evaluación ({form.pruebasIds.length} seleccionadas)
+              </label>
+              <p className="text-[10px] text-gray-500 mb-3">
+                El día {form.fecha} esta evaluación aparecerá en el Modo Cancha para pasar lista y capturar los resultados del grupo.
+              </p>
+              <div className="space-y-1.5 max-h-64 md:max-h-48 overflow-y-auto overscroll-contain pr-1">
+                {pruebasCatalogo.length === 0 && (
+                  <p className="text-xs text-gray-600 italic">No hay pruebas en el catálogo de evaluación.</p>
+                )}
+                {pruebasCatalogo.map(p => {
+                  const sel = form.pruebasIds.includes(p.id);
+                  return (
+                    <button key={p.id} onClick={() => togglePrueba(p.id)}
+                      className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                        sel ? 'text-[#FFD700] bg-[#FFD700]/10 border-[#FFD700]/30 opacity-100' : 'border-white/5 hover:bg-white/5 opacity-70 hover:opacity-100'
+                      }`}>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${sel ? 'bg-current border-current' : 'border-white/20'}`}>
+                        {sel && <div className="w-2 h-2 rounded-full bg-[#09090b]" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-white truncate">{p.nombre}</p>
+                        <p className="text-[9px] text-gray-500">{labelSubPilar(p.sub_pilar)} · {p.unidad}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Selector de Ejercicios (tipos de entrenamiento) */}
+          {!esEvaluacion && (
           <div className="glass-card rounded-2xl p-5 border border-white/8">
             <label className="block text-[9px] text-gray-500 font-black uppercase tracking-[0.25em] mb-3">
               Ejercicios ({ejerciciosFiltrados.length} disponibles)
@@ -368,6 +437,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
               </div>
             )}
           </div>
+          )}
 
           {/* Objetivo (texto libre) */}
           <div>

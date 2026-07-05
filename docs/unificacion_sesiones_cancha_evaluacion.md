@@ -646,19 +646,40 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
     es contenido pendiente, no refactor.
   - Verificación: suite 229/229, build de producción OK, lint sin problemas nuevos
     (los preexistentes confirmados con git stash).
-- **P3b — Programar pruebas por grupo (pendiente, requiere diseño + migración chica):**
-  (dirección del owner 2026-07-05): hoy la evaluación científica solo se dispara desde
-  la tarjeta del atleta (botón "Evaluar" → `EvaluacionModal`, un atleta a la vez). El
-  flujo unificado debe permitir además **programar una sesión de evaluación con pruebas
-  específicas** (`catalogo_ejercicios`) **para un grupo** (`atleta_grupo`, v18) en una
-  fecha, y capturar los resultados de todos los atletas del grupo en un solo recorrido
-  en cancha. Encaja con la decisión #4 (§3.4): una sesión con
-  `tipo_actividad='Evaluación'` + lista de pruebas. Diseño tentativo a detallar antes
-  de implementar: plantilla de `catalogo_sesiones` con `tipo_actividad='Evaluación'`
-  cuyo `ejercicios_ids` referencia pruebas (o columna `pruebas_ids` separada para no
-  mezclar los dos catálogos espejo, §2.3), y una vista de captura grupal que itera
-  atletas presentes × pruebas reutilizando el motor actual (`normalizarValor` +
-  guardado de `evaluaciones_pruebas` por atleta).
+- **P3b — Programar pruebas por grupo** ✅ CÓDIGO LISTO (2026-07-05; migración v23
+  pendiente de `db push` + deploy, con autorización del owner). Decisiones del owner:
+  **captura por estación/prueba** (se monta una prueba y se capturan todos los
+  presentes, luego la siguiente) y **doble origen** (programada desde AdminSesiones +
+  inmediata desde Modo Cancha). Lo construido:
+  - **Migración v23** (`20260705221730`): `sesiones_programadas ADD pruebas_ids JSONB`
+    — `pruebas_ids` NO NULL es el discriminador de "sesión de evaluación" (sin marker
+    nuevo ni cambio del CHECK de estado/tipo). Columna separada de `ejercicios_ids`
+    para no mezclar los catálogos espejo (§2.3). Validada en Docker
+    (baseline+v21+v22+v23).
+  - **Servicios**: `fetchPruebasEvaluacion` (catálogo de pruebas),
+    `programarEvaluacionGrupal` (fila Programada con hora `00:00:00` hasta iniciarse),
+    `fetchEvaluacionesProgramadasHoy` (las de hoy sin `[EN_CURSO]`),
+    `guardarEvaluacionesLote(registros, {recalcular})` — inserta el lote y recalcula
+    overall UNA vez por atleta (no por prueba: cada `recalcularOverall` dispara el
+    pipeline de misiones de la Edge).
+  - **AdminSesiones**: con tipo "Evaluación" el selector muestra PRUEBAS (no los
+    ejercicios de entrenamiento, catálogo vacío) y al registrar crea también la sesión
+    ejecutable con fecha/grupo/pruebas_ids.
+  - **Modo Cancha**: 4ª opción "Evaluación Grupal" en el paso 1 → paso 2 selector de
+    pruebas (el orden de selección = orden de estaciones) → pasa lista (asistencia
+    real de P3a) → **paso 6: captura por estaciones**
+    (`ModoCanchaModalCapturaEvaluacion`): input por atleta con tier/puntuación en vivo
+    (mismo `normalizarValor` + perfil género/nivel del modal individual), atletas sin
+    resultado se saltan, "Guardar estación" por lote y "Finalizar" recalcula y cierra
+    la sesión como Completada. Las programadas de hoy aparecen en el paso 0 con
+    "Iniciar" (premarca la asistencia con los atletas del grupo, ratificable);
+    reanudar una evaluación `[EN_CURSO]` va a la captura, no al grid subjetivo.
+  - Una evaluación NO escribe `sesiones_entrenamiento` (no es historial de
+    entrenamiento) ni otorga XP base en el MVP (pendiente decisión de producto si
+    asistir a evaluación debe dar XP).
+  - Verificación: suite 229/229, build de producción OK, lint sin problemas nuevos.
+  - **Orden de despliegue**: `db push` v23 ANTES del deploy web (el código consulta
+    `pruebas_ids`; sin la columna, `fetchEvaluacionesProgramadasHoy` fallaría).
 
 ---
 

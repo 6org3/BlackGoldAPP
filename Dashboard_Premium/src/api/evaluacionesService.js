@@ -24,6 +24,31 @@ export const guardarEvaluacion = async (evaluacion) => {
   return data;
 };
 
+/**
+ * Guardado por LOTE para la captura grupal (fase P3b): inserta todas las filas de
+ * evaluaciones_pruebas de una estación y recalcula el overall UNA sola vez por
+ * atleta involucrado — no por prueba: recalcularOverall lee todas las evaluaciones
+ * del atleta y dispara el pipeline de misiones (Edge); llamarlo N atletas × M
+ * pruebas veces en una evaluación grupal sería un martilleo innecesario.
+ */
+export const guardarEvaluacionesLote = async (registros, { recalcular = true } = {}) => {
+  if (!registros || registros.length === 0) return [];
+  const { data, error } = await supabase
+    .from('evaluaciones_pruebas')
+    .insert(registros)
+    .select();
+  if (error) throw error;
+
+  // La captura por estaciones guarda con recalcular=false estación por estación y
+  // recalcula UNA vez al finalizar toda la sesión de evaluación.
+  if (recalcular) {
+    const atletasUnicos = [...new Set(registros.map(r => r.atleta_id))];
+    await Promise.all(atletasUnicos.map(id => recalcularOverall(id)));
+  }
+
+  return data || [];
+};
+
 export const fetchEvaluacionesAtleta = async (atletaId) => {
   const { data, error } = await supabase
     .from('evaluaciones_pruebas')
