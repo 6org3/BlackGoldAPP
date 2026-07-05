@@ -2,9 +2,10 @@
 import { supabase } from './supabaseClient';
 import { xpBaseSesion } from '../../../packages/analytics-core/xp.js';
 import { otorgarXP } from './xpService';
+import { TABLA_EJERCICIOS_ENTRENAMIENTO } from './tablas';
 
 export async function fetchEjercicios(tipo = null) {
-  let q = supabase.from('ejercicios_catalogo').select('*').order('tipo').order('nombre');
+  let q = supabase.from(TABLA_EJERCICIOS_ENTRENAMIENTO).select('*').order('tipo').order('nombre');
   if (tipo) q = q.eq('tipo', tipo);
   const { data, error } = await q;
   if (error) { console.error(error); return []; }

@@ -5,6 +5,7 @@ import { X, ClipboardCheck, ChevronDown, FlaskConical, Save, Loader2, CheckCircl
 import { TIER_CONFIG, normalizarValor, categoriaABucketBaremo } from '../lib/baremosEngine';
 import { labelPilar, labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { supabase } from '../api/supabaseClient';
+import { TABLA_PRUEBAS_EVALUACION } from '../api/tablas';
 import { recalcularOverall } from '../api/evaluacionesService';
 import { useAuth } from '../AuthContext';
 import NuevaPruebaModal from './NuevaPruebaModal';
@@ -117,7 +118,7 @@ export default function EvaluacionModal({ atleta, onClose, onSaved }) {
     setLoadingCatalogo(true);
     try {
       const { data, error } = await supabase
-        .from('catalogo_ejercicios')
+        .from(TABLA_PRUEBAS_EVALUACION)
         .select('*');
       if (data && !error) {
         setCatalogoEjercicios(dedupePorNombre(data));

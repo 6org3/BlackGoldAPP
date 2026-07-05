@@ -63,6 +63,14 @@ Trampa de mantenimiento real:
 Los nombres son casi idénticos e invertidos (`ejercicios_catalogo` vs
 `catalogo_ejercicios`), lo que garantiza confusión futura.
 
+**Estado (2026-07-05):** son **dominios distintos, NO duplicados** — no se fusionan. Para
+matar la trampa del nombre espejo a nivel de código se centralizaron los literales en
+`src/api/tablas.js` (`TABLA_PRUEBAS_EVALUACION` = `catalogo_ejercicios`,
+`TABLA_EJERCICIOS_ENTRENAMIENTO` = `ejercicios_catalogo`), consumidos por EvaluacionModal,
+NuevaPruebaModal y sesionesService. **Pendiente (opt-in):** renombrar la tabla física en
+producción para eliminar el espejo requiere una migración + coordinación de deploy (RLS y
+scripts que la referencian) — no hecho por su riesgo en datos reales.
+
 ### 2.4 Tres caminos que otorgan XP / mueven stats
 
 1. `ModoCanchaModal.handleCerrarClase` — +XP base por tipo de clase + bonus al pilar.

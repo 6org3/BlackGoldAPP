@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Target, Save, Info, AlertCircle } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
+import { TABLA_PRUEBAS_EVALUACION } from '../api/tablas';
 import { useAuth } from '../AuthContext';
 
 export default function NuevaPruebaModal({ isOpen, onClose, onPruebaCreated }) {
@@ -79,7 +80,7 @@ export default function NuevaPruebaModal({ isOpen, onClose, onPruebaCreated }) {
       };
 
       const { error: insertError } = await supabase
-        .from('catalogo_ejercicios')
+        .from(TABLA_PRUEBAS_EVALUACION)
         .insert([newPrueba]);
 
       if (insertError) throw insertError;
