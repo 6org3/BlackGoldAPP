@@ -1,6 +1,7 @@
 // src/api/authService.js
 import { supabase } from './supabaseClient';
 import { getRango } from '../lib/baremosEngine';
+import { calcularMetricasDerivadas } from './utilsAtletas';
 
 export const calculateRank = (atleta) => {
   const overallScore = atleta.overall_score || 0;
@@ -97,8 +98,11 @@ export const fetchUsuarioCompleto = async (usuarioBase) => {
         id: usuarioBase.id,
         atleta_id: atletaData.id,
         _evaluaciones: evalsArray,
-        _readiness_hoy: readinessData || null
+        // La clave que leen didacticEngine y las tarjetas es readiness_hoy
+        // (antes se guardaba como _readiness_hoy y nadie la consumía).
+        readiness_hoy: readinessData || null
       };
+      calcularMetricasDerivadas(merged, readinessData || null, evalsArray);
       merged.rango = calculateRank(merged);
       return merged;
     }

@@ -1,7 +1,7 @@
 // src/api/atletasService.js
 import { supabase } from './supabaseClient';
 import { calculateRank } from './authService';
-import { calcularCategoriaFEB } from './utilsAtletas';
+import { calcularCategoriaFEB, calcularMetricasDerivadas } from './utilsAtletas';
 
 // ============================
 // FETCH ATLETAS (Supabase)
@@ -170,38 +170,7 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
       _evaluaciones: evalsArray,
     };
 
-    // IMC calculation: peso_kg / (talla_m)^2
-    if (merged.peso_kg && merged.talla_cm) {
-      const talla_m = merged.talla_cm / 100;
-      merged.imc = (merged.peso_kg / (talla_m * talla_m)).toFixed(1);
-    } else {
-      merged.imc = 'N/A';
-    }
-
-    // Índice Córmico or Brazada Relativa (Wingspan / Height)
-    if (merged.envergadura_cm && merged.talla_cm) {
-      merged.brazada_relativa = (merged.envergadura_cm / merged.talla_cm).toFixed(2);
-    } else {
-      merged.brazada_relativa = 'N/A';
-    }
-
-    // Dynamic estado_recuperacion based on 'Carga Subjetiva y Sueño' test
-    const recoveryEval = evalsArray
-      .filter(e => e.prueba_tipo === 'Carga Subjetiva y Sueño')
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-
-    if (readinessHoy) {
-      if (readinessHoy.readiness_score < 4) merged.estado_recuperacion = 'Agotamiento Activo';
-      else if (readinessHoy.readiness_score < 7) merged.estado_recuperacion = 'Fatiga Silenciosa';
-      else merged.estado_recuperacion = 'Óptimo';
-    } else if (recoveryEval) {
-      // Fallback a la evaluación antigua si no hay check-in hoy
-      if (recoveryEval.resultado <= 3) merged.estado_recuperacion = 'Agotamiento Activo';
-      else if (recoveryEval.resultado <= 6) merged.estado_recuperacion = 'Fatiga Silenciosa';
-      else merged.estado_recuperacion = 'Óptimo';
-    } else {
-      merged.estado_recuperacion = 'Sin datos';
-    }
+    calcularMetricasDerivadas(merged, readinessHoy, evalsArray);
 
     merged.rango = calculateRank(merged);
     return merged;

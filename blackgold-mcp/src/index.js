@@ -741,6 +741,130 @@ server.tool(
   }
 );
 
+// ============================================================
+// DESCRIPCIONES DEL CATÁLOGO DE PRUEBAS (espejo de las tools de
+// misiones): el MCP redacta descripcion (qué mide + justificación
+// científica con fuente) y descripcion_ejecucion (protocolo) para
+// las pruebas de catalogo_ejercicios que no las tengan — tanto la
+// batería estándar (baremo_key) como las creadas por el coach en
+// NuevaPruebaModal. EvaluacionModal muestra ambos campos al
+// seleccionar la prueba.
+// ============================================================
+
+const faltaTexto = (v) => v === null || v === undefined || String(v).trim() === "";
+
+// Tool 11: Generar Descripciones de Pruebas
+server.tool(
+  "generar_descripciones_pruebas",
+  "Lista las pruebas de catalogo_ejercicios sin descripcion y/o sin descripcion_ejecucion (batería estándar y pruebas creadas por el coach) con sus umbrales de baremo por bucket de edad como contexto, y devuelve las instrucciones para redactarlas con justificación científica. Tras redactarlas, guardarlas con actualizar_descripciones_pruebas.",
+  {
+    solo_baremo_key: z.boolean().optional().describe("true = limitar a la batería estándar (filas con baremo_key)"),
+  },
+  async ({ solo_baremo_key }) => {
+    try {
+      const { data: pruebas, error } = await supabase
+        .from("catalogo_ejercicios")
+        .select("id, nombre, baremo_key, pilar, sub_pilar, tren, unidad, invertido, thresholds, inputs_requeridos, descripcion, descripcion_ejecucion");
+      if (error) throw new Error("Error consultando catalogo_ejercicios: " + error.message);
+
+      const pendientes = (pruebas || []).filter(p =>
+        (!solo_baremo_key || p.baremo_key) &&
+        (faltaTexto(p.descripcion) || faltaTexto(p.descripcion_ejecucion))
+      );
+
+      if (pendientes.length === 0) {
+        return { content: [{ type: "text", text: "✅ Todas las pruebas del catálogo ya tienen descripcion y descripcion_ejecucion." }] };
+      }
+
+      let prompt = `=== PRUEBAS SIN DESCRIPCIÓN COMPLETA: ${pendientes.length} ===\n`;
+      pendientes.forEach(p => {
+        prompt += `\n· "${p.nombre}" (id=${p.id})\n`;
+        prompt += `  pilar=${p.pilar} sub_pilar=${p.sub_pilar}${p.tren ? ` tren=${p.tren}` : ""} · unidad=${p.unidad} · ${p.invertido ? "menos_es_mejor" : "mas_es_mejor"}\n`;
+        if (p.inputs_requeridos) prompt += `  inputs: ${p.inputs_requeridos.map(i => i.label).join(" y ")} (el sistema promedia y alerta asimetría >15%)\n`;
+        if (p.thresholds) prompt += `  umbrales por bucket: ${JSON.stringify(p.thresholds)}\n`;
+        prompt += `  falta: ${[faltaTexto(p.descripcion) ? "descripcion" : null, faltaTexto(p.descripcion_ejecucion) ? "descripcion_ejecucion" : null].filter(Boolean).join(" + ")}\n`;
+      });
+
+      prompt += `
+=== INSTRUCCIONES DE REDACCIÓN (mismo estándar que el catálogo de misiones) ===
+Para cada prueba redacta:
+- descripcion: qué capacidad mide y por qué importa en baloncesto formativo, con fundamento
+  científico CON FUENTE (NSCA, FitnessGram, NBA Combine, PubMed — mismo estándar que
+  packages/analytics-core/baremos_cientificos.md), y cómo puntúa: los umbrales del baremo
+  dependen del bucket de edad (Sub12/Sub15/Sub18/Senior) derivado de la categoría FEB del
+  atleta, y definen 5 tiers (Debe Mejorar → Excelente) que alimentan el overall del pilar.
+- descripcion_ejecucion: protocolo ejecutable paso a paso por el coach (posición inicial,
+  criterio de repetición/medida válida, intentos y qué valor registrar, en la unidad indicada).
+Texto plano, 2-4 frases por campo, en español.
+
+Cuando tengas el lote redactado, llama a actualizar_descripciones_pruebas. Por defecto solo
+rellena campos vacíos (nunca pisa texto ya escrito por el coach).`;
+
+      return { content: [{ type: "text", text: prompt }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 12: Actualizar Descripciones de Pruebas
+server.tool(
+  "actualizar_descripciones_pruebas",
+  "Guarda en lote descripcion y/o descripcion_ejecucion de pruebas de catalogo_ejercicios. Solo escribe esos dos campos (jamás los campos científicos del sync) y por defecto solo rellena los que estén vacíos; sobrescribir=true permite reemplazar texto existente.",
+  {
+    pruebas: z.array(z.object({
+      id: z.string().uuid(),
+      descripcion: z.string().min(20).optional(),
+      descripcion_ejecucion: z.string().min(20).optional(),
+    })).min(1).describe("Lote de pruebas con los textos redactados"),
+    sobrescribir: z.boolean().optional().describe("true = permite reemplazar textos no vacíos (default false)"),
+  },
+  async ({ pruebas, sobrescribir }) => {
+    try {
+      const resultados = [];
+      for (const p of pruebas) {
+        if (!p.descripcion && !p.descripcion_ejecucion) {
+          resultados.push(`⚠️ ${p.id}: sin campos que actualizar, omitida.`);
+          continue;
+        }
+
+        const { data: actual, error: readError } = await supabase
+          .from("catalogo_ejercicios")
+          .select("id, nombre, descripcion, descripcion_ejecucion")
+          .eq("id", p.id)
+          .single();
+        if (readError || !actual) {
+          resultados.push(`❌ ${p.id}: no encontrada (${readError?.message ?? "sin fila"}).`);
+          continue;
+        }
+
+        const cambios = {};
+        if (p.descripcion && (sobrescribir || faltaTexto(actual.descripcion))) cambios.descripcion = p.descripcion;
+        if (p.descripcion_ejecucion && (sobrescribir || faltaTexto(actual.descripcion_ejecucion))) cambios.descripcion_ejecucion = p.descripcion_ejecucion;
+
+        if (Object.keys(cambios).length === 0) {
+          resultados.push(`⏭️ "${actual.nombre}": campos ya escritos, no se pisan (usa sobrescribir=true si es intencional).`);
+          continue;
+        }
+
+        const { error: upError } = await supabase
+          .from("catalogo_ejercicios")
+          .update(cambios)
+          .eq("id", p.id);
+        if (upError) {
+          resultados.push(`❌ "${actual.nombre}": ${upError.message}`);
+          continue;
+        }
+        resultados.push(`✅ "${actual.nombre}": ${Object.keys(cambios).join(" + ")}`);
+      }
+
+      return { content: [{ type: "text", text: resultados.join("\n") }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
