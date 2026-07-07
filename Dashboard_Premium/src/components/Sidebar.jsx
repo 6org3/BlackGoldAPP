@@ -121,7 +121,9 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             onClick={() => navigate('/admin/misiones')}
           />
         )}
-        {(user.rol === 'owner' || user.rol === 'superadmin') && (
+        {/* El coach entra en modo cobro (registrar efectivo y recordar); la ruta
+            ya lo admitía — ocultarle el enlace era una barrera cosmética. */}
+        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
           <NavItem
             icon={<DollarSign size={18} />}
             label="Control de Pagos"

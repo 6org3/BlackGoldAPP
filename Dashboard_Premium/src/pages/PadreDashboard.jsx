@@ -17,6 +17,7 @@ import { getSubPilarScores } from '../lib/radarCalc';
 import { COLORS, CHART, MOTION, staggerDelay } from '../lib/designTokens';
 
 import EditarPerfilModal from '../components/EditarPerfilModal';
+import EstadoCuentaPadre from '../components/EstadoCuentaPadre';
 
 const METRICAS_CONFIG = [
   { key: 'fuerza', label: 'Fuerza' },
@@ -407,20 +408,8 @@ export default function PadreDashboard() {
               )}
             </motion.div>
 
-            {/* Pagos Pendientes Demo */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-4 sm:p-6 rounded-panel border border-danger/30 bg-gradient-to-br from-danger/5 to-transparent">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-danger-soft mb-4 flex items-center"><ShieldAlert className="mr-2 w-4 h-4" /> Estado de Pagos</h3>
-              <div className="flex justify-between items-center mb-4">
-                <div>
-                  <p className="text-sm font-bold text-white">Mensualidad Junio</p>
-                  <p className="text-2xs text-danger-soft uppercase tracking-widest">Vencida hace 3 días</p>
-                </div>
-                <span className="text-lg font-black text-white">$30.00</span>
-              </div>
-              <button className="w-full bg-danger hover:bg-danger-soft text-white font-bold uppercase tracking-eyebrow py-3 min-h-11 rounded-control transition text-2xs">
-                Enviar Comprobante al WhatsApp
-              </button>
-            </motion.div>
+            {/* Estado de cuenta real (v27): pagos abiertos, subir comprobante, historial */}
+            <EstadoCuentaPadre hijo={hijoActual} user={user} />
           </div>
 
           {/* Columna Centro/Derecha: Historial y Anuncios */}

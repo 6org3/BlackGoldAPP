@@ -2,50 +2,71 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   DollarSign, CheckCircle2, AlertTriangle, Clock,
-  MessageSquare, Plus, RefreshCw, Shield, ChevronDown
+  MessageSquare, Plus, RefreshCw, Shield, ChevronDown,
+  FileSearch, Hourglass, CircleDollarSign, Ban, Paperclip,
 } from 'lucide-react';
 import {
-  fetchPagosMes, marcarPagado, actualizarEstadoVencidos,
-  generarPagosMensuales
+  fetchPagosMes, registrarTransaccion, registrarTransferenciaAsistida,
+  actualizarEstadoVencidos, generarPagosMensuales, fetchGruposClub, fetchContactosPago,
 } from '../api/pagosService';
-import { generarLinkWhatsApp, generarMensajeRecordatorioPago } from '../api/comunicacionesService';
+import { registrarEnvioWhatsApp } from '../api/comunicacionesService';
+import { renderPlantilla, normalizarTelefonoEC, linkWhatsApp } from '../lib/plantillasWhatsApp';
+import PorVerificarPanel from './PorVerificarPanel';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 const ESTADO_CFG = {
-  Pagado:    { color: 'text-success-soft bg-success/10 border-success/30', icon: CheckCircle2 },
-  Pendiente: { color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',   icon: Clock },
-  Vencido:   { color: 'text-danger-soft bg-danger/10 border-danger/30',            icon: AlertTriangle },
-  Becado:    { color: 'text-mental-soft bg-mental/10 border-mental/30',   icon: Shield },
+  Pagado:          { color: 'text-success-soft bg-success/10 border-success/30', icon: CheckCircle2 },
+  Pendiente:       { color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30', icon: Clock },
+  Vencido:         { color: 'text-danger-soft bg-danger/10 border-danger/30', icon: AlertTriangle },
+  Becado:          { color: 'text-mental-soft bg-mental/10 border-mental/30', icon: Shield },
+  Abonado:         { color: 'text-info-soft bg-info/10 border-info/30', icon: CircleDollarSign },
+  'Por Verificar': { color: 'text-caution-soft bg-caution/10 border-caution/30', icon: Hourglass },
+  Anulado:         { color: 'text-fg-muted bg-white/5 border-white/10', icon: Ban },
 };
 
-const GRUPOS = ['Todos', 'Micro', 'Desarrollo', 'Elite'];
+// Estados sobre los que el staff puede registrar dinero
+const ESTADOS_COBRABLES = ['Pendiente', 'Vencido', 'Abonado'];
 
 export default function AdminPagos({ user, atletas = [] }) {
   const hoy = new Date();
+  const esCoach = user?.rol === 'coach';
   const [mes, setMes] = useState(hoy.getMonth() + 1);
   const [anio, setAnio] = useState(hoy.getFullYear());
-  const [grupo, setGrupo] = useState('Todos');
+  const [grupos, setGrupos] = useState([]);            // grupos reales del club
+  const [grupoId, setGrupoId] = useState('Todos');
   const [pagos, setPagos] = useState([]);
+  const [contactos, setContactos] = useState({});      // atleta_id → representante de pagos
   const [loading, setLoading] = useState(false);
-  const [marcandoId, setMarcandoId] = useState(null);
-  const [formaPago, setFormaPago] = useState('Efectivo');
   const [generando, setGenerando] = useState(false);
   const [vencidosListos, setVencidosListos] = useState(false);
+  const [mostrarVerificacion, setMostrarVerificacion] = useState(false);
+  const [pendientesVerificar, setPendientesVerificar] = useState(0);
 
-  // Marcar vencidos una sola vez al entrar (es una escritura en DB);
+  // Formulario inline de registro de transacción (abonos incluidos)
+  const [registrandoId, setRegistrandoId] = useState(null);
+  const [formaPago, setFormaPago] = useState('Efectivo');
+  const [montoTx, setMontoTx] = useState('');
+  const [referenciaTx, setReferenciaTx] = useState('');
+  const [archivoTx, setArchivoTx] = useState(null);
+  const [guardandoTx, setGuardandoTx] = useState(false);
+
+  // Marcar vencidos una sola vez al entrar (respaldo del job pg_cron);
   // cambiar mes/año/grupo solo debe leer.
   useEffect(() => {
     actualizarEstadoVencidos().finally(() => setVencidosListos(true));
+    fetchGruposClub().then(setGrupos);
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetchPagosMes(mes, anio, grupo);
+    const data = await fetchPagosMes(mes, anio, grupoId);
     setPagos(data);
     setLoading(false);
-  }, [mes, anio, grupo]);
+    const atletaIds = [...new Set(data.map(p => p.atleta_id))];
+    fetchContactosPago(atletaIds).then(setContactos);
+  }, [mes, anio, grupoId]);
 
   useEffect(() => {
     if (!vencidosListos) return;
@@ -57,18 +78,91 @@ export default function AdminPagos({ user, atletas = [] }) {
     const m = { pagados: 0, pendientes: 0, vencidos: 0, becados: 0, recaudado: 0, porCobrar: 0 };
     pagos.forEach(p => {
       const monto = p.monto_final || 0;
+      const pagado = p.monto_pagado || 0;
       if (p.estado === 'Pagado') { m.pagados += 1; m.recaudado += monto; }
-      else if (p.estado === 'Pendiente') { m.pendientes += 1; m.porCobrar += monto; }
-      else if (p.estado === 'Vencido') { m.vencidos += 1; m.porCobrar += monto; }
+      else if (p.estado === 'Pendiente' || p.estado === 'Por Verificar') { m.pendientes += 1; m.porCobrar += monto - pagado; }
+      else if (p.estado === 'Abonado') { m.pendientes += 1; m.recaudado += pagado; m.porCobrar += monto - pagado; }
+      else if (p.estado === 'Vencido') { m.vencidos += 1; m.recaudado += pagado; m.porCobrar += monto - pagado; }
       else if (p.estado === 'Becado') { m.becados += 1; }
     });
     return m;
   }, [pagos]);
 
-  const handleMarcarPagado = async (pagoId) => {
-    await marcarPagado(pagoId, { forma_pago: formaPago });
-    setMarcandoId(null);
-    load();
+  const saldoDe = (pago) => Math.max((pago.monto_final || 0) - (pago.monto_pagado || 0), 0);
+
+  const abrirRegistro = (pago) => {
+    setRegistrandoId(pago.id);
+    setFormaPago('Efectivo');
+    setMontoTx(saldoDe(pago).toFixed(2));
+    setReferenciaTx('');
+    setArchivoTx(null);
+  };
+
+  const handleRegistrarTransaccion = async (pago) => {
+    const monto = Number(montoTx);
+    if (!monto || monto <= 0) { alert('Monto inválido.'); return; }
+    setGuardandoTx(true);
+    try {
+      if (formaPago === 'Transferencia' && archivoTx) {
+        // Camino asistido: el padre mandó la foto por WhatsApp; el staff la
+        // registra en su nombre (comprobante + aprobación en un gesto).
+        await registrarTransferenciaAsistida(
+          { pagoId: pago.id, atletaId: pago.atleta_id, file: archivoTx, numeroDocumento: referenciaTx, montoDeclarado: monto },
+          user.id
+        );
+      } else {
+        await registrarTransaccion(pago.id, { monto, forma_pago: formaPago, referencia: referenciaTx }, user.id);
+      }
+      setRegistrandoId(null);
+      load();
+    } catch (e) {
+      console.error(e);
+      alert(`No se pudo registrar el pago: ${e.message}`);
+    } finally {
+      setGuardandoTx(false);
+    }
+  };
+
+  const conceptoDe = (pago) => pago.concepto
+    || (pago.tipo === 'Mensualidad' ? `Mensualidad ${MESES[pago.mes] || ''}` : pago.tipo);
+
+  // WhatsApp dirigido al representante de pagos, con plantilla según estado.
+  // Sin teléfono normalizable cae al selector de contactos (comportamiento previo).
+  const enviarWhatsApp = (pago) => {
+    const contacto = contactos[pago.atleta_id];
+    if (pago.atletas?.recordatorios_pausados && pago.estado !== 'Pagado') {
+      if (!window.confirm('Esta familia tiene los recordatorios pausados (acuerdo con el club). ¿Enviar de todas formas?')) return;
+    }
+    const nombre = pago.atletas?.usuarios?.nombre || 'el atleta';
+    const saldo = saldoDe(pago).toFixed(2);
+    let clave, vars;
+    if (pago.estado === 'Pagado') {
+      clave = 'confirmacion_pago';
+      vars = { nombre_atleta: nombre, concepto: conceptoDe(pago), monto: (pago.monto_final || 0).toFixed(2), fecha_pago: pago.fecha_pago || '', forma_pago: pago.forma_pago || '' };
+    } else if (pago.estado === 'Abonado') {
+      clave = 'abono_registrado';
+      vars = { nombre_atleta: nombre, concepto: conceptoDe(pago), monto_abonado: (pago.monto_pagado || 0).toFixed(2), saldo };
+    } else if (pago.estado === 'Vencido') {
+      const dias = Math.max(Math.ceil((new Date() - new Date(pago.fecha_vencimiento)) / 86400000), 1);
+      clave = 'pago_vencido';
+      vars = { nombre_atleta: nombre, concepto: conceptoDe(pago), monto: saldo, dias_vencido: dias };
+    } else {
+      clave = 'recordatorio_pago';
+      const fechaLimite = pago.fecha_vencimiento
+        ? new Date(`${pago.fecha_vencimiento}T12:00:00`).toLocaleDateString('es-EC')
+        : `05/${String(pago.mes).padStart(2, '0')}`;
+      vars = { nombre_atleta: nombre, concepto: conceptoDe(pago), monto: saldo, fecha_limite: fechaLimite };
+    }
+    const mensaje = renderPlantilla(clave, vars);
+    const telefono = normalizarTelefonoEC(contacto?.telefono);
+    window.open(linkWhatsApp(telefono, mensaje), '_blank');
+    registrarEnvioWhatsApp({
+      autorId: user.id,
+      usuarioDestinoId: contacto?.usuarioId || null,
+      plantilla: clave,
+      titulo: `${clave} · ${nombre}`,
+      mensaje,
+    });
   };
 
   const handleGenerarMes = async () => {
@@ -105,13 +199,34 @@ export default function AdminPagos({ user, atletas = [] }) {
               </p>
             </div>
           </div>
-          <button onClick={handleGenerarMes} disabled={generando}
-            className="flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 bg-brand/10 border border-brand/30 text-brand text-xs font-black rounded-control uppercase tracking-widest hover:bg-brand/20 disabled:opacity-50 transition">
-            <Plus size={14} />
-            <span>{generando ? 'Generando...' : 'Generar Mes'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setMostrarVerificacion(v => !v)}
+              className={`flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 border text-xs font-black rounded-control uppercase tracking-widest transition ${
+                mostrarVerificacion || pendientesVerificar > 0
+                  ? 'bg-caution/10 border-caution/30 text-caution-soft hover:bg-caution/20'
+                  : 'border-white/10 text-fg-muted hover:text-white'
+              }`}>
+              <FileSearch size={14} />
+              <span>Por verificar{pendientesVerificar > 0 ? ` (${pendientesVerificar})` : ''}</span>
+            </button>
+            {/* El coach opera en modo cobro: registrar y recordar, sin generar el mes */}
+            {!esCoach && (
+              <button onClick={handleGenerarMes} disabled={generando}
+                className="flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 bg-brand/10 border border-brand/30 text-brand text-xs font-black rounded-control uppercase tracking-widest hover:bg-brand/20 disabled:opacity-50 transition">
+                <Plus size={14} />
+                <span>{generando ? 'Generando...' : 'Generar Mes'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
+
+      {/* Comprobantes por verificar */}
+      {mostrarVerificacion && (
+        <div className="relative z-10 mb-6">
+          <PorVerificarPanel onResuelto={load} onCountChange={setPendientesVerificar} />
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="relative z-10 flex flex-wrap gap-3 mb-6">
@@ -129,13 +244,13 @@ export default function AdminPagos({ user, atletas = [] }) {
             className="bg-transparent w-16 text-sm text-white font-bold focus:outline-none" />
         </div>
 
-        {/* Grupo */}
-        <div className="flex items-center space-x-1 bg-white/5 border border-white/10 rounded-control p-1">
-          {GRUPOS.map(g => (
-            <button key={g} onClick={() => setGrupo(g)}
+        {/* Grupos reales del club (adiós lista hardcodeada) */}
+        <div className="flex items-center flex-wrap gap-1 bg-white/5 border border-white/10 rounded-control p-1">
+          {[{ id: 'Todos', nombre: 'Todos' }, ...grupos].map(g => (
+            <button key={g.id} onClick={() => setGrupoId(g.id)}
               className={`px-3 py-2 min-h-10 rounded-lg text-2xs font-black uppercase tracking-widest transition ${
-                grupo === g ? 'bg-brand/10 text-brand border border-brand/30' : 'text-fg-muted hover:text-white'
-              }`}>{g}</button>
+                grupoId === g.id ? 'bg-brand/10 text-brand border border-brand/30' : 'text-fg-muted hover:text-white'
+              }`}>{g.nombre}</button>
           ))}
         </div>
 
@@ -148,7 +263,7 @@ export default function AdminPagos({ user, atletas = [] }) {
       {/* Stats Bar */}
       <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Recaudado', value: `$${recaudado.toFixed(0)}`, sub: `${pagados} pagos`, color: 'text-success-soft', border: 'border-success/20' },
+          { label: 'Recaudado', value: `$${recaudado.toFixed(0)}`, sub: `${pagados} pagos completos`, color: 'text-success-soft', border: 'border-success/20' },
           { label: 'Por Cobrar', value: `$${porCobrar.toFixed(0)}`, sub: `${pendientes} pendientes`, color: 'text-yellow-400', border: 'border-yellow-500/20' },
           { label: 'Vencidos', value: vencidos, sub: 'requieren atención', color: 'text-danger-soft', border: 'border-danger/20' },
           { label: 'Becados', value: becados, sub: 'del grupo', color: 'text-mental-soft', border: 'border-mental/20' },
@@ -164,7 +279,7 @@ export default function AdminPagos({ user, atletas = [] }) {
 
       {/* Tabla de Pagos (cards apiladas en móvil, grid en md+) */}
       <div className="relative z-10 glass-card rounded-panel overflow-hidden border border-white/8">
-        <div className="hidden md:grid bg-black/40 border-b border-white/10 px-4 py-3 grid-cols-[1fr_80px_90px_100px_auto] gap-4 text-[8px] font-black uppercase tracking-widest text-fg-muted">
+        <div className="hidden md:grid bg-black/40 border-b border-white/10 px-4 py-3 grid-cols-[1fr_80px_90px_110px_auto] gap-4 text-[8px] font-black uppercase tracking-widest text-fg-muted">
           <span>Jugador</span>
           <span>Grupo</span>
           <span>Monto</span>
@@ -186,14 +301,17 @@ export default function AdminPagos({ user, atletas = [] }) {
         ) : (
           pagos.map((pago, idx) => {
             const atletaNombre = pago.atletas?.usuarios?.nombre || '—';
-            const cfg = ESTADO_CFG[pago.estado];
+            const cfg = ESTADO_CFG[pago.estado] || ESTADO_CFG.Pendiente;
             const Icon = cfg?.icon;
             const dias = diasParaVencer(pago.fecha_vencimiento);
             const alertaVencimiento = pago.estado === 'Pendiente' && dias !== null && dias <= 3;
+            const saldo = saldoDe(pago);
+            const contacto = contactos[pago.atleta_id];
+            const cobrable = ESTADOS_COBRABLES.includes(pago.estado);
 
             return (
               <motion.div key={pago.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(idx, 10) * 0.02 }}
-                className={`px-4 py-3.5 border-b border-white/5 flex flex-col gap-3 md:grid md:grid-cols-[1fr_80px_90px_100px_auto] md:gap-4 md:items-center hover:bg-white/3 transition-colors ${
+                className={`px-4 py-3.5 border-b border-white/5 flex flex-col gap-3 md:grid md:grid-cols-[1fr_80px_90px_110px_auto] md:gap-4 md:items-center hover:bg-white/3 transition-colors ${
                   alertaVencimiento ? 'bg-danger/3' : ''
                 }`}>
 
@@ -204,6 +322,9 @@ export default function AdminPagos({ user, atletas = [] }) {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white leading-tight">{atletaNombre}</p>
+                    {contacto?.nombre && (
+                      <p className="text-3xs text-fg-faint">Rep.: {contacto.nombre}{!normalizarTelefonoEC(contacto.telefono) ? ' · sin teléfono' : ''}</p>
+                    )}
                     {alertaVencimiento && (
                       <p className="text-[11px] text-danger-soft font-bold">⚠ Vence en {dias} día(s)</p>
                     )}
@@ -213,7 +334,12 @@ export default function AdminPagos({ user, atletas = [] }) {
                 {/* Grupo · Monto · Estado (fila compacta en móvil, columnas del grid en md+) */}
                 <div className="flex items-center justify-between gap-2 md:contents">
                   <span className="text-2xs text-fg-secondary font-bold">{pago.atletas?.grupo_nombre || '—'}</span>
-                  <span className="text-lg md:text-sm font-black text-white">${(pago.monto_final || 0).toFixed(0)}</span>
+                  <span className="text-lg md:text-sm font-black text-white">
+                    ${(pago.monto_final || 0).toFixed(0)}
+                    {pago.estado === 'Abonado' && (
+                      <span className="block text-3xs font-bold text-info-soft">abonado ${(pago.monto_pagado || 0).toFixed(0)}</span>
+                    )}
+                  </span>
                   <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-3xs font-black ${cfg?.color}`}>
                     {Icon && <Icon size={11} />}
                     <span>{pago.estado}</span>
@@ -222,35 +348,58 @@ export default function AdminPagos({ user, atletas = [] }) {
 
                 {/* Acciones */}
                 <div className="flex items-center gap-2 md:justify-end">
-                  {pago.estado !== 'Pagado' && pago.estado !== 'Becado' && (
-                    <>
-                      {marcandoId === pago.id ? (
-                        <div className="flex flex-1 md:flex-none items-center gap-2">
-                          <select value={formaPago} onChange={e => setFormaPago(e.target.value)}
-                            className="flex-1 md:flex-none bg-black/60 border border-white/10 rounded-lg px-2 py-2 min-h-11 md:min-h-10 text-2xs text-white focus:outline-none">
-                            {['Efectivo', 'Transferencia', 'Otro'].map(f => (
-                              <option key={f} value={f} className="bg-surface-card">{f}</option>
-                            ))}
-                          </select>
-                          <button onClick={() => handleMarcarPagado(pago.id)} aria-label="Confirmar pago"
-                            className="px-3.5 py-2 min-h-11 md:min-h-10 bg-success/20 border border-success/40 text-success-soft text-2xs font-black rounded-lg">✓</button>
-                          <button onClick={() => setMarcandoId(null)} aria-label="Cancelar"
-                            className="px-3.5 py-2 min-h-11 md:min-h-10 border border-white/10 text-fg-muted text-2xs font-black rounded-lg">✕</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => setMarcandoId(pago.id)}
-                          className="flex-1 md:flex-none px-3.5 py-2 min-h-11 md:min-h-10 bg-success/10 border border-success/30 text-success-soft text-2xs font-black rounded-lg hover:bg-success/20 transition uppercase tracking-widest">
-                          Marcar Pagado
-                        </button>
-                      )}
-                      <button
-                        onClick={() => window.open(generarLinkWhatsApp('', generarMensajeRecordatorioPago(atletaNombre, pago.monto_final?.toFixed(0), mes)), '_blank')}
-                        title="Recordar por WhatsApp"
-                        aria-label="Recordar por WhatsApp"
-                        className="p-2.5 min-w-11 min-h-11 flex items-center justify-center text-emerald-600 hover:text-success-soft transition-colors">
-                        <MessageSquare size={16} />
+                  {cobrable && (
+                    registrandoId === pago.id ? (
+                      <div className="flex flex-1 md:flex-none flex-wrap items-center gap-2">
+                        <input type="number" inputMode="decimal" min="0.01" step="0.01" max={saldo}
+                          value={montoTx} onChange={e => setMontoTx(e.target.value)}
+                          aria-label="Monto a registrar"
+                          className="w-20 bg-black/60 border border-white/10 rounded-lg px-2 py-2 min-h-11 md:min-h-10 text-2xs text-white focus:outline-none" />
+                        <select value={formaPago} onChange={e => setFormaPago(e.target.value)}
+                          className="bg-black/60 border border-white/10 rounded-lg px-2 py-2 min-h-11 md:min-h-10 text-2xs text-white focus:outline-none">
+                          {['Efectivo', 'Transferencia', 'Otro'].map(f => (
+                            <option key={f} value={f} className="bg-surface-card">{f}</option>
+                          ))}
+                        </select>
+                        {formaPago === 'Transferencia' && (
+                          <>
+                            <input type="text" placeholder="Nº doc." value={referenciaTx} onChange={e => setReferenciaTx(e.target.value)}
+                              className="w-20 bg-black/60 border border-white/10 rounded-lg px-2 py-2 min-h-11 md:min-h-10 text-2xs text-white focus:outline-none" />
+                            <label className={`flex items-center gap-1 px-2 py-2 min-h-11 md:min-h-10 border rounded-lg text-2xs font-bold cursor-pointer transition ${archivoTx ? 'border-success/40 text-success-soft' : 'border-white/10 text-fg-muted hover:text-white'}`}
+                              title="Adjuntar la foto del comprobante que mandó la familia (se registra y aprueba en un paso)">
+                              <Paperclip size={12} />
+                              <span>{archivoTx ? '1 adjunto' : 'Comprob.'}</span>
+                              <input type="file" accept="image/*,.pdf" className="hidden"
+                                onChange={e => setArchivoTx(e.target.files?.[0] || null)} />
+                            </label>
+                          </>
+                        )}
+                        <button onClick={() => handleRegistrarTransaccion(pago)} disabled={guardandoTx} aria-label="Confirmar registro"
+                          className="px-3.5 py-2 min-h-11 md:min-h-10 bg-success/20 border border-success/40 text-success-soft text-2xs font-black rounded-lg disabled:opacity-50">✓</button>
+                        <button onClick={() => setRegistrandoId(null)} aria-label="Cancelar"
+                          className="px-3.5 py-2 min-h-11 md:min-h-10 border border-white/10 text-fg-muted text-2xs font-black rounded-lg">✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => abrirRegistro(pago)}
+                        className="flex-1 md:flex-none px-3.5 py-2 min-h-11 md:min-h-10 bg-success/10 border border-success/30 text-success-soft text-2xs font-black rounded-lg hover:bg-success/20 transition uppercase tracking-widest">
+                        Registrar pago
                       </button>
-                    </>
+                    )
+                  )}
+                  {pago.estado === 'Por Verificar' && (
+                    <button onClick={() => setMostrarVerificacion(true)}
+                      className="flex-1 md:flex-none px-3.5 py-2 min-h-11 md:min-h-10 bg-caution/10 border border-caution/30 text-caution-soft text-2xs font-black rounded-lg hover:bg-caution/20 transition uppercase tracking-widest">
+                      Ver comprobante
+                    </button>
+                  )}
+                  {pago.estado !== 'Becado' && pago.estado !== 'Anulado' && (
+                    <button
+                      onClick={() => enviarWhatsApp(pago)}
+                      title={pago.estado === 'Pagado' ? 'Enviar confirmación por WhatsApp' : 'Recordar por WhatsApp'}
+                      aria-label={pago.estado === 'Pagado' ? 'Enviar confirmación por WhatsApp' : 'Recordar por WhatsApp'}
+                      className="p-2.5 min-w-11 min-h-11 flex items-center justify-center text-emerald-600 hover:text-success-soft transition-colors">
+                      <MessageSquare size={16} />
+                    </button>
                   )}
                   {pago.estado === 'Pagado' && (
                     <span className="text-3xs text-fg-faint">{pago.fecha_pago} · {pago.forma_pago}</span>
