@@ -19,14 +19,20 @@ import { calcularReadinessScore, detectarAlertasRecuperacion } from "../../packa
 dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env") });
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+// Desde la migración v24 (RLS real) la anon key no tiene acceso a ninguna
+// tabla: este proceso corre local en la máquina del staff y necesita la
+// service_role key (solo en .env, nunca en el repo ni en un cliente web).
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env");
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env");
   process.exit(1);
 }
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("[blackgold-mcp] SUPABASE_SERVICE_ROLE_KEY no está en .env: con RLS v24 la anon key no puede leer ni escribir tablas y todas las tools fallarán.");
+}
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const server = new McpServer({
   name: "blackgold-mcp",
   version: "1.0.0"
