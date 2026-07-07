@@ -189,14 +189,17 @@ export function detectarDebilidades(
  * @param {string} [opciones.nivel] - Nivel de desarrollo del atleta (Micro/Desarrollo/Elite).
  * @param {string} [opciones.categoriaBucket] - Bucket de baremo del atleta
  *   (Sub12/Sub15/Sub18/Senior, vía categoriaABucketBaremo).
+ * @param {string} [opciones.contexto] - Filtro duro de contexto de ejecución
+ *   ('cancha' | 'casa'). Las misiones 'ambos' (y las filas sin la columna, de
+ *   selects anteriores a v26) pasan siempre. Omitido → sin filtro (retro-compat).
  * @returns {{ asignaciones: Array<{ mision_id, sub_pilar_objetivo, motivo, complejidad }>,
- *             sinCobertura: Array<{ sub_pilar, nivel, categoriaBucket }> }}
+ *             sinCobertura: Array<{ sub_pilar, nivel, categoriaBucket, contexto }> }}
  */
 export function seleccionarMisiones(
   debilidades,
   catalogoMisiones,
   misionesAsignadasAtleta,
-  { porDebilidad = 2, nivel, categoriaBucket } = {}
+  { porDebilidad = 2, nivel, categoriaBucket, contexto } = {}
 ) {
   const asignaciones = [];
   const sinCobertura = [];
@@ -246,6 +249,7 @@ export function seleccionarMisiones(
         m.pilar === debilidad.sub_pilar &&
         (m.categoria_bucket == null || m.categoria_bucket === categoriaBucket) &&
         (m.nivel_objetivo == null || m.nivel_objetivo === nivelEfectivo) &&
+        (contexto == null || m.contexto == null || m.contexto === 'ambos' || m.contexto === contexto) &&
         !yaAsignadas.has(m.id)
       )
       .sort(compararCandidatas);
@@ -274,10 +278,13 @@ export function seleccionarMisiones(
     if (elegidas.length === 0) {
       // Debilidad sin cobertura de catálogo: el orquestador (Fase 2) generará
       // una misión nueva vía IA para esta celda (sub_pilar × nivel × bucket).
+      // `contexto` solo se incluye cuando el filtro está activo: con la opción
+      // omitida la forma del objeto es EXACTAMENTE la anterior a v26 (retro-compat).
       sinCobertura.push({
         sub_pilar: debilidad.sub_pilar,
         nivel: nivelEfectivo,
         categoriaBucket: categoriaBucket != null ? categoriaBucket : null,
+        ...(contexto != null ? { contexto } : {}),
       });
       return;
     }
