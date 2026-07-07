@@ -333,6 +333,49 @@ describe('seleccionarMisiones', () => {
   it('sin debilidades → resultado vacío bien formado', () => {
     expect(seleccionarMisiones([], [mision('m1')], [], opts)).toEqual({ asignaciones: [], sinCobertura: [] });
   });
+
+  // ─── contexto de ejecución (v26) ───
+
+  it('retro-compat: sin opción contexto el resultado es idéntico aunque el catálogo traiga la columna', () => {
+    const catalogo = [
+      mision('m-cancha', { contexto: 'cancha', complejidad: 'general' }),
+      mision('m-casa', { contexto: 'casa' }),
+    ];
+    const { asignaciones, sinCobertura } = seleccionarMisiones([debilidadMovilidad], catalogo, [], opts);
+    expect(asignaciones.map(a => a.mision_id)).toEqual(['m-cancha', 'm-casa']);
+    expect(sinCobertura).toEqual([]);
+  });
+
+  it("contexto:'casa' excluye 'cancha' e incluye 'casa' y 'ambos'", () => {
+    const catalogo = [
+      mision('m-cancha', { contexto: 'cancha', complejidad: 'general' }),
+      mision('m-casa', { contexto: 'casa', complejidad: 'general' }),
+      mision('m-ambos', { contexto: 'ambos' }),
+    ];
+    const { asignaciones } = seleccionarMisiones(
+      [debilidadMovilidad], catalogo, [], { ...opts, contexto: 'casa' }
+    );
+    expect(asignaciones.map(a => a.mision_id).sort()).toEqual(['m-ambos', 'm-casa']);
+  });
+
+  it('fila sin columna contexto (select anterior a v26) se trata como comodín', () => {
+    const catalogo = [mision('m-sin-columna', { complejidad: 'general' })]; // sin contexto
+    const { asignaciones } = seleccionarMisiones(
+      [debilidadMovilidad], catalogo, [], { ...opts, contexto: 'casa' }
+    );
+    expect(asignaciones.map(a => a.mision_id)).toEqual(['m-sin-columna']);
+  });
+
+  it('sin candidatas del contexto pedido → sinCobertura incluye el contexto', () => {
+    const catalogo = [mision('m-cancha', { contexto: 'cancha' })];
+    const { asignaciones, sinCobertura } = seleccionarMisiones(
+      [debilidadMovilidad], catalogo, [], { ...opts, contexto: 'casa' }
+    );
+    expect(asignaciones).toEqual([]);
+    expect(sinCobertura).toEqual([
+      { sub_pilar: 'movilidad', nivel: 'Desarrollo', categoriaBucket: 'Sub15', contexto: 'casa' },
+    ]);
+  });
 });
 
 // ───────────────────────────────────────────────────────────────────

@@ -1,0 +1,260 @@
+{
+  "misiones": [
+    {
+      "titulo": "Guerrero de la sala: circuito sorpresa en casa",
+      "descripcion": "Arma tu propio circuito en la sala: sentadilla tocando una silla, plancha con manos al hombro alternas, camina como oso apoyando manos y pies, y puente de glúteo. Haz 2 rondas de cada ejercicio, 20-30 segundos de trabajo y 45 de descanso, como si fuera un juego contra el reloj. Repítelo 2 o 3 días a la semana, en días distintos, y para si sientes que tu cadera se hunde o tiemblas mucho.",
+      "justificacion": "[trabajo_casa_atleta.md › Circuito de fuerza en casa Sub12 (Premini y Mini): autocarga jugada] — circuito de 2 rondas de 20-30 s por estación con sentadilla a silla, plancha, oso y puente de glúteo, 2-3 días/semana en días alternos (Faigenbaum et al., 2009).",
+      "pilar": "fuerza",
+      "categoria_bucket": "Sub12",
+      "xp_recompensa": 25
+    },
+    {
+      "titulo": "Rayuela relámpago: salta como un resorte",
+      "descripcion": "Dibuja una rayuela en el piso con tiza o marca una línea con cinta. Salta a pies juntos hacia adelante y hacia atrás sobre la línea, 2 o 3 series de 8 a 10 saltos suaves, aterrizando silencioso como un gato. Hazlo descalzo con cuidado o con zapatillas puestas, en un espacio libre de muebles, y no pases de unos 40 saltos en total ese día.",
+      "justificacion": "[trabajo_casa_atleta.md › Circuito de fuerza en casa Sub12 (Premini y Mini): autocarga jugada] — saltos de rayuela y a pies juntos, 2-3 series de 8-10 saltos suaves, techo del club de ~40 contactos de salto por sesión en casa.",
+      "pilar": "explosividad",
+      "categoria_bucket": "Sub12",
+      "xp_recompensa": 25
+    },
+    {
+      "titulo": "Juego sin parar: elige tu deporte del día",
+      "descripcion": "Sal a jugar el deporte que quieras (fútbol, coger, saltar la cuerda, correr con amigos) durante 10 a 20 minutos sin detenerte, a un ritmo en el que puedas hablar mientras te mueves. No hace falta contar vueltas ni tiempos: la idea es no parar y disfrutar. Cuéntale a tu familia cómo te sentiste después: cansado, feliz, con ganas de más.",
+      "justificacion": "[taxonomia_pilares_subpilares.md › Resistencia: ejercicios, métodos y dosis por edad Sub12, Sub15, Sub18 y Senior] — Sub12: juegos continuos y circuitos lúdicos de 10-20 minutos a intensidad conversacional, nada de series lácticas ni trabajo anaeróbico formal (Vinueza, doc. interno).",
+      "pilar": "resistencia",
+      "categoria_bucket": "Sub12",
+      "xp_recompensa": 25
+    },
+    {
+      "titulo": "Despierta tu cuerpo: rutina matutina de 8 minutos",
+      "descripcion": "Apenas te levantes, antes de vestirte para el día, haz: círculos de tobillo y rodilla (10 por lado), sentadilla profunda sostenida 30 segundos agarrado del marco de la puerta, gato-camello 10 veces despacio, y zancada con giro del tronco 5 veces por lado. Hazlo todos los días como tu ritual para despertar el cuerpo, sin rebotes ni forzar, y pide ayuda a un adulto los primeros días si algo no te sale.",
+      "justificacion": "[trabajo_casa_atleta.md › Rutina de movilidad de la mañana: tobillo, cadera y columna torácica] — 8-10 minutos al despertar, todos los días, cualquier bucket (Sub12 con acompañamiento los primeros días): círculos de tobillo/rodilla, sentadilla profunda sostenida, gato-camello, zancada con rotación torácica.",
+      "pilar": "movilidad",
+      "categoria_bucket": "Sub12",
+      "xp_recompensa": 25
+    },
+    {
+      "titulo": "Tiro tumbado: entrena tu mano de campeón en la cama",
+      "descripcion": "Acuéstate boca arriba y lanza el balón derechito hacia arriba con tu mano fuerte, dejando que gire hacia atrás, y recíbelo sin moverte del sitio. Haz 3 series de 15 repeticiones con tu mano dominante y 1 serie con la otra mano, prestando atención a que el balón siempre vuelva a la misma mano. Si no tienes balón de baloncesto, sirve una pelota pequeña que rebote parecido.",
+      "justificacion": "[trabajo_casa_atleta.md › Form shooting contra pared y tiro tumbado: mecánica sin canasta] — tiro tumbado boca arriba con backspin y recepción sin moverse, 3-4 series de 15-20 repeticiones con la mano dominante y 1 serie con la no dominante; Sub12 hace la mitad del volumen y termina cuando la técnica se degrada.",
+      "pilar": "tiro",
+      "categoria_bucket": "Sub12",
+      "xp_recompensa": 25
+    },
+    {
+      "titulo": "Pies rápidos: el juego de reacción contra ti mismo",
+      "descripcion": "Marca una rayuela o una línea de saltos en el suelo y practica apoyos rápidos: adentro-afuera, lado a lado, lo más rápido que puedas por 3 a 6 segundos cada vez, descansando completo entre intentos. Pide a alguien en casa que grite '¡ya!' en momentos random para que arranques desde sentado o parado lo más rápido posible, como un juego de reacción. Hazlo 2 o 3 veces por semana, 10 a 15 minutos, siempre fresco y sin cansancio previo.",
+      "justificacion": "[docs/manual_entrenamiento.md › Agilidad en Sub12: escalera, rayuela y juegos de reacción] — rayuela y aros en el suelo, juegos de reacción a estímulo visual y auditivo (salidas desde sentado, tumbado, de espaldas); dosis 10-15 min por sesión, 2-3 veces/semana, con pausas completas, máxima intención en esfuerzos de 3-6 s, formato juego.",
+      "pilar": "agilidad",
+      "categoria_bucket": "Sub12",
+      "xp_recompensa": 25
+    },
+    {
+      "titulo": "Ojo de águila: mira 3 videos y descubre el espacio libre",
+      "descripcion": "Con ayuda de tu familia, mira 3 clips cortos esta semana (uno tuyo jugando, uno de un jugador profesional, uno que comparta tu entrenador), 10 a 15 minutos cada uno, con pausas para pensar. En cada clip busca la respuesta a: ¿dónde estaba el espacio vacío? ¿a quién le podías pasar? Anota en tu diario o dile a un adulto qué descubriste en cada video: eso es lo que hace que la misión cuente.",
+      "justificacion": "[trabajo_casa_atleta.md › Video análisis en casa: cómo estudiar partidos y jugadores] — método del club de 3 clips por semana (propio, referente, equipo), 10-15 minutos por clip con pausa y anotación en el diario; pregunta guía Premini/Mini (Sub12): ¿dónde estaba el espacio vacío? ¿a quién podías pasar?",
+      "pilar": "tactica",
+      "categoria_bucket": "Sub12",
+      "xp_recompensa": 25
+    },
+    {
+      "titulo": "Infla el globo: respira como un campeón tranquilo",
+      "descripcion": "Siéntate o acuéstate cómodo, pon una mano en tu barriga y juega a 'inflar el globo': inhala por la nariz contando hasta 4 sintiendo cómo se infla tu barriga, y exhala contando hasta 6 sintiendo cómo se desinfla. Hazlo por 2 o 3 minutos, idealmente después de un entrenamiento intenso o antes de dormir. Es tu herramienta secreta para calmarte rápido cuando algo te frustre en el partido o en la vida.",
+      "justificacion": "[trabajo_casa_atleta.md › Respiración y visualización: dosis por edad del atleta] — respiración diafragmática (todos los buckets), 5 minutos con mano en el abdomen, inhalar por la nariz 4 s y exhalar 6 s; Sub12 lo hace como juego ('inflar el globo de la barriga') 2-3 minutos.",
+      "pilar": "resiliencia",
+      "categoria_bucket": "Sub12",
+      "xp_recompensa": 25
+    },
+    {
+      "titulo": "Circuito de autocarga: domina tu técnica",
+      "descripcion": "Haz 2-3 series de 8-15 repeticiones de sentadilla completa, zancada alterna, flexiones de brazos (con rodillas apoyadas si la técnica falla), puente de glúteo a una pierna y plancha lateral de 20-30 s por lado, con 60-90 s de pausa entre series. Hazlo 3 días no consecutivos por semana, 25-35 minutos en total, buscando un esfuerzo de 5 a 7 sobre 10. Si sientes molestia en rodilla o talón durante el estirón, no fuerces: avisa en tu diario.",
+      "justificacion": "[trabajo_casa_atleta.md › Circuito de fuerza en casa Sub15 (Menores y Prejuvenil): autocarga progresiva] — dosis exacta de series/reps/frecuencia para el bucket Sub15 en fase TECNICA (Faigenbaum et al., 2009).",
+      "pilar": "fuerza",
+      "categoria_bucket": "Sub15",
+      "xp_recompensa": 30
+    },
+    {
+      "titulo": "Salta con intención: potencia sin cancha",
+      "descripcion": "Ejecuta 3-4 series de 5-8 saltos con contramovimiento (CMJ) a máxima intención, más saltos laterales sobre una línea y skipping en el sitio, sin pasar de 60 contactos totales en la sesión. Combínalo con tu circuito de fuerza de la semana, en superficie estable y con calzado puesto. Si el salto pierde altura o técnica, termina la serie ahí mismo: la calidad manda sobre la cantidad.",
+      "justificacion": "[trabajo_casa_atleta.md › Circuito de fuerza en casa Sub15 (Menores y Prejuvenil): autocarga progresiva] — techo de ~60 contactos por sesión y criterio de calidad sobre volumen para el bucket Sub15.",
+      "pilar": "explosividad",
+      "categoria_bucket": "Sub15",
+      "xp_recompensa": 30
+    },
+    {
+      "titulo": "Descanso activo que suma resistencia",
+      "descripcion": "Un día de la semana, camina o trota suave 20-30 minutos a intensidad de conversación (puedes hablar sin ahogarte) en vez de quedarte quieto. Hazlo el día después de tu sesión más dura de cancha o de casa. Anota en tu diario cuántos minutos hiciste y cómo te sentiste al terminar.",
+      "justificacion": "[recuperacion_carga_descanso.md › Recuperación activa: movilidad, estiramientos y días de descanso] — 20-30 min de intensidad baja el día después de una sesión dura mejora el flujo sanguíneo y el ánimo, protocolo aplicable en casa sin material.",
+      "pilar": "resistencia",
+      "categoria_bucket": "Sub15",
+      "xp_recompensa": 30
+    },
+    {
+      "titulo": "Rutina de mañana: tobillo, cadera y espalda libres",
+      "descripcion": "Al despertar, dedica 8-10 minutos a: círculos de tobillo y rodilla (10 por lado), sentadilla profunda sostenida 30-45 s, gato-camello (10 reps), zancada con rotación torácica (5 por lado), balanceos de pierna (10 por pierna) y rotaciones torácicas con mano a la nuca (8 por lado). Hazlo todos los días, sin rebotes ni dolor: el rango debe crecer semana a semana, no de un día para otro.",
+      "justificacion": "[trabajo_casa_atleta.md › Rutina de movilidad de la mañana: tobillo, cadera y columna torácica] — rutina diaria de 8-10 minutos aplicable a cualquier bucket, con criterio de progresión sin dolor.",
+      "pilar": "movilidad",
+      "categoria_bucket": "Sub15",
+      "xp_recompensa": 30
+    },
+    {
+      "titulo": "200 repeticiones contra la pared: forja tu tiro",
+      "descripcion": "Dedica 10 minutos diarios: 5 minutos de tiro tumbado boca arriba (3-4 series de 15-20 lanzamientos rectos hacia arriba con tu mano dominante, buscando el backspin y que el balón vuelva a la misma mano) y 5 minutos de form shooting frente a una marca en la pared a 2-3 m, con volumen completo de Sub15 (50-100 repeticiones enfocando un solo detalle: codo, muñeca o piernas). Hazlo casi todos los días de la semana.",
+      "justificacion": "[trabajo_casa_atleta.md › Form shooting contra pared y tiro tumbado: mecánica sin canasta] — dosis completa de Sub15 en tiro tumbado y form shooting, la tarea de casa de mayor transferencia al sub-pilar tiro.",
+      "pilar": "tiro",
+      "categoria_bucket": "Sub15",
+      "xp_recompensa": 30
+    },
+    {
+      "titulo": "Bote con obstáculos: pies y manos rápidas",
+      "descripcion": "Arma un pasillo con 3-4 sillas o botellas y avanza botando con cambio de mano en cada obstáculo (cruce, entre piernas o por la espalda), sobre piso liso. Si tienes dos balones en casa, súmalos al ejercicio como reto extra de Sub15. Dedica 5-7 minutos a esto, la mayoría de los días de la semana, siempre con los ojos arriba, no en el balón.",
+      "justificacion": "[trabajo_casa_atleta.md › Manejo de balón en casa: bote estacionario y con obstáculos] — dosis Sub15 (añade dos balones si están disponibles) sobre superficie lisa, frecuencia diaria.",
+      "pilar": "agilidad",
+      "categoria_bucket": "Sub15",
+      "xp_recompensa": 30
+    },
+    {
+      "titulo": "3 clips, 3 preguntas: entrena tu lectura de juego",
+      "descripcion": "Esta semana mira 3 clips cortos (10-15 minutos cada uno): uno tuyo (grabado en cancha o entreno), uno de un jugador profesional de tu mismo biotipo y uno del equipo. En cada clip responde por escrito en tu diario: ¿qué opción tenías antes de recibir el balón? y ¿tu pase atacó o solo movió el balón? Ver el video sin responder la pregunta no cuenta como misión cumplida.",
+      "justificacion": "[trabajo_casa_atleta.md › Video análisis en casa: cómo estudiar partidos y jugadores] — método de 3 clips por semana con preguntas guía específicas de Menores/Prejuvenil (Sub15) y regla de validación por anotación en el diario.",
+      "pilar": "tactica",
+      "categoria_bucket": "Sub15",
+      "xp_recompensa": 30
+    },
+    {
+      "titulo": "Diario de errores: convierte el fallo en plan",
+      "descripcion": "Después de cada partido o entreno importante, escribe en tu diario UN error concreto y UN aprendizaje ('me apuré en el pase; próxima vez recibo, miro y decido'). Practica también tu rutina de reinicio: soltar aire, gesto breve y la frase 'siguiente jugada' hasta que te salga sola. Súmale 5 minutos de respiración diafragmática (inhalar 4 s por la nariz, exhalar 6 s) al cerrar tu semana.",
+      "justificacion": "[trabajo_casa_atleta.md › Diario de errores y lectura de juego: resiliencia aplicada] y [trabajo_casa_atleta.md › Respiración y visualización: dosis por edad del atleta] — diario de errores desde Sub15 con la regla de un solo error para procesar, no rumiar, más la respiración diafragmática de 5 minutos común a todos los buckets.",
+      "pilar": "resiliencia",
+      "categoria_bucket": "Sub15",
+      "xp_recompensa": 30
+    },
+    {
+      "titulo": "Tempo y unilateral: tu gimnasio sin barra",
+      "descripcion": "Arma un bloque de 3-4 series de 6-12 repeticiones: sentadilla búlgara con la mochila cargada de libros, flexiones con pausa de 2 segundos abajo, sentadilla a una pierna asistida en el marco de la puerta e isométrico de sentadilla en pared 30-45 segundos. Baja siempre en 3 segundos y sube explosivo; si la subida se vuelve lenta o pierde forma, ahí termina la serie. Hazlo 2-3 días no consecutivos por semana, y si hay partido esa semana, un solo día.",
+      "justificacion": "[trabajo_casa_atleta.md › Fuerza y explosividad en casa Sub18 y Senior (Juvenil y Mayores): tempo y unilateral] — bloque de 3-4 series de 6-12 repeticiones y regla de tempo (bajar en 3 s, terminar la serie si la velocidad de subida cae); coherente con la fase BIOMECANICA del bucket Sub18 descrita en [taxonomia_pilares_subpilares.md › Fuerza: ejercicios, progresión y dosis por edad Sub12, Sub15, Sub18 y Senior] (Faigenbaum et al., 2009).",
+      "pilar": "fuerza",
+      "categoria_bucket": "Sub18",
+      "xp_recompensa": 40
+    },
+    {
+      "titulo": "Multisaltos de calidad: explota sin techo de barrio",
+      "descripcion": "Haz 4-5 series de 4-6 saltos: salto a un escalón o grada estable, 3-5 multisaltos horizontales encadenados y saltos con contramovimiento (CMJ) con mínima pausa entre ellos. Aterriza siempre suave y controlado, con calzado puesto y en superficie firme. No pases de unos 80 contactos totales en la sesión: calidad sobre cantidad, y corta la serie si sientes que pierdes altura o técnica de recepción.",
+      "justificacion": "[trabajo_casa_atleta.md › Fuerza y explosividad en casa Sub18 y Senior (Juvenil y Mayores): tempo y unilateral] — techo del club de ~80 contactos por sesión, calidad sobre cantidad, con salto al escalón, multisaltos horizontales y CMJ; ver también el techo de contactos por edad en [taxonomia_pilares_subpilares.md › Explosividad: pliometría, ejercicios y dosis de contactos por edad] (Potach & Chu, 2008; Lloyd & Oliver, 2012).",
+      "pilar": "explosividad",
+      "categoria_bucket": "Sub18",
+      "xp_recompensa": 40
+    },
+    {
+      "titulo": "HIIT casero: transiciones que no perdonan",
+      "descripcion": "En un espacio despejado de tu casa o el patio, entrena 15 segundos de trabajo (burpees, skipping alto, desplazamientos laterales) por 15 segundos de pausa, repitiendo 8-12 veces. Hazlo 2 días por semana en pretemporada y bájalo a 1 solo día de mantenimiento en semana de partido, siempre con pausas de hidratación por el calor de Sucumbíos. Registra en tu diario cuántas rondas completaste a intensidad real.",
+      "justificacion": "[taxonomia_pilares_subpilares.md › Resistencia: ejercicios, métodos y dosis por edad Sub12, Sub15, Sub18 y Senior] — HIIT específico de baloncesto en Sub18/Senior: 15 s de trabajo / 15 s de pausa × 8-12 repeticiones, 2 sesiones/semana en preparatorio y 1 de mantenimiento en competitivo; nota sobre pausas de hidratación por el clima amazónico en la misma sección.",
+      "pilar": "resistencia",
+      "categoria_bucket": "Sub18",
+      "xp_recompensa": 40
+    },
+    {
+      "titulo": "Screening propio: detecta tu asimetría antes que ella a ti",
+      "descripcion": "Antes de dormir, dedica 8-10 minutos a tu rutina de flexibilidad: isquiotibiales sentado 30-60 s por pierna, cuádriceps/flexor de cadera en zancada baja 30-60 s por lado, glúteo en figura 4 tumbado 30-60 s por lado, pectoral en el marco de la puerta 30 s por brazo y pantorrilla contra la pared 30-45 s por pierna. Compara sensaciones entre tu lado dominante y el no dominante, anota en el diario si un lado está claramente más corto o rígido, y cierra con 2 minutos de respiración nasal lenta. Hazla todos los días, es tu trabajo de casa más barato y constante.",
+      "justificacion": "[trabajo_casa_atleta.md › Rutina de flexibilidad de la noche: estiramientos estáticos y respiración] — protocolo completo de 8-10 minutos con dosis por posición; fundamento de la comparación lado a lado en [taxonomia_pilares_subpilares.md › Movilidad: definición, desarrollo por edad en iniciación, medición sit and reach y baremos], donde una asimetría >15% dispara alerta de riesgo elevado de lesión.",
+      "pilar": "movilidad",
+      "categoria_bucket": "Sub18",
+      "xp_recompensa": 40
+    },
+    {
+      "titulo": "200 tiros mentales: mecánica contra la pared con salto",
+      "descripcion": "Sin aro, dedica 10 minutos a mecánica de tiro: 50-100 repeticiones de form shooting frente a una marca en la pared a 2-3 metros, enfocando un solo detalle por serie (codo, muñeca o piernas), y suma el gesto con salto sin lanzar frente a un espejo o tu sombra. Cierra con 5 minutos de tiro tumbado boca arriba, lanzando el balón recto hacia arriba con backspin y recibiéndolo sin moverte, 3-4 series de 15-20 con la mano dominante y 1 con la no dominante. Hazlo todos los días o casi todos: es la tarea de casa que más transfiere a tu porcentaje real.",
+      "justificacion": "[trabajo_casa_atleta.md › Form shooting contra pared y tiro tumbado: mecánica sin canasta] — dosis Sub18/Senior con gesto de salto frente a espejo/sombra sumado al form shooting y tiro tumbado; volumen diario que escalona hacia los 200 tiros del club según [taxonomia_pilares_subpilares.md › Tiro: progresión técnica, ejercicios y volumen de tiros por edad] (manual de entrenamiento, doc. interno).",
+      "pilar": "tiro",
+      "categoria_bucket": "Sub18",
+      "xp_recompensa": 40
+    },
+    {
+      "titulo": "Bote con tenis: dos balones, una sola cabeza",
+      "descripcion": "Monta un pasillo de 3-4 sillas o botellas en un piso liso y recórrelo botando fuerte con los dedos, cambiando de mano en cada obstáculo (cruce, entre piernas, por la espalda). Súmale el reto avanzado: bota con una mano mientras lanzas y recibes una pelota de tenis con la otra, sin perder el ritmo del bote. Dedica 5-7 minutos a esto y otros 5-8 a bote estacionario (bajo, en V, entre piernas, alrededor del cuerpo) leyendo números pegados en la pared con los ojos arriba. Hazlo a diario, es lo que menos espacio te pide de todo el trabajo de casa.",
+      "justificacion": "[trabajo_casa_atleta.md › Manejo de balón en casa: bote estacionario y con obstáculos] — dosis Sub18/Senior con pelota de tenis en la otra mano sumada al bote con obstáculos y al bote estacionario con ojos arriba, frecuencia diaria explícita; ancla al sub-pilar agilidad —cambios de dirección con balón, 'con y sin balón' según su definición— en [taxonomia_pilares_subpilares.md › Agilidad: definición, desarrollo, prueba lane agility y baremos por edad] y su prueba `zigzag_balon`, con dosis Sub18/Senior de máxima intensidad en [taxonomia_pilares_subpilares.md › Agilidad: ejercicios, progresión y dosis por edad].",
+      "pilar": "agilidad",
+      "categoria_bucket": "Sub18",
+      "xp_recompensa": 40
+    },
+    {
+      "titulo": "3 clips, 3 lecturas: tu scouting personal de la semana",
+      "descripcion": "Mira 3 clips de 2-4 minutos cada uno esta semana: una jugada de tu equipo, una acción tuya elegida por el coach y una acción profesional de small ball (transición, drive and kick o switch). Para cada clip responde por escrito en tu diario: ¿qué provocó la ventaja inicial?, ¿cómo defendimos o debimos defender ese bloqueo (switch, ayuda o trampa)?, ¿qué haría el rival si repetimos esa jugada? Sin la respuesta escrita, el clip no cuenta como misión cumplida.",
+      "justificacion": "[tactica_small_ball.md › Método de 3 clips por semana: protocolo de video análisis] y [tactica_small_ball.md › Preguntas guía de video por categoría y edad] — protocolo de 3 clips (equipo, individual, modelo profesional) con preguntas guía específicas de Juvenil y Mayores sobre ventaja inicial, defensa del bloqueo directo y anticipación rival; regla de registro escrito obligatorio ('no valen respuestas verbales') en el mismo documento.",
+      "pilar": "tactica",
+      "categoria_bucket": "Sub18",
+      "xp_recompensa": 40
+    },
+    {
+      "titulo": "Autodiálogo escrito: tus frases para el momento decisivo",
+      "descripcion": "Escribe en tu diario 2-3 frases instructivas para ti mismo (por ejemplo: \"sigue el plan de bloqueo\") y 1 frase motivacional (\"ya lo hice cien veces\"). Practica 5 minutos de visualización PETTLEP de pie con el balón en las manos: un minuto de respiración 4-6, tres minutos viendo dos ejecuciones exitosas, un error seguido de tu rutina de reinicio y una ejecución final exitosa, y un minuto anclando tu palabra clave. Hazlo 3 veces por semana, idealmente la víspera de partido, y usa las frases escritas en pausas y tiros libres.",
+      "justificacion": "[mentalidad_mamba.md › Resiliencia en Juvenil y Senior (Sub18): competición y adversidad] — autodiálogo escrito de 2-3 frases instructivas y 1 motivacional (Hatzigeorgiadis et al., 2011), citado literalmente ('sigue el plan de bloqueo' / 'ya lo hice cien veces'); construcción por edad detallada en [mentalidad_mamba.md › Autodiálogo con palabra clave: construcción de frases por edad]; dosis de visualización PETTLEP tres veces por semana en [mentalidad_mamba.md › Visualización guiada con modelo PETTLEP: progresión de Sub15 a Senior] (Holmes & Collins, 2001).",
+      "pilar": "resiliencia",
+      "categoria_bucket": "Sub18",
+      "xp_recompensa": 40
+    },
+    {
+      "titulo": "Sentadilla búlgara con mochila: pierna de hierro",
+      "descripcion": "Con un pie apoyado atrás en una silla y una mochila con libros al pecho, baja en 3 segundos y sube explosivo. Haz 4 series de 8-10 repeticiones por pierna, descansando 60-90 s entre series. Si la velocidad de subida se cae de forma visible, termina la serie ahí mismo.",
+      "justificacion": "[trabajo_casa_atleta.md › Fuerza y explosividad en casa Sub18 y Senior (Juvenil y Mayores): tempo y unilateral] especifica la sentadilla búlgara con mochila lastrada, 3-4 series de 6-12 repeticiones, tempo de bajada en 3 s y el criterio de cortar la serie si cae la velocidad de subida.",
+      "pilar": "fuerza",
+      "categoria_bucket": "Senior",
+      "xp_recompensa": 50
+    },
+    {
+      "titulo": "Multisaltos de grada: potencia que no espera cancha",
+      "descripcion": "Busca un escalón o grada estable y haz saltos al cajón, más 3-5 multisaltos horizontales encadenados, y CMJ con mínima pausa entre saltos. Completa 4-5 series de 4-6 saltos por ejercicio, sin pasar de unos 80 contactos totales en la sesión. Corta la serie si la altura o la técnica de recepción bajan.",
+      "justificacion": "[trabajo_casa_atleta.md › Fuerza y explosividad en casa Sub18 y Senior (Juvenil y Mayores): tempo y unilateral] describe el salto al escalón o grada estable, multisaltos horizontales y CMJ con mínima pausa, 4-5 series de 4-6 saltos y un techo del club de ~80 contactos por sesión, calidad sobre cantidad.",
+      "pilar": "explosividad",
+      "categoria_bucket": "Senior",
+      "xp_recompensa": 50
+    },
+    {
+      "titulo": "HIIT casero: resistencia de partido en tu sala",
+      "descripcion": "Elige un desplazamiento simple (correr en el sitio, sentadillas con salto suave, subir y bajar de un escalón) y trabaja 15 segundos a máxima intensidad seguidos de 15 segundos de pausa, repitiendo entre 8 y 12 veces. Hazlo en un espacio despejado, con calzado puesto, cuidando la técnica de frenado en cada cambio. Prográmalo 1-2 veces por semana según tu calendario de partidos, y en semana de partido oficial hazlo una sola vez.",
+      "justificacion": "[taxonomia_pilares_subpilares.md › Resistencia: ejercicios, métodos y dosis por edad Sub12, Sub15, Sub18 y Senior] define para Sub18 y Senior el HIIT específico de baloncesto de 15 s de trabajo / 15 s de pausa por 8-12 repeticiones, con 2 sesiones/semana en preparatorio y 1 de mantenimiento en competitivo.",
+      "pilar": "resistencia",
+      "categoria_bucket": "Senior",
+      "xp_recompensa": 50
+    },
+    {
+      "titulo": "Rutina matutina: cadera y tobillo a prueba de lesión",
+      "descripcion": "Al despertar, dedica 8-10 minutos a tu rutina de movilidad: círculos de tobillo y rodilla (10 por lado), sentadilla profunda sostenida 30-45 s con talones en el suelo apoyándote en el marco de la puerta, gato-camello (10 repeticiones), zancada con rotación torácica (5 por lado) y balanceos de pierna (10 por pierna). Hazla todos los días, sin rebotes ni dolor, dejando que el rango crezca semana a semana.",
+      "justificacion": "[trabajo_casa_atleta.md › Rutina de movilidad de la mañana: tobillo, cadera y columna torácica] detalla esta secuencia de 8-10 minutos diarios (círculos de tobillo, sentadilla profunda sostenida, gato-camello, zancada con rotación torácica, balanceos de pierna) para cualquier bucket, con el criterio de progresión semana a semana sin dolor ni rebotes. Se corrigió el título original ('Isométrico de pared') porque describía mal el ejercicio: la rutina es movilidad dinámica de mañana, no un isométrico contra la pared (el marco de la puerta solo se usa como apoyo en un paso de cinco).",
+      "pilar": "movilidad",
+      "categoria_bucket": "Senior",
+      "xp_recompensa": 50
+    },
+    {
+      "titulo": "200 tiros a la pared: mecánica que se vuelve automática",
+      "descripcion": "Sin aro, entrena la mecánica pura: 5 minutos de tiro tumbado boca arriba (lanzar el balón recto hacia arriba y recibirlo con backspin, 3-4 series de 15-20 repeticiones con tu mano dominante y 1 serie con la no dominante) y 5 minutos de form shooting contra una marca en la pared a 2-3 m, enfocando un solo detalle por serie (codo, muñeca o piernas). Añade el gesto completo con salto frente a un espejo o tu sombra, sin lanzar. Hazlo todos los días o casi todos: es la tarea de casa de mayor transferencia al tiro.",
+      "justificacion": "[trabajo_casa_atleta.md › Form shooting contra pared y tiro tumbado: mecánica sin canasta] describe el tiro tumbado con backspin (3-4 series de 15-20 repeticiones), el form shooting contra una marca en la pared enfocando un detalle por serie, y que Sub18/Senior añade el gesto con salto frente a espejo o sombra, con frecuencia diaria.",
+      "pilar": "tiro",
+      "categoria_bucket": "Senior",
+      "xp_recompensa": 50
+    },
+    {
+      "titulo": "Bote con pelota de tenis: manos que piensan solas",
+      "descripcion": "Haz bote estacionario fuerte bajo la cintura con los dedos (nunca la palma), alternando mano fuerte y débil en series de 30 s: bote bajo, bote en V frontal, entre las piernas parado y alrededor del cuerpo. Súmale el reto avanzado: mientras botas con una mano, lanza y recibe una pelota de tenis con la otra sin perder el bote. Completa 10-15 minutos en una superficie lisa (cemento pulido o tabla), evitando tierra suelta.",
+      "justificacion": "[trabajo_casa_atleta.md › Manejo de balón en casa: bote estacionario y con obstáculos] especifica los patrones de bote estacionario de 30 s por serie, la superficie lisa recomendada, y que Sub18/Senior añade bote con pelota de tenis en la otra mano como progresión del bucket.",
+      "pilar": "agilidad",
+      "categoria_bucket": "Senior",
+      "xp_recompensa": 50
+    },
+    {
+      "titulo": "3 clips, 3 lecturas: estudia el juego desde tu casa",
+      "descripcion": "Esta semana mira 3 clips de 10-15 minutos cada uno, con pausa y anotación en tu diario: un clip propio grabado en partido o práctica (cuenta aciertos y errores de UNA sola decisión), un clip de un referente profesional de tu biotipo (pregúntate qué hace antes de recibir el balón) y un clip del equipo que comparta el cuerpo técnico. Para tu nivel, enfócate en la lectura del bloqueo directo, las rotaciones de ayuda y las ventajas del small ball. Escribe en el diario qué viste, qué copias y qué evitas: sin esa anotación, no cuenta como tarea cumplida.",
+      "justificacion": "[trabajo_casa_atleta.md › Video análisis en casa: cómo estudiar partidos y jugadores] define el método de 3 clips por semana de 10-15 minutos (propio, referente, equipo) con anotación en el diario, y fija para Juvenil/Senior la pregunta guía sobre lectura del bloqueo directo, rotaciones de ayuda y ventajas del small ball.",
+      "pilar": "tactica",
+      "categoria_bucket": "Senior",
+      "xp_recompensa": 50
+    },
+    {
+      "titulo": "Diario de errores: procesa, no rumies",
+      "descripcion": "Después de cada partido, escribe en tu diario UN error concreto y UN aprendizaje ('me apuré en el pase; próxima vez recibo, miro y decido'). Ensaya también tu gesto de reinicio post-error (soltar aire, una palmada o una frase corta como 'siguiente jugada') hasta que te salga solo en cancha. Cierra con 5-10 minutos de visualización tipo PETTLEP en primera persona, con el mayor detalle posible de uniforme, cancha, ruido y cansancio, imaginando tu respuesta serena tras un error.",
+      "justificacion": "[trabajo_casa_atleta.md › Diario de errores y lectura de juego: resiliencia aplicada] indica escribir un solo error y un aprendizaje tras cada partido y ensayar una rutina de reinicio breve; [trabajo_casa_atleta.md › Respiración y visualización: dosis por edad del atleta] fija para Sub18/Senior la visualización autónoma de 5-10 minutos siguiendo el modelo PETTLEP de imaginería motora (Holmes & Collins, 2001).",
+      "pilar": "resiliencia",
+      "categoria_bucket": "Senior",
+      "xp_recompensa": 50
+    }
+  ]
+}

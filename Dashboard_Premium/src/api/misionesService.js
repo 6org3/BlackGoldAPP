@@ -35,6 +35,8 @@ export const fetchMisiones = async (atletaId) => {
         justificacion,
         nivel_objetivo,
         complejidad,
+        contexto,
+        fase_temporada,
         activa
       )
     `)
@@ -62,6 +64,8 @@ export const fetchMisiones = async (atletaId) => {
       justificacion: p.misiones.justificacion,
       nivelObjetivo: p.misiones.nivel_objetivo,
       complejidad: p.misiones.complejidad,
+      contexto: p.misiones.contexto,
+      faseTemporada: p.misiones.fase_temporada,
       activa: p.misiones.activa,
       completada: p.completada,
       estado: p.estado,
