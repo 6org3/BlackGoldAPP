@@ -211,6 +211,28 @@ export const setMisionActiva = async (misionId, activa) => {
   return { success: true };
 };
 
+// Edición de una misión existente. Solo escribe las columnas presentes en `campos`
+// (whitelist), para no pisar el resto de la fila. Usado por el editor de AdminMisiones
+// —incluye el link de YouTube (video_url) que VideoPlayer reproduce en la app— y es el
+// equivalente en la web de la tool MCP actualizar_misiones.
+const CAMPOS_EDITABLES = [
+  'titulo', 'descripcion', 'justificacion', 'pilar', 'video_url',
+  'xp_recompensa', 'quiz', 'categoria_objetivo', 'contexto', 'fase_temporada',
+];
+export const actualizarMision = async (misionId, campos) => {
+  const patch = {};
+  for (const k of CAMPOS_EDITABLES) {
+    if (campos[k] !== undefined) patch[k] = campos[k];
+  }
+  if (Object.keys(patch).length === 0) return { success: true, sinCambios: true };
+  const { error } = await supabase
+    .from('misiones')
+    .update(patch)
+    .eq('id', misionId);
+  if (error) throw error;
+  return { success: true };
+};
+
 export const asignarMisionAAtleta = async (atletaId, misionId) => {
   const { data, error } = await supabase
     .from('progreso_misiones')
