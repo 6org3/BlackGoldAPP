@@ -26,6 +26,13 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_creados integer;
 BEGIN
+  -- Esta función es SECURITY DEFINER: desde la app solo la puede invocar el
+  -- staff. El pg_cron corre sin auth.uid() (contexto de sistema) y no queda
+  -- bloqueado; un padre/atleta autenticado sí.
+  IF auth.uid() IS NOT NULL AND NOT public.es_staff() THEN
+    RAISE EXCEPTION 'solo staff puede generar pagos';
+  END IF;
+
   IF p_mes < 1 OR p_mes > 12 THEN RAISE EXCEPTION 'mes inválido: %', p_mes; END IF;
   IF p_anio < 2024 OR p_anio > 2100 THEN RAISE EXCEPTION 'año inválido: %', p_anio; END IF;
 
