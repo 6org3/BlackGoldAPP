@@ -1,3 +1,7 @@
+---
+subpilares: [fuerza, explosividad, resistencia, movilidad, tiro, agilidad]
+---
+
 # Manual de Entrenamiento Black Gold
 
 *Nota: Este manual tiene un **tono técnico de entrenamiento** y está dirigido a **entrenadores, jugadores y padres**.*

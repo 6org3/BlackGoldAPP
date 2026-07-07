@@ -1,3 +1,7 @@
+---
+subpilares: [resiliencia, tactica]
+---
+
 # Referencias Académicas
 
 *Nota: Este archivo será poblado con bibliografía real obtenida a través de herramientas de investigación científica (OpenAlex).*

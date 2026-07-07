@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
 import { BAREMOS, categoriaABucketBaremo, resolverUmbrales } from "../../packages/analytics-core/baremos.js";
-import { SUB_PILARES as SUB_PILARES_TAXONOMIA, getSubPilar } from "../../packages/analytics-core/taxonomia.js";
+import { PILARES, SUB_PILARES as SUB_PILARES_TAXONOMIA, SUB_PILARES_MONITOREO, getSubPilar, getPilar } from "../../packages/analytics-core/taxonomia.js";
 // Motor de recomendación COMPARTIDO (un solo cerebro): el mismo que usa la web
 // (vía el shim src/lib/didacticEngine.js) y la Edge Function.
 import { evaluarDeficits, emparejarMisionesPorCondicion } from "../../packages/analytics-core/didactica.js";
@@ -191,7 +191,7 @@ server.tool(
         { k: 3, maxChars: 2400 }
       );
 
-      promptInfo += "\n\nINSTRUCCIÓN PARA LA IA: Teniendo en cuenta los 7 sub-pilares (explosividad, fuerza, movilidad, tiro, agilidad, tactica, resiliencia), detecta cuáles no han sido evaluados o hace más tiempo no se evalúan. Sugiere la siguiente prueba específica (ej: CMJ, Lane Agility, etc) y BRINDA UNA EXPLICACIÓN LÓGICA y científica de por qué debe evaluarse eso ahora, apoyada en el CONTEXTO DEL RACK DOCUMENTAL con cita [archivo › sección] cuando aplique.";
+      promptInfo += `\n\nINSTRUCCIÓN PARA LA IA: Teniendo en cuenta los ${SUB_PILARES_TAXONOMIA.length} sub-pilares del radar (${SUB_PILARES_TAXONOMIA.map(s => s.key).join(", ")}), detecta cuáles no han sido evaluados o hace más tiempo no se evalúan. Sugiere la siguiente prueba específica (ej: CMJ, Lane Agility, etc) y BRINDA UNA EXPLICACIÓN LÓGICA y científica de por qué debe evaluarse eso ahora, apoyada en el CONTEXTO DEL RACK DOCUMENTAL con cita [archivo › sección] cuando aplique.`;
 
       return { content: [{ type: "text", text: promptInfo }] };
     } catch (err) {
@@ -308,10 +308,12 @@ server.tool(
 // 7 sub-pilares × 3 niveles × 4 buckets de edad = 84 celdas.
 // ============================================================
 
-// Derivado de la taxonomía compartida (fuente única) — hoy 7 sub-pilares; cuando
-// 'resistencia' entre a taxonomia.js (tras sus primeras pruebas, ver
-// insertar_pruebas_evaluacion), la matriz de misiones crece sola a 8.
+// Derivado de la taxonomía compartida (fuente única): los sub-pilares del radar
+// (8 desde que 'resistencia' entró a taxonomia.js el 2026-07-05 — la matriz de
+// misiones creció sola). TODAS_LAS_KEYS_SUBPILAR añade los de monitoreo
+// (recuperacion, composicion_corporal) para las tools del rack/mapa.
 const SUB_PILARES = SUB_PILARES_TAXONOMIA.map(s => s.key);
+const TODAS_LAS_KEYS_SUBPILAR = [...SUB_PILARES_TAXONOMIA, ...SUB_PILARES_MONITOREO].map(s => s.key);
 const NIVELES = ["Micro", "Desarrollo", "Elite"];
 const BUCKETS = ["Sub12", "Sub15", "Sub18", "Senior"];
 
@@ -647,17 +649,20 @@ server.tool(
     consulta: z.string().min(3).describe("Tema o pregunta (español; el índice cruza también términos en inglés de los baremos)"),
     area: z.enum(["metodologia", "baremos", "entrenamiento", "tactica", "mentalidad", "referencias", "extra"]).optional()
       .describe("Limitar la búsqueda a un área del rack"),
+    sub_pilar: z.enum(TODAS_LAS_KEYS_SUBPILAR).optional()
+      .describe("Limitar a fragmentos etiquetados con un sub-pilar de la taxonomía (además boostea el ranking)"),
     k: z.number().int().min(1).max(10).optional().describe("Cuántos fragmentos devolver (default 5)"),
   },
-  async ({ consulta, area, k }) => {
+  async ({ consulta, area, sub_pilar, k }) => {
     try {
-      const hits = buscarRack(consulta, { k: k ?? 5, area: area ?? null });
+      const hits = buscarRack(consulta, { k: k ?? 5, area: area ?? null, subpilar: sub_pilar ?? null });
       if (hits.length === 0) {
-        return { content: [{ type: "text", text: `Sin resultados en el rack para "${consulta}"${area ? ` (área ${area})` : ""}. Prueba con otros términos o revisa el inventario con listar_rack.` }] };
+        return { content: [{ type: "text", text: `Sin resultados en el rack para "${consulta}"${area ? ` (área ${area})` : ""}${sub_pilar ? ` (sub-pilar ${sub_pilar})` : ""}. Prueba con otros términos o revisa el inventario con listar_rack.` }] };
       }
       let out = `=== RACK DOCUMENTAL — ${hits.length} fragmento(s) para "${consulta}" ===\n`;
       hits.forEach(h => {
-        out += `\n[${h.archivo} › ${h.seccion}] (área ${h.area}, score ${h.score})\n${h.texto}\n`;
+        const tags = h.subpilares?.length ? `, sub-pilares: ${h.subpilares.join("/")}` : "";
+        out += `\n[${h.archivo} › ${h.seccion}] (área ${h.area}${tags}, score ${h.score})\n${h.texto}\n`;
       });
       return { content: [{ type: "text", text: out }] };
     } catch (err) {
@@ -683,6 +688,85 @@ server.tool(
       return { content: [{ type: "text", text: out }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error listando el rack: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 15: Mapa de conocimiento por pilar/sub-pilar
+server.tool(
+  "mapa_conocimiento",
+  "Devuelve el mapa semántico de la taxonomía del club: por cada sub-pilar, su pilar y peso, los documentos/fragmentos del rack etiquetados con él, las pruebas con baremo que lo miden, y cuántas misiones y ejercicios de catálogo lo cubren — señalando los HUECOS (sub-pilares sin conocimiento, sin pruebas o sin misiones). Es la vista pilar → conocimiento → pruebas → misiones para auditar la salud del corpus y del catálogo.",
+  {
+    pilar: z.enum(PILARES.map(p => p.key)).optional().describe("Limitar a un pilar (fisico/tecnico/mental)"),
+    sub_pilar: z.enum(TODAS_LAS_KEYS_SUBPILAR).optional().describe("Limitar a un sub-pilar"),
+  },
+  async ({ pilar, sub_pilar }) => {
+    try {
+      const inv = inventarioRack();
+
+      // Misiones y ejercicios del catálogo (tolerante a fallo de red: el mapa
+      // sigue sirviendo con rack + baremos aunque Supabase no responda).
+      let misionesPorPilar = null;
+      let ejerciciosPorSubPilar = null;
+      try {
+        const [{ data: mis }, { data: ejs }] = await Promise.all([
+          supabase.from("misiones").select("pilar, activa"),
+          supabase.from("catalogo_ejercicios").select("sub_pilar"),
+        ]);
+        if (mis) {
+          misionesPorPilar = {};
+          mis.forEach(m => {
+            if (!misionesPorPilar[m.pilar]) misionesPorPilar[m.pilar] = { total: 0, activas: 0 };
+            misionesPorPilar[m.pilar].total++;
+            if (m.activa) misionesPorPilar[m.pilar].activas++;
+          });
+        }
+        if (ejs) {
+          ejerciciosPorSubPilar = {};
+          ejs.forEach(e => { ejerciciosPorSubPilar[e.sub_pilar] = (ejerciciosPorSubPilar[e.sub_pilar] || 0) + 1; });
+        }
+      } catch (err) {
+        console.error(`[mapa_conocimiento] Supabase no disponible (se continúa con rack/baremos): ${err.message}`);
+      }
+
+      const objetivo = [...SUB_PILARES_TAXONOMIA, ...SUB_PILARES_MONITOREO]
+        .filter(s => (!sub_pilar || s.key === sub_pilar) && (!pilar || s.pilar === pilar));
+
+      let out = `=== MAPA DE CONOCIMIENTO (taxonomía → rack → pruebas → misiones) ===\n`;
+      const huecos = [];
+      for (const s of objetivo) {
+        const p = s.pilar ? getPilar(s.pilar) : null;
+        out += `\n■ ${s.key} — "${s.label}"` +
+          (p ? ` · pilar ${p.key} (${Math.round(p.peso * 100)}% del overall)` : " · monitoreo (no puntúa en radar/overall)") + `\n`;
+
+        const docsEtiquetados = inv.documentos.filter(d => (d.subpilares || []).includes(s.key));
+        const nChunks = (inv.porSubPilar && inv.porSubPilar[s.key]) || 0;
+        out += `  Conocimiento del rack: ${nChunks} fragmento(s) etiquetado(s)` +
+          (docsEtiquetados.length ? ` en ${docsEtiquetados.map(d => d.archivo).join(", ")}` : "") + `\n`;
+        const hits = buscarRack(`${s.label} ${s.key}`, { k: 3, subpilar: s.key });
+        hits.forEach(h => { out += `    · [${h.archivo} › ${h.seccion}]\n`; });
+
+        const pruebas = Object.entries(BAREMOS).filter(([, b]) => b.sub_pilar === s.key);
+        out += `  Pruebas con baremo: ${pruebas.length ? pruebas.map(([key, b]) => `${b.label} (${key})`).join(", ") : "NINGUNA"}\n`;
+
+        const m = misionesPorPilar ? (misionesPorPilar[s.key] || { total: 0, activas: 0 }) : null;
+        const e = ejerciciosPorSubPilar ? (ejerciciosPorSubPilar[s.key] || 0) : null;
+        out += `  Misiones: ${m ? `${m.total} (${m.activas} activas)` : "(Supabase no disponible)"} · Ejercicios de catálogo: ${e ?? "(Supabase no disponible)"}\n`;
+
+        if (nChunks === 0) huecos.push(`${s.key}: sin conocimiento etiquetado en el rack (engordar corpus o etiquetar docs)`);
+        if (s.pilar && pruebas.length === 0) huecos.push(`${s.key}: sin pruebas con baremo (generar_catalogo_pruebas)`);
+        if (s.pilar && m && m.total === 0) huecos.push(`${s.key}: sin misiones en el catálogo (generar_catalogo_misiones)`);
+      }
+
+      if (inv.avisos && inv.avisos.length) {
+        out += `\n⚠️ Avisos del rack:\n${inv.avisos.map(a => `  - ${a}`).join("\n")}\n`;
+      }
+      out += `\n=== HUECOS ===\n` +
+        (huecos.length ? huecos.map(h => `- ${h}`).join("\n") : "Sin huecos: cada sub-pilar tiene conocimiento, pruebas y misiones.");
+
+      return { content: [{ type: "text", text: out }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error generando el mapa de conocimiento: ${err.message}` }] };
     }
   }
 );

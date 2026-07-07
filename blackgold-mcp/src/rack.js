@@ -22,6 +22,10 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+// Taxonomía compartida (fuente única de pilares/sub-pilares) + vocabulario semántico:
+// los sinónimos del rack se derivan de aquí en runtime para que no diverjan del código.
+import { SUB_PILARES, SUB_PILARES_MONITOREO } from "../../packages/analytics-core/taxonomia.js";
+import { VOCABULARIO_SUBPILARES, validarVocabulario, esSubPilarValido } from "../../packages/analytics-core/vocabulario.js";
 
 const KNOWLEDGE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "knowledge");
 const CONFIG_PATH = path.join(KNOWLEDGE_DIR, "rack.config.json");
@@ -49,19 +53,10 @@ const STOPWORDS = new Set([
   "on", "or", "the", "to", "with",
 ]);
 
-// Sinónimos/expansiones del dominio: cruzan el vocabulario de la app
-// (sub-pilares en español) con el de las fuentes (parte en inglés).
-// Los términos expandidos puntúan con peso reducido.
-const SINONIMOS = {
-  fuerza: ["strength", "squat", "sentadilla"],
-  explosividad: ["explosiveness", "salto", "cmj", "jump", "pliometria"],
-  movilidad: ["flexibility", "flexibilidad", "mobility", "estiramiento"],
-  tiro: ["shooting", "lanzamiento", "free", "throw"],
-  agilidad: ["agility", "lane", "cambio", "direccion"],
-  tactica: ["tactical", "juego", "lectura", "decision"],
-  resiliencia: ["mental", "mentalidad", "resilience", "psicologia"],
-  resistencia: ["endurance", "aerobica", "aerobico", "cardio", "vo2"],
-  recuperacion: ["sueno", "hidratacion", "fatiga", "descanso", "recovery", "carga"],
+// Sinónimos genéricos de recuperación (no taxonómicos): vocabulario de búsqueda
+// que no corresponde a ningún sub-pilar. Los sinónimos de dominio se derivan de
+// taxonomia.js + vocabulario.js más abajo (una sola fuente de verdad).
+const SINONIMOS_GENERALES = {
   velocidad: ["speed", "sprint", "carrera"],
   deteccion: ["seleccion", "talento", "talentos"],
   prueba: ["test", "bateria", "evaluacion"],
@@ -91,6 +86,40 @@ function tokenizar(texto) {
   return tokens;
 }
 
+// --------------------------------------------------------------
+// Capa semántica: sinónimos de dominio derivados de la taxonomía
+// --------------------------------------------------------------
+
+const TODOS_SUBPILARES = [...SUB_PILARES, ...SUB_PILARES_MONITOREO];
+
+// SINONIMOS = generales + dominio (key del sub-pilar → vocabulario ES/EN + tokens
+// de su label: 'tiro' gana 'tecnica' desde 'Técnica Tiro'). Derivado en runtime
+// para que nunca diverja de taxonomia.js.
+// TERMINO_A_SUBPILAR: índice inverso término→keys, para detectar qué sub-pilares
+// menciona una consulta y boostear los chunks etiquetados con ellos.
+const SINONIMOS = { ...SINONIMOS_GENERALES };
+const TERMINO_A_SUBPILAR = new Map();
+for (const sp of TODOS_SUBPILARES) {
+  const vocab = VOCABULARIO_SUBPILARES[sp.key] || [];
+  const labelTokens = tokenizar(sp.label).filter(t => t !== sp.key);
+  SINONIMOS[sp.key] = [...new Set([...vocab, ...labelTokens])];
+  for (const t of [sp.key, ...SINONIMOS[sp.key]]) {
+    const nt = normalizar(t);
+    if (!TERMINO_A_SUBPILAR.has(nt)) TERMINO_A_SUBPILAR.set(nt, new Set());
+    TERMINO_A_SUBPILAR.get(nt).add(sp.key);
+  }
+}
+
+// Sub-pilares que menciona una consulta (por key, label o vocabulario).
+function subPilaresDeConsulta(query) {
+  const s = new Set();
+  for (const t of tokenizar(query)) {
+    const m = TERMINO_A_SUBPILAR.get(t);
+    if (m) m.forEach(k => s.add(k));
+  }
+  return s;
+}
+
 // Query → términos con peso (1 los literales, 0.5 los expandidos).
 function expandirConsulta(query) {
   const base = tokenizar(query);
@@ -106,48 +135,89 @@ function expandirConsulta(query) {
 }
 
 // --------------------------------------------------------------
-// Carga del corpus y chunking por headings
+// Carga del corpus: frontmatter, chunking por headings, etiquetas
 // --------------------------------------------------------------
 
-function partirEnChunks(texto, docTitulo) {
+// Frontmatter YAML mínimo, sin dependencias: '---' en la línea 0 y cierre '---'
+// dentro de las primeras 30 líneas (si no cierra, se trata como texto normal).
+// Claves reconocidas: subpilares, area, tipo. `subpilares: [fuerza, tiro]` o
+// `subpilares: fuerza, tiro`. El bloque YAML nunca entra al índice.
+export function extraerFrontmatter(texto) {
+  const lineas = texto.split(/\r?\n/);
+  if ((lineas[0] || "").trim() !== "---") return { meta: {}, cuerpo: texto };
+  let cierre = -1;
+  for (let i = 1; i < Math.min(lineas.length, 31); i++) {
+    if (lineas[i].trim() === "---") { cierre = i; break; }
+  }
+  if (cierre === -1) return { meta: {}, cuerpo: texto };
+  const meta = {};
+  for (let i = 1; i < cierre; i++) {
+    const m = lineas[i].match(/^([A-Za-z_][\w-]*)\s*:\s*(.*)$/);
+    if (!m) continue;
+    const clave = m[1].toLowerCase();
+    const valor = m[2].trim();
+    if (clave === "subpilares") {
+      meta.subpilares = valor.replace(/^\[|\]$/g, "").split(",")
+        .map(s => normalizar(s.trim())).filter(Boolean);
+    } else {
+      meta[clave] = valor;
+    }
+  }
+  return { meta, cuerpo: lineas.slice(cierre + 1).join("\n") };
+}
+
+// Override de etiquetas por sección: `<!-- subpilares: tiro, agilidad -->` en la
+// línea siguiente a un heading (invisible en markdown renderizado). Sustituye la
+// herencia del doc para esa sección; no cruza headings.
+const RE_SUBPILARES_SECCION = /^<!--\s*subpilares:\s*(.+?)\s*-->$/i;
+
+export function partirEnChunks(texto, docTitulo, docSubPilares = []) {
   // Secciona por headings de nivel 1-3; los H4+ quedan dentro del chunk.
   const lineas = texto.split(/\r?\n/);
   const chunks = [];
   let camino = [docTitulo]; // pila de headings activos por nivel
   let seccion = docTitulo;
   let buffer = [];
+  let subPilaresSeccion = null; // override activo (null = heredar del doc)
 
   const cerrar = () => {
     const cuerpo = buffer.join("\n").trim();
     buffer = [];
     if (!cuerpo) return;
+    const subPilares = subPilaresSeccion ?? docSubPilares;
     // Partición adicional de secciones largas, por párrafos.
     if (cuerpo.length <= MAX_CHUNK_CHARS) {
-      chunks.push({ seccion, texto: cuerpo });
+      chunks.push({ seccion, texto: cuerpo, subPilares });
       return;
     }
     let actual = "";
     cuerpo.split(/\n\s*\n/).forEach(parr => {
       if (actual && (actual.length + parr.length) > MAX_CHUNK_CHARS) {
-        chunks.push({ seccion, texto: actual.trim() });
+        chunks.push({ seccion, texto: actual.trim(), subPilares });
         actual = "";
       }
       actual += (actual ? "\n\n" : "") + parr;
     });
-    if (actual.trim()) chunks.push({ seccion, texto: actual.trim() });
+    if (actual.trim()) chunks.push({ seccion, texto: actual.trim(), subPilares });
   };
 
   for (const linea of lineas) {
     const m = linea.match(/^(#{1,3})\s+(.*)$/);
     if (m) {
       cerrar();
+      subPilaresSeccion = null;
       const nivel = m[1].length;
       camino = camino.slice(0, nivel);
       camino[nivel - 1] = m[2].trim();
       seccion = camino.filter(Boolean).join(" › ");
-    } else {
-      buffer.push(linea);
+      continue;
     }
+    const ov = linea.trim().match(RE_SUBPILARES_SECCION);
+    if (ov) {
+      subPilaresSeccion = ov[1].split(",").map(s => normalizar(s.trim())).filter(Boolean);
+      continue; // el comentario no entra al chunk
+    }
+    buffer.push(linea);
   }
   cerrar();
   return chunks;
@@ -158,15 +228,21 @@ function leerFuentesDeConfig() {
   try {
     const cfg = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8"));
     (cfg.fuentes || []).forEach(f => {
-      if (f && f.ruta) fuentes.push({ ruta: path.resolve(KNOWLEDGE_DIR, f.ruta), area: f.area || "otros" });
+      if (f && f.ruta) fuentes.push({
+        ruta: path.resolve(KNOWLEDGE_DIR, f.ruta),
+        area: f.area || "otros",
+        // Etiquetas de sub-pilar declarables por fuente (para docs/carpetas que no
+        // conviene editar); el frontmatter del doc se les suma.
+        subpilares: Array.isArray(f.subpilares) ? f.subpilares.map(s => normalizar(String(s).trim())).filter(Boolean) : [],
+      });
     });
   } catch (err) {
     console.error(`[rack] No se pudo leer ${CONFIG_PATH}: ${err.message} — se indexa solo knowledge/.`);
-    fuentes.push({ ruta: KNOWLEDGE_DIR, area: "metodologia" });
+    fuentes.push({ ruta: KNOWLEDGE_DIR, area: "metodologia", subpilares: [] });
   }
   // Carpetas extra del usuario, fuera del repo (p. ej. bibliografía propia).
   (process.env.RACK_DIRS || "").split(";").map(s => s.trim()).filter(Boolean)
-    .forEach(dir => fuentes.push({ ruta: path.resolve(dir), area: "extra" }));
+    .forEach(dir => fuentes.push({ ruta: path.resolve(dir), area: "extra", subpilares: [] }));
   return fuentes;
 }
 
@@ -197,10 +273,24 @@ function tituloDeDoc(texto, rutaArchivo) {
 let indice = null;
 
 function construirIndice() {
-  const docs = [];   // { id, titulo, area, fuente }
-  const chunks = []; // { docIdx, seccion, texto, tf: Map, len, tokensSeccion: Set }
+  const docs = [];   // { id, titulo, area, fuente, subPilares }
+  const chunks = []; // { docIdx, seccion, texto, tf: Map, len, tokensSeccion: Set, subPilares: Set }
   const df = new Map();
   const vistos = new Set(); // dedup por ruta absoluta (config + RACK_DIRS pueden solaparse)
+  const avisos = [];        // etiquetas fuera de la taxonomía (el selftest falla si hay)
+
+  const huerfanas = validarVocabulario();
+  if (huerfanas.length) avisos.push(`vocabulario.js tiene keys fuera de la taxonomía: ${huerfanas.join(", ")}`);
+
+  // Valida etiquetas contra taxonomia.js; devuelve solo las válidas y registra avisos.
+  const validarEtiquetas = (lista, origen) => {
+    const validas = [];
+    for (const sp of lista || []) {
+      if (esSubPilarValido(sp)) validas.push(sp);
+      else avisos.push(`${origen}: sub-pilar desconocido "${sp}" (no está en taxonomia.js)`);
+    }
+    return validas;
+  };
 
   for (const fuente of leerFuentesDeConfig()) {
     for (const archivo of archivosDeFuente(fuente)) {
@@ -216,14 +306,21 @@ function construirIndice() {
         console.error(`[rack] No se pudo leer ${archivo}: ${err.message}`);
         continue;
       }
+      const nombre = path.basename(archivo);
+      const { meta, cuerpo } = extraerFrontmatter(texto);
+      const docSubPilares = validarEtiquetas(
+        [...new Set([...(fuente.subpilares || []), ...(meta.subpilares || [])])],
+        nombre,
+      );
       const docIdx = docs.length;
       docs.push({
-        id: path.basename(archivo),
-        titulo: tituloDeDoc(texto, archivo),
-        area: fuente.area,
+        id: nombre,
+        titulo: tituloDeDoc(cuerpo, archivo),
+        area: meta.area || fuente.area,
         fuente: archivo,
+        subPilares: docSubPilares,
       });
-      for (const ch of partirEnChunks(texto, docs[docIdx].titulo)) {
+      for (const ch of partirEnChunks(cuerpo, docs[docIdx].titulo, docSubPilares)) {
         const tokens = tokenizar(ch.texto);
         if (tokens.length === 0) continue;
         const tf = new Map();
@@ -236,13 +333,14 @@ function construirIndice() {
           tf,
           len: tokens.length,
           tokensSeccion: new Set(tokenizar(ch.seccion)),
+          subPilares: new Set(validarEtiquetas(ch.subPilares, `${nombre} › ${ch.seccion}`)),
         });
       }
     }
   }
 
   const avgLen = chunks.length ? chunks.reduce((s, c) => s + c.len, 0) / chunks.length : 1;
-  return { docs, chunks, df, avgLen, N: chunks.length };
+  return { docs, chunks, df, avgLen, N: chunks.length, avisos: [...new Set(avisos)] };
 }
 
 function getIndice() {
@@ -259,17 +357,21 @@ function getIndice() {
 
 const K1 = 1.5;
 const B = 0.75;
-const BOOST_SECCION = 0.6; // puntos extra (por peso) si el término aparece en el heading
+const BOOST_SECCION = 0.6;  // puntos extra (por peso) si el término aparece en el heading
+const BOOST_SUBPILAR = 1.0; // puntos extra si la consulta menciona un sub-pilar con el que el chunk está etiquetado
 
-export function buscarRack(query, { k = 5, area = null } = {}) {
+export function buscarRack(query, { k = 5, area = null, subpilar = null } = {}) {
   const idx = getIndice();
   if (idx.N === 0) return [];
   const terminos = expandirConsulta(query);
   if (terminos.size === 0) return [];
+  const spConsulta = subPilaresDeConsulta(query);
+  if (subpilar) spConsulta.add(subpilar);
 
   const resultados = [];
   for (const ch of idx.chunks) {
     if (area && idx.docs[ch.docIdx].area !== area) continue;
+    if (subpilar && !ch.subPilares.has(subpilar)) continue;
     let score = 0;
     for (const [t, peso] of terminos) {
       const tf = ch.tf.get(t) || 0;
@@ -279,6 +381,11 @@ export function buscarRack(query, { k = 5, area = null } = {}) {
         score += peso * idf * (tf * (K1 + 1)) / (tf + K1 * (1 - B + B * ch.len / idx.avgLen));
       }
       if (ch.tokensSeccion.has(t)) score += peso * BOOST_SECCION;
+    }
+    if (spConsulta.size && ch.subPilares.size) {
+      for (const sp of spConsulta) {
+        if (ch.subPilares.has(sp)) score += BOOST_SUBPILAR;
+      }
     }
     if (score > 0) resultados.push({ ch, score });
   }
@@ -292,6 +399,7 @@ export function buscarRack(query, { k = 5, area = null } = {}) {
       area: doc.area,
       seccion: ch.seccion,
       texto: ch.texto,
+      subpilares: [...ch.subPilares],
       score: Math.round(score * 100) / 100,
     };
   });
@@ -300,9 +408,9 @@ export function buscarRack(query, { k = 5, area = null } = {}) {
 // Bloque de contexto listo para inyectar en el prompt de una tool.
 // Devuelve "" si el rack no tiene nada relevante (las tools deben
 // funcionar igual sin rack — nunca es un error).
-export function contextoRack(query, { k = 3, maxChars = 2800, area = null, titulo = "CONTEXTO DEL RACK DOCUMENTAL" } = {}) {
+export function contextoRack(query, { k = 3, maxChars = 2800, area = null, subpilar = null, titulo = "CONTEXTO DEL RACK DOCUMENTAL" } = {}) {
   try {
-    const hits = buscarRack(query, { k, area });
+    const hits = buscarRack(query, { k, area, subpilar });
     if (hits.length === 0) return "";
     let out = `\n=== ${titulo} (fundamentar con estas fuentes y citarlas) ===\n`;
     for (const h of hits) {
@@ -327,11 +435,18 @@ export function inventarioRack() {
       archivo: d.id,
       titulo: d.titulo,
       area: d.area,
+      subpilares: d.subPilares,
       fragmentos: suyos.length,
       secciones: secciones.length,
       caracteres: suyos.reduce((s, c) => s + c.texto.length, 0),
     };
   });
   const areas = [...new Set(idx.docs.map(d => d.area))];
-  return { documentos: porDoc, areas, totalFragmentos: idx.N };
+  // Salud del corpus: cuántos chunks etiquetados tiene cada sub-pilar de la taxonomía.
+  const porSubPilar = {};
+  TODOS_SUBPILARES.forEach(s => { porSubPilar[s.key] = 0; });
+  idx.chunks.forEach(c => c.subPilares.forEach(sp => {
+    if (porSubPilar[sp] != null) porSubPilar[sp]++;
+  }));
+  return { documentos: porDoc, areas, totalFragmentos: idx.N, porSubPilar, avisos: idx.avisos };
 }

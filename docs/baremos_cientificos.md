@@ -1,3 +1,7 @@
+---
+subpilares: [fuerza, explosividad, resistencia, movilidad, tiro, agilidad]
+---
+
 # Baremos Científicos — Physical Testing Normative Values for Youth Basketball
 
 > [!NOTE]

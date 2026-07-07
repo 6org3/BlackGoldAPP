@@ -1,3 +1,7 @@
+---
+subpilares: [tactica, agilidad]
+---
+
 # Sistema Táctico: "Sucumbíos Small Ball"
 
 *Nota: Este documento detalla la táctica adaptada al somatotipo de Sucumbíos: **Estatura baja/media, pero con gran fuerza física y explosividad**.*

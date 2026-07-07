@@ -1,3 +1,7 @@
+---
+subpilares: [fuerza, explosividad, resistencia, movilidad, agilidad]
+---
+
 # RESUMEN EXTENSO Y DETALLADO
 ## Fundamentos Técnico Metodológicos de la Planificación del Entrenamiento en la Iniciación Deportiva
 **Autor:** Edwin Vinueza Tapia

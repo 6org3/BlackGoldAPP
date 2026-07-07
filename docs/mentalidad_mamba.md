@@ -1,3 +1,7 @@
+---
+subpilares: [resiliencia]
+---
+
 # Mentalidad y Psicología Deportiva: El Enfoque Mamba en Black Gold
 
 *Nota: Este documento está redactado con un **tono académico**, respaldado por la psicología deportiva.*
