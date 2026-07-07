@@ -4,6 +4,7 @@ import {
   DollarSign, CheckCircle2, AlertTriangle, Clock,
   MessageSquare, Plus, RefreshCw, Shield, ChevronDown,
   FileSearch, Hourglass, CircleDollarSign, Ban, Paperclip,
+  Settings, PackagePlus,
 } from 'lucide-react';
 import {
   fetchPagosMes, registrarTransaccion, registrarTransferenciaAsistida,
@@ -12,6 +13,8 @@ import {
 import { registrarEnvioWhatsApp } from '../api/comunicacionesService';
 import { renderPlantilla, normalizarTelefonoEC, linkWhatsApp } from '../lib/plantillasWhatsApp';
 import PorVerificarPanel from './PorVerificarPanel';
+import ConfiguracionPagos from './ConfiguracionPagos';
+import CargosExtra from './CargosExtra';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -43,6 +46,8 @@ export default function AdminPagos({ user, atletas = [] }) {
   const [vencidosListos, setVencidosListos] = useState(false);
   const [mostrarVerificacion, setMostrarVerificacion] = useState(false);
   const [pendientesVerificar, setPendientesVerificar] = useState(0);
+  const [mostrarServicios, setMostrarServicios] = useState(false);
+  const [mostrarConfig, setMostrarConfig] = useState(false);
 
   // Formulario inline de registro de transacción (abonos incluidos)
   const [registrandoId, setRegistrandoId] = useState(null);
@@ -209,17 +214,48 @@ export default function AdminPagos({ user, atletas = [] }) {
               <FileSearch size={14} />
               <span>Por verificar{pendientesVerificar > 0 ? ` (${pendientesVerificar})` : ''}</span>
             </button>
-            {/* El coach opera en modo cobro: registrar y recordar, sin generar el mes */}
+            {/* El coach opera en modo cobro: registrar y recordar. Servicios,
+                configuración y "Generar Mes" son owner/superadmin. */}
             {!esCoach && (
-              <button onClick={handleGenerarMes} disabled={generando}
-                className="flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 bg-brand/10 border border-brand/30 text-brand text-xs font-black rounded-control uppercase tracking-widest hover:bg-brand/20 disabled:opacity-50 transition">
-                <Plus size={14} />
-                <span>{generando ? 'Generando...' : 'Generar Mes'}</span>
-              </button>
+              <>
+                <button onClick={() => { setMostrarServicios(v => !v); setMostrarConfig(false); }}
+                  className={`flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 border text-xs font-black rounded-control uppercase tracking-widest transition ${
+                    mostrarServicios ? 'bg-info/10 border-info/30 text-info-soft' : 'border-white/10 text-fg-muted hover:text-white'
+                  }`}>
+                  <PackagePlus size={14} />
+                  <span>Servicios</span>
+                </button>
+                <button onClick={() => { setMostrarConfig(v => !v); setMostrarServicios(false); }}
+                  className={`flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 border text-xs font-black rounded-control uppercase tracking-widest transition ${
+                    mostrarConfig ? 'bg-brand/10 border-brand/30 text-brand' : 'border-white/10 text-fg-muted hover:text-white'
+                  }`}>
+                  <Settings size={14} />
+                  <span>Configuración</span>
+                </button>
+                <button onClick={handleGenerarMes} disabled={generando}
+                  className="flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 bg-brand/10 border border-brand/30 text-brand text-xs font-black rounded-control uppercase tracking-widest hover:bg-brand/20 disabled:opacity-50 transition">
+                  <Plus size={14} />
+                  <span>{generando ? 'Generando...' : 'Generar Mes'}</span>
+                </button>
+              </>
             )}
           </div>
         </div>
       </header>
+
+      {/* Configuración del club (owner) */}
+      {mostrarConfig && !esCoach && (
+        <div className="relative z-10 mb-6">
+          <ConfiguracionPagos user={user} />
+        </div>
+      )}
+
+      {/* Servicios y cargos extra (owner) */}
+      {mostrarServicios && !esCoach && (
+        <div className="relative z-10 mb-6">
+          <CargosExtra user={user} atletas={atletas} grupoId={grupoId} contactos={contactos} />
+        </div>
+      )}
 
       {/* Comprobantes por verificar */}
       {mostrarVerificacion && (

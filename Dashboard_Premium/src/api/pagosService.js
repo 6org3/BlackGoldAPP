@@ -360,3 +360,141 @@ export async function fetchClubConfig(club) {
   if (error) { console.error(error); return null; }
   return (data && data[0]) || null;
 }
+
+// ── Configuración del club (owner) — P1 ──────────────────────────────────────
+// RLS v27: club_config_write es owner/superadmin. El teléfono se guarda tal
+// cual lo escribe el owner; se normaliza solo al armar el link wa.me.
+export async function upsertClubConfig(club, campos) {
+  const { data, error } = await supabase
+    .from('club_config')
+    .upsert({ club, ...campos }, { onConflict: 'club' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// ── Catálogo de servicios (owner) — P1 ───────────────────────────────────────
+export async function fetchCatalogo(club, { soloActivos = false } = {}) {
+  let q = supabase.from('catalogo_servicios').select('*').order('nombre');
+  if (club) q = q.eq('club', club);
+  if (soloActivos) q = q.eq('activo', true);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+export async function upsertServicio(servicio) {
+  // servicio: { id?, club, nombre, descripcion, recurrencia, precio_base, activo }
+  const { data, error } = await supabase
+    .from('catalogo_servicios')
+    .upsert(servicio, { onConflict: 'id' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function toggleServicioActivo(servicioId, activo) {
+  const { error } = await supabase
+    .from('catalogo_servicios')
+    .update({ activo })
+    .eq('id', servicioId);
+  if (error) throw error;
+}
+
+// ── Tarifas por dimensión (grupo / categoría FEB / género) — P1 ──────────────
+export async function fetchTarifas(servicioId) {
+  const { data, error } = await supabase
+    .from('servicio_tarifas')
+    .select('*, grupos_entrenamiento (nombre)')
+    .eq('servicio_id', servicioId)
+    .order('vigente_desde', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+export async function upsertTarifa(tarifa) {
+  // tarifa: { id?, servicio_id, grupo_id|null, categoria_feb|null, genero|null, precio, vigente_desde }
+  const { data, error } = await supabase
+    .from('servicio_tarifas')
+    .upsert(tarifa, { onConflict: 'id' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteTarifa(tarifaId) {
+  const { error } = await supabase.from('servicio_tarifas').delete().eq('id', tarifaId);
+  if (error) throw error;
+}
+
+// Precio sugerido de un servicio para un atleta (categoría FEB al vuelo en SQL).
+export async function precioSugerido(servicioId, atletaId) {
+  const { data, error } = await supabase.rpc('precio_servicio_atleta', {
+    p_servicio_id: servicioId,
+    p_atleta_id: atletaId,
+  });
+  if (error) { console.error(error); return null; }
+  return data;
+}
+
+// ── Cargos extra individualizados — P1 ───────────────────────────────────────
+// Una fila de `pagos` con tipo 'Otro'/'Sesion Individual', servicio_id +
+// concepto, mes/anio NULL y fecha_servicio/vencimiento puntuales. INSERT normal
+// (el UNIQUE de v27 no aplica porque mes/anio son NULL).
+export async function crearCargo({ atletaId, servicioId, tipo = 'Otro', concepto, monto, fechaVencimiento = null }, registradoPor) {
+  const { data, error } = await supabase
+    .from('pagos')
+    .insert({
+      atleta_id: atletaId,
+      tipo,
+      servicio_id: servicioId || null,
+      concepto,
+      mes: null,
+      anio: null,
+      fecha_servicio: new Date().toISOString().split('T')[0],
+      monto_base: monto,
+      descuento_pct: 0,
+      monto_final: monto,
+      estado: 'Pendiente',
+      fecha_vencimiento: fechaVencimiento,
+      registrado_por: registradoPor,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Cargos extra abiertos/recientes del club (no mensualidades) para la pestaña Servicios.
+export async function fetchCargosExtra(grupoId = null) {
+  let q = supabase
+    .from('pagos')
+    .select(`
+      *,
+      atletas!inner (
+        id, grupo_id, grupo_nombre,
+        usuarios!inner!atletas_usuario_id_fkey (nombre)
+      )
+    `)
+    .neq('tipo', 'Mensualidad')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  let result = data || [];
+  if (grupoId && grupoId !== 'Todos') {
+    result = result.filter(p => p.atletas?.grupo_id === grupoId);
+  }
+  return result;
+}
+
+export async function anularCargo(pagoId, motivo) {
+  const { error } = await supabase
+    .from('pagos')
+    .update({ estado: 'Anulado', anulado_motivo: motivo })
+    .eq('id', pagoId);
+  if (error) throw error;
+}
