@@ -12,6 +12,7 @@ import { CATEGORIAS_FEB } from '../api/utilsAtletas';
 
 const CAMPOS_CONFIG_INICIAL = {
   whatsapp_club: '', cuenta_bancaria_texto: '', dia_vencimiento: 5, descuento_hermanos_pct: 0,
+  autogenerar_mensual: false,
 };
 
 /**
@@ -39,6 +40,7 @@ export default function ConfiguracionPagos({ user }) {
       cuenta_bancaria_texto: cfg.cuenta_bancaria_texto || '',
       dia_vencimiento: cfg.dia_vencimiento ?? 5,
       descuento_hermanos_pct: cfg.descuento_hermanos_pct ?? 0,
+      autogenerar_mensual: cfg.autogenerar_mensual ?? false,
     });
     setServicios(cat);
     setGrupos(grs.filter(g => !club || g.club === club));
@@ -59,6 +61,7 @@ export default function ConfiguracionPagos({ user }) {
         cuenta_bancaria_texto: config.cuenta_bancaria_texto.trim() || null,
         dia_vencimiento: Number(config.dia_vencimiento) || 5,
         descuento_hermanos_pct: Number(config.descuento_hermanos_pct) || 0,
+        autogenerar_mensual: !!config.autogenerar_mensual,
       });
       setConfigOk(true);
       setTimeout(() => setConfigOk(false), 2500);
@@ -136,6 +139,15 @@ export default function ConfiguracionPagos({ user }) {
               placeholder={'Banco Pichincha · Cuenta Ahorros 2100XXXXXX\nA nombre de: Club Black Gold · RUC/CI: ...\nEnvía tu comprobante desde la app.'}
               onChange={e => setConfig(c => ({ ...c, cuenta_bancaria_texto: e.target.value }))}
               className="mt-1 w-full bg-black/40 border border-white/10 rounded-control px-3 py-2.5 text-sm text-white focus:outline-none focus:border-brand/40 resize-y" />
+          </label>
+          <label className="flex items-start gap-2.5 mt-3 cursor-pointer">
+            <input type="checkbox" checked={config.autogenerar_mensual}
+              onChange={e => setConfig(c => ({ ...c, autogenerar_mensual: e.target.checked }))}
+              className="mt-0.5 w-4 h-4 accent-brand" />
+            <span className="text-2xs text-fg-secondary">
+              <span className="font-black text-white">Generar las mensualidades automáticamente</span> el día 1 de cada mes.
+              Si está apagado, se generan solo con el botón "Generar Mes".
+            </span>
           </label>
           <div className="flex items-center gap-3 mt-3">
             <button onClick={guardarConfig} disabled={guardandoConfig}

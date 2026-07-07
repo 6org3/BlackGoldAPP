@@ -4,7 +4,7 @@ import {
   DollarSign, CheckCircle2, AlertTriangle, Clock,
   MessageSquare, Plus, RefreshCw, Shield, ChevronDown,
   FileSearch, Hourglass, CircleDollarSign, Ban, Paperclip,
-  Settings, PackagePlus,
+  Settings, PackagePlus, Send, Wallet, FileText,
 } from 'lucide-react';
 import {
   fetchPagosMes, registrarTransaccion, registrarTransferenciaAsistida,
@@ -12,9 +12,12 @@ import {
 } from '../api/pagosService';
 import { registrarEnvioWhatsApp } from '../api/comunicacionesService';
 import { renderPlantilla, normalizarTelefonoEC, linkWhatsApp } from '../lib/plantillasWhatsApp';
+import { generarReciboPDF } from '../lib/reciboPago';
 import PorVerificarPanel from './PorVerificarPanel';
 import ConfiguracionPagos from './ConfiguracionPagos';
 import CargosExtra from './CargosExtra';
+import ColaRecordatorios from './ColaRecordatorios';
+import CajaResumen from './CajaResumen';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -48,6 +51,8 @@ export default function AdminPagos({ user, atletas = [] }) {
   const [pendientesVerificar, setPendientesVerificar] = useState(0);
   const [mostrarServicios, setMostrarServicios] = useState(false);
   const [mostrarConfig, setMostrarConfig] = useState(false);
+  const [mostrarCola, setMostrarCola] = useState(false);
+  const [mostrarCaja, setMostrarCaja] = useState(false);
 
   // Formulario inline de registro de transacción (abonos incluidos)
   const [registrandoId, setRegistrandoId] = useState(null);
@@ -173,10 +178,24 @@ export default function AdminPagos({ user, atletas = [] }) {
   const handleGenerarMes = async () => {
     setGenerando(true);
     try {
-      await generarPagosMensuales(mes, anio, atletas, user.id);
+      // v28: server-side por club (superadmin sin club → todos). Idempotente.
+      const creados = await generarPagosMensuales(mes, anio, user.club ?? null, user.id);
       load();
-    } catch (e) { console.error(e); }
+      if (typeof creados === 'number') {
+        alert(creados > 0 ? `Se generaron ${creados} pago(s) para ${MESES[mes]} ${anio}.` : `No había pagos nuevos que generar para ${MESES[mes]} ${anio}.`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert(`No se pudo generar el mes: ${e.message}`);
+    }
     setGenerando(false);
+  };
+
+  const descargarRecibo = (pago) => {
+    generarReciboPDF(pago, {
+      atletaNombre: pago.atletas?.usuarios?.nombre || '—',
+      club: user?.club || 'Black Gold',
+    }).catch(e => { console.error(e); alert('No se pudo generar el recibo.'); });
   };
 
   const diasParaVencer = (fecha) => {
@@ -214,10 +233,25 @@ export default function AdminPagos({ user, atletas = [] }) {
               <FileSearch size={14} />
               <span>Por verificar{pendientesVerificar > 0 ? ` (${pendientesVerificar})` : ''}</span>
             </button>
+            {/* Recordatorios (cola 1-a-N) también para el coach en modo cobro. */}
+            <button onClick={() => setMostrarCola(v => !v)}
+              className={`flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 border text-xs font-black rounded-control uppercase tracking-widest transition ${
+                mostrarCola ? 'bg-warning/10 border-warning/30 text-warning-soft' : 'border-white/10 text-fg-muted hover:text-white'
+              }`}>
+              <Send size={14} />
+              <span>Recordatorios</span>
+            </button>
             {/* El coach opera en modo cobro: registrar y recordar. Servicios,
-                configuración y "Generar Mes" son owner/superadmin. */}
+                configuración, caja y "Generar Mes" son owner/superadmin. */}
             {!esCoach && (
               <>
+                <button onClick={() => setMostrarCaja(v => !v)}
+                  className={`flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 border text-xs font-black rounded-control uppercase tracking-widest transition ${
+                    mostrarCaja ? 'bg-success/10 border-success/30 text-success-soft' : 'border-white/10 text-fg-muted hover:text-white'
+                  }`}>
+                  <Wallet size={14} />
+                  <span>Caja</span>
+                </button>
                 <button onClick={() => { setMostrarServicios(v => !v); setMostrarConfig(false); }}
                   className={`flex items-center justify-center space-x-2 px-4 py-2.5 min-h-11 border text-xs font-black rounded-control uppercase tracking-widest transition ${
                     mostrarServicios ? 'bg-info/10 border-info/30 text-info-soft' : 'border-white/10 text-fg-muted hover:text-white'
@@ -242,6 +276,20 @@ export default function AdminPagos({ user, atletas = [] }) {
           </div>
         </div>
       </header>
+
+      {/* Cola de recordatorios W2 (staff) */}
+      {mostrarCola && (
+        <div className="relative z-10 mb-6">
+          <ColaRecordatorios user={user} mes={mes} anio={anio} />
+        </div>
+      )}
+
+      {/* Cierre de caja (owner) */}
+      {mostrarCaja && !esCoach && (
+        <div className="relative z-10 mb-6">
+          <CajaResumen mes={mes} anio={anio} />
+        </div>
+      )}
 
       {/* Configuración del club (owner) */}
       {mostrarConfig && !esCoach && (
@@ -438,7 +486,14 @@ export default function AdminPagos({ user, atletas = [] }) {
                     </button>
                   )}
                   {pago.estado === 'Pagado' && (
-                    <span className="text-3xs text-fg-faint">{pago.fecha_pago} · {pago.forma_pago}</span>
+                    <>
+                      <button onClick={() => descargarRecibo(pago)}
+                        title="Descargar recibo" aria-label="Descargar recibo"
+                        className="p-2.5 min-w-11 min-h-11 flex items-center justify-center text-fg-muted hover:text-white transition-colors">
+                        <FileText size={16} />
+                      </button>
+                      <span className="text-3xs text-fg-faint">{pago.fecha_pago} · {pago.forma_pago}</span>
+                    </>
                   )}
                 </div>
               </motion.div>
