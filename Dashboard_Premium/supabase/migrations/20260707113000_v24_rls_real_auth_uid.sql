@@ -426,8 +426,12 @@ GRANT EXECUTE ON FUNCTION public.resolver_audiencia(text, jsonb, boolean, text) 
 -- ------------------------------------------------------------
 -- 8. POLÍTICAS NUEVAS
 -- ------------------------------------------------------------
--- Convención: <tabla>_<select|insert|update|delete>. Los helpers van
--- envueltos en (select ...) para evaluarse una vez por consulta.
+-- Convención: <tabla>_<select|insert|update|delete>. Los helpers
+-- escalares van envueltos en (select ...) y los que devuelven array
+-- se consumen con IN (SELECT unnest(fn())) — ambas formas se evalúan
+-- una sola vez por consulta (initplan). Nota: `= ANY ((select fn()))`
+-- NO sirve: Postgres lo parsea como sub-link fila a fila y truena con
+-- "operator does not exist: uuid = uuid[]".
 
 -- ===== usuarios =====
 -- SELECT: staff de mi club (superadmin cruza), mi propia fila, y los
@@ -438,7 +442,7 @@ CREATE POLICY usuarios_select ON public.usuarios FOR SELECT TO authenticated
     (select es_superadmin())
     OR ((select es_staff()) AND club = (select current_user_club()))
     OR auth_user_id = (select auth.uid())
-    OR id = ANY ((select usuarios_de_mis_atletas()))
+    OR id IN (SELECT unnest(usuarios_de_mis_atletas()))
   );
 
 CREATE POLICY usuarios_insert ON public.usuarios FOR INSERT TO authenticated
@@ -473,7 +477,7 @@ CREATE POLICY atletas_select ON public.atletas FOR SELECT TO authenticated
     (select es_superadmin())
     OR ((select es_staff()) AND club_de_usuario(usuario_id) = (select current_user_club()))
     OR usuario_id = (select current_usuario_id())
-    OR id = ANY ((select mis_atletas()))
+    OR id IN (SELECT unnest(mis_atletas()))
   );
 
 CREATE POLICY atletas_insert ON public.atletas FOR INSERT TO authenticated
@@ -493,7 +497,7 @@ CREATE POLICY padres_atletas_select ON public.padres_atletas FOR SELECT TO authe
   USING (
     (select es_staff())
     OR padre_id = (select current_usuario_id())
-    OR atleta_id = ANY ((select mis_atletas()))
+    OR atleta_id IN (SELECT unnest(mis_atletas()))
   );
 
 CREATE POLICY padres_atletas_write ON public.padres_atletas FOR ALL TO authenticated
@@ -507,72 +511,72 @@ CREATE POLICY padres_atletas_write ON public.padres_atletas FOR ALL TO authentic
 CREATE POLICY asistencia_staff ON public.asistencia FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY asistencia_select_propio ON public.asistencia FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- evaluaciones_pruebas
 CREATE POLICY evaluaciones_staff ON public.evaluaciones_pruebas FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY evaluaciones_select_propio ON public.evaluaciones_pruebas FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- atleta_readiness — el check-in diario lo inserta el propio atleta.
 CREATE POLICY readiness_staff ON public.atleta_readiness FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY readiness_select_propio ON public.atleta_readiness FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 CREATE POLICY readiness_insert_atleta ON public.atleta_readiness FOR INSERT TO authenticated
   WITH CHECK (
     (select current_user_rol()) = 'atleta'
-    AND atleta_id = ANY ((select mis_atletas()))
+    AND atleta_id IN (SELECT unnest(mis_atletas()))
   );
 
 -- encuestas_habitos — el atleta la crea/corrige; el padre la valida.
 CREATE POLICY encuestas_staff ON public.encuestas_habitos FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY encuestas_select_propio ON public.encuestas_habitos FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 CREATE POLICY encuestas_insert_propio ON public.encuestas_habitos FOR INSERT TO authenticated
-  WITH CHECK (atleta_id = ANY ((select mis_atletas())));
+  WITH CHECK (atleta_id IN (SELECT unnest(mis_atletas())));
 CREATE POLICY encuestas_update_propio ON public.encuestas_habitos FOR UPDATE TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())))
-  WITH CHECK (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())))
+  WITH CHECK (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- notas_coach — solo lectura para atleta/padre.
 CREATE POLICY notas_staff ON public.notas_coach FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY notas_select_propio ON public.notas_coach FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- observaciones_cancha
 CREATE POLICY observaciones_staff ON public.observaciones_cancha FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY observaciones_select_propio ON public.observaciones_cancha FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- screening_funcional
 CREATE POLICY screening_staff ON public.screening_funcional FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY screening_select_propio ON public.screening_funcional FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- sesiones_entrenamiento
 CREATE POLICY ses_entrenamiento_staff ON public.sesiones_entrenamiento FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY ses_entrenamiento_select_propio ON public.sesiones_entrenamiento FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- sesiones_control (atleta_id nullable: las grupales solo las ve staff,
 -- igual que hoy — el portal del padre consulta por atleta_id).
 CREATE POLICY ses_control_staff ON public.sesiones_control FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY ses_control_select_propio ON public.sesiones_control FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- pagos
 CREATE POLICY pagos_staff ON public.pagos FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY pagos_select_propio ON public.pagos FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- recompensas_desbloqueadas — INSERT solo staff: todo camino que otorga
 -- recompensas (recalcularOverall → checkAndCreateRecompensas) corre en
@@ -580,32 +584,32 @@ CREATE POLICY pagos_select_propio ON public.pagos FOR SELECT TO authenticated
 CREATE POLICY recompensas_staff ON public.recompensas_desbloqueadas FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY recompensas_select_propio ON public.recompensas_desbloqueadas FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- progreso_misiones — el atleta marca su misión como completada
 -- (UPDATE); asignar (INSERT) es de staff o de la Edge Function.
 CREATE POLICY progreso_staff ON public.progreso_misiones FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY progreso_select_propio ON public.progreso_misiones FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 CREATE POLICY progreso_update_atleta ON public.progreso_misiones FOR UPDATE TO authenticated
   USING (
     (select current_user_rol()) = 'atleta'
-    AND atleta_id = ANY ((select mis_atletas()))
+    AND atleta_id IN (SELECT unnest(mis_atletas()))
   )
   WITH CHECK (
     (select current_user_rol()) = 'atleta'
-    AND atleta_id = ANY ((select mis_atletas()))
+    AND atleta_id IN (SELECT unnest(mis_atletas()))
   );
 
 -- evento_convocados — RSVP: atleta convocado o su padre.
 CREATE POLICY convocados_staff ON public.evento_convocados FOR ALL TO authenticated
   USING ((select es_staff())) WITH CHECK ((select es_staff()));
 CREATE POLICY convocados_select_propio ON public.evento_convocados FOR SELECT TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())));
 CREATE POLICY convocados_rsvp_propio ON public.evento_convocados FOR UPDATE TO authenticated
-  USING (atleta_id = ANY ((select mis_atletas())))
-  WITH CHECK (atleta_id = ANY ((select mis_atletas())));
+  USING (atleta_id IN (SELECT unnest(mis_atletas())))
+  WITH CHECK (atleta_id IN (SELECT unnest(mis_atletas())));
 
 -- ===== eventos =====
 -- Staff de club (superadmin cruza); atleta/padre solo eventos
@@ -625,7 +629,7 @@ CREATE POLICY eventos_select_convocado ON public.eventos FOR SELECT TO authentic
     AND EXISTS (
       SELECT 1 FROM evento_convocados ec
       WHERE ec.evento_id = eventos.id
-        AND ec.atleta_id = ANY ((select mis_atletas()))
+        AND ec.atleta_id IN (SELECT unnest(mis_atletas()))
     )
   );
 
@@ -643,11 +647,11 @@ CREATE POLICY comunicaciones_select_audiencia ON public.comunicaciones FOR SELEC
   USING (
     segmento_tipo = 'general'
     OR tipo = 'Anuncio'
-    OR atleta_id = ANY ((select mis_atletas()))
+    OR atleta_id IN (SELECT unnest(mis_atletas()))
     OR (grupo_id IS NOT NULL AND grupo_id IN (
-      SELECT ag.grupo_id FROM atleta_grupo ag WHERE ag.atleta_id = ANY ((select mis_atletas()))
+      SELECT ag.grupo_id FROM atleta_grupo ag WHERE ag.atleta_id IN (SELECT unnest(mis_atletas()))
       UNION
-      SELECT a.grupo_id FROM atletas a WHERE a.id = ANY ((select mis_atletas())) AND a.grupo_id IS NOT NULL
+      SELECT a.grupo_id FROM atletas a WHERE a.id IN (SELECT unnest(mis_atletas())) AND a.grupo_id IS NOT NULL
     ))
     OR EXISTS (
       SELECT 1 FROM comunicacion_destinatarios cd
