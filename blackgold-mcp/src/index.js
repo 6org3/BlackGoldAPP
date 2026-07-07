@@ -13,6 +13,9 @@ import { SUB_PILARES as SUB_PILARES_TAXONOMIA, getSubPilar } from "../../package
 // (vía el shim src/lib/didacticEngine.js) y la Edge Function.
 import { evaluarDeficits, emparejarMisionesPorCondicion } from "../../packages/analytics-core/didactica.js";
 import { calcularReadinessScore, detectarAlertasRecuperacion } from "../../packages/analytics-core/readiness.js";
+// Rack documental deportivo (knowledge/ + docs deportivos del repo): las tools
+// recuperan de aquí el fundamento científico/metodológico de sus prompts.
+import { buscarRack, contextoRack, inventarioRack } from "./rack.js";
 
 // Resuelto contra la ubicación del script, no contra process.cwd(): un cliente MCP
 // (Claude Code, Claude Desktop) lanza este proceso con el cwd del host, no de este paquete.
@@ -95,8 +98,17 @@ server.tool(
       
       promptInfo += "\n--- NOTAS SUBJETIVAS (Coach/Atleta) ---\n";
       promptInfo += notasSubjetivas.length ? notasSubjetivas.join("\n") : "Sin notas.";
-      
-      promptInfo += "\n\nINSTRUCCIÓN PARA LA IA: Procesa esta información y da un diagnóstico de 360 grados sobre el rendimiento de este atleta.";
+
+      // Fundamento del rack: prioriza los sub-pilares débiles; si no hay, el perfil completo.
+      const debiles = Object.entries(pilarStats)
+        .filter(([, s]) => (s.sumScore / s.count) < 60 || ["poor", "below_avg"].includes(s.currentTier))
+        .map(([sp]) => sp);
+      promptInfo += contextoRack(
+        `${(debiles.length ? debiles : Object.keys(pilarStats)).join(" ")} desarrollo baloncesto formativo ${categoria}`,
+        { k: 3 }
+      );
+
+      promptInfo += "\n\nINSTRUCCIÓN PARA LA IA: Procesa esta información y da un diagnóstico de 360 grados sobre el rendimiento de este atleta. Fundamenta cada recomendación en el CONTEXTO DEL RACK DOCUMENTAL cuando aplique, citando la fuente como [archivo › sección].";
 
       return {
         content: [{ type: "text", text: promptInfo }]
@@ -132,8 +144,12 @@ server.tool(
       });
 
       let promptInfo = `Atleta ID: ${athlete_id}\n`;
-      promptInfo += `Pilares Críticos Detectados (Bajo Promedio): ${Array.from(debilidades).join(", ") || "Ninguno"}\n\n`;
-      promptInfo += "INSTRUCCIÓN PARA LA IA: Asigna misiones específicas o aconseja entrenamientos súper individualizados para mejorar CADA UNO de los pilares débiles detectados. Si es 'Ninguno', genera una misión de mantenimiento avanzado. Responde en formato atractivo para el atleta.";
+      promptInfo += `Pilares Críticos Detectados (Bajo Promedio): ${Array.from(debilidades).join(", ") || "Ninguno"}\n`;
+      promptInfo += contextoRack(
+        `${Array.from(debilidades).join(" ") || "mantenimiento avanzado"} ejercicios entrenamiento progresión edad baloncesto`,
+        { k: 3 }
+      );
+      promptInfo += "\n\nINSTRUCCIÓN PARA LA IA: Asigna misiones específicas o aconseja entrenamientos súper individualizados para mejorar CADA UNO de los pilares débiles detectados. Si es 'Ninguno', genera una misión de mantenimiento avanzado. Fundamenta cada misión en el CONTEXTO DEL RACK DOCUMENTAL, citando [archivo › sección]. Responde en formato atractivo para el atleta.";
 
       return { content: [{ type: "text", text: promptInfo }] };
     } catch (err) {
@@ -170,7 +186,12 @@ server.tool(
         promptInfo += `- ${pilar}: ${new Date(date).toLocaleDateString()}\n`;
       }
 
-      promptInfo += "\nINSTRUCCIÓN PARA LA IA: Teniendo en cuenta los 7 sub-pilares (explosividad, fuerza, movilidad, tiro, agilidad, tactica, resiliencia), detecta cuáles no han sido evaluados o hace más tiempo no se evalúan. Sugiere la siguiente prueba específica (ej: CMJ, Lane Agility, etc) y BRINDA UNA EXPLICACIÓN LÓGICA y científica de por qué debe evaluarse eso ahora.";
+      promptInfo += contextoRack(
+        "batería pruebas evaluación detección fases sensibles frecuencia edad " + Object.keys(lastTests).join(" "),
+        { k: 3, maxChars: 2400 }
+      );
+
+      promptInfo += "\n\nINSTRUCCIÓN PARA LA IA: Teniendo en cuenta los 7 sub-pilares (explosividad, fuerza, movilidad, tiro, agilidad, tactica, resiliencia), detecta cuáles no han sido evaluados o hace más tiempo no se evalúan. Sugiere la siguiente prueba específica (ej: CMJ, Lane Agility, etc) y BRINDA UNA EXPLICACIÓN LÓGICA y científica de por qué debe evaluarse eso ahora, apoyada en el CONTEXTO DEL RACK DOCUMENTAL con cita [archivo › sección] cuando aplique.";
 
       return { content: [{ type: "text", text: promptInfo }] };
     } catch (err) {
@@ -266,7 +287,12 @@ server.tool(
         out += recomendadas.map(m => `- ${m.titulo} (${m.complejidad}, ${m.xp_recompensa ?? "?"} XP) → trigger: ${m.condicion_trigger}`).join("\n");
       }
 
-      out += `\n\nINSTRUCCIÓN PARA LA IA: prioriza recuperación sobre carga cuando haya alertas críticas. Sugiere hábitos accionables por el propio atleta y, si el coach lo aprueba, asigna las misiones recomendadas.`;
+      out += contextoRack(
+        "recuperación sueño hidratación fatiga carga descanso planificación adolescente",
+        { k: 2, maxChars: 1800 }
+      );
+
+      out += `\n\nINSTRUCCIÓN PARA LA IA: prioriza recuperación sobre carga cuando haya alertas críticas. Sugiere hábitos accionables por el propio atleta fundados en el CONTEXTO DEL RACK DOCUMENTAL (cita [archivo › sección]) y, si el coach lo aprueba, asigna las misiones recomendadas.`;
 
       return { content: [{ type: "text", text: out }] };
     } catch (err) {
@@ -382,13 +408,18 @@ server.tool(
       });
       if (pendientes.length > 30) prompt += `… y ${pendientes.length - 30} celdas más (pide por sub_pilar para acotar).\n`;
       prompt += `\n=== CONTEXTO CIENTÍFICO (umbrales de baremos) ===${contextoBaremos || "\n(sin pruebas asociadas)"}\n`;
+      prompt += contextoRack(
+        `${subPilaresPedidos.join(" ")} desarrollo capacidades edad iniciación entrenamiento`,
+        { k: 3, titulo: "CONTEXTO DEL RACK DOCUMENTAL (fundamento para las justificaciones)" }
+      );
       prompt += `
 === INSTRUCCIONES DE REDACCIÓN ===
 Para cada celda faltante genera misiones con:
 - titulo: motivador, máx 60 caracteres.
 - descripcion: ejecutable por un chico de esa edad (bucket) sin supervisión especial.
-- justificacion: fundamento científico CON FUENTE (NSCA, FitnessGram, PubMed) de por qué
-  ese trabajo mejora ese sub-pilar a esa edad — mismo estándar que packages/analytics-core/baremos_cientificos.md.
+- justificacion: fundamento científico CON FUENTE de por qué ese trabajo mejora ese
+  sub-pilar a esa edad. Prioriza las fuentes del RACK DOCUMENTAL citándolas como
+  [archivo › sección]; complementa con NSCA/FitnessGram/PubMed si hace falta.
 - xp_recompensa coherente con el nivel: Micro≈25, Desarrollo≈50, Elite≈75.
 - complejidad: 'general' = hábito/educativa auto-asignable al atleta; 'especifica' = técnica
   que requiere criterio del coach antes de ser visible.
@@ -587,7 +618,7 @@ function validarThresholds(t) {
 // Tool 8: Consultar la guía metodológica de iniciación (Vinueza, Ecuador)
 server.tool(
   "consultar_metodologia_iniciacion",
-  "Devuelve la guía metodológica de referencia del club para iniciación deportiva ('Fundamentos Técnico Metodológicos de la Planificación del Entrenamiento en la Iniciación Deportiva', Edwin Vinueza Tapia, Ecuador): fases sensibles por edad, pruebas de detección con normas ecuatorianas, dimorfismo sexual, planificación y sistema de evaluación. Consultarla ANTES de redactar pruebas/baremos con generar_catalogo_pruebas.",
+  "Devuelve COMPLETA la guía metodológica de referencia del club para iniciación deportiva ('Fundamentos Técnico Metodológicos de la Planificación del Entrenamiento en la Iniciación Deportiva', Edwin Vinueza Tapia, Ecuador): fases sensibles por edad, pruebas de detección con normas ecuatorianas, dimorfismo sexual, planificación y sistema de evaluación. Para una búsqueda dirigida por tema sobre TODO el rack documental (esta guía + baremos + entrenamiento + táctica + mentalidad + referencias) usa consultar_rack.",
   {},
   async () => {
     try {
@@ -595,6 +626,63 @@ server.tool(
       return { content: [{ type: "text", text: texto }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error leyendo la guía metodológica (${DOC_METODOLOGIA}): ${err.message}` }] };
+    }
+  }
+);
+
+// ============================================================
+// RACK DOCUMENTAL DEPORTIVO (src/rack.js + knowledge/):
+// corpus indexado (BM25) de la documentación específica del
+// deporte — metodología de iniciación, baremos científicos,
+// entrenamiento, táctica, mentalidad, referencias. Las tools
+// analíticas y de autoría le inyectan contexto automáticamente;
+// estas dos lo exponen para consulta directa.
+// ============================================================
+
+// Tool 13: Consultar el rack documental
+server.tool(
+  "consultar_rack",
+  "Busca en el rack documental deportivo del club (guía metodológica Vinueza, baremos científicos, manual de entrenamiento, táctica, mentalidad, referencias académicas y documentos extra del staff) y devuelve los fragmentos más relevantes con su cita [archivo › sección]. Úsala para fundamentar diagnósticos, misiones, pruebas o decisiones de planificación en las fuentes del club.",
+  {
+    consulta: z.string().min(3).describe("Tema o pregunta (español; el índice cruza también términos en inglés de los baremos)"),
+    area: z.enum(["metodologia", "baremos", "entrenamiento", "tactica", "mentalidad", "referencias", "extra"]).optional()
+      .describe("Limitar la búsqueda a un área del rack"),
+    k: z.number().int().min(1).max(10).optional().describe("Cuántos fragmentos devolver (default 5)"),
+  },
+  async ({ consulta, area, k }) => {
+    try {
+      const hits = buscarRack(consulta, { k: k ?? 5, area: area ?? null });
+      if (hits.length === 0) {
+        return { content: [{ type: "text", text: `Sin resultados en el rack para "${consulta}"${area ? ` (área ${area})` : ""}. Prueba con otros términos o revisa el inventario con listar_rack.` }] };
+      }
+      let out = `=== RACK DOCUMENTAL — ${hits.length} fragmento(s) para "${consulta}" ===\n`;
+      hits.forEach(h => {
+        out += `\n[${h.archivo} › ${h.seccion}] (área ${h.area}, score ${h.score})\n${h.texto}\n`;
+      });
+      return { content: [{ type: "text", text: out }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error consultando el rack: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 14: Inventario del rack documental
+server.tool(
+  "listar_rack",
+  "Devuelve el inventario del rack documental deportivo: qué documentos hay, de qué área (metodologia/baremos/entrenamiento/tactica/mentalidad/referencias/extra), cuántas secciones y fragmentos indexa cada uno. Útil para saber qué fuentes existen antes de consultar o para detectar qué documentación falta incorporar a knowledge/.",
+  {},
+  async () => {
+    try {
+      const inv = inventarioRack();
+      let out = `=== INVENTARIO DEL RACK DOCUMENTAL ===\n`;
+      out += `${inv.documentos.length} documento(s), ${inv.totalFragmentos} fragmento(s) indexados. Áreas: ${inv.areas.join(", ")}.\n`;
+      inv.documentos.forEach(d => {
+        out += `\n- [${d.area}] ${d.archivo} — "${d.titulo}"\n  ${d.secciones} secciones, ${d.fragmentos} fragmentos, ~${Math.round(d.caracteres / 1000)} k caracteres`;
+      });
+      out += `\n\nPara añadir documentación: colocar .md/.txt en blackgold-mcp/knowledge/ (o declararla en knowledge/rack.config.json; carpetas personales via env RACK_DIRS). Ver knowledge/README.md.`;
+      return { content: [{ type: "text", text: out }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error listando el rack: ${err.message}` }] };
     }
   }
 );
@@ -665,17 +753,21 @@ server.tool(
         fueraDeTaxonomia.forEach(p => { out += `  · ${p}\n`; });
       }
 
-      out += `
-=== CONTEXTO METODOLÓGICO (guía Vinueza — usa consultar_metodologia_iniciacion para el texto completo) ===
-- Normas basadas en POBLACIÓN ECUATORIANA (mismo contexto del club): preferirlas a baremos importados cuando cubran la edad/prueba.
-- Batería de detección validada (9-12 años): carrera 30m (velocidad), salto de longitud sin impulso (fuerza explosiva), abdominales 30s, flexiones de codo 30s, carrera de resistencia 600m (9-10 años) / 1000m (11-12 años).
-- Fases sensibles: fuerza 10-12 años (sin cargas máximas), velocidad 7-10, resistencia aeróbica desde 9-10 (anaeróbica post-puberal), flexibilidad 6-12.
-- Dimorfismo sexual documentado (tabla 2002): p.ej. carrera 40m a los 9 años F 9.2s vs M 8.5s → usa la capa de género en thresholds cuando la prueba lo amerite.
+      // Contexto metodológico recuperado del rack (antes era texto fijo en el
+      // código); la regla de oro se mantiene explícita como línea propia.
+      const ctxMetodologico = contextoRack(
+        `detección talentos batería pruebas normas fases sensibles dimorfismo ${objetivo.join(" ")}`,
+        { k: 4, maxChars: 3200, titulo: "CONTEXTO METODOLÓGICO (rack documental — consultar_rack para profundizar)" }
+      );
+      out += ctxMetodologico ||
+        `\n=== CONTEXTO METODOLÓGICO ===\n(rack documental no disponible — usa consultar_metodologia_iniciacion para la guía Vinueza completa)\n`;
+      out += `\nREGLA DE ORO: preferir normas basadas en POBLACIÓN ECUATORIANA (guía Vinueza, mismo contexto del club) a baremos importados cuando cubran la edad/prueba; usar la capa de género de thresholds cuando el dimorfismo documentado lo amerite.\n`;
 
+      out += `
 === INSTRUCCIONES DE REDACCIÓN ===
 Para cada prueba faltante define:
 - nombre, descripcion (qué capacidad mide), protocolo (ejecución paso a paso medible en cancha).
-- justificacion: fundamento científico CON FUENTE (Vinueza para normas ecuatorianas; NSCA/FitnessGram/PubMed como complemento).
+- justificacion: fundamento científico CON FUENTE — cita el rack documental como [archivo › sección] (Vinueza para normas ecuatorianas; NSCA/FitnessGram/PubMed como complemento).
 - sub_pilar canónico (${SUB_PILARES_PRUEBAS.join("/")}), unidad, tipo ('mas_es_mejor' | 'menos_es_mejor').
 - thresholds con 4 cortes ascendentes [t1,t2,t3,t4] por bucket (Sub12/Sub15/Sub18/Senior o 'Todas'), opcionalmente segmentados:
     · por nivel de desarrollo: { "Sub15": { "Micro": [...], "Desarrollo": [...], "Elite": [...] } } (REQUISITO del club para pruebas nuevas)
@@ -790,6 +882,12 @@ server.tool(
         if (p.thresholds) prompt += `  umbrales por bucket: ${JSON.stringify(p.thresholds)}\n`;
         prompt += `  falta: ${[faltaTexto(p.descripcion) ? "descripcion" : null, faltaTexto(p.descripcion_ejecucion) ? "descripcion_ejecucion" : null].filter(Boolean).join(" + ")}\n`;
       });
+
+      const spPendientes = [...new Set(pendientes.map(p => p.sub_pilar))];
+      prompt += contextoRack(
+        `${spPendientes.join(" ")} protocolo prueba medición umbrales edad`,
+        { k: 3, maxChars: 2400 }
+      );
 
       prompt += `
 === INSTRUCCIONES DE REDACCIÓN (mismo estándar que el catálogo de misiones) ===

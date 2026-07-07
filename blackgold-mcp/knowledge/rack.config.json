@@ -1,0 +1,11 @@
+{
+  "comentario": "Manifest del rack documental deportivo. 'ruta' es relativa a knowledge/ (archivo o carpeta con .md/.txt). 'area' clasifica la fuente: metodologia | baremos | entrenamiento | tactica | mentalidad | referencias | extra. Añadir aquí cada documento nuevo del deporte; las carpetas personales fuera del repo van en la env RACK_DIRS.",
+  "fuentes": [
+    { "ruta": ".", "area": "metodologia" },
+    { "ruta": "../../docs/baremos_cientificos.md", "area": "baremos" },
+    { "ruta": "../../docs/manual_entrenamiento.md", "area": "entrenamiento" },
+    { "ruta": "../../docs/tactica_small_ball.md", "area": "tactica" },
+    { "ruta": "../../docs/mentalidad_mamba.md", "area": "mentalidad" },
+    { "ruta": "../../docs/referencias_academicas.md", "area": "referencias" }
+  ]
+}

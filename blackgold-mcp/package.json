@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "inspector": "npx @modelcontextprotocol/inspector node src/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector node src/index.js",
+    "rack": "node src/rack.selftest.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
