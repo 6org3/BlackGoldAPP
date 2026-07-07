@@ -12,6 +12,7 @@ import { PILARES, SUB_PILARES as SUB_PILARES_TAXONOMIA, SUB_PILARES_MONITOREO, g
 // Motor de recomendación COMPARTIDO (un solo cerebro): el mismo que usa la web
 // (vía el shim src/lib/didacticEngine.js) y la Edge Function.
 import { evaluarDeficits, emparejarMisionesPorCondicion } from "../../packages/analytics-core/didactica.js";
+import { clasificarContextoMision } from "../../packages/analytics-core/clasificadorContexto.js";
 import { calcularReadinessScore, detectarAlertasRecuperacion } from "../../packages/analytics-core/readiness.js";
 // Rack documental deportivo (knowledge/ + docs deportivos del repo): las tools
 // recuperan de aquí el fundamento científico/metodológico de sus prompts.
@@ -327,6 +328,9 @@ const BUCKETS = ["Sub12", "Sub15", "Sub18", "Senior"];
 const CONTEXTOS = ["cancha", "casa", "ambos"];
 // Etiqueta de periodización (v26): null = comodín, válida todo el año.
 const FASES_TEMPORADA = ["preparatoria", "competitiva", "transicion"];
+// Valores válidos de misiones.pilar (CHECK misiones_pilar_check, v26): los 8 sub-pilares
+// del radar + 'recuperacion' + los legacy de contenido 'youtube'/'articulo'.
+const PILARES_MISION = [...SUB_PILARES, "recuperacion", "youtube", "articulo"];
 
 const TOTAL_CELDAS = () => SUB_PILARES.length * NIVELES.length * BUCKETS.length;
 
@@ -1121,6 +1125,222 @@ server.tool(
       }
 
       return { content: [{ type: "text", text: resultados.join("\n") }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// ============================================================
+// AUDITORÍA DE MISIONES (limpieza del catálogo antes de activar
+// las misiones de casa): clasifica las misiones existentes
+// (casa / cancha / basura) con el clasificador compartido +
+// una señal semántica del rack, y devuelve acciones sugeridas.
+// El par analizar→aplicar espeja generar_/actualizar_descripciones_pruebas.
+// ============================================================
+
+// Documentos del rack que delatan contenido de CANCHA (sesión presencial) vs CASA.
+const DOCS_CANCHA = new Set(["manual_entrenamiento.md", "periodizacion_entrenamiento_anual.md"]);
+const DOCS_CASA = new Set(["trabajo_casa_atleta.md"]);
+
+// Tool 16: Auditar misiones (read-only)
+server.tool(
+  "auditar_misiones",
+  "Audita el catálogo de misiones existente: por cada misión combina el clasificador de contexto (sub-pilar + señales léxicas de material/coach/formato vs autocarga/video/hábito) con una señal semántica del rack, y sugiere una acción — OK, RECLASIFICAR_CASA, RECLASIFICAR_CANCHA_DESACTIVAR (ejercicio de cancha mal ubicado como misión) o BORRAR_BASURA (IA sin justificación que describe gym). No modifica nada; para aplicar usa actualizar_misiones y eliminar_misiones_basura.",
+  {
+    pilar: z.enum(PILARES_MISION).optional().describe("Limitar a un pilar"),
+    contexto_actual: z.enum(CONTEXTOS).optional().describe("Limitar a las misiones que hoy tienen este contexto (p.ej. 'ambos')"),
+    solo_discrepancias: z.boolean().optional().describe("true = omitir las que quedan OK (contexto ya correcto)"),
+  },
+  async ({ pilar, contexto_actual, solo_discrepancias }) => {
+    try {
+      let query = supabase
+        .from("misiones")
+        .select("id, titulo, descripcion, pilar, quiz, is_ai_generated, justificacion, contexto, activa, categoria_bucket");
+      if (pilar) query = query.eq("pilar", pilar);
+      if (contexto_actual) query = query.eq("contexto", contexto_actual);
+      const { data: misiones, error } = await query;
+      if (error) throw new Error("Error consultando misiones: " + error.message);
+      if (!misiones || misiones.length === 0) {
+        return { content: [{ type: "text", text: "No hay misiones que coincidan con el filtro." }] };
+      }
+
+      const grupos = { BORRAR_BASURA: [], RECLASIFICAR_CANCHA_DESACTIVAR: [], RECLASIFICAR_CASA: [], RECLASIFICAR_AMBOS: [], OK: [] };
+
+      for (const m of misiones) {
+        const c = clasificarContextoMision(m);
+
+        // Señal semántica del rack: ¿el contenido se parece más a sesión de cancha o a trabajo de casa?
+        let señalRack = null;
+        try {
+          const hits = buscarRack(`${m.titulo || ""} ${m.descripcion || ""}`, { k: 2 });
+          const top = hits[0];
+          if (top) {
+            if (DOCS_CANCHA.has(top.archivo)) señalRack = { lado: "cancha", archivo: top.archivo };
+            else if (DOCS_CASA.has(top.archivo)) señalRack = { lado: "casa", archivo: top.archivo };
+            else señalRack = { lado: "neutro", archivo: top.archivo };
+          }
+        } catch { /* rack no disponible: se ignora la señal */ }
+
+        // Acción sugerida.
+        let accion;
+        if (c.esBasura) {
+          accion = "BORRAR_BASURA";
+        } else if (c.esCanchaNoMision) {
+          accion = "RECLASIFICAR_CANCHA_DESACTIVAR";
+        } else if (c.contextoSugerido !== m.contexto) {
+          accion = c.contextoSugerido === "casa" ? "RECLASIFICAR_CASA"
+            : c.contextoSugerido === "cancha" ? "RECLASIFICAR_CANCHA_DESACTIVAR" : "RECLASIFICAR_AMBOS";
+        } else {
+          accion = "OK";
+        }
+
+        grupos[accion].push({ m, c, señalRack });
+      }
+
+      const nombreLinea = (item) => {
+        const { m, c, señalRack } = item;
+        const rk = señalRack ? ` · rack→${señalRack.lado} (${señalRack.archivo})` : "";
+        return `  · [${m.id}] "${m.titulo}" (pilar ${m.pilar}, contexto ${m.contexto}→${c.contextoSugerido}, conf ${c.confianza}${rk})\n      señales: ${c.señales.join(" | ") || "—"}`;
+      };
+
+      let out = `=== AUDITORÍA DE MISIONES (${misiones.length} analizadas${pilar ? `, pilar=${pilar}` : ""}${contexto_actual ? `, contexto=${contexto_actual}` : ""}) ===\n`;
+      out += `Resumen: BORRAR_BASURA ${grupos.BORRAR_BASURA.length} · RECLASIFICAR_CANCHA_DESACTIVAR ${grupos.RECLASIFICAR_CANCHA_DESACTIVAR.length} · RECLASIFICAR_CASA ${grupos.RECLASIFICAR_CASA.length} · RECLASIFICAR_AMBOS ${grupos.RECLASIFICAR_AMBOS.length} · OK ${grupos.OK.length}\n`;
+
+      const ordenGrupos = ["BORRAR_BASURA", "RECLASIFICAR_CANCHA_DESACTIVAR", "RECLASIFICAR_CASA", "RECLASIFICAR_AMBOS"];
+      if (!solo_discrepancias) ordenGrupos.push("OK");
+      for (const g of ordenGrupos) {
+        if (grupos[g].length === 0) continue;
+        out += `\n### ${g} (${grupos[g].length})\n`;
+        out += grupos[g].map(nombreLinea).join("\n") + "\n";
+      }
+
+      // Payloads listos para aplicar (el humano revisa antes de ejecutar).
+      const idsBasura = grupos.BORRAR_BASURA.map(i => i.m.id);
+      const upCancha = grupos.RECLASIFICAR_CANCHA_DESACTIVAR.map(i => ({ id: i.m.id, contexto: "cancha", activa: false }));
+      const upCasa = grupos.RECLASIFICAR_CASA.map(i => ({ id: i.m.id, contexto: "casa" }));
+      const upAmbos = grupos.RECLASIFICAR_AMBOS.map(i => ({ id: i.m.id, contexto: "ambos" }));
+
+      out += `\n=== PARA APLICAR (revisar antes) ===\n`;
+      out += `• eliminar_misiones_basura → ids: ${JSON.stringify(idsBasura)}\n`;
+      out += `• actualizar_misiones → misiones: ${JSON.stringify([...upCancha, ...upCasa, ...upAmbos])}\n`;
+      out += `\nNota: RECLASIFICAR_CANCHA_DESACTIVAR marca contexto='cancha' y activa=false (sale del flujo de misiones, se conserva). BORRAR_BASURA solo borra si la misión no tiene progreso de atletas (la salvaguarda vive en eliminar_misiones_basura). La decisión final es del coach.`;
+
+      return { content: [{ type: "text", text: out }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 17: Actualizar misiones por id (aplicar la auditoría / editar catálogo)
+server.tool(
+  "actualizar_misiones",
+  "Actualiza misiones por id: contexto, activa, pilar, video_url, fase_temporada (decisión explícita: se aplican si vienen) y descripcion/justificacion (solo rellenan vacío salvo sobrescribir=true). Es la contraparte de aplicar de auditar_misiones y sirve también para corregir el catálogo (p.ej. añadir el link de YouTube).",
+  {
+    misiones: z.array(z.object({
+      id: z.string().uuid(),
+      contexto: z.enum(CONTEXTOS).optional(),
+      activa: z.boolean().optional(),
+      pilar: z.enum(PILARES_MISION).optional(),
+      video_url: z.string().url().nullable().optional(),
+      fase_temporada: z.enum(FASES_TEMPORADA).nullable().optional(),
+      descripcion: z.string().min(20).optional(),
+      justificacion: z.string().min(30).optional(),
+    })).min(1).describe("Lote de misiones a actualizar por id"),
+    sobrescribir: z.boolean().optional().describe("true = permite reemplazar descripcion/justificacion no vacías (default false)"),
+  },
+  async ({ misiones, sobrescribir }) => {
+    try {
+      const resultados = [];
+      for (const p of misiones) {
+        const { data: actual, error: readError } = await supabase
+          .from("misiones")
+          .select("id, titulo, descripcion, justificacion, contexto, activa, pilar, video_url, fase_temporada")
+          .eq("id", p.id)
+          .single();
+        if (readError || !actual) {
+          resultados.push(`❌ ${p.id}: no encontrada (${readError?.message ?? "sin fila"}).`);
+          continue;
+        }
+
+        const cambios = {};
+        // Campos de decisión explícita: se aplican si vienen (aunque ya tengan valor).
+        if (p.contexto !== undefined) cambios.contexto = p.contexto;
+        if (p.activa !== undefined) cambios.activa = p.activa;
+        if (p.pilar !== undefined) cambios.pilar = p.pilar;
+        if (p.video_url !== undefined) cambios.video_url = p.video_url;
+        if (p.fase_temporada !== undefined) cambios.fase_temporada = p.fase_temporada;
+        // Campos de texto: solo rellenan vacío salvo sobrescribir.
+        if (p.descripcion && (sobrescribir || faltaTexto(actual.descripcion))) cambios.descripcion = p.descripcion;
+        if (p.justificacion && (sobrescribir || faltaTexto(actual.justificacion))) cambios.justificacion = p.justificacion;
+
+        if (Object.keys(cambios).length === 0) {
+          resultados.push(`⏭️ "${actual.titulo}": nada que cambiar (campos de texto ya escritos; usa sobrescribir=true si es intencional).`);
+          continue;
+        }
+
+        const { error: upError } = await supabase.from("misiones").update(cambios).eq("id", p.id);
+        if (upError) {
+          resultados.push(`❌ "${actual.titulo}": ${upError.message}`);
+          continue;
+        }
+        resultados.push(`✅ "${actual.titulo}": ${Object.keys(cambios).join(" + ")}`);
+      }
+      return { content: [{ type: "text", text: resultados.join("\n") }] };
+    } catch (err) {
+      return { content: [{ type: "text", text: `Error: ${err.message}` }] };
+    }
+  }
+);
+
+// Tool 18: Eliminar misiones basura (borrado con salvaguarda)
+server.tool(
+  "eliminar_misiones_basura",
+  "Borra DEFINITIVAMENTE misiones por id, con salvaguardas: solo borra las que existen, son is_ai_generated=true y NO tienen filas en progreso_misiones (asignaciones/completadas de atletas). Las que tienen progreso se PROTEGEN (no se borran; se sugiere desactivar). Pensada para las misiones basura de IA detectadas por auditar_misiones.",
+  {
+    ids: z.array(z.string().uuid()).min(1).describe("Ids de misiones a borrar"),
+    permitir_no_ia: z.boolean().optional().describe("true = permite borrar aunque is_ai_generated no sea true (default false, protege el trabajo del coach)"),
+  },
+  async ({ ids, permitir_no_ia }) => {
+    try {
+      const resultados = [];
+      let borradas = 0;
+      for (const id of ids) {
+        const { data: m, error: readError } = await supabase
+          .from("misiones")
+          .select("id, titulo, is_ai_generated")
+          .eq("id", id)
+          .single();
+        if (readError || !m) {
+          resultados.push(`❌ ${id}: no encontrada.`);
+          continue;
+        }
+        if (!m.is_ai_generated && !permitir_no_ia) {
+          resultados.push(`🛡️ "${m.titulo}": NO es is_ai_generated → protegida (usa permitir_no_ia=true si es intencional).`);
+          continue;
+        }
+        const { count, error: cntError } = await supabase
+          .from("progreso_misiones")
+          .select("id", { count: "exact", head: true })
+          .eq("mision_id", id);
+        if (cntError) {
+          resultados.push(`❌ "${m.titulo}": no se pudo verificar progreso (${cntError.message}) → NO se borra.`);
+          continue;
+        }
+        if ((count ?? 0) > 0) {
+          resultados.push(`🛡️ "${m.titulo}": tiene ${count} progreso(s) de atleta → protegida (desactívala con actualizar_misiones en vez de borrar).`);
+          continue;
+        }
+        const { error: delError } = await supabase.from("misiones").delete().eq("id", id);
+        if (delError) {
+          resultados.push(`❌ "${m.titulo}": ${delError.message}`);
+          continue;
+        }
+        borradas++;
+        resultados.push(`🗑️ "${m.titulo}": borrada.`);
+      }
+      return { content: [{ type: "text", text: `Borradas: ${borradas}/${ids.length}\n${resultados.join("\n")}` }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }] };
     }
