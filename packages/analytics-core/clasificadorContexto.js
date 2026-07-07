@@ -1,8 +1,8 @@
 // packages/analytics-core/clasificadorContexto.js
 // Clasificador de CONTEXTO de una misión: ¿es trabajo de CASA (fuera de cancha/gym:
 // hábitos, flexibilidad, recuperación, ver videos, leer, trabajo autónomo) o un
-// EJERCICIO DE CANCHA/GYM (requiere aro, material del club, coach, formato grupal)
-// que no encaja con el concepto de misión del club?
+// EJERCICIO DE CANCHA/GYM (requiere aro, material del club, formato grupal) que no
+// encaja con el concepto de misión del club?
 //
 // Función PURA y testeable (regla del paquete: ES modules planos, sin dependencias).
 // Da una SUGERENCIA con señales explicables; la decisión final es humana (curaduría
@@ -26,15 +26,19 @@ const SUBPILAR_SESGO = {
 
 const PILARES_CONTENIDO = new Set(['youtube', 'articulo']);
 
-// Señales léxicas de CANCHA "fuertes": material del club, coach o formato grupal.
-// Su presencia marca `esCanchaNoMision` (no puede hacerse en casa sin el club).
-const CANCHA_FUERTE = [
+// MATERIAL del club / formato / instrumentación: SOLO esto marca `esCanchaNoMision`
+// (no puede hacerse en casa sin el club). El matching es por límite de palabra, así
+// que 'aro'/'cono' NO matchean dentro de "claro"/"reconocer".
+const CANCHA_MATERIAL = [
   'aro', 'canasta', 'tablero', 'barra', 'mancuerna', 'pesa', 'disco', 'rack',
   '1rm', 'cajon', 'drop jump', 'cono', 'escalera', 'lane agility', 't-test', 'ttest',
   'navette', 'course navette', 'yo-yo', 'yoyo', 'bateria', 'baremo', 'cronometr',
-  'coach revisa', 'coach valida', 'coach mide', 'el entrenador', 'supervis',
-  'media cancha', 'cancha completa', 'gimnasio', 'gym',
+  'media cancha', 'cancha completa', 'gimnasio',
 ];
+
+// COACH / supervisión: suma a cancha pero NO basta por sí sola para desactivar
+// (una misión de casa puede pedir que el coach valide un video después).
+const CANCHA_COACH = ['coach revisa', 'coach valida', 'coach mide', 'el entrenador', 'supervis'];
 
 // Señales de CANCHA "débiles": tienden a cancha pero no lo exigen por sí solas.
 const CANCHA_DEBIL = [
@@ -53,9 +57,8 @@ const CASA = [
 ];
 
 // Negaciones que invierten una señal de cancha en señal de casa: "sin aro",
-// "sin material"… Se eliminan del texto ANTES de contar señales de cancha (si no,
-// 'aro'/'canasta' matchearían dentro de "sin aro"/"sin canasta"). En la lista CASA
-// ya figuran "sin material/equipamiento/canasta/aro", así que cuentan para casa.
+// "sin material"… Se eliminan del texto ANTES de contar señales de cancha. En la
+// lista CASA ya figuran "sin material/equipamiento/canasta/aro", así que cuentan casa.
 const NEGACIONES = [
   'sin aro', 'sin canasta', 'sin tablero', 'sin barra', 'sin pesas', 'sin pesa',
   'sin mancuerna', 'sin material', 'sin equipamiento', 'sin balon', 'sin gimnasio', 'sin gym',
@@ -64,19 +67,25 @@ const NEGACIONES = [
 const normalizar = (s) =>
   String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
+// Matching por límite de palabra (\b) para no capturar keywords cortas dentro de
+// otras palabras ('aro' en "claro", 'cono' en "reconocer"). Los stems ('pliometr',
+// 'supervis', 'respira'…) matchean el prefijo y su continuación (sin \b final).
+const escaparRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const compilar = (lista) => lista.map((kw) => ({ kw, re: new RegExp('\\b' + escaparRe(kw)) }));
+
+const MATERIAL_RE = compilar(CANCHA_MATERIAL);
+const COACH_RE = compilar(CANCHA_COACH);
+const DEBIL_RE = compilar(CANCHA_DEBIL);
+const CASA_RE = compilar(CASA);
+
 const quitarNegaciones = (texto) => {
   let t = texto;
   for (const neg of NEGACIONES) t = t.split(neg).join(' ');
   return t;
 };
 
-const contarSeñales = (texto, lista) => {
-  const hits = [];
-  for (const kw of lista) {
-    if (texto.includes(kw)) hits.push(kw);
-  }
-  return hits;
-};
+const contarSeñales = (texto, listaRe) =>
+  listaRe.filter(({ re }) => re.test(texto)).map(({ kw }) => kw);
 
 /**
  * Clasifica el contexto de ejecución de una misión.
@@ -93,35 +102,36 @@ export function clasificarContextoMision(m = {}) {
 
   // Cancha se cuenta sobre el texto SIN negaciones ("sin aro" no cuenta como aro).
   const textoCancha = quitarNegaciones(texto);
-  const hitsCanchaFuerte = contarSeñales(textoCancha, CANCHA_FUERTE);
-  const hitsCanchaDebil = contarSeñales(textoCancha, CANCHA_DEBIL);
-  const hitsCasa = contarSeñales(texto, CASA);
+  const hitsMaterial = contarSeñales(textoCancha, MATERIAL_RE);
+  const hitsCoach = contarSeñales(textoCancha, COACH_RE);
+  const hitsDebil = contarSeñales(textoCancha, DEBIL_RE);
+  const hitsCasa = contarSeñales(texto, CASA_RE);
 
   // 1. Basura: generada por IA, sin justificación auditable, dice ser contenido
-  //    (youtube/articulo) pero describe un ejercicio físico de cancha/gym.
+  //    (youtube/articulo) pero describe un ejercicio físico con material de gym.
   const esBasura = m.is_ai_generated === true && justificacionVacia &&
-    PILARES_CONTENIDO.has(pilar) && hitsCanchaFuerte.length > 0;
+    PILARES_CONTENIDO.has(pilar) && hitsMaterial.length > 0;
   if (esBasura) {
-    señales.push(`basura: is_ai_generated + justificación vacía + pilar='${pilar}' pero describe cancha (${hitsCanchaFuerte.join(', ')})`);
+    señales.push(`basura: is_ai_generated + justificación vacía + pilar='${pilar}' pero describe cancha (${hitsMaterial.join(', ')})`);
   }
 
-  // 2. Ejercicio de cancha "no-misión": tiene señal fuerte de material/coach/formato.
-  const esCanchaNoMision = hitsCanchaFuerte.length > 0;
-  if (hitsCanchaFuerte.length) señales.push(`cancha (fuerte): ${hitsCanchaFuerte.join(', ')}`);
-  if (hitsCanchaDebil.length) señales.push(`cancha (débil): ${hitsCanchaDebil.join(', ')}`);
+  // 2. Ejercicio de cancha "no-misión": SOLO si hay material del club (no basta "coach").
+  const esCanchaNoMision = hitsMaterial.length > 0;
+  if (hitsMaterial.length) señales.push(`material de cancha: ${hitsMaterial.join(', ')}`);
+  if (hitsCoach.length) señales.push(`coach/supervisión: ${hitsCoach.join(', ')}`);
+  if (hitsDebil.length) señales.push(`cancha (débil): ${hitsDebil.join(', ')}`);
   if (hitsCasa.length) señales.push(`casa: ${hitsCasa.join(', ')}`);
 
-  // 3. Puntaje: keywords + sesgo del sub-pilar + señales de contenido/estudio.
+  // 3. Puntaje: material + coach + débil + sesgo del sub-pilar + contenido/estudio.
   const sesgo = SUBPILAR_SESGO[pilar] || null;
-  let puntajeCancha = hitsCanchaFuerte.length * 3 + hitsCanchaDebil.length * 1.5;
+  let puntajeCancha = hitsMaterial.length * 3 + hitsCoach.length * 2 + hitsDebil.length * 1.5;
   let puntajeCasa = hitsCasa.length * 2;
   if (sesgo === 'cancha') { puntajeCancha += 1.5; señales.push(`sub-pilar natural cancha: ${pilar}`); }
   if (sesgo === 'casa') { puntajeCasa += 1.5; señales.push(`sub-pilar natural casa: ${pilar}`); }
   if (PILARES_CONTENIDO.has(pilar)) { puntajeCasa += 3; señales.push(`pilar de contenido → casa`); }
   if (quizNoVacio) { puntajeCasa += 1; señales.push('tiene quiz (estudio) → casa'); }
 
-  // 4. Decisión. La basura y el ejercicio de cancha inequívoco van a 'cancha'
-  //    (el ejercicio de cancha se desactiva; la basura se borra tras verificación).
+  // 4. Decisión. La basura y el ejercicio con material inequívoco van a 'cancha'.
   let contextoSugerido;
   if (esBasura || esCanchaNoMision) {
     contextoSugerido = 'cancha';
@@ -143,4 +153,4 @@ export function clasificarContextoMision(m = {}) {
 }
 
 // Exportadas para tests y para un futuro clasificador de pruebas.
-export const _señales = { CANCHA_FUERTE, CANCHA_DEBIL, CASA, SUBPILAR_SESGO };
+export const _señales = { CANCHA_MATERIAL, CANCHA_COACH, CANCHA_DEBIL, CASA, SUBPILAR_SESGO };
