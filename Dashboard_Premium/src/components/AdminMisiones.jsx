@@ -24,14 +24,18 @@ export default function AdminMisiones() {
   const [error, setError] = useState('');
   const [busquedaMision, setBusquedaMision] = useState('');
   const [filtroBanco, setFiltroBanco] = useState('todas'); // todas | activas | propuestas
+  // Contexto de ejecución (v26): el chip 'casa'/'cancha' incluye las misiones 'ambos'
+  // (comodín) — filtra "qué puede hacer el atleta ahí", no la etiqueta exacta.
+  const [filtroContexto, setFiltroContexto] = useState('todos'); // todos | cancha | casa
   const [justifAbierta, setJustifAbierta] = useState(null); // id de misión con justificación expandida
 
   const misionesFiltradas = useMemo(() => misiones.filter(m => {
     if (busquedaMision && !m.titulo?.toLowerCase().includes(busquedaMision.toLowerCase())) return false;
-    if (filtroBanco === 'activas') return m.activa !== false;
-    if (filtroBanco === 'propuestas') return m.activa === false;
+    if (filtroBanco === 'activas' && m.activa === false) return false;
+    if (filtroBanco === 'propuestas' && m.activa !== false) return false;
+    if (filtroContexto !== 'todos' && m.contexto && m.contexto !== 'ambos' && m.contexto !== filtroContexto) return false;
     return true;
-  }), [misiones, busquedaMision, filtroBanco]);
+  }), [misiones, busquedaMision, filtroBanco, filtroContexto]);
 
   // H2 — dos colas sobre estado='pendiente_aprobacion', desambiguadas por `completada`:
   // completada=true  → el atleta la terminó, el coach aprueba el XP (flujo original).
@@ -42,7 +46,7 @@ export default function AdminMisiones() {
 
   const emptyForm = {
     titulo: '', descripcion: '', pilar: 'youtube', video_url: '',
-    xp_recompensa: 50, categoria_objetivo: 'Sub18',
+    xp_recompensa: 50, categoria_objetivo: 'Sub18', contexto: 'ambos',
     quiz: [{ pregunta: '', opciones: ['', '', '', ''], correcta: 0 }],
     asignar_a: [],
   };
@@ -183,6 +187,7 @@ export default function AdminMisiones() {
           xp_recompensa: parseInt(form.xp_recompensa),
           quiz: form.quiz.filter(q => q.pregunta.trim() !== ''),
           categoria_objetivo: form.categoria_objetivo,
+          contexto: form.contexto || 'ambos',
           autor_id: user.id,
         })
         .select()
@@ -361,6 +366,15 @@ export default function AdminMisiones() {
                   {['Sub12', 'Sub15', 'Sub18', 'Femenino', 'Senior', 'Todos'].map(c => <option key={c} value={c} className="bg-surface-card">{c}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Contexto</label>
+                <select value={form.contexto} onChange={e => handleChange('contexto', e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50 appearance-none cursor-pointer">
+                  <option value="ambos" className="bg-surface-card">Ambos (cancha o casa)</option>
+                  <option value="cancha" className="bg-surface-card">Cancha</option>
+                  <option value="casa" className="bg-surface-card">Casa</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -514,11 +528,22 @@ export default function AdminMisiones() {
           propuestas por el MCP/IA nacen inactivas hasta que el coach las active. */}
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-xl font-black text-white uppercase tracking-tight">Banco de Misiones</h3>
-        <div className="flex space-x-1">
+        <div className="flex flex-wrap gap-1 items-center">
           {[['todas', 'Todas'], ['activas', 'Activas'], ['propuestas', 'Propuestas']].map(([id, label]) => (
             <button key={id} onClick={() => setFiltroBanco(id)}
               className={`px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
                 filtroBanco === id
+                  ? 'bg-brand/15 border-brand/40 text-brand'
+                  : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'
+              }`}>
+              {label}
+            </button>
+          ))}
+          <span className="w-px h-5 bg-white/10 mx-1" />
+          {[['todos', 'Todo lugar'], ['cancha', 'Cancha'], ['casa', 'Casa']].map(([id, label]) => (
+            <button key={id} onClick={() => setFiltroContexto(id)}
+              className={`px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
+                filtroContexto === id
                   ? 'bg-brand/15 border-brand/40 text-brand'
                   : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'
               }`}>
@@ -560,6 +585,12 @@ export default function AdminMisiones() {
                     )}
                     {mision.categoria_bucket && (
                       <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-success/10 text-success-soft border-success/30">{mision.categoria_bucket}</span>
+                    )}
+                    {mision.contexto && mision.contexto !== 'ambos' && (
+                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-brand/10 text-brand border-brand/30">{mision.contexto === 'casa' ? 'Casa' : 'Cancha'}</span>
+                    )}
+                    {mision.fase_temporada && (
+                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-white/[0.04] text-fg-secondary border-white/15">{mision.fase_temporada}</span>
                     )}
                   </div>
                   <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">

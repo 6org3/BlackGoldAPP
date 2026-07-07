@@ -21,6 +21,8 @@ export default function MisionesPanel({ atletaId }) {
   const [misiones, setMisiones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedMision, setExpandedMision] = useState(null);
+  // Filtro por contexto de ejecución (v26): 'casa'/'cancha' incluyen las 'ambos'.
+  const [filtroContexto, setFiltroContexto] = useState('todos');
   const [showQuiz, setShowQuiz] = useState(null);
   const [sesionHoy, setSesionHoy] = useState(null);
   const [evaValue, setEvaValue] = useState(0);
@@ -85,11 +87,14 @@ export default function MisionesPanel({ atletaId }) {
 
   // ── Agrupación por estado ───────────────
   const { pendientes, enRevision, aprobadas, rechazadas } = useMemo(() => ({
-    pendientes: misiones.filter(m => m.estado === 'pendiente'),
+    pendientes: misiones.filter(m =>
+      m.estado === 'pendiente' &&
+      (filtroContexto === 'todos' || !m.contexto || m.contexto === 'ambos' || m.contexto === filtroContexto)
+    ),
     enRevision: misiones.filter(m => m.estado === 'pendiente_aprobacion'),
     aprobadas:  misiones.filter(m => m.estado === 'aprobada'),
     rechazadas: misiones.filter(m => m.estado === 'rechazada'),
-  }), [misiones]);
+  }), [misiones, filtroContexto]);
 
   if (loading) {
     return (
@@ -130,7 +135,7 @@ export default function MisionesPanel({ atletaId }) {
       )}
 
       {/* ── Header Misiones ──────────────── */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex flex-wrap items-center gap-3 mb-8">
         <Target className="text-brand" size={22} />
         <h3 className="text-xl font-black text-white uppercase tracking-tight">Misiones Educativas</h3>
         {pendientes.length > 0 && (
@@ -138,6 +143,18 @@ export default function MisionesPanel({ atletaId }) {
             {pendientes.length} Pendientes
           </span>
         )}
+        <div className="flex gap-1 ml-auto">
+          {[['todos', 'Todas'], ['cancha', 'Cancha'], ['casa', 'Casa']].map(([id, label]) => (
+            <button key={id} onClick={() => setFiltroContexto(id)}
+              className={`px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
+                filtroContexto === id
+                  ? 'bg-brand/15 border-brand/40 text-brand'
+                  : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'
+              }`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Misiones Pendientes ──────────── */}

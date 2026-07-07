@@ -30,6 +30,11 @@ function MisionCard({ mision, index, expanded, onToggle, onComplete, onQuiz }) {
             <h4 className="text-sm font-bold text-white">{mision.titulo}</h4>
             <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">
               +{mision.xpRecompensa} XP
+              {mision.contexto && mision.contexto !== 'ambos' && (
+                <span className="ml-2 px-2 py-0.5 rounded-md border bg-brand/10 text-brand border-brand/30">
+                  {mision.contexto === 'casa' ? 'Casa' : 'Cancha'}
+                </span>
+              )}
             </p>
           </div>
         </div>
