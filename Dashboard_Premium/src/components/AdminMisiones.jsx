@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
 import { calcularCategoriaFEB } from '../api/utilsAtletas';
-import { aprobarMision, rechazarMision, aprobarAsignacion, rechazarAsignacion, setMisionActiva } from '../api/misionesService';
-import { ArrowLeft, Plus, Save, X, Play, Trash2, CheckCircle, XCircle, Power, ChevronDown } from 'lucide-react';
+import { aprobarMision, rechazarMision, aprobarAsignacion, rechazarAsignacion, setMisionActiva, actualizarMision } from '../api/misionesService';
+import { ArrowLeft, Plus, Save, X, Play, Trash2, CheckCircle, XCircle, Power, ChevronDown, Pencil } from 'lucide-react';
 import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -19,6 +19,8 @@ export default function AdminMisiones() {
   const [atletas, setAtletas] = useState([]);
   const [pendientes, setPendientes] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  // null = el form crea una misión nueva; un id = el form edita esa misión existente.
+  const [editandoId, setEditandoId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -169,11 +171,65 @@ export default function AdminMisiones() {
     }));
   };
 
+  // Abre el form precargado para editar una misión existente (incluye contexto y
+  // el link de YouTube, que VideoPlayer reproduce dentro de la app).
+  const handleEditar = (mision) => {
+    setEditandoId(mision.id);
+    setForm({
+      titulo: mision.titulo || '',
+      descripcion: mision.descripcion || '',
+      pilar: mision.pilar || 'youtube',
+      video_url: mision.video_url || '',
+      xp_recompensa: mision.xp_recompensa ?? 50,
+      categoria_objetivo: mision.categoria_objetivo || 'Sub18',
+      contexto: mision.contexto || 'ambos',
+      quiz: (mision.quiz && mision.quiz.length) ? mision.quiz : [{ pregunta: '', opciones: ['', '', '', ''], correcta: 0 }],
+      asignar_a: [],
+    });
+    setShowForm(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const cerrarForm = () => {
+    setShowForm(false);
+    setEditandoId(null);
+    setForm(emptyForm);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     setSuccess('');
+
+    // Modo edición: actualiza la misión existente por id (no crea ni reasigna).
+    if (editandoId) {
+      try {
+        await actualizarMision(editandoId, {
+          titulo: form.titulo,
+          descripcion: form.descripcion,
+          pilar: form.pilar,
+          video_url: form.video_url,
+          xp_recompensa: parseInt(form.xp_recompensa),
+          quiz: form.quiz.filter(q => q.pregunta.trim() !== ''),
+          categoria_objetivo: form.categoria_objetivo,
+          contexto: form.contexto || 'ambos',
+        });
+        setMisiones(prev => prev.map(m => m.id === editandoId ? {
+          ...m, titulo: form.titulo, descripcion: form.descripcion, pilar: form.pilar,
+          video_url: form.video_url, xp_recompensa: parseInt(form.xp_recompensa),
+          quiz: form.quiz.filter(q => q.pregunta.trim() !== ''),
+          categoria_objetivo: form.categoria_objetivo, contexto: form.contexto || 'ambos',
+        } : m));
+        setSuccess(`Misión "${form.titulo}" actualizada.`);
+        cerrarForm();
+      } catch (err) {
+        setError(err.message || 'Error al actualizar la misión.');
+      }
+      setSaving(false);
+      return;
+    }
 
     try {
       // Crear misión
@@ -302,7 +358,7 @@ export default function AdminMisiones() {
           </h2>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); setForm(emptyForm); }}
+          onClick={() => { if (showForm) { cerrarForm(); } else { setEditandoId(null); setForm(emptyForm); setShowForm(true); } }}
           className="flex items-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-control shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition"
         >
           <Plus size={16} />
@@ -322,8 +378,8 @@ export default function AdminMisiones() {
           className="glass-card rounded-panel p-4 sm:p-8 mb-10 space-y-6"
         >
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-black text-white uppercase tracking-tight">Crear Misión Educativa</h3>
-            <button type="button" onClick={() => setShowForm(false)} aria-label="Cerrar formulario" className="p-2 -m-2 text-fg-muted hover:text-white"><X size={18} /></button>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight">{editandoId ? 'Editar Misión' : 'Crear Misión Educativa'}</h3>
+            <button type="button" onClick={cerrarForm} aria-label="Cerrar formulario" className="p-2 -m-2 text-fg-muted hover:text-white"><X size={18} /></button>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -409,7 +465,8 @@ export default function AdminMisiones() {
             ))}
           </div>
 
-          {/* Asignar a Atletas */}
+          {/* Asignar a Atletas (solo al crear; al editar no se reasigna) */}
+          {!editandoId && (
           <div className="pt-4 border-t border-white/10">
             <p className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mb-4">Asignar a Atletas</p>
             <div className="grid grid-cols-2 gap-2">
@@ -427,11 +484,12 @@ export default function AdminMisiones() {
               ))}
             </div>
           </div>
+          )}
 
           <button type="submit" disabled={saving}
             className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.3)] disabled:opacity-50">
             <Save size={16} />
-            <span>{saving ? 'Creando en Supabase...' : 'Crear Misión y Asignar'}</span>
+            <span>{saving ? 'Guardando…' : editandoId ? 'Guardar cambios' : 'Crear Misión y Asignar'}</span>
           </button>
         </motion.form>
       )}
@@ -607,6 +665,11 @@ export default function AdminMisiones() {
                     <ChevronDown size={14} className={justifAbierta === mision.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
                   </button>
                 )}
+                <button onClick={() => handleEditar(mision)} aria-label="Editar misión"
+                  className="p-2 rounded-lg border bg-white/[0.02] border-white/10 text-fg-muted hover:text-brand transition-colors"
+                  title="Editar (contexto, link de YouTube, pilar, texto…)">
+                  <Pencil size={14} />
+                </button>
                 <button onClick={() => handleToggleActiva(mision)}
                   className={`flex items-center space-x-1 px-3 py-2 rounded-lg border transition-colors ${
                     mision.activa === false
