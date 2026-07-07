@@ -122,11 +122,13 @@ server.tool(
 // Tool 2: Generate Custom Mission
 server.tool(
   "generate_custom_mission",
-  "Asigna misiones o aconseja entrenamientos individualizados para mejorar cada pilar detectado como débil.",
+  "Asigna misiones o aconseja entrenamientos individualizados para mejorar cada pilar detectado como débil. Con contexto:'casa' propone trabajo ejecutable fuera de la cancha (hábitos, tareas en casa, video-análisis).",
   {
-    athlete_id: z.string().describe("UUID del atleta a evaluar")
+    athlete_id: z.string().describe("UUID del atleta a evaluar"),
+    contexto: z.enum(["cancha", "casa"]).optional()
+      .describe("'casa' = la misión debe poder hacerse fuera de la cancha, sin material del club"),
   },
-  async ({ athlete_id }) => {
+  async ({ athlete_id, contexto }) => {
     try {
       const { data: evaluaciones } = await supabase
         .from("evaluaciones_pruebas")
@@ -145,11 +147,16 @@ server.tool(
 
       let promptInfo = `Atleta ID: ${athlete_id}\n`;
       promptInfo += `Pilares Críticos Detectados (Bajo Promedio): ${Array.from(debilidades).join(", ") || "Ninguno"}\n`;
+      if (contexto) promptInfo += `Contexto pedido: ${contexto}\n`;
       promptInfo += contextoRack(
-        `${Array.from(debilidades).join(" ") || "mantenimiento avanzado"} ejercicios entrenamiento progresión edad baloncesto`,
+        contexto === "casa"
+          ? `${Array.from(debilidades).join(" ") || "hábitos"} trabajo casa fuera de cancha rutina video análisis diario nutrición sueño`
+          : `${Array.from(debilidades).join(" ") || "mantenimiento avanzado"} ejercicios entrenamiento progresión edad baloncesto`,
         { k: 3 }
       );
-      promptInfo += "\n\nINSTRUCCIÓN PARA LA IA: Asigna misiones específicas o aconseja entrenamientos súper individualizados para mejorar CADA UNO de los pilares débiles detectados. Si es 'Ninguno', genera una misión de mantenimiento avanzado. Fundamenta cada misión en el CONTEXTO DEL RACK DOCUMENTAL, citando [archivo › sección]. Responde en formato atractivo para el atleta.";
+      promptInfo += "\n\nINSTRUCCIÓN PARA LA IA: Asigna misiones específicas o aconseja entrenamientos súper individualizados para mejorar CADA UNO de los pilares débiles detectados. Si es 'Ninguno', genera una misión de mantenimiento avanzado." +
+        (contexto === "casa" ? " La misión debe ser ejecutable EN CASA, sin supervisión ni material del club (autocarga, pared, hábitos, video, diario)." : "") +
+        " Fundamenta cada misión en el CONTEXTO DEL RACK DOCUMENTAL, citando [archivo › sección]. Responde en formato atractivo para el atleta.";
 
       return { content: [{ type: "text", text: promptInfo }] };
     } catch (err) {
@@ -316,6 +323,10 @@ const SUB_PILARES = SUB_PILARES_TAXONOMIA.map(s => s.key);
 const TODAS_LAS_KEYS_SUBPILAR = [...SUB_PILARES_TAXONOMIA, ...SUB_PILARES_MONITOREO].map(s => s.key);
 const NIVELES = ["Micro", "Desarrollo", "Elite"];
 const BUCKETS = ["Sub12", "Sub15", "Sub18", "Senior"];
+// Contexto de ejecución de una misión (v26): 'ambos' es comodín explícito.
+const CONTEXTOS = ["cancha", "casa", "ambos"];
+// Etiqueta de periodización (v26): null = comodín, válida todo el año.
+const FASES_TEMPORADA = ["preparatoria", "competitiva", "transicion"];
 
 const TOTAL_CELDAS = () => SUB_PILARES.length * NIVELES.length * BUCKETS.length;
 
@@ -345,20 +356,47 @@ function calcularCobertura(misiones) {
   return { cubiertas, faltantes };
 }
 
+// Matriz CASA (paralela, no multiplica la principal): sub-pilar × bucket.
+// Una celda está cubierta con ≥1 misión contexto='casa' ESTRICTO (si 'ambos'
+// contara, el backfill de v26 la cubriría al instante y nunca se redactaría
+// contenido genuinamente de casa), complejidad='general' y nivel_objetivo=null
+// (la dosis por edad va en la descripción, como en el seed).
+const TOTAL_CELDAS_CASA = () => SUB_PILARES.length * BUCKETS.length;
+
+function calcularCoberturaCasa(misiones) {
+  const porCelda = {};
+  (misiones || []).forEach(m => {
+    if (m.contexto !== "casa" || m.complejidad !== "general") return;
+    if (!SUB_PILARES.includes(m.pilar) || !m.categoria_bucket) return;
+    const clave = `${m.pilar}|${m.categoria_bucket}`;
+    porCelda[clave] = (porCelda[clave] || 0) + 1;
+  });
+
+  const faltantes = [];
+  let cubiertas = 0;
+  SUB_PILARES.forEach(sp => BUCKETS.forEach(b => {
+    if (porCelda[`${sp}|${b}`] >= 1) cubiertas++;
+    else faltantes.push({ sub_pilar: sp, bucket: b });
+  }));
+  return { cubiertas, faltantes };
+}
+
 // Tool 4: Generar Catálogo de Misiones
 server.tool(
   "generar_catalogo_misiones",
-  "Analiza la cobertura del catálogo de misiones (matriz 7 sub-pilares × 3 niveles × 4 buckets de edad), prioriza las celdas faltantes según los atletas reales del club, y devuelve las instrucciones para redactar las misiones faltantes con justificación científica. Tras redactarlas, insertarlas con insertar_misiones_catalogo.",
+  "Analiza la cobertura del catálogo de misiones (matriz sub-pilares de la taxonomía × 3 niveles × 4 buckets de edad; con contexto:'casa' analiza la matriz paralela de misiones fuera de cancha, sub-pilar × bucket), prioriza las celdas faltantes según los atletas reales del club, y devuelve las instrucciones para redactar las misiones faltantes con justificación científica. Tras redactarlas, insertarlas con insertar_misiones_catalogo.",
   {
     sub_pilar: z.enum(SUB_PILARES).optional().describe("Limitar a un sub-pilar"),
     nivel: z.enum(NIVELES).optional().describe("Limitar a un nivel"),
     categoria_bucket: z.enum(BUCKETS).optional().describe("Limitar a un bucket de edad"),
+    contexto: z.enum(["cancha", "casa"]).optional()
+      .describe("'casa' = analizar la matriz de misiones fuera de cancha (hábitos, tareas en casa); omitido = matriz principal"),
   },
-  async ({ sub_pilar, nivel, categoria_bucket }) => {
+  async ({ sub_pilar, nivel, categoria_bucket, contexto }) => {
     try {
       const { data: misiones, error: misError } = await supabase
         .from("misiones")
-        .select("id, pilar, nivel_objetivo, categoria_bucket, complejidad, activa");
+        .select("id, pilar, nivel_objetivo, categoria_bucket, complejidad, activa, contexto");
       if (misError) throw new Error("Error consultando misiones: " + misError.message +
         (misError.message.includes("column") ? " — aplica primero la migración loop_misiones_fase1 (npx supabase db push)." : ""));
 
@@ -376,13 +414,18 @@ server.tool(
           .filter(Boolean)
       );
 
-      const { cubiertas, faltantes } = calcularCobertura(misiones);
+      const esCasa = contexto === "casa";
+      const cobPrincipal = calcularCobertura(misiones);
+      const cobCasa = calcularCoberturaCasa(misiones);
 
-      let pendientes = faltantes.filter(f =>
-        (!sub_pilar || f.sub_pilar === sub_pilar) &&
-        (!nivel || f.nivel === nivel) &&
-        (!categoria_bucket || f.bucket === categoria_bucket)
-      );
+      let pendientes = esCasa
+        ? cobCasa.faltantes.filter(f =>
+            (!sub_pilar || f.sub_pilar === sub_pilar) &&
+            (!categoria_bucket || f.bucket === categoria_bucket))
+        : cobPrincipal.faltantes.filter(f =>
+            (!sub_pilar || f.sub_pilar === sub_pilar) &&
+            (!nivel || f.nivel === nivel) &&
+            (!categoria_bucket || f.bucket === categoria_bucket));
       // Primero las celdas de buckets donde hay atletas reales
       pendientes.sort((a, b) =>
         (bucketsConAtletas.has(b.bucket) ? 1 : 0) - (bucketsConAtletas.has(a.bucket) ? 1 : 0));
@@ -399,32 +442,53 @@ server.tool(
         });
       });
 
-      let prompt = `=== COBERTURA DEL CATÁLOGO DE MISIONES ===\n`;
-      prompt += `Celdas cubiertas: ${cubiertas}/${TOTAL_CELDAS()} (cubierta = ≥1 general Y ≥1 específica).\n`;
+      let prompt;
+      if (esCasa) {
+        prompt = `=== COBERTURA DE MISIONES DE CASA (fuera de cancha) ===\n`;
+        prompt += `Celdas cubiertas: ${cobCasa.cubiertas}/${TOTAL_CELDAS_CASA()} (celda = sub-pilar × bucket; cubierta = ≥1 misión con contexto='casa' ESTRICTO y complejidad='general').\n`;
+      } else {
+        prompt = `=== COBERTURA DEL CATÁLOGO DE MISIONES ===\n`;
+        prompt += `Celdas cubiertas: ${cobPrincipal.cubiertas}/${TOTAL_CELDAS()} (cubierta = ≥1 general Y ≥1 específica).\n`;
+        prompt += `Matriz paralela de CASA: ${cobCasa.cubiertas}/${TOTAL_CELDAS_CASA()} celdas — para analizarla/redactarla pide contexto:'casa'.\n`;
+      }
       prompt += `Buckets con atletas reales en el club (PRIORIDAD): ${[...bucketsConAtletas].join(", ") || "ninguno"}.\n\n`;
       prompt += `=== CELDAS FALTANTES (priorizadas) ===\n`;
       pendientes.slice(0, 30).forEach(f => {
-        prompt += `- ${f.sub_pilar} × ${f.nivel} × ${f.bucket}` +
-          ` (tiene ${f.tiene.general} general/${f.tiene.especifica} específica)` +
-          (bucketsConAtletas.has(f.bucket) ? "  ← ATLETAS REALES" : "") + `\n`;
+        prompt += esCasa
+          ? `- ${f.sub_pilar} × ${f.bucket} (casa)` + (bucketsConAtletas.has(f.bucket) ? "  ← ATLETAS REALES" : "") + `\n`
+          : `- ${f.sub_pilar} × ${f.nivel} × ${f.bucket}` +
+            ` (tiene ${f.tiene.general} general/${f.tiene.especifica} específica)` +
+            (bucketsConAtletas.has(f.bucket) ? "  ← ATLETAS REALES" : "") + `\n`;
       });
       if (pendientes.length > 30) prompt += `… y ${pendientes.length - 30} celdas más (pide por sub_pilar para acotar).\n`;
       prompt += `\n=== CONTEXTO CIENTÍFICO (umbrales de baremos) ===${contextoBaremos || "\n(sin pruebas asociadas)"}\n`;
       prompt += contextoRack(
-        `${subPilaresPedidos.join(" ")} desarrollo capacidades edad iniciación entrenamiento`,
-        { k: 3, titulo: "CONTEXTO DEL RACK DOCUMENTAL (fundamento para las justificaciones)" }
+        esCasa
+          ? `${subPilaresPedidos.join(" ")} trabajo casa fuera de cancha hábitos rutina video análisis diario del atleta nutrición sueño`
+          : `${subPilaresPedidos.join(" ")} desarrollo capacidades edad iniciación entrenamiento`,
+        { k: esCasa ? 4 : 3, titulo: "CONTEXTO DEL RACK DOCUMENTAL (fundamento para las justificaciones)" }
       );
       prompt += `
 === INSTRUCCIONES DE REDACCIÓN ===
 Para cada celda faltante genera misiones con:
 - titulo: motivador, máx 60 caracteres.
-- descripcion: ejecutable por un chico de esa edad (bucket) sin supervisión especial.
+- descripcion: ejecutable por un chico de esa edad (bucket) sin supervisión especial.${esCasa ? `
+  Al ser misión de CASA: ejecutable en casa SIN material del club ni cancha (autocarga,
+  pared, balón si es razonable tenerlo, hábitos, video, diario). La dosis por edad va en
+  la propia descripción (no hay nivel_objetivo).` : ""}
 - justificacion: fundamento científico CON FUENTE de por qué ese trabajo mejora ese
   sub-pilar a esa edad. Prioriza las fuentes del RACK DOCUMENTAL citándolas como
   [archivo › sección]; complementa con NSCA/FitnessGram/PubMed si hace falta.
-- xp_recompensa coherente con el nivel: Micro≈25, Desarrollo≈50, Elite≈75.
+- xp_recompensa coherente con el nivel: Micro≈25, Desarrollo≈50, Elite≈75.${esCasa ? `
+- contexto: 'casa' (obligatorio en esta pasada) y nivel_objetivo: null (omitir el campo).
+- complejidad: 'general' (hábito auto-asignable; es lo que cuenta para la matriz casa).` : `
 - complejidad: 'general' = hábito/educativa auto-asignable al atleta; 'especifica' = técnica
   que requiere criterio del coach antes de ser visible.
+- contexto: opcional ('cancha' | 'casa' | 'ambos'; default 'ambos'). Marca 'cancha' solo si
+  la misión exige aro/cancha/material del club.`}
+- fase_temporada: opcional ('preparatoria' | 'competitiva' | 'transicion'). Etiquétala SOLO
+  si el fundamento del rack es de periodización (p.ej. volumen aeróbico → preparatoria);
+  si la misión vale todo el año, omítela (null = comodín).
 - video_url: opcional; SOLO YouTube real y pertinente.
 
 Cuando tengas el lote redactado, llama a la herramienta insertar_misiones_catalogo con el array JSON.
@@ -447,10 +511,15 @@ server.tool(
       descripcion: z.string().min(20),
       justificacion: z.string().min(30),
       pilar: z.enum(SUB_PILARES),
-      nivel_objetivo: z.enum(NIVELES),
+      // null/omitido = comodín de nivel (obligatorio omitirlo en misiones de casa:
+      // la dosis por edad va en la descripción).
+      nivel_objetivo: z.enum(NIVELES).nullable().optional(),
       categoria_bucket: z.enum(BUCKETS),
       complejidad: z.enum(["general", "especifica"]),
       xp_recompensa: z.number().int().positive(),
+      contexto: z.enum(CONTEXTOS).optional().describe("Dónde se ejecuta (default 'ambos'; 'casa' para la matriz fuera de cancha)"),
+      fase_temporada: z.enum(FASES_TEMPORADA).nullable().optional()
+        .describe("Etiqueta de periodización; omitir si la misión vale todo el año"),
       video_url: z.string().url().optional(),
     })).min(1).describe("Lote de misiones a insertar"),
   },
@@ -461,10 +530,12 @@ server.tool(
         descripcion: m.descripcion,
         justificacion: m.justificacion,
         pilar: m.pilar,
-        nivel_objetivo: m.nivel_objetivo,
+        nivel_objetivo: m.nivel_objetivo ?? null,
         categoria_bucket: m.categoria_bucket,
         complejidad: m.complejidad,
         xp_recompensa: m.xp_recompensa,
+        contexto: m.contexto ?? "ambos",
+        fase_temporada: m.fase_temporada ?? null,
         video_url: m.video_url ?? null,
         activa: false,
         is_ai_generated: true,
@@ -477,16 +548,17 @@ server.tool(
           (insError.message.includes("column") ? " — aplica primero la migración loop_misiones_fase1 (npx supabase db push)." : ""));
       }
 
-      // Recalcular cobertura post-insert
+      // Recalcular cobertura post-insert (ambas matrices)
       const { data: todas } = await supabase
         .from("misiones")
-        .select("id, pilar, nivel_objetivo, categoria_bucket, complejidad, activa");
+        .select("id, pilar, nivel_objetivo, categoria_bucket, complejidad, activa, contexto");
       const { cubiertas } = calcularCobertura(todas);
+      const casa = calcularCoberturaCasa(todas);
 
       return {
         content: [{
           type: "text",
-          text: `✅ ${filas.length} misión(es) insertada(s) con activa=false (pendientes de curaduría del coach en AdminMisiones).\nCobertura de la matriz tras el insert: ${cubiertas}/${TOTAL_CELDAS()} celdas.`,
+          text: `✅ ${filas.length} misión(es) insertada(s) con activa=false (pendientes de curaduría del coach en AdminMisiones).\nCobertura matriz principal: ${cubiertas}/${TOTAL_CELDAS()} celdas. Matriz casa: ${casa.cubiertas}/${TOTAL_CELDAS_CASA()} celdas.`,
         }],
       };
     } catch (err) {
@@ -523,6 +595,8 @@ server.tool(
         complejidad: m.complejidad ?? "general",
         condicion_trigger: m.condicion_trigger,
         xp_recompensa: m.xp_recompensa,
+        // Los hábitos de sueño/hidratación/descarga se ejecutan fuera de la cancha.
+        contexto: "casa",
         video_url: m.video_url ?? null,
         activa: false,
         is_ai_generated: true,
