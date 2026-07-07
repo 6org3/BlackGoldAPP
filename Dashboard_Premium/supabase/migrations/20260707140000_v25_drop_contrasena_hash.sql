@@ -1,0 +1,21 @@
+-- ============================================================
+-- MIGRACIÓN v25 — Purga de contraseñas en claro (cierre P0)
+-- Diseño: docs/plan_remediacion_seguridad.md (Fase 1, paso 8)
+-- ============================================================
+-- `usuarios.contrasena_hash` guardaba las contraseñas del staff EN
+-- TEXTO PLANO (pese al nombre) para el login pre-v19. Desde la Fase 1
+-- (2026-07-01) el único custodio de credenciales es Supabase Auth:
+-- los 819 usuarios fueron migrados con scripts/migrar_usuarios_a_auth.js
+-- y ningún código lee ya esta columna (verificado por grep y por la
+-- suite scripts/validar_rls_por_rol.js con login real de cada rol).
+--
+-- Se elimina SIN respaldo a propósito: el objetivo de esta migración
+-- es que esas contraseñas dejen de existir en cualquier parte. Tras
+-- esto, ni siquiera un volcado completo de la tabla (p. ej. con una
+-- service key filtrada) expondría credenciales reutilizables.
+--
+-- Nota: scripts/migrar_usuarios_a_auth.js queda inoperante tras esta
+-- migración — es correcto: su propósito terminó (queda como registro
+-- histórico, con nota en su encabezado).
+
+ALTER TABLE public.usuarios DROP COLUMN IF EXISTS contrasena_hash;

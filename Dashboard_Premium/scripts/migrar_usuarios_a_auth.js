@@ -1,3 +1,8 @@
+// ⚠️ SCRIPT HISTÓRICO — ya cumplió su propósito (2026-07-01: 819 usuarios
+// migrados) y quedó INOPERANTE tras la migración v25, que eliminó la
+// columna `usuarios.contrasena_hash` de la que este script leía las
+// contraseñas del staff. Se conserva solo como registro del procedimiento.
+//
 // Migra cada fila de `usuarios` sin auth_user_id a una cuenta real de
 // Supabase Auth (auth.users), preservando la contraseña que el usuario
 // ya conoce hoy, y vincula usuarios.auth_user_id al nuevo auth.users.id.

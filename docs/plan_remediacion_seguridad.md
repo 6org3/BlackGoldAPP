@@ -67,7 +67,7 @@ Puedo ejecutarla directamente, es local y reversible por git.
 5. ✅ **Yo:** `registroPublicoService.js` actualizado para crear también la cuenta de Auth en el registro público (con email sintético si no hay correo real).
 6. ✅ Los ~35 puntos de verificación de rol **no necesitaron cambios** — siguen leyendo `user.rol` del mismo objeto de contexto.
 7. ✅ **Usuario:** corrió `scripts/migrar_usuarios_a_auth.js` contra producción — 819 migrados, 1 omitido (padre sin hijos vinculados, sin contraseña resoluble), 0 fallidos. Login probado y confirmado con una cuenta de staff real.
-8. ⬜ **Pendiente:** eliminar la columna `contrasena_hash` de `usuarios` (dejarla para cuando se confirme que ningún flujo la sigue leyendo — hoy ya no la usa el código, pero conviene una migración v20 aparte en vez de mezclarla con RLS).
+8. ✅ **Hecho (2026-07-07):** migración v25 (`20260707140000_v25_drop_contrasena_hash.sql`) aplicada en producción — la columna con contraseñas en claro **ya no existe** (verificado: 42703 al consultarla; suite de validación 25/25 después del drop, confirmando que ningún flujo la leía). Sin respaldo a propósito: el objetivo era que esas contraseñas dejaran de existir. `scripts/migrar_usuarios_a_auth.js` queda como registro histórico inoperante (nota en su encabezado).
 9. ⬜ **Pendiente:** desplegar este código a producción (Vercel) — no se ha hecho todavía; el trabajo hasta ahora fue solo local + base de datos real.
 
 ### Fase 2 (P0) — RLS real basada en `auth.uid()` y rol ✅ código listo (2026-07-07), pendiente aplicar y validar
@@ -96,8 +96,8 @@ Depende de que la Fase 1 esté desplegada (si se activa RLS real antes de que `a
 9. ⬜ **Vistazo final de UI (usuario, en uso normal):** entrar una vez con una cuenta real de cada rol y confirmar que sus pantallas cargan como siempre — la capa de datos ya está validada por la suite; esto solo cubre lo visual/UX.
 
 ### Fase 3 (P0, cierre) — Confirmación de purga de secretos
-1. **Usuario:** confirmar que la anon key fue rotada (Fase 0) y que la key vieja ya no funciona.
-2. **Yo:** grep final sobre el repo completo para confirmar cero keys hardcodeadas remanentes.
+1. ⬜ **Usuario:** rotar la anon key en el dashboard de Supabase y confirmar que la key vieja ya no funciona. **Motivo reforzado (2026-07-07):** el grep final encontró `Dashboard_Premium/public/test.html` — una página **servida en producción** (`/test.html`) con la anon key hardcodeada y tests que volcaban `usuarios`/`atletas` en pantalla; v24 ya neutralizó las lecturas (42501) y el archivo fue eliminado del repo/deploy, pero la key sigue en el historial de git y pudo ser indexada/cacheada. Tras rotar: actualizar `VITE_SUPABASE_ANON_KEY` en Vercel y `.env.local`, y `SUPABASE_ANON_KEY` en `blackgold-mcp/.env`.
+2. ✅ **Grep final (2026-07-07):** cero JWT (`eyJ…`) y cero keys nuevas (`sb_secret_`/`sb_publishable_`) en archivos trackeados tras eliminar `test.html`. Los `.env*` siguen correctamente fuera de git.
 
 ### Fase 4 (P1) — Línea base de esquema versionada
 1. ✅ **Yo:** consolidé `add_cols.sql`, `fix_rls.sql` (recuperado su contenido real desde UTF-16, sintaxis inválida — se conserva solo como registro histórico, no ejecutable), `migracion_fase1.sql` (stub incompleto), `poblar_atleta_grupo.sql` y los `supabase_migration_v13..v19*.sql` sueltos dentro de `Dashboard_Premium/supabase/migrations/` con timestamps de CLI (`npx supabase migration new`-style), preservando el orden reconstruido por commit/dependencias. También moví `seed_massive.sql`/`seed_op_histograms.sql` a `Dashboard_Premium/scripts/` junto a sus generadores.
