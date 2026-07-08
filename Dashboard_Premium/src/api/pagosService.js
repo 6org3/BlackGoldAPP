@@ -1,7 +1,9 @@
 // src/api/pagosService.js
 import { supabase } from './supabaseClient';
 
-export async function fetchPagosMes(mes, anio, grupoNombre = null) {
+const BUCKET_COMPROBANTES = 'comprobantes-pagos';
+
+export async function fetchPagosMes(mes, anio, grupoId = null) {
   // Traer pagos del mes + datos del atleta + grupo
   let q = supabase
     .from('pagos')
@@ -9,9 +11,12 @@ export async function fetchPagosMes(mes, anio, grupoNombre = null) {
       *,
       atletas!inner (
         id,
+        grupo_id,
         grupo_nombre,
         es_becado,
+        beca_pct,
         descuento_pct,
+        recordatorios_pausados,
         usuarios!inner!atletas_usuario_id_fkey (nombre, cedula, club)
       )
     `)
@@ -23,10 +28,20 @@ export async function fetchPagosMes(mes, anio, grupoNombre = null) {
   if (error) { console.error(error); return []; }
 
   let result = data || [];
-  if (grupoNombre && grupoNombre !== 'Todos') {
-    result = result.filter(p => p.atletas?.grupo_nombre === grupoNombre);
+  if (grupoId && grupoId !== 'Todos') {
+    result = result.filter(p => p.atletas?.grupo_id === grupoId);
   }
   return result;
+}
+
+// Grupos reales del club para el filtro de AdminPagos (reemplaza la lista hardcodeada).
+export async function fetchGruposClub() {
+  const { data, error } = await supabase
+    .from('grupos_entrenamiento')
+    .select('id, nombre, club, precio_mensual')
+    .order('nombre');
+  if (error) { console.error(error); return []; }
+  return data || [];
 }
 
 export async function upsertPago(payload) {
@@ -41,7 +56,71 @@ export async function upsertPago(payload) {
   return data;
 }
 
+// ── Transacciones (abonos) — v27 ─────────────────────────────────────────────
+// Cada entrega de dinero es una fila de pago_transacciones; un trigger en la
+// base recalcula monto_pagado y el estado del pago (Pagado / Abonado).
+
+export async function registrarTransaccion(pagoId, { monto, forma_pago, referencia = '', notas = '' }, registradoPor) {
+  const { error } = await supabase
+    .from('pago_transacciones')
+    .insert({
+      pago_id: pagoId,
+      monto,
+      forma_pago,
+      referencia,
+      notas,
+      registrado_por: registradoPor,
+    });
+  if (error) throw error;
+  // El trigger ya recalculó el pago: devolver la fila fresca para la UI.
+  const { data, error: e2 } = await supabase.from('pagos').select('*').eq('id', pagoId).single();
+  if (e2) throw e2;
+  return data;
+}
+
+export async function revertirTransaccion(transaccionId) {
+  const { error } = await supabase.from('pago_transacciones').delete().eq('id', transaccionId);
+  if (error) throw error;
+}
+
+export async function fetchTransacciones(pagoId) {
+  const { data, error } = await supabase
+    .from('pago_transacciones')
+    .select('*, usuarios!pago_transacciones_registrado_por_fkey (nombre)')
+    .eq('pago_id', pagoId)
+    .order('created_at', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+// Suma de efectivo por registrador en un rango (arqueo simple para el owner).
+export async function fetchArqueoEfectivo(desdeISO, hastaISO) {
+  const { data, error } = await supabase
+    .from('pago_transacciones')
+    .select('monto, forma_pago, created_at, registrado_por, usuarios!pago_transacciones_registrado_por_fkey (nombre)')
+    .eq('forma_pago', 'Efectivo')
+    .gte('created_at', desdeISO)
+    .lte('created_at', hastaISO);
+  if (error) { console.error(error); return []; }
+  const porRegistrador = new Map();
+  (data || []).forEach(t => {
+    const clave = t.registrado_por;
+    const prev = porRegistrador.get(clave) || { nombre: t.usuarios?.nombre || '—', total: 0, transacciones: 0 };
+    prev.total += Number(t.monto) || 0;
+    prev.transacciones += 1;
+    porRegistrador.set(clave, prev);
+  });
+  return [...porRegistrador.values()].sort((a, b) => b.total - a.total);
+}
+
+/**
+ * @deprecated Usar registrarTransaccion() — este atajo marca el pago completo
+ * sin detalle por transacción (se conserva para scripts/compatibilidad).
+ */
 export async function marcarPagado(pagoId, { forma_pago, referencia_comprobante = '', notas = '' }) {
+  const { data: pago, error: e0 } = await supabase
+    .from('pagos').select('monto_final, monto_base').eq('id', pagoId).single();
+  if (e0) throw e0;
   const { data, error } = await supabase
     .from('pagos')
     .update({
@@ -50,6 +129,8 @@ export async function marcarPagado(pagoId, { forma_pago, referencia_comprobante 
       forma_pago,
       referencia_comprobante,
       notas,
+      // coherencia con el modelo de saldos v27 aunque no haya transacción
+      monto_pagado: pago.monto_final ?? pago.monto_base,
     })
     .eq('id', pagoId)
     .select()
@@ -59,14 +140,17 @@ export async function marcarPagado(pagoId, { forma_pago, referencia_comprobante 
 }
 
 export async function actualizarEstadoVencidos() {
-  // Marcar como Vencido los pagos Pendientes cuya fecha_vencimiento ya pasó
+  // v27: la fuente de verdad es la función SQL (también programada en pg_cron).
+  const { error } = await supabase.rpc('marcar_pagos_vencidos');
+  if (!error) return;
+  // Fallback pre-v27 (proyecto sin la función todavía)
   const hoy = new Date().toISOString().split('T')[0];
-  const { error } = await supabase
+  const { error: e2 } = await supabase
     .from('pagos')
     .update({ estado: 'Vencido' })
-    .eq('estado', 'Pendiente')
+    .in('estado', ['Pendiente', 'Abonado'])
     .lt('fecha_vencimiento', hoy);
-  if (error) console.error(error);
+  if (e2) console.error(e2);
 }
 
 export async function generarPagosMensuales(mes, anio, atletas, registradoPor) {
@@ -121,4 +205,158 @@ export async function fetchHistorialPagosAtleta(atletaId) {
     .limit(24);
   if (error) { console.error(error); return []; }
   return data || [];
+}
+
+// ── Contactos para WhatsApp dirigido — v27 ───────────────────────────────────
+// Mapa atleta_id → { usuarioId, nombre, telefono } del representante de pagos
+// (es_rep_pagos primero; si no hay marcado, el primer vínculo). El teléfono es
+// PII y credencial de login: solo lo ve staff (RLS de usuarios ya lo scopea) y
+// NUNCA se normaliza en la base — solo al armar el link wa.me.
+export async function fetchContactosPago(atletaIds) {
+  if (!atletaIds || atletaIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('padres_atletas')
+    .select('atleta_id, es_rep_pagos, usuarios!padres_atletas_padre_id_fkey (id, nombre, telefono)')
+    .in('atleta_id', atletaIds);
+  if (error) { console.error(error); return {}; }
+  const map = {};
+  (data || []).forEach(v => {
+    const contacto = {
+      usuarioId: v.usuarios?.id,
+      nombre: v.usuarios?.nombre,
+      telefono: v.usuarios?.telefono || null,
+      esRepPagos: v.es_rep_pagos,
+    };
+    if (!map[v.atleta_id] || (v.es_rep_pagos && !map[v.atleta_id].esRepPagos)) {
+      map[v.atleta_id] = contacto;
+    }
+  });
+  return map;
+}
+
+// ── Comprobantes de transferencia — v27 ──────────────────────────────────────
+
+/**
+ * Sube la imagen del comprobante al bucket privado y crea la fila de
+ * pago_comprobantes (el trigger pasa el pago a 'Por Verificar').
+ * Convención de path: <atleta_id>/<pago_id>/<timestamp>.<ext> — el primer
+ * segmento habilita la política de Storage de la familia.
+ */
+export async function subirComprobante({ pagoId, atletaId, file, banco = '', numeroDocumento = '', montoDeclarado = null, fechaTransferencia = null }, subidoPor) {
+  const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${atletaId}/${pagoId}/${Date.now()}.${ext}`;
+
+  const { error: eUp } = await supabase.storage
+    .from(BUCKET_COMPROBANTES)
+    .upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
+  if (eUp) throw eUp;
+
+  const { data, error } = await supabase
+    .from('pago_comprobantes')
+    .insert({
+      pago_id: pagoId,
+      subido_por: subidoPor,
+      storage_path: path,
+      banco,
+      numero_documento: numeroDocumento,
+      monto_declarado: montoDeclarado,
+      fecha_transferencia: fechaTransferencia,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Aprueba/rechaza vía la RPC SECURITY DEFINER (solo staff; deja rastro de quién
+// verificó y, al aprobar, crea la transacción de Transferencia).
+export async function resolverComprobante(comprobanteId, aprobar, motivo = null) {
+  const { error } = await supabase.rpc('resolver_comprobante', {
+    p_comprobante_id: comprobanteId,
+    p_aprobar: aprobar,
+    p_motivo: motivo,
+  });
+  if (error) throw error;
+}
+
+// Camino asistido: el padre mandó la foto por WhatsApp y el staff la registra
+// en su nombre (sube el comprobante y lo aprueba en un solo gesto).
+export async function registrarTransferenciaAsistida({ pagoId, atletaId, file, numeroDocumento = '', montoDeclarado = null }, staffUsuarioId) {
+  const comprobante = await subirComprobante(
+    { pagoId, atletaId, file, numeroDocumento, montoDeclarado },
+    staffUsuarioId
+  );
+  await resolverComprobante(comprobante.id, true, null);
+  return comprobante;
+}
+
+export async function fetchComprobantesPendientes() {
+  const { data, error } = await supabase
+    .from('pago_comprobantes')
+    .select(`
+      *,
+      pagos!inner (
+        id, tipo, concepto, mes, anio, monto_base, monto_final, monto_pagado, estado, atleta_id,
+        atletas!inner (
+          id, grupo_nombre,
+          usuarios!atletas_usuario_id_fkey (nombre)
+        )
+      )
+    `)
+    .eq('estado', 'pendiente')
+    .order('created_at', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+// URL firmada de vida corta para ver la imagen del comprobante (bucket privado).
+export async function getComprobanteUrl(storagePath, segundos = 600) {
+  const { data, error } = await supabase.storage
+    .from(BUCKET_COMPROBANTES)
+    .createSignedUrl(storagePath, segundos);
+  if (error) { console.error(error); return null; }
+  return data?.signedUrl || null;
+}
+
+// ── Estado de cuenta del padre — v27 ─────────────────────────────────────────
+// Se apoya en la política pagos_select_propio de v24 (mis_atletas()): cero
+// cambios de RLS necesarios. Devuelve pagos abiertos + historial reciente +
+// el último comprobante de cada pago abierto (para mostrar motivo de rechazo).
+export async function fetchEstadoCuentaPadre(atletaId) {
+  const { data: pagos, error } = await supabase
+    .from('pagos')
+    .select('*')
+    .eq('atleta_id', atletaId)
+    .order('anio', { ascending: false })
+    .order('mes', { ascending: false })
+    .limit(18);
+  if (error) { console.error(error); return { abiertos: [], historial: [] }; }
+
+  const todos = pagos || [];
+  const abiertos = todos.filter(p => ['Pendiente', 'Vencido', 'Abonado', 'Por Verificar'].includes(p.estado));
+  const historial = todos.filter(p => ['Pagado', 'Becado'].includes(p.estado)).slice(0, 12);
+
+  if (abiertos.length > 0) {
+    const { data: comprobantes } = await supabase
+      .from('pago_comprobantes')
+      .select('id, pago_id, estado, motivo_rechazo, created_at')
+      .in('pago_id', abiertos.map(p => p.id))
+      .order('created_at', { ascending: false });
+    const ultimoPorPago = {};
+    (comprobantes || []).forEach(c => {
+      if (!ultimoPorPago[c.pago_id]) ultimoPorPago[c.pago_id] = c;
+    });
+    abiertos.forEach(p => { p.ultimo_comprobante = ultimoPorPago[p.id] || null; });
+  }
+
+  return { abiertos, historial };
+}
+
+// Instrucciones de pago del club (cuenta bancaria, WhatsApp, día de vencimiento).
+export async function fetchClubConfig(club) {
+  let q = supabase.from('club_config').select('*');
+  q = club ? q.eq('club', club) : q.limit(1);
+  const { data, error } = await q;
+  if (error) { console.error(error); return null; }
+  return (data && data[0]) || null;
 }

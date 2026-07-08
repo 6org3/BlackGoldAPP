@@ -1,5 +1,6 @@
 // src/api/comunicacionesService.js
 import { supabase } from './supabaseClient';
+import { PLANTILLAS, renderPlantilla, linkWhatsApp } from '../lib/plantillasWhatsApp';
 
 // Mapea el nuevo segmento al valor legado de la columna `tipo` (compatibilidad)
 export function segmentoATipoLegado(segmentoTipo) {
@@ -20,6 +21,7 @@ export async function crearComunicacion({
   titulo,
   mensaje,
   canal = 'whatsapp',
+  proposito = 'comunicado',
   destinatarios_ids = [],
 }) {
   const tipoLegado = segmentoATipoLegado(segmento_tipo);
@@ -33,6 +35,7 @@ export async function crearComunicacion({
       segmento_params,
       incluir_representantes,
       canal,
+      proposito,
       titulo,
       mensaje,
       // Se conservan por compatibilidad con el feed del padre y vistas existentes
@@ -123,18 +126,52 @@ export async function fetchComunicacionesParaPadre(usuarioId, atletaId) {
   return data || [];
 }
 
-// Genera el texto pre-formateado para abrir en wa.me
-export function generarLinkWhatsApp(numero, mensaje) {
-  const texto = encodeURIComponent(mensaje);
-  return `https://wa.me/${numero}?text=${texto}`;
+// Registra en `comunicaciones` cada envío individual por WhatsApp (recordatorio
+// de pago, confirmación, etc.) para que quede rastro y sirva de contador para
+// los umbrales de automatización (docs/pagos_diseno.md §6.5). Fire-and-forget:
+// un fallo aquí no debe bloquear la apertura de WhatsApp.
+export async function registrarEnvioWhatsApp({ autorId, usuarioDestinoId, plantilla, titulo, mensaje }) {
+  try {
+    await crearComunicacion({
+      autor_id: autorId,
+      segmento_tipo: 'individualizado',
+      segmento_params: { usuario_ids: usuarioDestinoId ? [usuarioDestinoId] : [] },
+      incluir_representantes: false,
+      canal: 'whatsapp',
+      proposito: PLANTILLAS[plantilla]?.proposito || 'comunicado',
+      titulo,
+      mensaje,
+      destinatarios_ids: usuarioDestinoId ? [usuarioDestinoId] : [],
+    });
+  } catch (e) {
+    console.warn('No se pudo registrar el envío de WhatsApp:', e.message);
+  }
 }
 
+// Genera el texto pre-formateado para abrir en wa.me
+// @deprecated Usar linkWhatsApp de src/lib/plantillasWhatsApp.js (shim, mismo comportamiento).
+export function generarLinkWhatsApp(numero, mensaje) {
+  return linkWhatsApp(numero || null, mensaje);
+}
+
+// @deprecated Usar renderPlantilla('recordatorio_pago'|'pago_vencido', ...) de
+// src/lib/plantillasWhatsApp.js. Se conserva la firma para los consumidores viejos.
+// Coerce a '' para no lanzar si algún campo viene null (leniencia del código viejo).
 export function generarMensajeRecordatorioPago(atleta, monto, mes) {
   const meses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  return `Hola! 👋 Le recordamos que la mensualidad de *${atleta}* correspondiente a *${meses[mes]}* está pendiente de pago por *$${monto}*.\n\n¡Gracias por ser parte de *Black Gold Basketball*! 🏀⭐`;
+  return renderPlantilla('recordatorio_pago', {
+    nombre_atleta: atleta ?? '',
+    concepto: `Mensualidad ${meses[mes] || ''}`.trim(),
+    monto: monto ?? '',
+    fecha_limite: `05/${String(mes ?? '').padStart(2, '0')}`,
+  });
 }
 
+// @deprecated Usar renderPlantilla('resumen_sesion', ...) de src/lib/plantillasWhatsApp.js.
 export function generarMensajeSesion(grupo, objetivo, logrado, notas) {
   const emoji = logrado === 'Sí' ? '✅' : logrado === 'Parcial' ? '⚡' : '❌';
-  return `*Black Gold Basketball — Resumen de Sesión*\n\n📋 Grupo: ${grupo}\n🎯 Objetivo: ${objetivo}\n${emoji} Resultado: ${logrado}\n${notas ? `📝 Notas: ${notas}` : ''}`;
+  return renderPlantilla('resumen_sesion', {
+    grupo: grupo ?? '', objetivo: objetivo ?? '', emoji, logrado: logrado ?? '',
+    bloque_notas: notas ? `📝 Notas: ${notas}` : '',
+  });
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { MessageCircle, FileText, Calendar, TrendingUp, AlertTriangle, CheckCircle, CreditCard, Activity } from 'lucide-react';
 import { fetchNotasCoach } from '../api/notasCoachService';
+import { fetchEstadoCuentaPadre } from '../api/pagosService';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { COLORS, CHART } from '../lib/designTokens';
@@ -9,6 +10,7 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
   const [notas, setNotas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mostrarTodasLasNotas, setMostrarTodasLasNotas] = useState(false);
+  const [pagosAbiertos, setPagosAbiertos] = useState(null); // null = cargando
 
   // Sin número configurado no se muestra el bloque de Línea Directa
   const coachWhatsApp = import.meta.env.VITE_COACH_WHATSAPP || '';
@@ -24,6 +26,10 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
       }
     };
     loadNotas();
+    // Estado real de pagos del atleta (v27) — antes era una maqueta hardcodeada
+    fetchEstadoCuentaPadre(atleta.atleta_id).then(({ abiertos }) => {
+      if (!cancelled) setPagosAbiertos(abiertos);
+    });
     return () => { cancelled = true; };
   }, [atleta.atleta_id]);
 
@@ -124,11 +130,33 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
             <h5 className="text-white font-bold mb-2 flex items-center">
               <CreditCard size={14} className="mr-2 text-brand" /> Estado de Mensualidad
             </h5>
-            <div className="flex items-center justify-between p-3 bg-success/10 border border-success/30 rounded-control">
-              <span className="text-2xs font-bold text-success uppercase tracking-widest">Al Día</span>
-              <span className="text-xs text-white">Próximo: 05/Jul</span>
-            </div>
-            <p className="text-3xs text-fg-muted mt-2">La gestión de pagos se realiza automáticamente. El coach no tiene acceso a esta información.</p>
+            {pagosAbiertos === null ? (
+              <p className="text-3xs text-fg-muted">Cargando…</p>
+            ) : pagosAbiertos.length === 0 ? (
+              <div className="flex items-center justify-between p-3 bg-success/10 border border-success/30 rounded-control">
+                <span className="text-2xs font-bold text-success uppercase tracking-widest">Al Día</span>
+                <span className="text-xs text-white">Sin pagos pendientes</span>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {pagosAbiertos.slice(0, 3).map(p => (
+                  <div key={p.id} className={`flex items-center justify-between p-3 rounded-control border ${
+                    p.estado === 'Vencido' ? 'bg-danger/10 border-danger/30' :
+                    p.estado === 'Por Verificar' ? 'bg-caution/10 border-caution/30' :
+                    'bg-yellow-500/10 border-yellow-500/30'
+                  }`}>
+                    <span className={`text-2xs font-bold uppercase tracking-widest ${
+                      p.estado === 'Vencido' ? 'text-danger-soft' :
+                      p.estado === 'Por Verificar' ? 'text-caution-soft' : 'text-yellow-400'
+                    }`}>{p.estado}</span>
+                    <span className="text-xs text-white font-black">
+                      ${Math.max((p.monto_final || 0) - (p.monto_pagado || 0), 0).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-3xs text-fg-muted mt-2">El detalle y la subida de comprobantes están en el Portal de Padres.</p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-panel p-5">
