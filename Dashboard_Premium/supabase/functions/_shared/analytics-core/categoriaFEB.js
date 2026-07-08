@@ -1,6 +1,19 @@
 // AUTO-GENERADO desde packages/analytics-core — NO EDITAR. Regenerar con: npm run functions:sync
 // packages/analytics-core/categoriaFEB.js
 
+// Lista canónica de categorías FEB, en orden de edad. Debe coincidir con los
+// valores que devuelve calcularCategoriaFEB() (y con el gemelo SQL
+// calcular_categoria_feb de la migración v18/v20). Consumida por la UI de
+// tarifas de pagos para no duplicar los literales.
+export const CATEGORIAS_FEB = [
+  'Premini (Sub-9)',
+  'Mini (Sub-11)',
+  'Menores (Sub-14)',
+  'Prejuvenil (Sub-16)',
+  'Juvenil (Sub-18)',
+  'Mayores',
+];
+
 export function calcularEdad(fechaNacimiento) {
   if (!fechaNacimiento) return 0;
   const hoy = new Date();
