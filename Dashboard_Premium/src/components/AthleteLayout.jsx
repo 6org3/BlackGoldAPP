@@ -15,9 +15,11 @@ import EventosAtleta from './EventosAtleta';
 import HistorialPruebas from './HistorialPruebas';
 import EditarPerfilModal from './EditarPerfilModal';
 import CardDiagnosticoIA from './CardDiagnosticoIA';
+import Gauge from './Gauge';
 import { evaluarDeficits } from '../lib/didacticEngine';
 import { getSubPilarScores } from '../lib/radarCalc';
-import { getBaremoUI, CHART } from '../lib/designTokens';
+import { getBaremoUI, COLORS, CHART } from '../lib/designTokens';
+import { getXPProgress } from '../lib/xpProgress';
 import { Brain } from 'lucide-react';
 
 const TABS = [
@@ -279,9 +281,30 @@ function TabInicio({ atleta, todosLosAtletas }) {
   const [showCategoria, setShowCategoria] = useState(true);
   const [showClub, setShowClub] = useState(true);
   const deficits = useMemo(() => evaluarDeficits(atleta), [atleta]);
+  const xpProgress = useMemo(() => getXPProgress(atleta.xp_total || 0), [atleta.xp_total]);
+  const rango = xpProgress.currentRango;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      {/* Hero: overall + nivel (receta del hero de CoachHomePage) */}
+      <div className="rounded-card border border-brand/20 bg-gradient-to-br from-brand/15 via-brand-strong/5 to-surface-card shadow-card p-5 flex items-center gap-4">
+        <Gauge pct={atleta.overall_score || 0} label="overall" color={COLORS.gold[500]} />
+        <div className="flex-1 min-w-0">
+          <span className={`inline-flex items-center gap-1 text-2xs font-black uppercase tracking-widest ${rango.color}`}>
+            <span aria-hidden="true">{rango.emoji}</span> {rango.nombre}
+          </span>
+          <p className="font-black text-base mt-1.5">Nivel {rango.nombre}</p>
+          <p className="text-xs text-fg-secondary mt-1">
+            {xpProgress.nextLevelName === 'MAX'
+              ? 'Nivel máximo alcanzado'
+              : `${xpProgress.current.toLocaleString()} / ${xpProgress.required.toLocaleString()} XP para ${xpProgress.nextLevelName}`}
+          </p>
+          <div className="w-full h-2 bg-surface-sunken rounded-full overflow-hidden border border-brand/20 mt-2">
+            <div className="h-full rounded-full progress-bar-glow" style={{ width: `${xpProgress.percentage}%` }} />
+          </div>
+        </div>
+      </div>
+
       {/* Measurements */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard label="Estatura" value={atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'} color="blue" />

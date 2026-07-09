@@ -21,7 +21,9 @@ import EstadoCuentaPadre from '../components/EstadoCuentaPadre';
 import CardDiagnosticoIA from '../components/CardDiagnosticoIA';
 import CardReadinessIA from '../components/CardReadinessIA';
 import BottomNav from '../components/BottomNav';
+import Gauge from '../components/Gauge';
 import { CopilotoProvider } from '../components/CopilotoLauncher';
+import { fetchAsistenciaPct } from '../api/asistenciaService';
 
 const NAV_ITEMS = [
   { key: 'inicio', label: 'Inicio', Icono: Sparkles },
@@ -175,6 +177,25 @@ export default function PadreDashboard() {
     [hijoActual]
   );
 
+  // Mismo cálculo que la barra de XP más abajo, elevado aquí para
+  // reutilizarlo también en el gauge de "nivel" (evita el mismatch de ids
+  // entre el rango por overall_score de calculateRank y RANGOS_UI —
+  // getXPProgress ya devuelve un currentRango con los ids/hex correctos).
+  const xpProgress = useMemo(
+    () => getXPProgress(hijoActual?.xp_total || 0),
+    [hijoActual]
+  );
+
+  const [asistencia30d, setAsistencia30d] = useState(null);
+  useEffect(() => {
+    if (!hijoActual) return undefined;
+    let activo = true;
+    fetchAsistenciaPct([hijoActual.atleta_id], 30).then((pct) => {
+      if (activo) setAsistencia30d(pct);
+    });
+    return () => { activo = false; };
+  }, [hijoActual]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-base flex items-center justify-center text-brand">
@@ -242,7 +263,22 @@ export default function PadreDashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
-          
+
+          {/* Nivel y asistencia de un vistazo (receta gauge del mockup v6) */}
+          <div className="lg:col-span-3 glass-card p-4 sm:p-6 rounded-panel border border-white/10 flex items-center justify-center gap-8">
+            <Gauge
+              pct={xpProgress.percentage}
+              valor={xpProgress.currentRango.emoji}
+              label="nivel"
+              color={xpProgress.currentRango.hex}
+            />
+            <Gauge
+              pct={asistencia30d ?? 0}
+              label="asistencia 30 días"
+              color={COLORS.feedback.success}
+            />
+          </div>
+
           {/* Columna Izquierda: Radar y Estado */}
           <div className="space-y-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-4 sm:p-6 rounded-panel border border-white/10">
