@@ -7,7 +7,7 @@
 //   - GOLDEN QUERIES: una consulta por sub-pilar; advierte si ningún doc esperado
 //     aparece en el top-3. Es la métrica que decide si BM25+etiquetas alcanza o si
 //     algún día hay que saltar a embeddings (ver plan semántico, Fase C).
-import { buscarRack, inventarioRack } from "./rack.js";
+import { buscarRack, inventarioRack } from "../../packages/brain-core/rack.js";
 
 const MIN_CHUNKS = 3;
 

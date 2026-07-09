@@ -1,15 +1,18 @@
 // ============================================================
-// RACK DOCUMENTAL DEPORTIVO del MCP Black Gold
+// RACK DOCUMENTAL DEPORTIVO — brain-core (Black Gold)
 // ============================================================
 // Corpus local de documentación específica del deporte (metodología
 // de iniciación, baremos científicos, entrenamiento, táctica,
 // mentalidad, referencias académicas) indexado en memoria con
-// recuperación léxica BM25. Las tools del MCP lo consultan para
-// fundamentar diagnósticos, misiones y pruebas en las fuentes del
-// club en vez de en texto fijo en el código.
+// recuperación léxica BM25. Vive en packages/brain-core (la capa
+// compartida de "lógica de las tools"): hoy lo consume blackgold-mcp
+// para fundamentar diagnósticos, misiones y pruebas en las fuentes
+// del club en vez de en texto fijo en el código; en el futuro también
+// las Edge Functions del brain-gateway.
 //
-// Fuentes: knowledge/rack.config.json (manifest declarativo). Cada
-// entrada apunta a un archivo o carpeta (.md/.txt) con su área
+// Fuentes: blackgold-mcp/knowledge/rack.config.json (manifest
+// declarativo — el corpus sigue viviendo en blackgold-mcp/knowledge/).
+// Cada entrada apunta a un archivo o carpeta (.md/.txt) con su área
 // temática. La env RACK_DIRS (rutas separadas por ';') añade carpetas
 // extra sin tocar el repo.
 //
@@ -24,10 +27,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 // Taxonomía compartida (fuente única de pilares/sub-pilares) + vocabulario semántico:
 // los sinónimos del rack se derivan de aquí en runtime para que no diverjan del código.
-import { SUB_PILARES, SUB_PILARES_MONITOREO } from "../../packages/analytics-core/taxonomia.js";
-import { VOCABULARIO_SUBPILARES, validarVocabulario, esSubPilarValido } from "../../packages/analytics-core/vocabulario.js";
+import { SUB_PILARES, SUB_PILARES_MONITOREO } from "../analytics-core/taxonomia.js";
+import { VOCABULARIO_SUBPILARES, validarVocabulario, esSubPilarValido } from "../analytics-core/vocabulario.js";
 
-const KNOWLEDGE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "knowledge");
+// El corpus NO se movió con el código: sigue viviendo en blackgold-mcp/knowledge/
+// (ver su README para añadir documentación nueva).
+const KNOWLEDGE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "blackgold-mcp", "knowledge");
 const CONFIG_PATH = path.join(KNOWLEDGE_DIR, "rack.config.json");
 
 // Chunks más largos que esto se parten por párrafos (los prompts de

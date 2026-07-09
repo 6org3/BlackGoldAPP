@@ -14,7 +14,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { clasificarContextoMision } from '../../packages/analytics-core/clasificadorContexto.js';
-import { buscarRack } from '../src/rack.js';
+import { buscarRack } from '../../packages/brain-core/rack.js';
 
 const APLICAR = false; // ← cambiar a true para ejecutar los cambios
 

@@ -1,8 +1,8 @@
 # Rack documental deportivo (knowledge/)
 
 Corpus de documentación específica del deporte que fundamenta las tools del
-MCP Black Gold. Se indexa en memoria al primer uso (`src/rack.js`, BM25 con
-normalización de acentos y sinónimos del dominio ES/EN) y las tools
+MCP Black Gold. Se indexa en memoria al primer uso (`packages/brain-core/rack.js`,
+BM25 con normalización de acentos y sinónimos del dominio ES/EN) y las tools
 analíticas y de autoría le inyectan a sus prompts los fragmentos más
 relevantes, con cita `[archivo › sección]`.
 
