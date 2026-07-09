@@ -331,12 +331,12 @@ export default function CompararPruebas({ user }) {
       <div className="flex items-center space-x-3">
         <GitCompareArrows className="text-brand drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" size={26} />
         <div>
-          <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight">
             Comparar <span className="text-gradient-gold">Pruebas</span>
           </h2>
-          <p className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mt-1">
-            Entre atletas · vs media de categoría y club · histórico
-          </p>
+          <span className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-2xs font-extrabold tracking-wide text-brand bg-brand/10 border border-brand/25">
+            📊 Entre atletas · vs media de categoría y club · histórico
+          </span>
         </div>
       </div>
 

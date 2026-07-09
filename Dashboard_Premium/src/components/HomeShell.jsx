@@ -1,12 +1,18 @@
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
+import BottomNav from './BottomNav';
+import { CopilotoProvider } from './CopilotoLauncher';
+import { useAuth } from '../AuthContext';
+import { BOTTOM_NAV_POR_ROL } from '../lib/bottomNavConfig';
 
 /**
  * HomeShell — layout compartido de los homes por rol (Fase 1 del rediseño,
  * blueprint §2.1): Sidebar + main scrolleable con el glow ambiental de la
  * casa, botón de menú móvil y cabecera saludo/contexto al estilo del
- * mockup v6 (eyebrow + titular + chip de contexto).
+ * mockup v6 (eyebrow + titular + chip de contexto). Monta la BottomNav móvil
+ * y el Copiloto (FAB + panel) por rol de staff — PR7 del retrofit visual.
  *
  * Props:
  * - eyebrow: línea micro sobre el titular (ej. fecha o rol).
@@ -15,15 +21,23 @@ import Sidebar from './Sidebar';
  */
 export default function HomeShell({ eyebrow, titulo, contexto, children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const itemsNav = BOTTOM_NAV_POR_ROL[user?.rol] || null;
+  const activo = itemsNav?.find((it) => location.pathname.startsWith(it.ruta))?.key;
 
   return (
+    <CopilotoProvider>
     <div className="flex h-dvh bg-surface-base overflow-hidden text-white selection:bg-brand selection:text-black">
       <Sidebar
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
+        ocultarFabModoCancha
       />
 
-      <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-10 pb-[calc(env(safe-area-inset-bottom)+24px)] relative">
+      <main className={`flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-10 relative ${itemsNav ? 'pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-[calc(env(safe-area-inset-bottom)+24px)]' : 'pb-[calc(env(safe-area-inset-bottom)+24px)]'}`}>
         {/* Glow ambiental solo en desktop (mismo criterio que /dashboard:
             el blur gigante es caro en móviles de gama baja). */}
         <div className="hidden md:block absolute top-[-20%] left-[10%] w-[800px] h-[600px] bg-brand/5 blur-[150px] pointer-events-none rounded-full mix-blend-screen"></div>
@@ -46,7 +60,15 @@ export default function HomeShell({ eyebrow, titulo, contexto, children }) {
 
         <div className="relative z-10">{children}</div>
       </main>
+
+      {itemsNav && (
+        <BottomNav items={itemsNav} activo={activo} onSelect={(key) => {
+          const item = itemsNav.find((it) => it.key === key);
+          if (item) navigate(item.ruta);
+        }} />
+      )}
     </div>
+    </CopilotoProvider>
   );
 }
 
