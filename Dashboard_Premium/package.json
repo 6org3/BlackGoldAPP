@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "functions:sync": "node scripts/sync_edge_shared.mjs",
     "functions:deploy": "npm run functions:sync && npx supabase functions deploy generar-misiones-ia",
-    "functions:deploy:brain": "npm run functions:sync && npx supabase functions deploy brain-gateway"
+    "functions:deploy:brain": "npm run functions:sync && npx supabase functions deploy brain-gateway",
+    "functions:deploy:copiloto": "npm run functions:sync && npx supabase functions deploy copiloto"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
