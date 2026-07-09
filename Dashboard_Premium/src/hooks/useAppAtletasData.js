@@ -7,6 +7,16 @@ const FASE_ORDEN = { 'Micro': 0, 'Desarrollo': 1, 'Elite': 2 };
 
 const ITEMS_PER_PAGE = 12;
 
+// Filtros con los que arranca el plantel (los mismos defaults que tenía
+// App.jsx antes de extraer el módulo Plantel). Viven junto al hook y no en
+// Plantel.jsx para que ese archivo solo exporte componentes (react-refresh).
+export const FILTROS_INICIALES = {
+  categoria: 'Todas',
+  posicion: 'Todas',
+  nivelDesarrollo: 'Todos',
+  genero: 'Todos',
+};
+
 // Campos que Postgres puede ordenar directamente. `nivel_desarrollo` usa un
 // orden de "fase" (Elite > Desarrollo > Micro) que no es una columna
 // ordenable tal cual, así que ese caso se sigue resolviendo en memoria

@@ -1,76 +1,64 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import AthleteLayout from './components/AthleteLayout';
 import { useAuth } from './AuthContext';
 import ReadinessModal from './components/ReadinessModal';
 import { useNavigate } from 'react-router-dom';
-import { useAppAtletasData } from './hooks/useAppAtletasData';
+import { useAppAtletasData, FILTROS_INICIALES } from './hooks/useAppAtletasData';
 import AppHeader from './components/AppHeader';
-import AppToolbar from './components/AppToolbar';
-import AppAthleteGrid from './components/AppAthleteGrid';
-import AppAthleteProfileModal from './components/AppAthleteProfileModal';
-import AppSecondaryModals from './components/AppSecondaryModals';
-import GrupoTendencias from './components/GrupoTendencias';
+import Plantel from './components/Plantel';
 
-function App() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [ordenarPor, setOrdenarPor] = useState('overall');
-  const [selectedAtleta, setSelectedAtleta] = useState(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showAsignador, setShowAsignador] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [busqueda, setBusqueda] = useState('');
-  const [filtros, setFiltros] = useState({
-    categoria: 'Todas',
-    posicion: 'Todas',
-    nivelDesarrollo: 'Todos',
-    genero: 'Todos',
-  });
-
+// Vista exclusiva para atletas — layout propio con sidebar + tabs. El switch
+// vive aquí (y no en Plantel) porque tanto /dashboard como su alias /atleta
+// conmutan a esta vista según el rol; la extracción a un home nativo propio
+// llega con el rediseño del home del atleta (blueprint §3.3).
+function VistaAtleta({ user }) {
   const {
     atletas,
     loading,
-    loadMore,
-    atletasFiltrados,
     atletasOrdenados,
-    atletasPaginados,
-    currentHasMore,
     showReadinessModal,
     setShowReadinessModal,
-  } = useAppAtletasData({ user, busqueda, filtros, ordenarPor });
+  } = useAppAtletasData({ user, busqueda: '', filtros: FILTROS_INICIALES, ordenarPor: 'overall' });
 
-  const handleFiltroChange = useCallback((key, value) => {
-    setFiltros(prev => ({ ...prev, [key]: value }));
-  }, []);
+  // Para rol atleta el hook no consulta el listado (usa la ficha del propio
+  // user), así que `loading` dura un tick y no hay nada útil que pintar aún.
+  if (loading) return null;
+
+  const atleta = atletasOrdenados[0] || null;
+  return (
+    <>
+      <AthleteLayout atleta={atleta} todosLosAtletas={atletas} />
+      {showReadinessModal && (
+        <ReadinessModal
+          atletaId={user.atleta_id}
+          onClose={() => setShowReadinessModal(false)}
+          onComplete={() => console.log('Readiness guardado')}
+        />
+      )}
+    </>
+  );
+}
+
+// Página /dashboard: Sidebar + header + el módulo Plantel (grid de atletas
+// con toolbar y filtros, extraído a src/components/Plantel.jsx en el PR3
+// para poder embeberlo también en los homes por rol).
+function App() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  // Vista exclusiva para atletas — layout propio con sidebar + tabs
-  if (!loading && user.rol === 'atleta') {
-    const atleta = atletasOrdenados[0] || null;
-    return (
-      <>
-        <AthleteLayout atleta={atleta} todosLosAtletas={atletas} />
-        {showReadinessModal && (
-          <ReadinessModal
-            atletaId={user.atleta_id}
-            onClose={() => setShowReadinessModal(false)}
-            onComplete={() => console.log('Readiness guardado')}
-          />
-        )}
-      </>
-    );
-  }
+  if (user.rol === 'atleta') return <VistaAtleta user={user} />;
 
   return (
     <div className="flex h-dvh bg-surface-base overflow-hidden text-white selection:bg-brand selection:text-black">
-      {user.rol !== 'atleta' && (
-        <Sidebar
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-        />
-      )}
+      <Sidebar
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-12 relative">
         {/* Blobs decorativos solo en desktop: el blur gigante + mix-blend
@@ -85,45 +73,8 @@ function App() {
           handleLogout={handleLogout}
         />
 
-        {/* Premium Dashboard Toolbar */}
-        {user.rol !== 'atleta' && !loading && (
-          <AppToolbar
-            busqueda={busqueda}
-            setBusqueda={setBusqueda}
-            filtros={filtros}
-            handleFiltroChange={handleFiltroChange}
-            ordenarPor={ordenarPor}
-            setOrdenarPor={setOrdenarPor}
-            setShowAsignador={setShowAsignador}
-          />
-        )}
-
-        <AppAthleteGrid
-          loading={loading}
-          atletasPaginados={atletasPaginados}
-          currentHasMore={currentHasMore}
-          atletasFiltradosLength={atletasFiltrados.length}
-          onSelect={setSelectedAtleta}
-          onLoadMore={loadMore}
-        />
-
-        {/* Tendencias agregadas del grupo visible (respeta los filtros) */}
-        {!loading && <GrupoTendencias atletas={atletasFiltrados} />}
-
-        {/* Modal Perfil Específico */}
-        <AppAthleteProfileModal
-          selectedAtleta={selectedAtleta}
-          atletas={atletas}
-          onClose={() => setSelectedAtleta(null)}
-        />
-
-        <AppSecondaryModals
-          atletas={atletas}
+        <Plantel
           user={user}
-          showAsignador={showAsignador}
-          setShowAsignador={setShowAsignador}
-          showReadinessModal={showReadinessModal}
-          setShowReadinessModal={setShowReadinessModal}
           showEditProfile={showEditProfile}
           setShowEditProfile={setShowEditProfile}
         />

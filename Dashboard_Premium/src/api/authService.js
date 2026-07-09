@@ -45,6 +45,19 @@ export const loginUsuario = async (identificador, password) => {
   return fetchUsuarioPorAuthId(authData.user.id);
 };
 
+// Conteo de usuarios visibles según RLS (home /sistema del superadmin).
+// head: true no descarga filas, solo el count.
+export const contarUsuarios = async () => {
+  const { count, error } = await supabase
+    .from('usuarios')
+    .select('id', { count: 'exact', head: true });
+  if (error) {
+    console.error('Error contando usuarios:', error);
+    return null;
+  }
+  return count ?? 0;
+};
+
 export const fetchUsuarioPorAuthId = async (authUserId) => {
   const { data: usuarioBase, error } = await supabase
     .from('usuarios')

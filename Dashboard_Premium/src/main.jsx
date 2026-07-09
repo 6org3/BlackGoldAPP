@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import { AuthProvider, useAuth } from './AuthContext'
+import { rutaHomeParaRol } from './lib/featureFlags'
 import './index.css'
 import Login from './components/Login.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
@@ -66,13 +67,19 @@ const CompararPruebasPage = lazy(() => import('./pages/CompararPruebasPage.jsx')
 const PadreDashboard = lazy(() => import('./pages/PadreDashboard.jsx'))
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
+const CoachHomePage = lazy(() => import('./pages/CoachHomePage.jsx'))
+const ClubHomePage = lazy(() => import('./pages/ClubHomePage.jsx'))
+const SistemaHomePage = lazy(() => import('./pages/SistemaHomePage.jsx'))
 
 // La PWA instalada abre en '/': si supabase-js aún tiene sesión válida no hay
 // que volver a pedir credenciales, se entra directo al panel según el rol.
+// El destino por rol respeta los feature flags del rediseño (homes nativos
+// /sistema, /club, /coach); con el flag apagado se conserva el destino
+// previo (/padre para padres, /dashboard para el resto).
 const RootRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  return <Navigate to={user.rol === 'padre' ? '/padre' : '/dashboard'} replace />;
+  return <Navigate to={rutaHomeParaRol(user.rol)} replace />;
 };
 
 const PrivateRoute = ({ children, roles }) => {
@@ -115,6 +122,43 @@ createRoot(document.getElementById('root')).render(
             element={
               <PrivateRoute roles={['padre']}>
                 <PadreDashboard />
+              </PrivateRoute>
+            }
+          />
+          {/* Homes por rol (PR3 del rediseño, blueprint §2.1) */}
+          <Route
+            path="/coach"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
+                <CoachHomePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/club"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner']}>
+                <ClubHomePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/sistema"
+            element={
+              <PrivateRoute roles={['superadmin']}>
+                <SistemaHomePage />
+              </PrivateRoute>
+            }
+          />
+          {/* Alias semántico del blueprint: App ya conmuta a AthleteLayout
+              para rol atleta, así que /atleta reusa <App /> sin duplicar
+              data-loading. La extracción a una página nativa propia llega
+              con el rediseño del home del atleta. */}
+          <Route
+            path="/atleta"
+            element={
+              <PrivateRoute roles={['atleta']}>
+                <App />
               </PrivateRoute>
             }
           />

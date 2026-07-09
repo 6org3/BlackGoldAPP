@@ -4,11 +4,17 @@ import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaModal from './ModoCanchaModal';
 import { supabase } from '../api/supabaseClient';
+import { HOMES_POR_ROL, rutaHomeParaRol } from '../lib/featureFlags';
 
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Con el flag del rediseño activo, el ítem de entrada lleva al home nativo
+  // del rol (/sistema, /club, /coach); apagado, conserva /dashboard.
+  const homeNativoActivo = !!HOMES_POR_ROL[user?.rol];
+  const rutaInicio = rutaHomeParaRol(user?.rol);
 
   const [showModoCancha, setShowModoCancha] = useState(false);
   const [activeSessionCount, setActiveSessionCount] = useState(0);
@@ -101,9 +107,9 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         )}
         <NavItem
           icon={<Users size={18} />}
-          label="Tripulación"
-          active={location.pathname === '/dashboard'}
-          onClick={() => navigate('/dashboard')}
+          label={homeNativoActivo ? 'Inicio' : 'Tripulación'}
+          active={location.pathname === rutaInicio || location.pathname === '/dashboard'}
+          onClick={() => navigate(rutaInicio)}
         />
         {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
           <NavItem
