@@ -1,6 +1,7 @@
 // src/api/evaluacionesService.js
 import { supabase } from './supabaseClient';
 import { checkAndCreateRecompensas } from './recompensasService';
+import { TABLA_PRUEBAS_EVALUACION } from './tablas';
 // Fuente única de "última evaluación por prueba" (analytics-core, compartido
 // con blackgold-mcp y la Edge Function). El shim src/lib/baremosEngine.js solo
 // reexporta baremos.js, por eso se importa directo del paquete.
@@ -105,6 +106,31 @@ export const recalcularOverall = async (atletaId) => {
   }
 
   return { overall, rango };
+};
+
+/**
+ * Catálogo de pruebas de evaluación para la vista Comparar: nombre legible
+ * (coincide con evaluaciones_pruebas.prueba_tipo), pilar/sub-pilar, unidad y
+ * dirección (invertido: true = menos es mejor, p.ej. tiempos de sprint).
+ *
+ * Deduplicado por nombre — misma salvaguarda que EvaluacionModal frente a
+ * filas repetidas por un seed reintroducido — y ordenado por pilar → nombre.
+ *
+ * @returns {Promise<Array>} [{ nombre, pilar, sub_pilar, unidad, invertido }]
+ */
+export const fetchCatalogoPruebas = async () => {
+  const { data, error } = await supabase
+    .from(TABLA_PRUEBAS_EVALUACION)
+    .select('nombre, pilar, sub_pilar, unidad, invertido')
+    .order('pilar', { ascending: true })
+    .order('nombre', { ascending: true });
+  if (error) throw error;
+
+  const porNombre = new Map();
+  (data || []).forEach(fila => {
+    if (!porNombre.has(fila.nombre)) porNombre.set(fila.nombre, fila);
+  });
+  return [...porNombre.values()];
 };
 
 /**

@@ -61,6 +61,7 @@ const AdminComunicacionesPage = lazy(() => import('./pages/AdminComunicacionesPa
 const AdminEventosPage = lazy(() => import('./pages/AdminEventosPage.jsx'))
 const AdminAsistenciaPage = lazy(() => import('./pages/AdminAsistenciaPage.jsx'))
 const AdminSesionesPage = lazy(() => import('./pages/AdminSesionesPage.jsx'))
+const CompararPruebasPage = lazy(() => import('./pages/CompararPruebasPage.jsx'))
 const PadreDashboard = lazy(() => import('./pages/PadreDashboard.jsx'))
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
@@ -164,6 +165,14 @@ createRoot(document.getElementById('root')).render(
             element={
               <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
                 <AdminSesionesPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/comparar"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
+                <CompararPruebasPage />
               </PrivateRoute>
             }
           />

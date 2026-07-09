@@ -218,6 +218,66 @@ export function serieGrupalPorSubPilar(evaluacionesPorAtleta, subPilar) {
 }
 
 // ===================================================================
+// COMPARATIVA POR PRUEBA (vista Comparar: atleta vs categoría vs club)
+// ===================================================================
+
+/**
+ * Último valor CRUDO de un atleta en una prueba concreta.
+ *
+ * Se toma la medición más reciente por fecha. Si la prueba es bilateral
+ * (filas con lado 'izq'/'der' capturadas el mismo día), el "registro" completo
+ * son dos filas: se promedia la última medición de cada lado de ese día.
+ * En pruebas de lado único ('unico' o sin lado) manda la última fila del día.
+ *
+ * @param {Array} evaluaciones - evaluaciones del atleta (cualquier prueba)
+ * @param {string} pruebaTipo - nombre de la prueba (evaluaciones_pruebas.prueba_tipo)
+ * @returns {number|null} valor crudo más reciente (promedio de lados si es
+ *   bilateral, redondeado a 2 decimales) — null si no hay mediciones con valor
+ */
+export function ultimoValorPrueba(evaluaciones, pruebaTipo) {
+  const serie = seriePorPrueba(evaluaciones, pruebaTipo)
+    .filter(p => p.valor_crudo != null);
+  if (serie.length === 0) return null;
+
+  // Día de la medición más reciente (la serie viene ordenada ascendente).
+  const ultimoDia = claveDia(serie[serie.length - 1].fecha);
+  const delDia = serie.filter(p => claveDia(p.fecha) === ultimoDia);
+
+  // Última fila por lado dentro del día (orden ascendente → la última pisa a
+  // las anteriores): bilateral queda { izq, der }, unilateral queda { unico }.
+  const porLado = {};
+  delDia.forEach(p => { porLado[p.lado ?? 'unico'] = p.valor_crudo; });
+
+  return Math.round(promedio(Object.values(porLado)) * 100) / 100;
+}
+
+/**
+ * Comparativa de grupo en UNA prueba: último valor crudo por atleta
+ * (ultimoValorPrueba) sobre los atletas QUE TIENEN dato, más la media del
+ * conjunto. Los atletas sin medición de esa prueba no aparecen ni cuentan en
+ * el denominador de la media (sin datos no es valor 0).
+ *
+ * @param {Object} evaluacionesPorAtleta - { [atletaId]: evaluaciones[] }
+ * @param {string} pruebaTipo - nombre de la prueba
+ * @returns {{ atletas: Array<{ atletaId: string, valor: number }>, media: number|null }}
+ *   media redondeada a 2 decimales; null si ningún atleta tiene dato
+ */
+export function compararPruebaGrupo(evaluacionesPorAtleta, pruebaTipo) {
+  const atletas = [];
+  Object.keys(evaluacionesPorAtleta || {}).forEach(atletaId => {
+    const valor = ultimoValorPrueba(evaluacionesPorAtleta[atletaId] || [], pruebaTipo);
+    if (valor != null) atletas.push({ atletaId, valor });
+  });
+
+  return {
+    atletas,
+    media: atletas.length > 0
+      ? Math.round(promedio(atletas.map(a => a.valor)) * 100) / 100
+      : null,
+  };
+}
+
+// ===================================================================
 // DELTA ENTRE VENTANAS (p.ej. trimestre anterior vs. actual)
 // ===================================================================
 

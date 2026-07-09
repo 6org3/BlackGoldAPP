@@ -5,6 +5,8 @@ import {
   agregarDebilidadesGrupo,
   serieGrupalPorSubPilar,
   calcularDelta,
+  ultimoValorPrueba,
+  compararPruebaGrupo,
 } from '../../../packages/analytics-core/tendencias.js';
 
 // Helper para fabricar evaluaciones con la forma de evaluaciones_pruebas.
@@ -167,6 +169,80 @@ describe('serieGrupalPorSubPilar', () => {
 
   it('devuelve array vacío si el grupo no tiene mediciones de ese sub-pilar', () => {
     expect(serieGrupalPorSubPilar({}, 'movilidad')).toEqual([]);
+  });
+});
+
+describe('ultimoValorPrueba', () => {
+  it('devuelve el valor crudo de la medición más reciente', () => {
+    const evaluaciones = [
+      evaluacion({ prueba: 'Salto Vertical (CMJ)', subPilar: 'explosividad', score: 35, fecha: '2026-01-15T10:00:00Z', valor: 30 }),
+      evaluacion({ prueba: 'Salto Vertical (CMJ)', subPilar: 'explosividad', score: 75, fecha: '2026-05-10T09:00:00Z', valor: 42 }),
+      // Otra prueba: no debe interferir
+      evaluacion({ prueba: 'Sprint 20m', subPilar: 'agilidad', score: 60, fecha: '2026-06-01T09:00:00Z', valor: 3.4 }),
+    ];
+
+    expect(ultimoValorPrueba(evaluaciones, 'Salto Vertical (CMJ)')).toBe(42);
+  });
+
+  it('promedia ambos lados de una prueba bilateral medida el mismo día', () => {
+    const evaluaciones = [
+      // Registro viejo unilateral: no debe mandar
+      evaluacion({ prueba: 'Dorsiflexión', subPilar: 'movilidad', score: 40, fecha: '2026-01-05T09:00:00Z', valor: 9 }),
+      // Registro más reciente: dos filas izq/der del mismo día
+      evaluacion({ prueba: 'Dorsiflexión', subPilar: 'movilidad', score: 55, fecha: '2026-04-20T09:00:00Z', valor: 10, lado: 'izq' }),
+      evaluacion({ prueba: 'Dorsiflexión', subPilar: 'movilidad', score: 60, fecha: '2026-04-20T09:05:00Z', valor: 15, lado: 'der' }),
+    ];
+
+    expect(ultimoValorPrueba(evaluaciones, 'Dorsiflexión')).toBe(12.5); // (10 + 15) / 2
+  });
+
+  it('con reevaluación unilateral el mismo día manda la última fila', () => {
+    const evaluaciones = [
+      evaluacion({ prueba: 'Tiro Libre', subPilar: 'tiro', score: 50, fecha: '2026-03-01T09:00:00Z', valor: 12, lado: 'unico' }),
+      evaluacion({ prueba: 'Tiro Libre', subPilar: 'tiro', score: 70, fecha: '2026-03-01T17:00:00Z', valor: 16, lado: 'unico' }),
+    ];
+
+    expect(ultimoValorPrueba(evaluaciones, 'Tiro Libre')).toBe(16);
+  });
+
+  it('ignora filas sin valor_crudo y devuelve null si no hay mediciones con valor', () => {
+    expect(ultimoValorPrueba([], 'Salto Vertical (CMJ)')).toBeNull();
+    expect(ultimoValorPrueba(
+      [evaluacion({ prueba: 'Salto Vertical (CMJ)', subPilar: 'explosividad', score: 50, fecha: '2026-01-01T00:00:00Z', valor: null })],
+      'Salto Vertical (CMJ)',
+    )).toBeNull();
+  });
+});
+
+describe('compararPruebaGrupo', () => {
+  it('incluye solo atletas con dato y calcula la media del conjunto', () => {
+    const evaluacionesPorAtleta = {
+      atletaA: [
+        // Dos mediciones: manda la última (38)
+        evaluacion({ prueba: 'Salto Vertical (CMJ)', subPilar: 'explosividad', score: 40, fecha: '2026-01-10T09:00:00Z', valor: 33 }),
+        evaluacion({ prueba: 'Salto Vertical (CMJ)', subPilar: 'explosividad', score: 60, fecha: '2026-04-10T09:00:00Z', valor: 38 }),
+      ],
+      atletaB: [
+        evaluacion({ prueba: 'Salto Vertical (CMJ)', subPilar: 'explosividad', score: 70, fecha: '2026-04-11T09:00:00Z', valor: 43 }),
+      ],
+      // Sin datos de ESA prueba: no aparece ni cuenta en la media
+      atletaC: [
+        evaluacion({ prueba: 'Sprint 20m', subPilar: 'agilidad', score: 55, fecha: '2026-04-11T09:00:00Z', valor: 3.5 }),
+      ],
+    };
+
+    const resultado = compararPruebaGrupo(evaluacionesPorAtleta, 'Salto Vertical (CMJ)');
+
+    expect(resultado.atletas).toEqual([
+      { atletaId: 'atletaA', valor: 38 },
+      { atletaId: 'atletaB', valor: 43 },
+    ]);
+    expect(resultado.media).toBe(40.5); // (38 + 43) / 2
+  });
+
+  it('sin ningún atleta con dato devuelve lista vacía y media null (nunca 0 fingido)', () => {
+    expect(compararPruebaGrupo({}, 'Salto Vertical (CMJ)')).toEqual({ atletas: [], media: null });
+    expect(compararPruebaGrupo({ atletaA: [] }, 'Salto Vertical (CMJ)')).toEqual({ atletas: [], media: null });
   });
 });
 
