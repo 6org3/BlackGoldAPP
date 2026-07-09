@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
+import BottomNav from './BottomNav';
+import { CopilotoProvider } from './CopilotoLauncher';
 import RangoProgreso from './RangoProgreso';
 import MisionesPanel from './MisionesPanel';
 import RadarChartComp from './RadarChartComp';
@@ -47,6 +49,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
   if (!atleta) return null;
 
   return (
+    <CopilotoProvider atletaIdPorDefecto={atleta.atleta_id}>
     <div className="flex h-dvh bg-surface-base text-white overflow-hidden">
       {/* ── SIDEBAR (solo md+) ─────────────────────────────────── */}
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-surface-sunken border-r border-white/5 overflow-y-auto">
@@ -238,23 +241,11 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
       </main>
 
       {/* ── BOTTOM NAV (solo móvil) ────────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-surface-sunken/95 backdrop-blur-xl border-t border-white/5 flex pb-[env(safe-area-inset-bottom)]">
-        {TABS.map(({ id, label, icon: Icon }) => {
-          const active = activeTab === id;
-          return (
-            <button
-              key={id}
-              onClick={() => handleTabChange(id)}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-2 min-h-[52px] transition-colors ${
-                active ? 'text-brand' : 'text-fg-muted'
-              }`}
-            >
-              <Icon size={20} />
-              <span className="text-2xs font-bold uppercase">{label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <BottomNav
+        items={TABS.map(({ id, label, icon }) => ({ key: id, label, Icono: icon }))}
+        activo={activeTab}
+        onSelect={handleTabChange}
+      />
 
       {/* Modals */}
       {showEditProfile && (
@@ -264,6 +255,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
         />
       )}
     </div>
+    </CopilotoProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -20,6 +20,15 @@ import EditarPerfilModal from '../components/EditarPerfilModal';
 import EstadoCuentaPadre from '../components/EstadoCuentaPadre';
 import CardDiagnosticoIA from '../components/CardDiagnosticoIA';
 import CardReadinessIA from '../components/CardReadinessIA';
+import BottomNav from '../components/BottomNav';
+import { CopilotoProvider } from '../components/CopilotoLauncher';
+
+const NAV_ITEMS = [
+  { key: 'inicio', label: 'Inicio', Icono: Sparkles },
+  { key: 'eventos', label: 'Eventos', Icono: CalendarDays },
+  { key: 'pagos', label: 'Pagos', Icono: FileText },
+  { key: 'reporte', label: 'Reporte', Icono: Download },
+];
 
 const METRICAS_CONFIG = [
   { key: 'fuerza', label: 'Fuerza' },
@@ -43,6 +52,9 @@ export default function PadreDashboard() {
   const reportRef = React.useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [navActivo, setNavActivo] = useState('inicio');
+  const eventosRef = useRef(null);
+  const pagosRef = useRef(null);
 
   const exportPDF = async () => {
     if (!hijoActual || isExporting) return;
@@ -74,6 +86,16 @@ export default function PadreDashboard() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // BottomNav por anclas: sin rutas ni tabs reales, cada ítem hace scroll a
+  // su sección (o dispara la exportación de PDF para "Reporte").
+  const irANav = (key) => {
+    setNavActivo(key);
+    if (key === 'inicio') window.scrollTo({ top: 0, behavior: 'smooth' });
+    else if (key === 'eventos') eventosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else if (key === 'pagos') pagosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else if (key === 'reporte') exportPDF();
   };
 
   useEffect(() => {
@@ -172,7 +194,8 @@ export default function PadreDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-base text-white p-4 sm:p-6 relative overflow-hidden">
+    <CopilotoProvider atletaIdPorDefecto={hijoActual?.atleta_id}>
+    <div className="min-h-screen bg-surface-base text-white p-4 sm:p-6 pb-24 relative overflow-hidden">
       <div className="hidden md:block absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand/5 blur-[120px] rounded-full pointer-events-none mix-blend-screen"></div>
 
       <header className="flex justify-between items-center mb-8 glass-card p-4 sm:p-6 rounded-panel relative z-10 border border-white/10 glow-border">
@@ -416,7 +439,9 @@ export default function PadreDashboard() {
             </motion.div>
 
             {/* Estado de cuenta real (v27): pagos abiertos, subir comprobante, historial */}
-            <EstadoCuentaPadre hijo={hijoActual} user={user} />
+            <div ref={pagosRef}>
+              <EstadoCuentaPadre hijo={hijoActual} user={user} />
+            </div>
           </div>
 
           {/* Columna Centro/Derecha: Historial y Anuncios */}
@@ -424,7 +449,7 @@ export default function PadreDashboard() {
 
             {/* Convocatorias a eventos */}
             {convocatorias.length > 0 && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-4 sm:p-6 rounded-panel border border-info/30 bg-info/5">
+              <motion.div ref={eventosRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-4 sm:p-6 rounded-panel border border-info/30 bg-info/5">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-info-soft mb-4 flex items-center"><CalendarDays className="mr-2 w-4 h-4" /> Convocatorias</h3>
                 <div className="space-y-4">
                   {convocatorias.map((c) => {
@@ -586,6 +611,9 @@ export default function PadreDashboard() {
           <ScoutingReportTemplate ref={reportRef} atleta={hijoActual} todosLosAtletas={data.hijos} />
         </div>
       )}
+
+      <BottomNav items={NAV_ITEMS} activo={navActivo} onSelect={irANav} />
     </div>
+    </CopilotoProvider>
   );
 }

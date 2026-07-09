@@ -6,7 +6,7 @@ import ModoCanchaModal from './ModoCanchaModal';
 import { supabase } from '../api/supabaseClient';
 import { HOMES_POR_ROL, rutaHomeParaRol } from '../lib/featureFlags';
 
-export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
+export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultarFabModoCancha = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -201,8 +201,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       </div>
     </aside>
 
-    {/* Botón flotante Global Modo Cancha (para móviles) */}
-    {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+    {/* Botón flotante Global Modo Cancha (para móviles) — oculto cuando la
+        superficie ya monta su propia BottomNav + FAB Copiloto (PR7), para no
+        apilar tres controles flotantes sobre el mismo rincón inferior. */}
+    {!ocultarFabModoCancha && (user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
       <>
         <button
           onClick={() => setShowModoCancha(true)}
