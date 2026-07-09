@@ -289,7 +289,7 @@ export default function PadreDashboard() {
                 <div>
                   <h2 className="text-xl font-black uppercase tracking-widest mb-1 text-white">{hijoActual.nombre}</h2>
                   <p className={`text-xs font-bold uppercase tracking-widest ${hijoActual.rango?.textColor}`}>
-                    Grupo: {hijoActual.rango?.nombre} {hijoActual.rango?.tier}
+                    Grupo: {hijoActual.rango?.nombre}
                   </p>
                 </div>
                 <button

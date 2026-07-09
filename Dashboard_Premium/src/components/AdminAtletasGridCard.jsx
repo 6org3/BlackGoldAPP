@@ -39,7 +39,7 @@ function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropome
       <div className="flex flex-wrap gap-1.5 mb-4">
         {/* Rango badge */}
         <span className={`text-3xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${atleta.rango?.color || 'text-fg-secondary'} border-white/10 bg-white/[0.03]`}>
-          {atleta.rango?.nombre || 'Rookie'} {atleta.rango?.tier || ''}
+          {atleta.rango?.nombre || 'Rookie'}
         </span>
         {/* Nivel badge */}
         <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${badge.border} ${badge.bg} ${badge.color}`}>

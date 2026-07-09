@@ -67,7 +67,6 @@ export default function AthleteGridCard({ atleta, onClick }) {
           <span className={`text-2xs font-black uppercase tracking-widest ${atleta.rango?.textColor || 'text-fg-secondary'}`}>
             {atleta.rango?.nombre}
           </span>
-          <span className="text-2xs text-fg-muted font-bold">{atleta.rango?.tier}</span>
         </div>
 
         <div className="flex flex-wrap gap-1">
