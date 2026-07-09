@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays } from 'lucide-react';
+import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaModal from './ModoCanchaModal';
@@ -161,6 +161,14 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             label="Sesiones"
             active={location.pathname === '/admin/sesiones'}
             onClick={() => navigate('/admin/sesiones')}
+          />
+        )}
+        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+          <NavItem
+            icon={<TrendingUp size={18} />}
+            label="Comparar"
+            active={location.pathname === '/admin/comparar'}
+            onClick={() => navigate('/admin/comparar')}
           />
         )}
         {(user.rol === 'owner' || user.rol === 'superadmin') && (
