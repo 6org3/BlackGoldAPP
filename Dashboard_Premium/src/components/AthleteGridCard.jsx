@@ -1,15 +1,6 @@
 import { motion } from 'framer-motion';
 import { Droplets } from 'lucide-react';
-
-
-// Clases de la pill de recuperación según el estado (clases completas para
-// que Tailwind las genere; no concatenar colores dinámicamente).
-function recoveryPill(estado) {
-  if (!estado || estado === 'Óptimo') return null;
-  if (estado === 'Agotamiento Activo') return 'border-warning/40 text-warning-soft bg-warning/10';
-  if (estado === 'Fatiga Silenciosa') return 'border-mental/40 text-mental-soft bg-mental/10';
-  return 'border-danger/40 text-danger-soft bg-danger/10';
-}
+import { recoveryPill } from '../lib/recoveryPill';
 
 export default function AthleteGridCard({ atleta, onClick }) {
   const pillColor = recoveryPill(atleta.estado_recuperacion);
