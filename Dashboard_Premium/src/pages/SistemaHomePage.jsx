@@ -6,8 +6,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import HomeShell, { ContextChip, SectionEyebrow, StatCard } from '../components/HomeShell';
+import Gauge from '../components/Gauge';
 import Plantel from '../components/Plantel';
+import { COLORS } from '../lib/designTokens';
 import { fetchTodosLosAtletas } from '../api/atletasService';
+import { fetchAsistenciaPct } from '../api/asistenciaService';
 import { contarUsuarios } from '../api/authService';
 
 // Todos los módulos admin, para que el superadmin entre a cualquiera desde
@@ -24,12 +27,24 @@ const MODULOS = [
   { ruta: '/admin/kpis', label: 'KPIs del club', Icono: BarChart3 },
 ];
 
+const TREINTA_DIAS_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** % de un grupo de atletas con al menos una evaluación en los últimos 30 días. */
+function coberturaEvaluacion30d(atletas) {
+  if (atletas.length === 0) return 0;
+  const corte = Date.now() - TREINTA_DIAS_MS;
+  const conEvaluacionReciente = atletas.filter((a) =>
+    (a._evaluaciones || []).some((e) => new Date(e.created_at).getTime() >= corte),
+  ).length;
+  return Math.round((conEvaluacionReciente / atletas.length) * 100);
+}
+
 /**
  * SistemaHomePage (/sistema) — home nativo del superadmin: "que el sistema
- * esté sano". Fase 1 del rediseño (blueprint §3.6): contadores de la
- * plataforma, accesos a todos los módulos admin y una card informativa del
- * cerebro (blackgold-mcp) en modo solo lectura/estado. La salud del cerebro
- * en vivo (cobertura del rack, auditorías) llega en la Fase 2 vía gateway.
+ * esté sano". Retrofit visual al mockup v6 (superHome): gauges de cobertura
+ * de evaluación 30d y asistencia global 7d, lista de clubs con meter de
+ * salud (métrica declarada en la UI: cobertura eval. 30d POR club). Se
+ * mantienen los contadores, la card del cerebro y el grid de módulos.
  */
 export default function SistemaHomePage() {
   const { user } = useAuth();
@@ -37,6 +52,7 @@ export default function SistemaHomePage() {
   const [atletas, setAtletas] = useState([]);
   const [totalUsuarios, setTotalUsuarios] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [asistenciaPct, setAsistenciaPct] = useState(null);
 
   useEffect(() => {
     let activo = true;
@@ -50,9 +66,31 @@ export default function SistemaHomePage() {
     return () => { activo = false; };
   }, [user]);
 
-  const clubs = useMemo(() => {
-    const set = new Set(atletas.map((a) => a.club).filter(Boolean));
-    return set.size;
+  useEffect(() => {
+    if (atletas.length === 0) return undefined;
+    let activo = true;
+    fetchAsistenciaPct(atletas.map((a) => a.atleta_id), 7).then((pct) => {
+      if (activo) setAsistenciaPct(pct);
+    });
+    return () => { activo = false; };
+  }, [atletas]);
+
+  const coberturaGlobal = useMemo(() => coberturaEvaluacion30d(atletas), [atletas]);
+
+  const clubsList = useMemo(() => {
+    const porClub = {};
+    atletas.forEach((a) => {
+      const club = a.club || 'Sin club';
+      if (!porClub[club]) porClub[club] = [];
+      porClub[club].push(a);
+    });
+    return Object.entries(porClub)
+      .map(([club, atletasDelClub]) => ({
+        club,
+        total: atletasDelClub.length,
+        cobertura: coberturaEvaluacion30d(atletasDelClub),
+      }))
+      .sort((a, b) => b.total - a.total);
   }, [atletas]);
 
   return (
@@ -66,12 +104,47 @@ export default function SistemaHomePage() {
       {loading ? (
         <div className="skeleton h-24" aria-hidden="true"></div>
       ) : (
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard valor={atletas.length} label="Atletas" tonoTexto="text-brand" />
-          <StatCard valor={totalUsuarios ?? '—'} label="Usuarios" />
-          <StatCard valor={clubs} label="Clubs" />
-        </div>
+        <>
+          <div className="glass-card rounded-card p-4 flex items-center justify-around">
+            <Gauge pct={coberturaGlobal} label="cobertura eval. 30d" color={COLORS.gold[500]} />
+            <Gauge pct={asistenciaPct ?? 0} label="asistencia global 7d" color={COLORS.feedback.success} />
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-3">
+            <StatCard valor={atletas.length} label="Atletas" tonoTexto="text-brand" />
+            <StatCard valor={totalUsuarios ?? '—'} label="Usuarios" />
+            <StatCard valor={clubsList.length} label="Clubs" />
+          </div>
+        </>
       )}
+
+      {/* Clubs en la plataforma */}
+      <SectionEyebrow>Clubs en la plataforma</SectionEyebrow>
+      <div className="glass-card rounded-card p-2">
+        {clubsList.length === 0 ? (
+          <p className="text-xs text-fg-muted p-2">Aún no hay atletas registrados.</p>
+        ) : (
+          clubsList.map(({ club, total, cobertura }) => (
+            <div key={club} className="flex items-center gap-3 p-2.5">
+              <span className="w-9 h-9 rounded-control bg-gradient-to-br from-brand to-brand-strong text-on-brand font-black text-sm flex items-center justify-center shrink-0">
+                {club.charAt(0).toUpperCase()}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold truncate">{club}</p>
+                <p className="text-2xs text-fg-muted">{total} {total === 1 ? 'atleta' : 'atletas'}</p>
+              </div>
+              <div className="w-16 shrink-0">
+                <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${cobertura >= 80 ? 'bg-success' : cobertura >= 70 ? 'bg-warning' : 'bg-caution'}`}
+                    style={{ width: `${cobertura}%` }}
+                  />
+                </div>
+                <p className="text-3xs text-fg-muted text-right mt-1">cobertura eval. 30d</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* Card informativa del cerebro — solo lectura/estado, sin acciones */}
       <SectionEyebrow pill="✦ estado" pillTono="mental">Cerebro del club</SectionEyebrow>

@@ -73,6 +73,36 @@ export async function upsertAsistencia({ atleta_id, coach_id, fecha, estado, not
 }
 
 /**
+ * Porcentaje de asistencia ('Presente' / total de registros) de un grupo de
+ * atletas en una ventana de días. Extraído de OwnerKPIsPage.jsx (asistencia
+ * de los últimos 7 días) para reutilizarlo en los gauges de las homes
+ * (owner, sistema, padre) sin repetir la query.
+ * @param {string[]} atletaIds - atletas.id (no usuarios.id).
+ * @param {number} [dias=7]
+ * @returns {Promise<number>} 0-100, redondeado; 0 si no hay atletas o registros.
+ */
+export async function fetchAsistenciaPct(atletaIds, dias = 7) {
+  if (!atletaIds || atletaIds.length === 0) return 0;
+  try {
+    const desde = new Date();
+    desde.setDate(desde.getDate() - dias);
+    const { data, error } = await supabase
+      .from('asistencia')
+      .select('estado')
+      .in('atleta_id', atletaIds)
+      .gte('fecha', desde.toISOString().split('T')[0]);
+
+    if (error) throw error;
+    if (!data || data.length === 0) return 0;
+    const presentes = data.filter((r) => r.estado === 'Presente').length;
+    return Math.round((presentes / data.length) * 100);
+  } catch (err) {
+    console.error('[asistenciaService] fetchAsistenciaPct:', err);
+    return 0;
+  }
+}
+
+/**
  * Obtiene el historial de asistencias de un atleta en los últimos 30 días.
  * @param {string} atleta_id
  */

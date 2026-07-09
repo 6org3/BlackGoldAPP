@@ -2,7 +2,7 @@
 // Builds 3-layer radar data from evaluation-based metrics
 // Uses normalized scores from evaluaciones_pruebas
 
-import { SUB_PILARES } from './taxonomia.js';
+import { SUB_PILARES, PILARES, subPilaresDePilar } from './taxonomia.js';
 
 // Los ejes del radar SON los sub-pilares de rendimiento (8 desde 2026-07-05, con resistencia). Fuente única: taxonomia.js
 // (antes esta lista estaba duplicada aquí y podía divergir del resto de la app).
@@ -60,6 +60,32 @@ function averageFromScoresArray(scoresArray, key) {
   if (!scoresArray || scoresArray.length === 0) return 0;
   const vals = scoresArray.map(s => s[key] || 0);
   return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+}
+
+/**
+ * Promedia el rendimiento de un grupo de atletas por PILAR (no por
+ * sub-pilar): compone getSubPilarScores() por atleta + subPilaresDePilar()
+ * de taxonomia.js, ignorando sub-pilares en 0 (sin datos) para no diluir
+ * el promedio del club con atletas sin evaluar en ese sub-pilar.
+ * @param {Array<Array>} listasEvaluaciones - una lista de evaluaciones por atleta, ej. atletas.map(a => a._evaluaciones).
+ * @returns {Object} {fisico: 63, tecnico: 58, mental: 66}
+ */
+export function mediasPorPilarGrupo(listasEvaluaciones) {
+  const resultado = {};
+  PILARES.forEach(({ key: pilarKey }) => {
+    const subKeys = subPilaresDePilar(pilarKey).map(s => s.key);
+    const valores = [];
+    (listasEvaluaciones || []).forEach((evaluaciones) => {
+      const scores = getSubPilarScores(evaluaciones || []);
+      subKeys.forEach((subKey) => {
+        if (scores[subKey] > 0) valores.push(scores[subKey]);
+      });
+    });
+    resultado[pilarKey] = valores.length > 0
+      ? Math.round(valores.reduce((a, b) => a + b, 0) / valores.length)
+      : 0;
+  });
+  return resultado;
 }
 
 export { RADAR_AXES };

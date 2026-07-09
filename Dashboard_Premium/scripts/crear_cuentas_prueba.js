@@ -1,6 +1,8 @@
-// Crea 4 cuentas ficticias (owner, coach, atleta, padre) bajo un club también
-// ficticio ("QA Demo Club"), para usar como credenciales de Cypress
-// (cypress.env.json) sin tocar datos reales del club.
+// Crea 5 cuentas ficticias (superadmin, owner, coach, atleta, padre) bajo un
+// club también ficticio ("QA Demo Club"), para usar como credenciales de
+// Cypress (cypress.env.json) sin tocar datos reales del club. superadmin
+// también queda con club="QA Demo Club" en la fila (el valor no importa:
+// atletasService.js ignora el filtro de club para ese rol).
 //
 // Requiere una SUPABASE_SERVICE_ROLE_KEY válida en Dashboard_Premium/.env.local
 // (el mismo archivo que usa `npm run dev`, ya gitignored) — esta key nunca debe
@@ -41,6 +43,7 @@ const emailParaAuth = (cedula) => `${cedula}@sinacceso.blackgoldapp.internal`;
 const ATLETA_FECHA_NACIMIENTO = '2011-05-15'; // ~15 años en 2026 → categoría Juvenil/Cadete
 
 const CUENTAS = [
+  { cedula: 'QA-SUPERADMIN-001', nombre: 'QA Superadmin Demo', rol: 'superadmin' },
   { cedula: 'QA-OWNER-001', nombre: 'QA Owner Demo', rol: 'owner' },
   { cedula: 'QA-COACH-001', nombre: 'QA Coach Demo', rol: 'coach' },
   { cedula: 'QA-ATLETA-001', nombre: 'QA Atleta Demo', rol: 'atleta', fecha_nacimiento: ATLETA_FECHA_NACIMIENTO },

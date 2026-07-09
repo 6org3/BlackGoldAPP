@@ -1,21 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Droplets, FlaskConical, Zap } from 'lucide-react';
+import { ChevronRight, Droplets, FlaskConical, TrendingUp, Zap } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import HomeShell, { ContextChip, SectionEyebrow } from '../components/HomeShell';
 import Plantel from '../components/Plantel';
+import CardFocoAtleta from '../components/CardFocoAtleta';
 import ModoCanchaModal from '../components/ModoCanchaModal';
 import { recoveryPill } from '../lib/recoveryPill';
+import { tieneSenal } from '../lib/senalesAtleta';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchEvaluacionesProgramadasHoy } from '../api/sesionesService';
-
-// Señal de atención para la franja "Atletas a mirar hoy": estado de
-// recuperación distinto de Óptimo o alerta de hidratación del readiness
-// diario (mismos umbrales que ya usa AthleteGridCard). Campos que ya trae
-// fetchTodosLosAtletas — sin llamadas nuevas al gateway.
-const tieneSenal = (a) =>
-  (a.estado_recuperacion && a.estado_recuperacion !== 'Óptimo') ||
-  (a.readiness_hoy && a.readiness_hoy.color_orina >= 5);
 
 /**
  * CoachHomePage (/coach) — home nativo del coach: "gestiona mi día".
@@ -47,6 +41,17 @@ export default function CoachHomePage() {
   const conSenal = atletas.filter(tieneSenal);
   const fechaHoy = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });
   const primerNombre = (user.nombre || '').split(' ')[0] || 'Coach';
+
+  // Foco de desarrollo (híbrido): los 3 atletas con menor overall (ya
+  // evaluados) se eligen client-side; su misión recomendada la trae cada
+  // CardFocoAtleta del brain-gateway (readiness del día, máx. 3 llamadas).
+  const foco = useMemo(
+    () => atletas
+      .filter((a) => (a.overall_score || 0) > 0)
+      .sort((a, b) => a.overall_score - b.overall_score)
+      .slice(0, 3),
+    [atletas],
+  );
 
   return (
     <>
@@ -90,11 +95,12 @@ export default function CoachHomePage() {
           </button>
         </div>
 
-        {/* Franja: atletas con señal de recuperación/hidratación */}
-        <SectionEyebrow pill={conSenal.length > 0 ? `${conSenal.length}` : null}>
-          Atletas a mirar hoy
-        </SectionEyebrow>
-        <div className="glass-card rounded-card p-4">
+        {/* Franja: atletas con señal de recuperación/hidratación (card IA) */}
+        <SectionEyebrow pill="✦ IA" pillTono="mental">Atletas a mirar hoy</SectionEyebrow>
+        <div className="rounded-card border border-mental/20 bg-surface-sunken p-4">
+          <p className="border-l-2 border-mental pl-2.5 text-xs text-fg-secondary leading-relaxed mb-3">
+            Mira estos atletas antes de entrenar.
+          </p>
           {loadingAtletas ? (
             <div className="skeleton h-14" aria-hidden="true"></div>
           ) : conSenal.length === 0 ? (
@@ -138,7 +144,35 @@ export default function CoachHomePage() {
               })}
             </ul>
           )}
+          <div className="flex items-center gap-1 text-3xs font-mono font-bold text-mental-soft mt-3">
+            <span aria-hidden="true">✦</span> readiness diario
+          </div>
         </div>
+
+        {/* Foco de desarrollo (híbrido: selección client-side + misión del brain-gateway) */}
+        {!loadingAtletas && foco.length > 0 && (
+          <>
+            <SectionEyebrow pill="✦ IA" pillTono="mental">Foco de desarrollo</SectionEyebrow>
+            <div className="space-y-3">
+              {foco.map((a) => (
+                <CardFocoAtleta key={a.atleta_id || a.id} atleta={a} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Comparar la categoría (teaser fiel al mockup v6) */}
+        <SectionEyebrow pill="nuevo">Comparar la categoría</SectionEyebrow>
+        <button
+          type="button"
+          onClick={() => navigate('/admin/comparar')}
+          className="w-full flex items-center justify-between gap-3 rounded-card bg-surface-sunken border border-white/5 hover:border-brand/30 transition active:scale-[0.98] p-4 text-left"
+        >
+          <span className="flex items-center gap-2 text-sm font-bold">
+            <TrendingUp size={16} className="text-brand" /> Ver distribución e histórico por prueba
+          </span>
+          <ChevronRight size={16} className="text-brand shrink-0" />
+        </button>
 
         {/* Plantel embebido (módulo reutilizable extraído de /dashboard) */}
         <SectionEyebrow>Plantel</SectionEyebrow>
