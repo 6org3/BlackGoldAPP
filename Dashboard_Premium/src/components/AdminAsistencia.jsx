@@ -21,9 +21,17 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const [filtroCategoria, setFiltroCategoria] = useState('Todas');
   const [busqueda, setBusqueda] = useState('');
   const [asistencias, setAsistencias] = useState({});
+  // Atletas cuyo estado ya es de fiar: o el coach tocó el botón con la mano,
+  // o ya había un registro real guardado para esta fecha. Todo lo demás
+  // arranca en "Presente" solo como valor por defecto para no obligar a
+  // tocar cada fila — pero sin esto sería indistinguible de una asistencia
+  // que el coach de verdad revisó, y "Guardar" grabaría 100% presente sin
+  // que nadie lo haya confirmado.
+  const [revisados, setRevisados] = useState(new Set());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
+  const [pidiendoConfirmacion, setPidiendoConfirmacion] = useState(false);
 
   // Cargar asistencias existentes para la fecha/categoría seleccionada.
   // El universo lo define la categoría, no la búsqueda (que es solo un
@@ -43,14 +51,26 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         base[a.id] = 'Presente';
         usuarioIdPorAtletaId[a.atleta_id] = a.id;
       });
+    const yaRevisados = new Set();
     registros.forEach(r => {
       const usuarioId = usuarioIdPorAtletaId[r.atleta_id];
-      if (usuarioId) base[usuarioId] = r.estado;
+      if (usuarioId) {
+        base[usuarioId] = r.estado;
+        yaRevisados.add(usuarioId); // ya existía un registro real para esta fecha
+      }
     });
     setAsistencias(base);
+    setRevisados(yaRevisados);
+    setPidiendoConfirmacion(false);
   }, [fecha, filtroCategoria, atletas]);
 
   useEffect(() => { loadAsistencias(); }, [loadAsistencias]);
+
+  const marcarEstado = (atletaId, estado) => {
+    setAsistencias(prev => ({ ...prev, [atletaId]: estado }));
+    setRevisados(prev => new Set(prev).add(atletaId));
+    setPidiendoConfirmacion(false);
+  };
 
   // Filtrar atletas por categoría y búsqueda
   const atletasFiltrados = atletas.filter(a => {
@@ -67,8 +87,17 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const pctPresentes = total > 0 ? Math.round((presentes / total) * 100) : 0;
   const pctAusentes = total > 0 ? Math.round((ausentes / total) * 100) : 0;
   const pctOtros = total > 0 ? Math.round((otros / total) * 100) : 0;
+  const sinRevisar = atletasFiltrados.filter(a => !revisados.has(a.id)).length;
 
   const handleGuardar = async () => {
+    // Nadie tocó ni una sola fila y no había asistencia previa guardada para
+    // hoy: pedir una confirmación explícita antes de grabar el grupo entero
+    // como "Presente" sin que el coach haya revisado a nadie.
+    if (sinRevisar === total && total > 0 && !pidiendoConfirmacion) {
+      setPidiendoConfirmacion(true);
+      return;
+    }
+    setPidiendoConfirmacion(false);
     setSaving(true);
     setErrorGuardar('');
     const resultados = await Promise.all(
@@ -88,6 +117,11 @@ export default function AdminAsistencia({ user, atletas = [] }) {
       setErrorGuardar(`No se pudo guardar la asistencia de ${fallidos} atleta(s). Revisa tu conexión e intenta de nuevo.`);
       return;
     }
+    setRevisados(prev => {
+      const next = new Set(prev);
+      atletasFiltrados.forEach(a => next.add(a.id));
+      return next;
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -188,6 +222,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         ) : (
           atletasFiltrados.map((atleta, idx) => {
             const estadoActual = asistencias[atleta.id] || 'Presente';
+            const confirmado = revisados.has(atleta.id);
             return (
               <motion.div
                 key={atleta.id}
@@ -205,6 +240,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
                     <p className="text-sm font-bold text-white">{atleta.nombre}</p>
                     <p className="text-3xs text-fg-muted uppercase tracking-widest">
                       {atleta.categoria} · {atleta.posicion}
+                      {!confirmado && <span className="text-fg-faint normal-case tracking-normal"> · sin revisar</span>}
                     </p>
                   </div>
                 </div>
@@ -220,9 +256,11 @@ export default function AdminAsistencia({ user, atletas = [] }) {
                         title={cfg.label}
                         aria-label={cfg.label}
                         aria-pressed={isActive}
-                        onClick={() => setAsistencias(prev => ({ ...prev, [atleta.id]: estado }))}
+                        onClick={() => marcarEstado(atleta.id, estado)}
                         className={`min-h-11 md:min-w-11 p-2 md:p-2.5 rounded-lg border transition font-bold flex flex-col md:flex-row items-center justify-center gap-1 ${
-                          isActive ? cfg.color : 'text-fg-faint border-white/5 hover:bg-white/5 hover:text-fg-secondary'
+                          isActive
+                            ? (confirmado ? cfg.color : `${cfg.color} border-dashed opacity-60`)
+                            : 'text-fg-faint border-white/5 hover:bg-white/5 hover:text-fg-secondary'
                         }`}
                       >
                         <Icon size={18} />
@@ -242,12 +280,19 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         {errorGuardar && (
           <p className="text-xs text-danger-soft font-bold" role="alert">{errorGuardar}</p>
         )}
+        {pidiendoConfirmacion && (
+          <p className="text-xs text-caution-soft font-bold text-right" role="alert">
+            No revisaste a ningún atleta — se guardaría a los {total} como "Presente" por defecto.
+          </p>
+        )}
         <button
           onClick={handleGuardar}
           disabled={saving}
           className={`flex items-center space-x-2 px-6 py-3 rounded-control font-black uppercase tracking-widest text-sm transition ${
             saved
               ? 'bg-success/20 border border-success/40 text-success-soft'
+              : pidiendoConfirmacion
+              ? 'bg-caution/10 border border-caution/40 text-caution-soft hover:bg-caution/20'
               : 'bg-brand/10 border border-brand/30 text-brand hover:bg-brand/20'
           } disabled:opacity-50`}
         >
@@ -257,6 +302,11 @@ export default function AdminAsistencia({ user, atletas = [] }) {
             <>
               <CheckCircle2 size={16} />
               <span>¡Guardado!</span>
+            </>
+          ) : pidiendoConfirmacion ? (
+            <>
+              <AlertTriangle size={16} />
+              <span>Confirmar y guardar de todas formas</span>
             </>
           ) : (
             <>
