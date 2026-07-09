@@ -18,6 +18,8 @@ import { COLORS, CHART, MOTION, staggerDelay } from '../lib/designTokens';
 
 import EditarPerfilModal from '../components/EditarPerfilModal';
 import EstadoCuentaPadre from '../components/EstadoCuentaPadre';
+import CardDiagnosticoIA from '../components/CardDiagnosticoIA';
+import CardReadinessIA from '../components/CardReadinessIA';
 
 const METRICAS_CONFIG = [
   { key: 'fuerza', label: 'Fuerza' },
@@ -304,6 +306,11 @@ export default function PadreDashboard() {
                 </div>
               )}
             </motion.div>
+
+            {/* Cards IA del cerebro (brain-gateway) — al cambiar de hijo cambia
+                atletaId y los hooks refetchean por dependencia */}
+            <CardDiagnosticoIA atletaId={hijoActual.atleta_id} tono="simple" />
+            <CardReadinessIA atletaId={hijoActual.atleta_id} tono="simple" />
 
             {/* Journey – Siguiente Paso */}
             <motion.div

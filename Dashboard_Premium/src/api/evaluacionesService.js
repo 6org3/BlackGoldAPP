@@ -1,6 +1,8 @@
 // src/api/evaluacionesService.js
 import { supabase } from './supabaseClient';
 import { checkAndCreateRecompensas } from './recompensasService';
+// Sin ciclo: brainService solo importa supabaseClient.
+import { invalidarDiagnostico } from './brainService';
 import { TABLA_PRUEBAS_EVALUACION } from './tablas';
 // Fuente única de "última evaluación por prueba" (analytics-core, compartido
 // con blackgold-mcp y la Edge Function). El shim src/lib/baremosEngine.js solo
@@ -18,6 +20,10 @@ export const guardarEvaluacion = async (evaluacion) => {
     .select()
     .single();
   if (error) throw error;
+
+  // Entró una evaluación nueva → el diagnóstico cacheado del cerebro
+  // (brainService) quedó obsoleto para este atleta.
+  invalidarDiagnostico(evaluacion.atleta_id);
 
   // Recalculate overall score for the athlete
   await recalcularOverall(evaluacion.atleta_id);
@@ -40,10 +46,15 @@ export const guardarEvaluacionesLote = async (registros, { recalcular = true } =
     .select();
   if (error) throw error;
 
+  // Evidencia nueva por atleta (una vez por atleta único) → diagnóstico del
+  // cerebro obsoleto. Independiente de `recalcular`: la caché queda vieja
+  // aunque el recálculo del overall se difiera al final de la sesión.
+  const atletasUnicos = [...new Set(registros.map(r => r.atleta_id))];
+  atletasUnicos.forEach(id => invalidarDiagnostico(id));
+
   // La captura por estaciones guarda con recalcular=false estación por estación y
   // recalcula UNA vez al finalizar toda la sesión de evaluación.
   if (recalcular) {
-    const atletasUnicos = [...new Set(registros.map(r => r.atleta_id))];
     await Promise.all(atletasUnicos.map(id => recalcularOverall(id)));
   }
 

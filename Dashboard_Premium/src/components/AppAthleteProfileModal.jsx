@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import MicroCard from './MicroCard';
 import AtletaCard from './AtletaCard';
 import HistorialPruebas from './HistorialPruebas';
+import CardDiagnosticoIA from './CardDiagnosticoIA';
+import CardReadinessIA from './CardReadinessIA';
 
 export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClose }) {
   const closeBtnRef = useRef(null);
@@ -50,6 +52,15 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
           ? <MicroCard atleta={selectedAtleta} />
           : <AtletaCard atleta={selectedAtleta} index={0} todosLosAtletas={atletas} />
         }
+        {/* Cards IA del cerebro (brain-gateway) — tono técnico para staff */}
+        <CardDiagnosticoIA
+          atletaId={selectedAtleta.atleta_id || selectedAtleta.id}
+          tono="tecnico"
+        />
+        <CardReadinessIA
+          atletaId={selectedAtleta.atleta_id || selectedAtleta.id}
+          tono="tecnico"
+        />
         {/* Histórico multi-punto (vista coach): mismas series que ve el atleta
             en su layout, con drill-down por prueba concreta. */}
         <div className="bg-surface-base/90 border border-white/10 border-x-0 md:border-x rounded-none md:rounded-card p-5">
