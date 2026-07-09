@@ -423,7 +423,7 @@ export default function OwnerKPIsPage() {
                       {/* Rango Badge */}
                       <div className="mt-3 flex items-center justify-between">
                         <span className={`text-2xs font-black uppercase tracking-widest ${atleta.rango?.textColor || 'text-fg-secondary'}`}>
-                          {atleta.rango?.nombre} {atleta.rango?.tier}
+                          {atleta.rango?.nombre}
                         </span>
                         <span className={`text-lg font-black ${
                           i === 0 ? 'text-brand' : 'text-white'
