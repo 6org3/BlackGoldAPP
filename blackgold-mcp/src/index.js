@@ -9,14 +9,21 @@ import fs from "fs";
 import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
 import { BAREMOS, categoriaABucketBaremo, resolverUmbrales } from "../../packages/analytics-core/baremos.js";
 import { PILARES, SUB_PILARES as SUB_PILARES_TAXONOMIA, SUB_PILARES_MONITOREO, getSubPilar, getPilar } from "../../packages/analytics-core/taxonomia.js";
-// Motor de recomendación COMPARTIDO (un solo cerebro): el mismo que usa la web
-// (vía el shim src/lib/didacticEngine.js) y la Edge Function.
-import { evaluarDeficits, emparejarMisionesPorCondicion } from "../../packages/analytics-core/didactica.js";
 import { clasificarContextoMision } from "../../packages/analytics-core/clasificadorContexto.js";
-import { calcularReadinessScore, detectarAlertasRecuperacion } from "../../packages/analytics-core/readiness.js";
-// Rack documental deportivo (knowledge/ + docs deportivos del repo): las tools
-// recuperan de aquí el fundamento científico/metodológico de sus prompts.
-import { buscarRack, contextoRack, inventarioRack } from "./rack.js";
+// Capa compartida de "lógica de las tools" (packages/brain-core): rack documental
+// (knowledge/ + docs deportivos del repo, de donde las tools recuperan el fundamento
+// científico/metodológico de sus prompts), diagnóstico de pilares y readiness —
+// este último sobre el motor de recomendación COMPARTIDO de analytics-core (el
+// mismo que usa la web vía el shim src/lib/didacticEngine.js y la Edge Function).
+// Las tools analíticas de este server son wrappers finos: fetch a Supabase →
+// funciones puras de brain-core → texto (mismo cerebro que las futuras Edge
+// Functions brain-gateway).
+import {
+  buscarRack, contextoRack, inventarioRack,
+  analizarPilares, construirPromptDiagnostico,
+  analizarReadiness, construirPromptReadiness,
+  RECUPERACION_TRIGGERS,
+} from "../../packages/brain-core/index.js";
 
 // Resuelto contra la ubicación del script, no contra process.cwd(): un cliente MCP
 // (Claude Code, Claude Desktop) lanza este proceso con el cwd del host, no de este paquete.
@@ -53,7 +60,7 @@ server.tool(
     try {
       // Obtener el atleta. `athlete_id` es atletas.id (la misma FK que usa
       // evaluaciones_pruebas.atleta_id más abajo) — se hace join a usuarios para el
-      // nombre y la fecha de nacimiento. La categoría se deriva con
+      // nombre y la fecha de nacimiento. La categoría la deriva analizarPilares() con
       // calcularCategoriaFEB() (packages/analytics-core, compartido con la web app) en
       // vez de leer una columna usuarios.categoria_actual que no existe en el esquema
       // (el resto del repo usa usuarios.categoria) — esa columna inexistente hacía que
@@ -66,8 +73,6 @@ server.tool(
 
       if (atletaError) throw new Error("Atleta no encontrado: " + atletaError.message);
 
-      const categoria = calcularCategoriaFEB(atleta.usuarios.fecha_nacimiento) || "Sin categoría";
-
       // Obtener evaluaciones recientes
       const { data: evaluaciones, error: evalError } = await supabase
         .from("evaluaciones_pruebas")
@@ -75,41 +80,13 @@ server.tool(
         .eq("atleta_id", athlete_id)
         .order("created_at", { ascending: false })
         .limit(20);
-        
+
       if (evalError) throw new Error("Error al obtener evaluaciones: " + evalError.message);
 
-      let pilarStats = {};
-      let notasSubjetivas = [];
-
-      evaluaciones.forEach(ev => {
-        if (!pilarStats[ev.sub_pilar]) {
-          pilarStats[ev.sub_pilar] = { count: 0, sumScore: 0, currentTier: ev.tier };
-        }
-        pilarStats[ev.sub_pilar].count++;
-        pilarStats[ev.sub_pilar].sumScore += ev.puntuacion_normalizada || 0;
-        if (ev.notas) notasSubjetivas.push(`[${ev.sub_pilar}] ${ev.notas}`);
-      });
-
-      let promptInfo = `Atleta: ${atleta.usuarios.nombre} (${categoria})\n`;
-      promptInfo += "--- RESULTADOS POR SUB-PILAR ---\n";
-      for (const pilar in pilarStats) {
-        let avg = Math.round(pilarStats[pilar].sumScore / pilarStats[pilar].count);
-        promptInfo += `- ${pilar.toUpperCase()}: Promedio ${avg}/100 (Último tier: ${pilarStats[pilar].currentTier})\n`;
-      }
-      
-      promptInfo += "\n--- NOTAS SUBJETIVAS (Coach/Atleta) ---\n";
-      promptInfo += notasSubjetivas.length ? notasSubjetivas.join("\n") : "Sin notas.";
-
-      // Fundamento del rack: prioriza los sub-pilares débiles; si no hay, el perfil completo.
-      const debiles = Object.entries(pilarStats)
-        .filter(([, s]) => (s.sumScore / s.count) < 60 || ["poor", "below_avg"].includes(s.currentTier))
-        .map(([sp]) => sp);
-      promptInfo += contextoRack(
-        `${(debiles.length ? debiles : Object.keys(pilarStats)).join(" ")} desarrollo baloncesto formativo ${categoria}`,
-        { k: 3 }
-      );
-
-      promptInfo += "\n\nINSTRUCCIÓN PARA LA IA: Procesa esta información y da un diagnóstico de 360 grados sobre el rendimiento de este atleta. Fundamenta cada recomendación en el CONTEXTO DEL RACK DOCUMENTAL cuando aplique, citando la fuente como [archivo › sección].";
+      // Análisis + prompt con las funciones puras compartidas (brain-core):
+      // misma salida que cuando este cuerpo vivía aquí.
+      const analisis = analizarPilares({ atleta: atleta.usuarios, evaluaciones });
+      const promptInfo = construirPromptDiagnostico({ nombre: atleta.usuarios.nombre, analisis });
 
       return {
         content: [{ type: "text", text: promptInfo }]
@@ -208,19 +185,8 @@ server.tool(
   }
 );
 
-// Condiciones de recuperación (déficits de disponibilidad/riesgo) que produce el motor
-// compartido evaluarDeficits/detectarAlertasRecuperacion. Sirven de `condicion_trigger`
-// para las misiones de recuperación (pilar='recuperacion').
-const RECUPERACION_TRIGGERS = [
-  "deshidratado_extremo",
-  "hidratacion_baja",
-  "sueno_deficiente",
-  "fatiga_alta",
-  "sobreentrenamiento_activo",
-  "fatiga_silenciosa",
-  "rpe_extremo",
-];
-const RECUPERACION_CONDICIONES = new Set([...RECUPERACION_TRIGGERS, "percepcion_alterada"]);
+// Las condiciones de recuperación (RECUPERACION_TRIGGERS / RECUPERACION_CONDICIONES)
+// viven ahora en packages/brain-core/readiness.js, junto al análisis que las consume.
 
 // Tool 6: Analizar Readiness / Recuperación y recomendar misiones
 server.tool(
@@ -251,56 +217,30 @@ server.tool(
         return { content: [{ type: "text", text: `El atleta ${athlete_id} no tiene check-in de readiness ni estado de recuperación registrado. Pídele completar el Check-in Diario.` }] };
       }
 
-      const score = calcularReadinessScore(readiness);
-
-      // Déficits de recuperación con el MISMO motor que la web/Edge. Se pasan evals
-      // vacías a propósito: aquí solo interesan las condiciones de recuperación, no las
-      // debilidades de rendimiento (esas las cubren analyze_athlete_pillars / el loop).
-      const atletaObj = {
-        readiness_hoy: readiness || null,
-        estado_recuperacion: atleta?.estado_recuperacion || null,
-        _evaluaciones: [],
-      };
-      const deficits = evaluarDeficits(atletaObj).filter(d => RECUPERACION_CONDICIONES.has(d.condicion));
-
-      // Misiones de recuperación del catálogo activo cuyo trigger coincide con una
-      // condición activa. Emparejamiento vía la función COMPARTIDA (misma que getAutoMissions).
+      // Misiones de recuperación del catálogo activo (el emparejamiento con las
+      // condiciones activas lo hace analizarReadiness, vía la función COMPARTIDA
+      // — misma que getAutoMissions).
       const { data: misiones } = await supabase
         .from("misiones")
         .select("id, titulo, condicion_trigger, complejidad, xp_recompensa, activa, pilar")
         .eq("activa", true)
         .eq("pilar", "recuperacion");
 
-      const recomendadas = emparejarMisionesPorCondicion(deficits, misiones || []);
-
-      let out = `=== READINESS / RECUPERACIÓN ===\n`;
-      out += `Atleta: ${athlete_id}\n`;
-      out += readiness
-        ? `Check-in (${readiness.fecha}): sueño ${readiness.sueno_calidad}/10, fatiga ${readiness.fatiga_fisica}/10, hidratación (orina) ${readiness.color_orina}/8.\n`
-        : `Sin check-in diario reciente.\n`;
-      out += score != null ? `Readiness score: ${score}/100 (más = mejor recuperado; NO entra al overall ni al radar).\n` : "";
-      if (atleta?.estado_recuperacion) out += `Estado de recuperación: ${atleta.estado_recuperacion}.\n`;
-
-      out += `\n--- ALERTAS ---\n`;
-      out += deficits.length
-        ? deficits.map(d => `- [${d.prioridad.toUpperCase()}] ${d.mensaje}`).join("\n")
-        : "Sin alertas de recuperación: disponibilidad adecuada.";
-
-      out += `\n\n--- MISIONES DE RECUPERACIÓN RECOMENDADAS ---\n`;
-      if (!misiones || misiones.length === 0) {
-        out += `El catálogo NO tiene misiones de recuperación (pilar='recuperacion'). Redáctalas con justificación científica (higiene de sueño, hidratación, recuperación activa, manejo de carga) y créalas con insertar_misiones_recuperacion.`;
-      } else if (recomendadas.length === 0) {
-        out += `Hay misiones de recuperación en el catálogo pero ninguna aplica a las condiciones activas de hoy.`;
-      } else {
-        out += recomendadas.map(m => `- ${m.titulo} (${m.complejidad}, ${m.xp_recompensa ?? "?"} XP) → trigger: ${m.condicion_trigger}`).join("\n");
-      }
-
-      out += contextoRack(
-        "recuperación sueño hidratación fatiga carga descanso planificación adolescente",
-        { k: 2, maxChars: 1800 }
-      );
-
-      out += `\n\nINSTRUCCIÓN PARA LA IA: prioriza recuperación sobre carga cuando haya alertas críticas. Sugiere hábitos accionables por el propio atleta fundados en el CONTEXTO DEL RACK DOCUMENTAL (cita [archivo › sección]) y, si el coach lo aprueba, asigna las misiones recomendadas.`;
+      // Score + déficits + recomendaciones con las funciones puras compartidas
+      // (brain-core, mismo motor que la web/Edge): misma salida que cuando este
+      // cuerpo vivía aquí.
+      const analisis = analizarReadiness({
+        readiness,
+        estadoRecuperacion: atleta?.estado_recuperacion,
+        misiones,
+      });
+      const out = construirPromptReadiness({
+        athleteId: athlete_id,
+        readiness,
+        estadoRecuperacion: atleta?.estado_recuperacion,
+        misiones,
+        analisis,
+      });
 
       return { content: [{ type: "text", text: out }] };
     } catch (err) {
@@ -711,7 +651,7 @@ server.tool(
 );
 
 // ============================================================
-// RACK DOCUMENTAL DEPORTIVO (src/rack.js + knowledge/):
+// RACK DOCUMENTAL DEPORTIVO (packages/brain-core/rack.js + knowledge/):
 // corpus indexado (BM25) de la documentación específica del
 // deporte — metodología de iniciación, baremos científicos,
 // entrenamiento, táctica, mentalidad, referencias. Las tools
