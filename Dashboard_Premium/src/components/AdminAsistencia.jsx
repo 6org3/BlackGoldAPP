@@ -35,7 +35,14 @@ export default function AdminAsistencia({ user, atletas = [] }) {
     atletas
       .filter(a => filtroCategoria === 'Todas' || a.categoria === filtroCategoria)
       .forEach(a => { base[a.id] = 'Presente'; });
-    registros.forEach(r => { if (r.atleta_id) base[r.atleta_id] = r.estado; });
+    // registros.atleta_id es atletas.id (FK real de la tabla asistencia), pero
+    // `base` está indexado por a.id (usuarios.id, la key que usa el resto del
+    // componente) — hay que traducir de uno a otro antes de aplicar el estado guardado.
+    const usuarioIdPorAtletaId = new Map(atletas.map(a => [a.atleta_id, a.id]));
+    registros.forEach(r => {
+      const usuarioId = usuarioIdPorAtletaId.get(r.atleta_id);
+      if (usuarioId) base[usuarioId] = r.estado;
+    });
     setAsistencias(base);
   }, [fecha, filtroCategoria, atletas]);
 
@@ -63,7 +70,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
     const resultados = await Promise.all(
       atletasFiltrados.map(a =>
         upsertAsistencia({
-          atleta_id: a.id,
+          atleta_id: a.atleta_id,
           coach_id: user.id,
           fecha,
           estado: asistencias[a.id] || 'Presente',
