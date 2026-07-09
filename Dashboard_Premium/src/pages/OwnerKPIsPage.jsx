@@ -116,23 +116,38 @@ export default function OwnerKPIsPage() {
     loadMisiones();
   }, [atletas]);
 
+  // Atletas con al menos una evaluación registrada — son los únicos que
+  // deben contar en promedios de rendimiento (si no, un club con muchos
+  // atletas sin evaluar arrastra el promedio hacia 0 sin que eso refleje
+  // rendimiento real).
+  const atletasEvaluados = useMemo(
+    () => atletas.filter(a => (a._evaluaciones || []).length > 0),
+    [atletas]
+  );
+
   // Compute aggregate metrics
   const promedioIntegral = useMemo(() => {
-    if (!atletas.length) return 0;
-    const sum = atletas.reduce((acc, a) => acc + (a.rango?.pct || 0), 0);
-    return Math.round(sum / atletas.length);
-  }, [atletas]);
+    if (!atletasEvaluados.length) return 0;
+    const sum = atletasEvaluados.reduce((acc, a) => acc + (a.rango?.pct || 0), 0);
+    return Math.round(sum / atletasEvaluados.length);
+  }, [atletasEvaluados]);
 
-  // Metric weakness analysis
+  // Metric weakness analysis — cada pilar promedia solo entre los atletas
+  // que tienen al menos una evaluación de ESE sub-pilar (un atleta puede
+  // tener datos de fuerza pero no de resiliencia, por ejemplo).
   const metricData = useMemo(() => {
     if (!atletas.length) return [];
     const keys = Object.keys(METRIC_LABELS);
-    
-    const allScores = atletas.map(a => getSubPilarScores(a._evaluaciones || []));
+
+    const perAtleta = atletas.map(a => ({
+      scores: getSubPilarScores(a._evaluaciones || []),
+      subPilaresConDato: new Set((a._evaluaciones || []).map(e => e.sub_pilar)),
+    }));
 
     const averages = keys.map(key => {
-      const sum = allScores.reduce((acc, scores) => acc + (scores[key] || 0), 0);
-      const avg = Math.round(sum / atletas.length);
+      const conDato = perAtleta.filter(p => p.subPilaresConDato.has(key));
+      const sum = conDato.reduce((acc, p) => acc + (p.scores[key] || 0), 0);
+      const avg = conDato.length ? Math.round(sum / conDato.length) : 0;
       return { key, name: METRIC_LABELS[key], promedio: avg };
     });
     return averages;
