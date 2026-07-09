@@ -75,6 +75,20 @@ export function getBaremoUI(value) {
 // Paleta oficial para canvas-confetti en celebraciones
 export const CONFETTI_GOLD = ['#FFD700', '#D4AF37', '#FFF8DC', '#FFEB66'];
 
+// Etiqueta legible del chip "✦ fuente" de las cards IA (CardDiagnosticoIA,
+// CardReadinessIA, CardFocoAtleta): el gateway devuelve el nombre crudo de
+// la tool del MCP (fuente.tool) — nunca mostrarlo tal cual al usuario.
+export const FUENTE_IA_UI = {
+  analyze_athlete_pillars: 'Diagnóstico de pilares',
+  analyze_athlete_readiness: 'Análisis de readiness',
+  consultar_rack: 'Base de conocimiento',
+};
+
+/** Etiqueta legible de una tool del cerebro, con fallback genérico. */
+export function getFuenteIALabel(tool) {
+  return FUENTE_IA_UI[tool] ?? 'Análisis IA';
+}
+
 // Tiers de tendencia grupal (antes duplicado en HistorialPruebas.jsx
 // y GrupoTendencias.jsx como TIER_COLORS / TIER_BAR_COLORS).
 export const TENDENCIA_TIERS = {

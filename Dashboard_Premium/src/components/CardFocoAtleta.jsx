@@ -8,7 +8,7 @@
 // "Siguiente prueba" del mockup se omite a propósito: ese dato no viene en
 // el payload del gateway y agregarlo requeriría tocar brain-gateway.
 import { useState } from 'react';
-import { getBaremoUI } from '../lib/designTokens';
+import { getBaremoUI, getFuenteIALabel } from '../lib/designTokens';
 import { getSubPilarScores } from '../lib/radarCalc';
 import { getSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { useBrainReadiness } from '../hooks/useBrainReadiness';
@@ -81,7 +81,7 @@ export default function CardFocoAtleta({ atleta }) {
       </div>
 
       <div className="flex items-center gap-1 text-3xs font-mono font-bold text-mental-soft mt-3">
-        <span aria-hidden="true">✦</span> {fuente?.tool || 'analyze_athlete_readiness'}
+        <span aria-hidden="true">✦</span> {getFuenteIALabel(fuente?.tool || 'analyze_athlete_readiness')}
       </div>
 
       <div className="flex items-center gap-2 mt-3">
