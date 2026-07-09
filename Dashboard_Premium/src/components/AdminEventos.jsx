@@ -129,7 +129,7 @@ export default function AdminEventos({ user, atletas = [] }) {
 
           <div>
             <h4 className="text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">¿A quién se convoca?</h4>
-            <AudienceSelector atletas={atletas} onChange={setAudiencia} />
+            <AudienceSelector atletas={atletas} club={user?.club} onChange={setAudiencia} />
           </div>
 
           <button onClick={handlePublicar} disabled={saving || !puedePublicar}

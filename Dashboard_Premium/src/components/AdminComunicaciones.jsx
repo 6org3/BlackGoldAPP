@@ -52,13 +52,13 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
   const load = useCallback(async () => {
     const [c, g, m] = await Promise.all([
       fetchComunicaciones({ limit: 30 }),
-      fetchGrupos(),
+      fetchGrupos(user?.club),
       fetchMembresiaGrupos(),
     ]);
     setComunicaciones(c);
     setGrupos(g);
     setGruposByAtleta(m);
-  }, []);
+  }, [user?.club]);
 
   useEffect(() => { load(); }, [load]);
 

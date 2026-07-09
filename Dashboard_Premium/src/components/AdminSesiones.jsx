@@ -74,7 +74,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
 
   const load = useCallback(async () => {
     const [g, e, p, h] = await Promise.all([
-      fetchGrupos(),
+      fetchGrupos(user?.club),
       fetchEjercicios(),
       fetchPruebasEvaluacion(),
       fetchSesionesControl({ limit: 15 }),
@@ -84,7 +84,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
     setPruebasCatalogo(p);
     setHistorial(h);
     if (g.length > 0) setForm(f => ({ ...f, grupoId: g[0].id }));
-  }, []);
+  }, [user?.club]);
 
   useEffect(() => { load(); }, [load]);
 

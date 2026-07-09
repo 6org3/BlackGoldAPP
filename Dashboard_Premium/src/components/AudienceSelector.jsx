@@ -22,7 +22,7 @@ export const SEGMENTO_CONFIG = {
  * Selector de audiencia reutilizable. Maneja su propio estado y notifica al
  * padre vía onChange({ segmento_tipo, segmento_params, incluir_representantes, seleccion }).
  */
-export default function AudienceSelector({ atletas = [], onChange }) {
+export default function AudienceSelector({ atletas = [], club = null, onChange }) {
   const [grupos, setGrupos] = useState([]);
   const [gruposByAtleta, setGruposByAtleta] = useState({});
 
@@ -34,11 +34,11 @@ export default function AudienceSelector({ atletas = [], onChange }) {
 
   useEffect(() => {
     (async () => {
-      const [g, m] = await Promise.all([fetchGrupos(), fetchMembresiaGrupos()]);
+      const [g, m] = await Promise.all([fetchGrupos(club), fetchMembresiaGrupos()]);
       setGrupos(g);
       setGruposByAtleta(m);
     })();
-  }, []);
+  }, [club]);
 
   const categorias = useMemo(
     () => [...new Set(atletas.map((a) => a.categoria).filter(Boolean))].sort(),
