@@ -1,5 +1,7 @@
 // src/api/readinessService.js
 import { supabase } from './supabaseClient';
+// Sin ciclo: brainService solo importa supabaseClient.
+import { invalidarReadiness } from './brainService';
 
 // ============================
 // READINESS ENGINE (FIBA/NBA)
@@ -17,6 +19,11 @@ export const guardarReadinessDiario = async (readinessData) => {
     }
     throw error;
   }
+
+  // Check-in nuevo → el readiness cacheado del cerebro (brainService) quedó
+  // obsoleto para este atleta.
+  invalidarReadiness(readinessData.atleta_id);
+
   return data;
 };
 

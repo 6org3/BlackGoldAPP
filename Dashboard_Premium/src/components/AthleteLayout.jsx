@@ -12,6 +12,7 @@ import RadarChartComp from './RadarChartComp';
 import EventosAtleta from './EventosAtleta';
 import HistorialPruebas from './HistorialPruebas';
 import EditarPerfilModal from './EditarPerfilModal';
+import CardDiagnosticoIA from './CardDiagnosticoIA';
 import { evaluarDeficits } from '../lib/didacticEngine';
 import { getSubPilarScores } from '../lib/radarCalc';
 import { getBaremoUI, CHART } from '../lib/designTokens';
@@ -346,6 +347,9 @@ function TabInicio({ atleta, todosLosAtletas }) {
           showClub={showClub}
         />
       </div>
+
+      {/* Diagnóstico del cerebro (brain-gateway) — tono simple para el atleta */}
+      <CardDiagnosticoIA atletaId={atleta.atleta_id} tono="simple" />
 
       {/* Inteligencia Black Gold */}
       {deficits.length > 0 && (
