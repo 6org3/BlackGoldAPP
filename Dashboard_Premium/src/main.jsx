@@ -1,6 +1,7 @@
 import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { MotionConfig } from 'framer-motion'
 import { AuthProvider, useAuth } from './AuthContext'
 import './index.css'
 import Login from './components/Login.jsx'
@@ -90,6 +91,11 @@ const PrivateRoute = ({ children, roles }) => {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>
+      {/* reducedMotion="user": Framer Motion respeta prefers-reduced-motion
+          (los transforms saltan al valor final; los fades de opacity se
+          conservan). El CSS global ya lo hace en index.css — esto cubre las
+          animaciones JS (VARIANTS/MOTION de designTokens.js). */}
+      <MotionConfig reducedMotion="user">
       <AuthProvider>
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
@@ -193,6 +199,7 @@ createRoot(document.getElementById('root')).render(
         <InstallPrompt />
       </BrowserRouter>
       </AuthProvider>
+      </MotionConfig>
     </ErrorBoundary>
   </StrictMode>,
 )
