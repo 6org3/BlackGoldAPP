@@ -425,3 +425,7 @@ function render(){
 function setRole(r){current=r;subview=null;closeSheet();render();}
 function go(v){subview=v;closeSheet();render();}
 let tt;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.className='toast show';clearTimeout(tt);tt=setTimeout(()=>el.className='toast',2100);}
+render();
+</script>
+</body>
+</html>

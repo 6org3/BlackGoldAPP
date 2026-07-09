@@ -4,7 +4,10 @@
     { "ruta": ".", "area": "metodologia" },
     { "ruta": "../../docs/baremos_cientificos.md", "area": "baremos" },
     { "ruta": "../../docs/manual_entrenamiento.md", "area": "entrenamiento" },
+    { "ruta": "../../docs/entrenamiento_coordinacion.md", "area": "entrenamiento" },
     { "ruta": "../../docs/tactica_small_ball.md", "area": "tactica" },
+    { "ruta": "../../docs/tactica_defensiva.md", "area": "tactica" },
+    { "ruta": "../../docs/fundamentos_individuales.md", "area": "tactica" },
     { "ruta": "../../docs/mentalidad_mamba.md", "area": "mentalidad" },
     { "ruta": "../../docs/referencias_academicas.md", "area": "referencias" }
   ]
