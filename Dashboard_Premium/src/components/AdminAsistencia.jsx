@@ -32,10 +32,21 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const loadAsistencias = useCallback(async () => {
     const registros = await fetchAsistenciaPorFecha(fecha, filtroCategoria === 'Todas' ? null : filtroCategoria);
     const base = {};
+    // asistencias[] se indexa por a.id (usuarios.id, la identidad que usa
+    // todo el resto del componente) pero asistencia.atleta_id referencia
+    // atletas.id (a.atleta_id) — son dos espacios de id distintos, hace
+    // falta este mapa para cruzar uno con el otro.
+    const usuarioIdPorAtletaId = {};
     atletas
       .filter(a => filtroCategoria === 'Todas' || a.categoria === filtroCategoria)
-      .forEach(a => { base[a.id] = 'Presente'; });
-    registros.forEach(r => { if (r.atleta_id) base[r.atleta_id] = r.estado; });
+      .forEach(a => {
+        base[a.id] = 'Presente';
+        usuarioIdPorAtletaId[a.atleta_id] = a.id;
+      });
+    registros.forEach(r => {
+      const usuarioId = usuarioIdPorAtletaId[r.atleta_id];
+      if (usuarioId) base[usuarioId] = r.estado;
+    });
     setAsistencias(base);
   }, [fecha, filtroCategoria, atletas]);
 
@@ -63,7 +74,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
     const resultados = await Promise.all(
       atletasFiltrados.map(a =>
         upsertAsistencia({
-          atleta_id: a.id,
+          atleta_id: a.atleta_id,
           coach_id: user.id,
           fecha,
           estado: asistencias[a.id] || 'Presente',
