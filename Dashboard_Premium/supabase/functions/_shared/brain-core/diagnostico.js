@@ -1,3 +1,4 @@
+// AUTO-GENERADO desde packages/brain-core — NO EDITAR. Regenerar con: npm run functions:sync
 // ============================================================
 // DIAGNÓSTICO DE PILARES — brain-core (Black Gold)
 // ============================================================

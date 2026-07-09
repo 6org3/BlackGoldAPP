@@ -21,12 +21,27 @@ y el motor de recomendación).
 ## Archivos
 
 - `rack.js` — rack documental (BM25): `extraerFrontmatter()`, `partirEnChunks()`,
-  `buscarRack()`, `contextoRack()`, `inventarioRack()`.
-- `diagnostico.js` — `analizarPilares()` (objeto estructurado) y
-  `construirPromptDiagnostico()` (prompt de diagnóstico 360°).
-- `readiness.js` — `analizarReadiness()`, `construirPromptReadiness()` y las
-  constantes `RECUPERACION_TRIGGERS` / `RECUPERACION_CONDICIONES`.
-- `index.js` — barrel que reexporta todo lo anterior.
+  `buscarRack()`, `contextoRack()`, `inventarioRack()`. **Node-only** (lee el
+  corpus del disco con `fs`).
+- `diagnostico.js` — `analizarPilares()` (objeto estructurado). **Portable**
+  (Node y Deno).
+- `readiness.js` — `analizarReadiness()` y las constantes
+  `RECUPERACION_TRIGGERS` / `RECUPERACION_CONDICIONES`. **Portable**.
+- `prompts.js` — `construirPromptDiagnostico()` y `construirPromptReadiness()`:
+  el formateo de prompt para la IA, fundamentado en el rack. **Node-only**
+  (importa `rack.js`).
+- `index.js` — barrel que reexporta todo lo anterior (arrastra `rack.js`; las
+  Edge Functions no lo usan).
+
+## Edge Functions (_shared)
+
+Los módulos **portables** (`diagnostico.js`, `readiness.js`) se espejan en
+`Dashboard_Premium/supabase/functions/_shared/brain-core/` con
+`npm run functions:sync` (misma mecánica que `analytics-core`; el test
+`edgeSharedSync.test.js` falla si la copia diverge). `rack.js`, `prompts.js`
+y el barrel NO viajan al espejo: dependen de `fs` y en Deno romperían el
+bundle. La Edge Function `brain-gateway` responde JSON estructurado — el
+prompt para IA es cosa del MCP.
 
 ## Nota sobre el corpus
 

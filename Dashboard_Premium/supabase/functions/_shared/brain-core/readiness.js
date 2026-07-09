@@ -1,3 +1,4 @@
+// AUTO-GENERADO desde packages/brain-core — NO EDITAR. Regenerar con: npm run functions:sync
 // ============================================================
 // READINESS / RECUPERACIÓN — brain-core (Black Gold)
 // ============================================================
