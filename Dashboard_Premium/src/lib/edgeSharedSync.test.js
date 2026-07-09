@@ -10,14 +10,16 @@
 //
 // De brain-core solo viajan los módulos portables a Deno: rack.js, prompts.js
 // y el barrel index.js son Node-only (fs) y NO deben aparecer en _shared — hay
-// una aserción explícita para eso.
+// una aserción explícita para eso. El corpus del rack SÍ viaja, pero como
+// archivo GENERADO (rack-corpus.generado.js, serializado por el sync desde
+// corpusCrudo() del loader Node) — tiene su propio bloque de comparación.
 //
 // Los tests de Vitest corren en Node (environment: 'node' en vite.config.js),
 // así que aquí sí podemos usar fs/path, a diferencia de los propios paquetes.
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -29,11 +31,19 @@ const AVISO = 'corre npm run functions:sync';
 
 // Módulos portables de brain-core. Mantener en sintonía con ESPEJOS de
 // scripts/sync_edge_shared.mjs.
-const PORTABLES_BRAIN_CORE = ['diagnostico.js', 'readiness.js'];
+const PORTABLES_BRAIN_CORE = ['diagnostico.js', 'readiness.js', 'rackMotor.js'];
+
+// Archivos GENERADOS por el sync en el destino (no copias de un origen):
+// el chequeo de huérfanos los respeta y tienen su propia verificación abajo.
+const GENERADOS_BRAIN_CORE = ['rack-corpus.generado.js'];
 
 const ESPEJOS = [
   { paquete: 'analytics-core', filtro: (nombre) => nombre.endsWith('.js') },
-  { paquete: 'brain-core', filtro: (nombre) => PORTABLES_BRAIN_CORE.includes(nombre) },
+  {
+    paquete: 'brain-core',
+    filtro: (nombre) => PORTABLES_BRAIN_CORE.includes(nombre),
+    generados: GENERADOS_BRAIN_CORE,
+  },
 ];
 
 /** Normaliza EOL (git puede materializar CRLF en Windows) y quita el header AUTO-GENERADO. */
@@ -43,7 +53,7 @@ function contenidoComparable(rutaArchivo, prefijoHeader) {
   return lineas.join('\n');
 }
 
-describe.each(ESPEJOS)('sync packages/$paquete → _shared/$paquete', ({ paquete, filtro }) => {
+describe.each(ESPEJOS)('sync packages/$paquete → _shared/$paquete', ({ paquete, filtro, generados = [] }) => {
   const ORIGEN = path.join(PACKAGES, paquete);
   const DESTINO = path.join(SHARED, paquete);
   const PREFIJO_HEADER = `// AUTO-GENERADO desde packages/${paquete}`;
@@ -91,11 +101,43 @@ describe.each(ESPEJOS)('sync packages/$paquete → _shared/$paquete', ({ paquete
   it('no hay huérfanos en _shared que ya no existan en el origen', () => {
     const huerfanos = fs
       .readdirSync(DESTINO)
-      .filter((nombre) => !archivosEsperados.includes(nombre));
+      .filter((nombre) => !archivosEsperados.includes(nombre) && !generados.includes(nombre));
     expect(
       huerfanos,
       `Archivos huérfanos en _shared/${paquete}: ${huerfanos.join(', ')} — ${AVISO}`
     ).toEqual([]);
+  });
+});
+
+describe('brain-core: corpus del rack generado para Deno', () => {
+  const RUTA_CORPUS = path.join(SHARED, 'brain-core', 'rack-corpus.generado.js');
+
+  it('rack-corpus.generado.js existe (corre npm run functions:sync)', () => {
+    expect(fs.existsSync(RUTA_CORPUS), `Falta ${RUTA_CORPUS} — ${AVISO}`).toBe(true);
+  });
+
+  it('lleva el header AUTO-GENERADO', () => {
+    const primeraLinea = fs
+      .readFileSync(RUTA_CORPUS, 'utf8')
+      .replace(/\r\n/g, '\n')
+      .split('\n')[0];
+    expect(
+      primeraLinea.startsWith('// AUTO-GENERADO'),
+      `rack-corpus.generado.js no empieza con el header AUTO-GENERADO — ${AVISO}`
+    ).toBe(true);
+  });
+
+  it('el CORPUS coincide con corpusCrudo() del loader Node', async () => {
+    // rack.js es Node-only (fs), pero Vitest corre en Node: aquí sí se puede
+    // importar el loader real y comparar contra el archivo generado.
+    const { corpusCrudo } = await import(
+      pathToFileURL(path.join(PACKAGES, 'brain-core', 'rack.js')).href
+    );
+    const { CORPUS } = await import(pathToFileURL(RUTA_CORPUS).href);
+    expect(
+      CORPUS,
+      `rack-corpus.generado.js divergió del corpus real (blackgold-mcp/knowledge) — ${AVISO}`
+    ).toEqual(corpusCrudo());
   });
 });
 
