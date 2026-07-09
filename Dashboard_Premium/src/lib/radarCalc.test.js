@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getSubPilarScores, build3LayerRadarData, RADAR_AXES } from './radarCalc';
+import { getSubPilarScores, build3LayerRadarData, mediasPorPilarGrupo, RADAR_AXES } from './radarCalc';
 
 describe('getSubPilarScores', () => {
   it('devuelve todos los ejes en 0 sin evaluaciones', () => {
@@ -59,5 +59,39 @@ describe('build3LayerRadarData', () => {
       expect(fila.Categoria).toBe(0);
       expect(fila.Club).toBe(0);
     });
+  });
+});
+
+describe('mediasPorPilarGrupo', () => {
+  it('promedia por pilar (no por sub-pilar) a través de todos los atletas', () => {
+    const atleta1 = [
+      { sub_pilar: 'fuerza', puntuacion_normalizada: 60 },
+      { sub_pilar: 'explosividad', puntuacion_normalizada: 80 },
+    ];
+    const atleta2 = [
+      { sub_pilar: 'fuerza', puntuacion_normalizada: 40 },
+    ];
+    const medias = mediasPorPilarGrupo([atleta1, atleta2]);
+    // fisico: fuerza(60,40) + explosividad(80) = [60,40,80] → 60
+    expect(medias.fisico).toBe(60);
+  });
+
+  it('ignora sub-pilares sin datos (0) para no diluir el promedio', () => {
+    const atletaConDatos = [{ sub_pilar: 'tiro', puntuacion_normalizada: 90 }];
+    const atletaSinDatos = [];
+    const medias = mediasPorPilarGrupo([atletaConDatos, atletaSinDatos]);
+    expect(medias.tecnico).toBe(90);
+  });
+
+  it('devuelve 0 por pilar cuando ningún atleta tiene datos', () => {
+    const medias = mediasPorPilarGrupo([[], []]);
+    expect(medias.fisico).toBe(0);
+    expect(medias.tecnico).toBe(0);
+    expect(medias.mental).toBe(0);
+  });
+
+  it('devuelve 0 en todos los pilares con lista vacía', () => {
+    const medias = mediasPorPilarGrupo([]);
+    expect(medias).toEqual({ fisico: 0, tecnico: 0, mental: 0 });
   });
 });

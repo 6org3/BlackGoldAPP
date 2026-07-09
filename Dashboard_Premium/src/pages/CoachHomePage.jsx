@@ -6,16 +6,9 @@ import HomeShell, { ContextChip, SectionEyebrow } from '../components/HomeShell'
 import Plantel from '../components/Plantel';
 import ModoCanchaModal from '../components/ModoCanchaModal';
 import { recoveryPill } from '../lib/recoveryPill';
+import { tieneSenal } from '../lib/senalesAtleta';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchEvaluacionesProgramadasHoy } from '../api/sesionesService';
-
-// Señal de atención para la franja "Atletas a mirar hoy": estado de
-// recuperación distinto de Óptimo o alerta de hidratación del readiness
-// diario (mismos umbrales que ya usa AthleteGridCard). Campos que ya trae
-// fetchTodosLosAtletas — sin llamadas nuevas al gateway.
-const tieneSenal = (a) =>
-  (a.estado_recuperacion && a.estado_recuperacion !== 'Óptimo') ||
-  (a.readiness_hoy && a.readiness_hoy.color_orina >= 5);
 
 /**
  * CoachHomePage (/coach) — home nativo del coach: "gestiona mi día".
