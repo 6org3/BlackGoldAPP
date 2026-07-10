@@ -92,6 +92,7 @@ export default function useAdminAtletasFiltros(user) {
     atletasFiltrados,
     atletasAgrupados,
     filtrosActivos,
+    hasFilters,
     loadingFiltrados,
     clearFilters,
   };
