@@ -7,6 +7,7 @@ export default function AdminAtletasGrupoNivel({
   loading,
   viewMode,
   filtrosActivos,
+  hasFilters,
   clearFilters,
   exportingAtleta,
   onEdit,
@@ -25,11 +26,17 @@ export default function AdminAtletasGrupoNivel({
       {!loading && atletasAgrupados.length === 0 && (
         <div className="text-center py-16">
           <div className="text-4xl mb-4">🔍</div>
-          <p className="text-fg-muted text-sm font-bold">No se encontraron atletas con estos filtros.</p>
-          {filtrosActivos && (
-            <button onClick={clearFilters} className="mt-3 text-xs text-brand hover:underline">
-              Limpiar filtros
-            </button>
+          {hasFilters ? (
+            <>
+              <p className="text-fg-muted text-sm font-bold">No se encontraron atletas con estos filtros.</p>
+              {filtrosActivos && (
+                <button onClick={clearFilters} className="mt-3 text-xs text-brand hover:underline">
+                  Limpiar filtros
+                </button>
+              )}
+            </>
+          ) : (
+            <p className="text-fg-muted text-sm font-bold">Busca por nombre o cédula, o aplica un filtro para ver el roster.</p>
           )}
         </div>
       )}

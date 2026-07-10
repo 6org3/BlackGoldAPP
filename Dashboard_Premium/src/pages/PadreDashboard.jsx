@@ -63,8 +63,11 @@ export default function PadreDashboard() {
     // isExporting monta el template oculto; esperar a que pinte antes de capturarlo
     setIsExporting(true);
     try {
+      // html2canvas-pro (no html2canvas): el CSS del proyecto usa oklch()/
+      // color-mix() (modificadores de opacidad de Tailwind v4, ej. bg-white/5)
+      // que el html2canvas clásico no sabe parsear y hace fallar el export.
       const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import('html2canvas'),
+        import('html2canvas-pro'),
         import('jspdf'),
       ]);
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -286,7 +289,7 @@ export default function PadreDashboard() {
                 <div>
                   <h2 className="text-xl font-black uppercase tracking-widest mb-1 text-white">{hijoActual.nombre}</h2>
                   <p className={`text-xs font-bold uppercase tracking-widest ${hijoActual.rango?.textColor}`}>
-                    Grupo: {hijoActual.rango?.nombre} {hijoActual.rango?.tier}
+                    Grupo: {hijoActual.rango?.nombre}
                   </p>
                 </div>
                 <button
@@ -483,10 +486,15 @@ export default function PadreDashboard() {
           {/* Columna Centro/Derecha: Historial y Anuncios */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Convocatorias a eventos */}
-            {convocatorias.length > 0 && (
-              <motion.div ref={eventosRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-4 sm:p-6 rounded-panel border border-info/30 bg-info/5">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-info-soft mb-4 flex items-center"><CalendarDays className="mr-2 w-4 h-4" /> Convocatorias</h3>
+            {/* Convocatorias a eventos — el contenedor se monta siempre
+                (con o sin convocatorias) para que el ancla del tab "Eventos"
+                del BottomNav exista y el scroll funcione también sin eventos
+                pendientes; antes, con la lista vacía, tocar el tab no hacía nada. */}
+            <motion.div ref={eventosRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-4 sm:p-6 rounded-panel border border-info/30 bg-info/5">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-info-soft mb-4 flex items-center"><CalendarDays className="mr-2 w-4 h-4" /> Convocatorias</h3>
+              {convocatorias.length === 0 ? (
+                <p className="text-xs text-fg-muted font-medium">No tienes convocatorias pendientes por ahora.</p>
+              ) : (
                 <div className="space-y-4">
                   {convocatorias.map((c) => {
                     const ev = c.eventos || {};
@@ -531,8 +539,8 @@ export default function PadreDashboard() {
                     );
                   })}
                 </div>
-              </motion.div>
-            )}
+              )}
+            </motion.div>
 
             {/* Anuncios Globales */}
             {data.anuncios.length > 0 && (

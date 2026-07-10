@@ -21,7 +21,20 @@ const fechaCorta = (iso) =>
   new Date(String(iso).length === 10 ? `${iso}T00:00:00` : iso)
     .toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 
-const primerNombre = (nombre) => String(nombre || '').trim().split(/\s+/)[0] || '—';
+// Los atletas migrados desde clubes reales tienen `nombre` en orden
+// "Apellidos Nombres" (tal cual el archivo de origen), mientras que los
+// atletas nativos lo tienen en orden "Nombre Apellido" — no hay forma
+// fiable de saber cuál es cuál sin la fuente original de cada registro.
+// En vez de adivinar el orden (y arriesgarnos a mostrar un apellido como si
+// fuera un nombre), añadimos la inicial del segundo token: así dos atletas
+// que comparten el primer token (p. ej. dos "Arias" o dos "Valentina") se
+// distinguen igual, sea cual sea el orden real de ese registro.
+const primerNombre = (nombre) => {
+  const partes = String(nombre || '').trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return '—';
+  if (partes.length === 1) return partes[0];
+  return `${partes[0]} ${partes[1].charAt(0).toUpperCase()}`;
+};
 
 // Trazos neutros compartidos por los tres gráficos (mismos valores del mockup;
 // no son colores nuevos: blanco/negro base con alpha, sin hex fuera de tokens).

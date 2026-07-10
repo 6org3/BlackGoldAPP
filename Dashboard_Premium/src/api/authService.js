@@ -8,7 +8,6 @@ export const calculateRank = (atleta) => {
   const rango = getRango(overallScore);
   return {
     nombre: rango.nombre,
-    tier: rango.id,
     textColor: rango.color,
     glow: '',
     pct: overallScore,

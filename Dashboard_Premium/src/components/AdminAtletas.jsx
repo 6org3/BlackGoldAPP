@@ -41,6 +41,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     atletasFiltrados,
     atletasAgrupados,
     filtrosActivos,
+    hasFilters,
     loadingFiltrados,
     clearFilters,
   } = useAdminAtletasFiltros(user);
@@ -67,8 +68,11 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     setTimeout(async () => {
       if (!reportRef.current) return;
       try {
+        // html2canvas-pro (no html2canvas): el CSS del proyecto usa oklch()/
+        // color-mix() (modificadores de opacidad de Tailwind v4, ej. bg-white/5)
+        // que el html2canvas clásico no sabe parsear y hace fallar el export.
         const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-          import('html2canvas'),
+          import('html2canvas-pro'),
           import('jspdf'),
         ]);
         const canvas = await html2canvas(reportRef.current, {
@@ -172,6 +176,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         loading={loadingFiltrados}
         viewMode={viewMode}
         filtrosActivos={filtrosActivos}
+        hasFilters={hasFilters}
         clearFilters={clearFilters}
         exportingAtleta={exportingAtleta}
         onEdit={handleEdit}
