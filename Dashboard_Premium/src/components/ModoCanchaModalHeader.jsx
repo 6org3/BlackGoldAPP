@@ -1,6 +1,6 @@
 import { Activity, X, ChevronLeft } from 'lucide-react';
 
-export default function ModoCanchaModalHeader({ step, setStep, onClose }) {
+export default function ModoCanchaModalHeader({ step, setStep, onClose, closeBtnRef }) {
   return (
     <div className="p-5 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-brand/10 to-transparent">
       <div className="flex items-center space-x-3">
@@ -12,7 +12,7 @@ export default function ModoCanchaModalHeader({ step, setStep, onClose }) {
           </button>
         )}
       </div>
-      <button onClick={onClose} aria-label="Cerrar Modo Cancha" className="text-fg-secondary hover:text-white bg-white/5 p-3 rounded-full transition-colors">
+      <button ref={closeBtnRef} onClick={onClose} aria-label="Cerrar Modo Cancha" className="text-fg-secondary hover:text-white bg-white/5 p-3 rounded-full transition-colors">
         <X size={20} />
       </button>
     </div>

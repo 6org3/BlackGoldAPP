@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { insertarObservacion } from '../api/observacionesService';
 import { crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
@@ -24,6 +24,14 @@ import ModoCanchaModalCapturaEvaluacion from './ModoCanchaModalCapturaEvaluacion
 
 export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
   const { user } = useAuth();
+  const closeBtnRef = useRef(null);
+  // Con prefers-reduced-motion activo, la animación de salida de
+  // AnimatePresence a veces no dispara su callback de fin (bug conocido de
+  // Framer Motion combinado con MotionConfig reducedMotion="user" de
+  // main.jsx) y el modal queda montado para siempre aunque isOpen ya sea
+  // false. Sin `exit`, AnimatePresence desmonta al instante sin esperar
+  // ninguna animación — evita el atasco.
+  const prefersReducedMotion = useReducedMotion();
 
   // Pasos: 0=Menu/SesionActiva, 1=TipoClase, 2=Config, 3=Asistencia, 4=GridAtletas, 5=EvaluarAtleta
   const [step, setStep] = useState(0);
@@ -80,6 +88,16 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
+
+  // Semántica de diálogo (mismo patrón que AppAthleteProfileModal): foco
+  // inicial en Cerrar y cierre con Escape.
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    closeBtnRef.current?.focus();
+    const onKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
 
   const loadData = async () => {
     const [atls, plts, pruebas, evalsHoy] = await Promise.all([
@@ -572,14 +590,17 @@ export default function ModoCanchaModal({ isOpen, onClose, onRefresh }) {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Modo Cancha"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={prefersReducedMotion ? undefined : { opacity: 0 }}
           className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-black/90 md:bg-black/80 md:backdrop-blur-md"
         >
           <motion.div
-            initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+            initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { scale: 0.95, y: 20 }}
             className="w-full max-w-2xl bg-surface-base rounded-none md:rounded-card border border-brand/30 shadow-[0_0_50px_rgba(255,215,0,0.15)] overflow-hidden flex flex-col h-dvh md:h-auto md:max-h-[90vh] pt-[env(safe-area-inset-top)] md:pt-0"
           >
-            <ModoCanchaModalHeader step={step} setStep={setStep} onClose={onClose} />
+            <ModoCanchaModalHeader step={step} setStep={setStep} onClose={onClose} closeBtnRef={closeBtnRef} />
 
             {/* En el paso 3 (asistencia) solo scrollea la lista interna: así el CTA
                 "Empezar Clase" queda siempre visible sin doble scroll anidado. */}
