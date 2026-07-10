@@ -200,6 +200,11 @@ export async function fetchContactosPago(atletaIds) {
       nombre: v.usuarios?.nombre,
       telefono: v.usuarios?.telefono || null,
       esRepPagos: v.es_rep_pagos,
+      // migrar_deportistas.js genera este nombre como placeholder temporal
+      // ("Representante de <Apellido>") cuando el atleta importado no traía
+      // un padre/madre real — nunca debe mostrarse como si fuera un contacto
+      // real confirmado.
+      esPlaceholder: /^Representante de /.test(v.usuarios?.nombre || ''),
     };
     if (!map[v.atleta_id] || (v.es_rep_pagos && !map[v.atleta_id].esRepPagos)) {
       map[v.atleta_id] = contacto;

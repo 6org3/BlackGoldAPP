@@ -407,7 +407,11 @@ export default function AdminPagos({ user, atletas = [] }) {
                   <div>
                     <p className="text-sm font-bold text-white leading-tight">{atletaNombre}</p>
                     {contacto?.nombre && (
-                      <p className="text-3xs text-fg-faint">Rep.: {contacto.nombre}{!normalizarTelefonoEC(contacto.telefono) ? ' · sin teléfono' : ''}</p>
+                      contacto.esPlaceholder ? (
+                        <p className="text-3xs text-caution-soft font-bold">Sin representante confirmado</p>
+                      ) : (
+                        <p className="text-3xs text-fg-faint">Rep.: {contacto.nombre}{!normalizarTelefonoEC(contacto.telefono) ? ' · sin teléfono' : ''}</p>
+                      )
                     )}
                     {alertaVencimiento && (
                       <p className="text-[11px] text-danger-soft font-bold">⚠ Vence en {dias} día(s)</p>
