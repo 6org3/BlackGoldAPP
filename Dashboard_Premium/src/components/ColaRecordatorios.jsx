@@ -119,8 +119,10 @@ export default function ColaRecordatorios({ user, mes, anio }) {
                   {pausado && <span className="ml-2 text-3xs text-fg-muted font-black uppercase inline-flex items-center gap-0.5"><BellOff size={9} /> pausado</span>}
                 </p>
                 <p className="text-2xs text-fg-secondary">
-                  {contacto?.nombre || 'sin representante'} · saldo <span className="font-black text-white">${saldoDe(pago).toFixed(2)}</span>
-                  {!tel && contacto && <span className="text-danger-soft"> · sin teléfono</span>}
+                  {contacto?.esPlaceholder
+                    ? <span className="text-caution-soft font-bold">Sin representante confirmado</span>
+                    : (contacto?.nombre || 'sin representante')} · saldo <span className="font-black text-white">${saldoDe(pago).toFixed(2)}</span>
+                  {!tel && contacto && !contacto.esPlaceholder && <span className="text-danger-soft"> · sin teléfono</span>}
                 </p>
               </div>
               {yaEnviado ? (
