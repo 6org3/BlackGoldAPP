@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
 import { Droplets } from 'lucide-react';
 import { recoveryPill } from '../lib/recoveryPill';
+import { tieneDatosAntropometricos } from '../api/utilsAtletas';
 
 export default function AthleteGridCard({ atleta, onClick }) {
   const pillColor = recoveryPill(atleta.estado_recuperacion);
   const deshidratado = atleta.readiness_hoy && atleta.readiness_hoy.color_orina >= 5;
+  const conAntropometria = tieneDatosAntropometricos(atleta);
 
   return (
     <motion.div
@@ -85,18 +87,26 @@ export default function AthleteGridCard({ atleta, onClick }) {
 
       {/* Mini metric pills - Anthropometry */}
       <div className="flex items-center gap-2 flex-wrap mt-2 pt-3 border-t border-white/5">
-        <span title="Estatura" className="text-xs font-bold px-2 py-1 rounded-lg bg-info/10 text-info-soft">
-          {atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'}
-        </span>
-        <span title="Peso" className="text-xs font-bold px-2 py-1 rounded-lg bg-green-500/10 text-green-400">
-          {atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'}
-        </span>
-        <span title="Índice de Masa Corporal (IMC)" className="text-xs font-bold px-2 py-1 rounded-lg bg-mental/10 text-mental-soft">
-          IMC: {atleta.imc || '—'}
-        </span>
-        <span title="Brazada Relativa" className="text-xs font-bold px-2 py-1 rounded-lg bg-brand/10 text-brand">
-          BR: {atleta.brazada_relativa || '—'}
-        </span>
+        {conAntropometria ? (
+          <>
+            <span title="Estatura" className="text-xs font-bold px-2 py-1 rounded-lg bg-info/10 text-info-soft">
+              {atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'}
+            </span>
+            <span title="Peso" className="text-xs font-bold px-2 py-1 rounded-lg bg-green-500/10 text-green-400">
+              {atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'}
+            </span>
+            <span title="Índice de Masa Corporal (IMC)" className="text-xs font-bold px-2 py-1 rounded-lg bg-mental/10 text-mental-soft">
+              IMC: {atleta.imc || '—'}
+            </span>
+            <span title="Brazada Relativa" className="text-xs font-bold px-2 py-1 rounded-lg bg-brand/10 text-brand">
+              BR: {atleta.brazada_relativa || '—'}
+            </span>
+          </>
+        ) : (
+          <span className="text-xs font-bold px-2 py-1 rounded-lg bg-white/5 text-fg-faint">
+            Sin datos antropométricos
+          </span>
+        )}
       </div>
     </motion.div>
   );
