@@ -20,7 +20,7 @@ export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
         fecha,
         estado,
         notas,
-        atletas (id, nombre, categoria, posicion, club)
+        atletas (id, posicion, usuarios!inner!atletas_usuario_id_fkey (nombre, categoria, club))
       `)
       .eq('fecha', fecha);
 
@@ -29,7 +29,7 @@ export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
 
     // Filtrar por categoría si se especifica
     if (categoria && categoria !== 'Todas') {
-      return (data || []).filter(r => r.atletas?.categoria === categoria);
+      return (data || []).filter(r => r.atletas?.usuarios?.categoria === categoria);
     }
     return data || [];
   } catch (err) {
