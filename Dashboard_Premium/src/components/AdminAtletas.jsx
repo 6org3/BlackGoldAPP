@@ -41,6 +41,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     atletasFiltrados,
     atletasAgrupados,
     filtrosActivos,
+    hasFilters,
     loadingFiltrados,
     clearFilters,
   } = useAdminAtletasFiltros(user);
@@ -175,6 +176,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         loading={loadingFiltrados}
         viewMode={viewMode}
         filtrosActivos={filtrosActivos}
+        hasFilters={hasFilters}
         clearFilters={clearFilters}
         exportingAtleta={exportingAtleta}
         onEdit={handleEdit}
