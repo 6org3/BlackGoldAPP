@@ -116,11 +116,19 @@ export async function fetchEvaluacionesProgramadasHoy(coachId) {
   return data || [];
 }
 
-export async function fetchGrupos() {
-  const { data, error } = await supabase
+// `club`: sin filtro de club en el select, la fila devuelta depende
+// enteramente de RLS para no mezclar grupos de otros clubes — se filtra
+// también acá como defensa en profundidad (mismo criterio que
+// fetchTodosLosAtletas en atletasService.js).
+export async function fetchGrupos(club = null) {
+  let query = supabase
     .from('grupos_entrenamiento')
     .select('*')
     .order('nombre');
+  if (club) {
+    query = query.eq('club', club);
+  }
+  const { data, error } = await query;
   if (error) { console.error(error); return []; }
   return data || [];
 }
