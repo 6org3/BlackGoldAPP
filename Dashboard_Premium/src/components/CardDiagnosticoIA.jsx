@@ -8,7 +8,7 @@
 //     baremo, debilidades como chips caution y notas del coach si vienen.
 //   - 'simple' (atleta/padre): prosa llana sin jerga ni números.
 import { motion } from 'framer-motion';
-import { VARIANTS, getBaremoUI } from '../lib/designTokens';
+import { VARIANTS, getBaremoUI, getFuenteIALabel } from '../lib/designTokens';
 import { getSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { useBrainDiagnostico } from '../hooks/useBrainDiagnostico';
 
@@ -20,7 +20,7 @@ function ChipFuente({ tool }) {
   return (
     <span className="inline-flex items-center gap-1 font-mono text-2xs font-bold px-2 py-0.5 rounded-full text-mental-soft bg-mental/10 border border-mental/25">
       <span aria-hidden="true">✦</span>
-      {tool}
+      {getFuenteIALabel(tool)}
     </span>
   );
 }

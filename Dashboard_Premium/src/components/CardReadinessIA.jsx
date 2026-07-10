@@ -9,7 +9,7 @@
 //   - 'simple' (atleta/padre): "¿Cómo estás hoy?" y los mensajes tal cual
 //     (el gateway ya los devuelve legibles).
 import { motion } from 'framer-motion';
-import { VARIANTS } from '../lib/designTokens';
+import { VARIANTS, getFuenteIALabel } from '../lib/designTokens';
 import { useBrainReadiness } from '../hooks/useBrainReadiness';
 
 /* Chip de procedencia: qué tool del cerebro generó este contenido. */
@@ -17,7 +17,7 @@ function ChipFuente({ tool }) {
   return (
     <span className="inline-flex items-center gap-1 font-mono text-2xs font-bold px-2 py-0.5 rounded-full text-mental-soft bg-mental/10 border border-mental/25">
       <span aria-hidden="true">✦</span>
-      {tool}
+      {getFuenteIALabel(tool)}
     </span>
   );
 }
