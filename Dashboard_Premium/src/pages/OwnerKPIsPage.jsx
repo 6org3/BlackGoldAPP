@@ -8,6 +8,7 @@ import { fetchTodosLosAtletas } from '../api/atletasService';
 import { supabase } from '../api/supabaseClient';
 import { getSubPilarScores } from '../lib/radarCalc';
 import { COLORS, CHART, staggerDelay } from '../lib/designTokens';
+import Sidebar from '../components/Sidebar';
 
 const METRIC_LABELS = {
   fuerza: 'Fuerza',
@@ -213,14 +214,16 @@ export default function OwnerKPIsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-surface-base text-white relative overflow-hidden">
-      {/* Ambient Glow Effects (solo desktop: composición GPU cara en gama baja) */}
-      <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-brand/[0.03] rounded-full blur-[150px]" />
-        <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-mental/[0.03] rounded-full blur-[150px]" />
-      </div>
+    <div className="flex h-dvh bg-surface-base overflow-hidden text-white">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-0">
+        {/* Ambient Glow Effects (solo desktop: composición GPU cara en gama baja) */}
+        <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-brand/[0.03] rounded-full blur-[150px]" />
+          <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-mental/[0.03] rounded-full blur-[150px]" />
+        </div>
 
-      <div className="relative z-10 p-6 md:p-12">
+        <div className="relative z-10 p-6 md:p-12">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center space-x-4 mb-10">
@@ -451,6 +454,7 @@ export default function OwnerKPIsPage() {
           )}
         </div>
       </div>
+      </main>
     </div>
   );
 }

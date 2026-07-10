@@ -103,8 +103,7 @@ export async function fetchComunicaciones({ tipo = null, limit = 30 } = {}) {
     .from('comunicaciones')
     .select(`
       *,
-      grupos_entrenamiento (nombre),
-      atletas (id, usuarios!inner(nombre))
+      grupos_entrenamiento (nombre)
     `)
     .order('created_at', { ascending: false })
     .limit(limit);

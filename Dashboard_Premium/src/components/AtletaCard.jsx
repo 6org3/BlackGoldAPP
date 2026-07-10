@@ -14,8 +14,10 @@ import ModalMisionesAtleta from './ModalMisionesAtleta';
 import { evaluarDeficits } from '../lib/didacticEngine';
 import HistorialFisicoChart from './HistorialFisicoChart';
 import ProgresoNivelModal from './ProgresoNivelModal';
+import { tieneDatosAntropometricos } from '../api/utilsAtletas';
 export default function AtletaCard({ atleta, index, todosLosAtletas }) {
   const { user } = useAuth();
+  const conAntropometria = tieneDatosAntropometricos(atleta);
 
   const [showCategoria, setShowCategoria] = useState(true);
   const [showClub, setShowClub] = useState(true);
@@ -94,18 +96,26 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
 
             {/* Anthropometric Data */}
             <div className="flex flex-wrap gap-2 mt-4">
-              <span className="text-2xs font-bold text-info-soft bg-info/10 px-2 py-1 rounded-lg border border-info/20">
-                Estatura: {atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'}
-              </span>
-              <span className="text-2xs font-bold text-success-soft bg-success/10 px-2 py-1 rounded-lg border border-success/20">
-                Peso: {atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'}
-              </span>
-              <span className="text-2xs font-bold text-mental-soft bg-mental/10 px-2 py-1 rounded-lg border border-mental/20">
-                IMC: {atleta.imc || '—'}
-              </span>
-              <span className="text-2xs font-bold text-brand bg-brand/10 px-2 py-1 rounded-lg border border-brand/20">
-                BR: {atleta.brazada_relativa || '—'}
-              </span>
+              {conAntropometria ? (
+                <>
+                  <span className="text-2xs font-bold text-info-soft bg-info/10 px-2 py-1 rounded-lg border border-info/20">
+                    Estatura: {atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'}
+                  </span>
+                  <span className="text-2xs font-bold text-success-soft bg-success/10 px-2 py-1 rounded-lg border border-success/20">
+                    Peso: {atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'}
+                  </span>
+                  <span className="text-2xs font-bold text-mental-soft bg-mental/10 px-2 py-1 rounded-lg border border-mental/20">
+                    IMC: {atleta.imc || '—'}
+                  </span>
+                  <span className="text-2xs font-bold text-brand bg-brand/10 px-2 py-1 rounded-lg border border-brand/20">
+                    BR: {atleta.brazada_relativa || '—'}
+                  </span>
+                </>
+              ) : (
+                <span className="text-2xs font-bold text-fg-faint bg-white/5 px-2 py-1 rounded-lg border border-white/10">
+                  Sin datos antropométricos
+                </span>
+              )}
             </div>
           </div>
         </div>

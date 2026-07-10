@@ -170,7 +170,7 @@ export async function fetchSesionesControl({ grupoId = null, atletaId = null, li
     .select(`
       *,
       grupos_entrenamiento (nombre, horario),
-      atletas (id, usuarios!inner(nombre))
+      atletas (id, usuarios!inner!atletas_usuario_id_fkey(nombre))
     `)
     .order('fecha', { ascending: false })
     .limit(limit);

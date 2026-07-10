@@ -49,3 +49,20 @@ export function calcularMetricasDerivadas(atleta, readinessHoy = null, evaluacio
 
   return atleta;
 }
+
+/**
+ * True si el atleta tiene al menos un dato antropométrico real cargado (no el
+ * placeholder 'N/A' de calcularMetricasDerivadas). Se usa en las tarjetas de
+ * atleta para decidir si vale la pena mostrar los 4 chips (talla/peso/IMC/BR)
+ * o colapsarlos en un único aviso de "sin datos" cuando no hay nada cargado.
+ * @param {Object} atleta - Objeto ya enriquecido por calcularMetricasDerivadas
+ * @returns {boolean}
+ */
+export function tieneDatosAntropometricos(atleta) {
+  return !!(
+    atleta.talla_cm ||
+    atleta.peso_kg ||
+    (atleta.imc && atleta.imc !== 'N/A') ||
+    (atleta.brazada_relativa && atleta.brazada_relativa !== 'N/A')
+  );
+}

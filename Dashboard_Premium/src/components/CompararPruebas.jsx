@@ -251,9 +251,27 @@ export default function CompararPruebas({ user }) {
   const categoriaActiva = categoriasPresentes.includes(categoriaElegida)
     ? categoriaElegida
     : categoriasPresentes[0] || null;
+
+  const atletasCategoria = useMemo(
+    () => atletas.filter(a => a.categoria === categoriaActiva),
+    [atletas, categoriaActiva],
+  );
+
+  // Prueba por defecto: la primera del catálogo que sí tenga al menos una
+  // medición entre los atletas de la categoría activa (no solo "en algún
+  // atleta del club") — antes, la categoría y la prueba por defecto se
+  // elegían por separado y esa combinación podía no tener ningún dato,
+  // mostrando un estado vacío como primera impresión de la vista.
+  const pruebaConDatosEnCategoria = useMemo(() => {
+    if (!evaluacionesPorAtleta) return null;
+    return pruebasDisponibles.find(p =>
+      atletasCategoria.some(a => (evaluacionesPorAtleta[a.atleta_id] || []).some(e => e.prueba_tipo === p.nombre))
+    ) || null;
+  }, [pruebasDisponibles, atletasCategoria, evaluacionesPorAtleta]);
+
   const pruebaActiva = pruebasDisponibles.some(p => p.nombre === pruebaElegida)
     ? pruebaElegida
-    : pruebasDisponibles[0]?.nombre || null;
+    : (pruebaConDatosEnCategoria?.nombre || pruebasDisponibles[0]?.nombre || null);
 
   const pruebaInfo = useMemo(
     () => pruebasDisponibles.find(p => p.nombre === pruebaActiva) || null,
@@ -262,10 +280,6 @@ export default function CompararPruebas({ user }) {
   const unidad = pruebaInfo?.unidad || '';
   const invertido = Boolean(pruebaInfo?.invertido);
 
-  const atletasCategoria = useMemo(
-    () => atletas.filter(a => a.categoria === categoriaActiva),
-    [atletas, categoriaActiva],
-  );
   const nombrePorAtletaId = useMemo(() => {
     const mapa = new Map();
     atletas.forEach(a => mapa.set(a.atleta_id, a.nombre));
