@@ -20,6 +20,7 @@ import { evaluarDeficits } from '../lib/didacticEngine';
 import { getSubPilarScores } from '../lib/radarCalc';
 import { getBaremoUI, COLORS, CHART } from '../lib/designTokens';
 import { getXPProgress } from '../lib/xpProgress';
+import { tieneDatosAntropometricos } from '../api/utilsAtletas';
 import { Brain } from 'lucide-react';
 
 const TABS = [
@@ -63,7 +64,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
               Black Gold
             </span>
           </div>
-          <p className="text-3xs text-fg-faint font-bold uppercase tracking-widest flex items-center">
+          <p className="text-3xs text-fg-muted font-bold uppercase tracking-widest flex items-center">
             <Shield size={9} className="mr-1 text-brand" />
             Panel de Rendimiento
           </p>
@@ -123,7 +124,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
                     : 'text-fg-muted hover:text-gray-300 hover:bg-white/5 border border-transparent'
                 }`}
               >
-                <Icon size={16} className={active ? 'text-brand' : 'text-fg-faint'} />
+                <Icon size={16} className={active ? 'text-brand' : 'text-fg-muted'} />
                 <span className="text-[11px] font-black uppercase tracking-widest">{label}</span>
                 {active && (
                   <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_6px_rgba(255,215,0,0.6)]" />
@@ -139,7 +140,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
             onClick={() => setShowEditProfile(true)}
             className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-fg-muted hover:text-gray-300 hover:bg-white/5 transition border border-transparent text-left"
           >
-            <User size={16} className="text-fg-faint" />
+            <User size={16} className="text-fg-muted" />
             <span className="text-[11px] font-black uppercase tracking-widest">Editar Perfil</span>
           </button>
           <button
@@ -147,7 +148,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
             className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-fg-muted hover:text-danger-soft hover:bg-danger/5 transition border border-transparent text-left"
             data-testid="btn-logout"
           >
-            <LogOut size={16} className="text-fg-faint" />
+            <LogOut size={16} className="text-fg-muted" />
             <span className="text-[11px] font-black uppercase tracking-widest">Cerrar Sesión</span>
           </button>
         </div>
@@ -283,6 +284,7 @@ function TabInicio({ atleta, todosLosAtletas }) {
   const deficits = useMemo(() => evaluarDeficits(atleta), [atleta]);
   const xpProgress = useMemo(() => getXPProgress(atleta.xp_total || 0), [atleta.xp_total]);
   const rango = xpProgress.currentRango;
+  const conAntropometria = tieneDatosAntropometricos(atleta);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -307,10 +309,18 @@ function TabInicio({ atleta, todosLosAtletas }) {
 
       {/* Measurements */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Estatura" value={atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'} color="blue" />
-        <StatCard label="Peso" value={atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'} color="green" />
-        <StatCard label="IMC" value={atleta.imc || '—'} color="purple" />
-        <StatCard label="Brazada Rel." value={atleta.brazada_relativa || '—'} color="yellow" />
+        {conAntropometria ? (
+          <>
+            <StatCard label="Estatura" value={atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'} color="blue" />
+            <StatCard label="Peso" value={atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'} color="green" />
+            <StatCard label="IMC" value={atleta.imc || '—'} color="purple" />
+            <StatCard label="Brazada Rel." value={atleta.brazada_relativa || '—'} color="yellow" />
+          </>
+        ) : (
+          <div className="col-span-2 sm:col-span-4 border border-white/10 rounded-control p-3 bg-white/5">
+            <p className="text-xs font-bold text-fg-faint">Sin datos antropométricos</p>
+          </div>
+        )}
       </div>
 
       {/* Recovery alerts */}
