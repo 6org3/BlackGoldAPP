@@ -120,6 +120,9 @@ export const CHART = {
     color: '#EDEDED',
   },
   // Paleta categórica de los 7 pilares (barras/comparativas por pilar).
+  // Restricción CVD: agilidad↔tiro indistinguibles en visión deután — solo
+  // usarla con etiqueta de pilar visible en cada marca, nunca color-solo
+  // ni reordenar (ver design_system.md §4.9).
   pilares: {
     fuerza: '#F97316',
     explosividad: '#EAB308',

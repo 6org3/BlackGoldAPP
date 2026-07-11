@@ -368,7 +368,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
                 const Icon = TIPO_ICONS[t];
                 return (
                   <button key={t} onClick={() => setForm(f => ({ ...f, objetivoTipo: t, ejerciciosIds: [] }))}
-                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg border text-2xs font-black uppercase tracking-widest transition ${
+                    className={`flex items-center space-x-1.5 min-h-11 md:min-h-9 px-3.5 rounded-lg border text-2xs font-black uppercase tracking-widest transition ${
                       form.objetivoTipo === t ? TIPO_COLORS[t] : 'border-white/10 text-fg-muted hover:text-white hover:bg-white/5'
                     }`}>
                     <Icon size={12} />

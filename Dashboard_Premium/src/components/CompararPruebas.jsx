@@ -12,6 +12,7 @@ import { fetchCatalogoPruebas, fetchEvaluacionesDeAtletas } from '../api/evaluac
 import { seriePorPrueba, compararPruebaGrupo } from '../../../packages/analytics-core/tendencias.js';
 import { CATEGORIAS_FEB } from '../../../packages/analytics-core/categoriaFEB.js';
 import { COLORS, CHART, VARIANTS } from '../lib/designTokens';
+import { nombresCortos } from '../lib/nombresCortos';
 
 // Reproduce la vista "Comparar" del mockup v6 (docs/mockup_v6_comparar_graficos.html):
 // selector de categoría + prueba, dot-plot de distribución de la categoría,
@@ -46,7 +47,9 @@ const FILA_SELECCIONADA = 'rgba(255,215,0,0.06)';
 // Gráfico 1 — dot-plot de distribución (SVG propio, geometría distChart)
 // ────────────────────────────────────────────────────────────────
 function DistribucionChart({ filas, mediaCategoria, mediaClub, unidad, invertido, seleccionadoId, onSelect }) {
-  const W = 330, rowH = 30, top = 24, x0 = 58, x1 = 306;
+  // rowH 44: cada fila es un target táctil (HIG/design system §4.3) — el SVG
+  // renderiza ≈1:1 con sus unidades de viewBox en el ancho móvil del card.
+  const W = 330, rowH = 44, top = 24, x0 = 58, x1 = 306;
   const H = top + filas.length * rowH + 6;
 
   const todos = [...filas.map(f => f.valor), mediaCategoria, mediaClub].filter(v => v != null);
@@ -93,7 +96,7 @@ function DistribucionChart({ filas, mediaCategoria, mediaClub, unidad, invertido
             }}
             className="cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-brand"
           >
-            <rect x="0" y={y - 13} width={W} height="26" rx="6" fill={sel ? FILA_SELECCIONADA : 'transparent'} />
+            <rect x="0" y={y - rowH / 2 + 2} width={W} height={rowH - 4} rx="6" fill={sel ? FILA_SELECCIONADA : 'transparent'} />
             <text x="6" y={y} fill={sel ? COLORS.gold[500] : COLORS.fg.secondary} fontSize="11" fontWeight={sel ? 800 : 600} dominantBaseline="middle">
               {primerNombre(f.nombre)}
             </text>
@@ -170,6 +173,17 @@ function CompararSkeleton() {
 function MensajeVacio({ children }) {
   return (
     <p className="text-fg-muted text-xs font-bold text-center py-8">{children}</p>
+  );
+}
+
+// Procedencia honesta: estos agregados son cálculo local (analytics-core),
+// no una tool del cerebro MCP — misma posición que el chip fuente de las
+// cards IA pero en tono neutro, sin la firma morada "✦" reservada al gateway.
+function ChipProcedencia({ children }) {
+  return (
+    <div className="flex items-center gap-1.5 text-3xs font-mono font-bold text-fg-muted mt-3">
+      <span aria-hidden="true">📊</span> {children}
+    </div>
   );
 }
 
@@ -276,6 +290,13 @@ export default function CompararPruebas({ user }) {
   const pruebaInfo = useMemo(
     () => pruebasDisponibles.find(p => p.nombre === pruebaActiva) || null,
     [pruebasDisponibles, pruebaActiva],
+  );
+
+  // Alias cortos de los subchips (mockup v6): "CMJ" en vez del nombre
+  // completo; el nombre íntegro queda en title/aria-label y en el pill.
+  const nombreCorto = useMemo(
+    () => nombresCortos(pruebasDisponibles.map(p => p.nombre)),
+    [pruebasDisponibles],
   );
   const unidad = pruebaInfo?.unidad || '';
   const invertido = Boolean(pruebaInfo?.invertido);
@@ -395,7 +416,7 @@ export default function CompararPruebas({ user }) {
                     type="button"
                     aria-pressed={activa}
                     onClick={() => setCategoriaElegida(cat)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
+                    className={`inline-flex items-center min-h-11 md:min-h-9 rounded-full px-3.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
                       activa
                         ? 'bg-brand/10 border-brand text-brand'
                         : 'bg-surface-card border-white/10 text-fg-secondary hover:border-brand/30 hover:text-white'
@@ -418,14 +439,16 @@ export default function CompararPruebas({ user }) {
                   key={p.nombre}
                   type="button"
                   aria-pressed={activa}
+                  title={p.nombre}
+                  aria-label={p.nombre}
                   onClick={() => setPruebaElegida(p.nombre)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
+                  className={`inline-flex items-center min-h-11 md:min-h-9 rounded-full px-3.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
                     activa
                       ? 'bg-brand/10 border-brand text-brand'
                       : 'bg-surface-card border-white/10 text-fg-secondary hover:border-brand/30 hover:text-white'
                   }`}
                 >
-                  {p.nombre}
+                  {nombreCorto.get(p.nombre) || p.nombre}
                 </button>
               );
             })}
@@ -462,6 +485,7 @@ export default function CompararPruebas({ user }) {
                   <span className="text-caution-soft">naranja</span> = del otro. Líneas:{' '}
                   <span className="text-brand">media categoría</span> · <span className="text-fg-secondary">media club</span>.
                 </p>
+                <ChipProcedencia>Tendencias del club · calculado con tus evaluaciones</ChipProcedencia>
               </>
             )}
           </motion.div>
@@ -543,6 +567,7 @@ export default function CompararPruebas({ user }) {
                   <p className="text-xs text-fg-muted mt-3 leading-relaxed">
                     Su evolución en {pruebaActiva}, con la media de la categoría y la del club como referencia.
                   </p>
+                  <ChipProcedencia>Tendencias del club · histórico real de evaluaciones</ChipProcedencia>
                 </>
               )}
             </motion.div>

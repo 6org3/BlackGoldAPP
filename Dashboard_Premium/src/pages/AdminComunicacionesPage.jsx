@@ -1,5 +1,5 @@
 import AdminComunicaciones from '../components/AdminComunicaciones';
-import Sidebar from '../components/Sidebar';
+import AdminShell from '../components/AdminShell';
 import { useAuth } from '../AuthContext';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { useState, useEffect, useCallback } from 'react';
@@ -14,11 +14,8 @@ export default function AdminComunicacionesPage() {
   useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="flex h-dvh bg-surface-base overflow-hidden text-white">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        <AdminComunicaciones user={user} atletas={atletas} />
-      </main>
-    </div>
+    <AdminShell padding="">
+      <AdminComunicaciones user={user} atletas={atletas} />
+    </AdminShell>
   );
 }

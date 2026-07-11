@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaModal from './ModoCanchaModal';
 import { supabase } from '../api/supabaseClient';
+import { fetchSesionesEnCurso } from '../api/sesionesService';
 import { HOMES_POR_ROL, rutaHomeParaRol } from '../lib/featureFlags';
 
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultarFabModoCancha = false }) {
@@ -27,13 +28,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
   useEffect(() => {
     if (userId && (userRol === 'coach' || userRol === 'owner' || userRol === 'superadmin')) {
       const fetchActiveSession = async () => {
-        const { data } = await supabase
-          .from('sesiones_programadas')
-          .select('id')
-          .eq('coach_id', userId)
-          .eq('estado', 'Programada')
-          .ilike('notas', '[EN_CURSO]%');
-        if (data) setActiveSessionCount(data.length);
+        const data = await fetchSesionesEnCurso(userId);
+        setActiveSessionCount(data.length);
       };
       fetchActiveSession();
 

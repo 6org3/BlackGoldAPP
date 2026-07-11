@@ -6,36 +6,37 @@ import { supabase } from './supabaseClient';
 /**
  * Obtiene las asistencias de una fecha dada, enriquecidas con datos del atleta.
  * Opcionalmente filtra por categoría.
+ * Lanza si la consulta falla: devolver [] aquí haría indistinguible "sin
+ * registros" de "falló la carga", y el pase de lista partiría de "100%
+ * presente" pudiendo pisar asistencia real sin ninguna señal (auditoría
+ * UX coach 2026-07-09).
  * @param {string} fecha - Fecha en formato 'YYYY-MM-DD'
  * @param {string|null} categoria - Categoría a filtrar (null = todas)
  */
 export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
-  try {
-    let query = supabase
-      .from('asistencia')
-      .select(`
-        id,
-        atleta_id,
-        coach_id,
-        fecha,
-        estado,
-        notas,
-        atletas (id, posicion, usuarios!inner!atletas_usuario_id_fkey (nombre, categoria, club))
-      `)
-      .eq('fecha', fecha);
+  const { data, error } = await supabase
+    .from('asistencia')
+    .select(`
+      id,
+      atleta_id,
+      coach_id,
+      fecha,
+      estado,
+      notas,
+      atletas (id, posicion, usuarios!inner!atletas_usuario_id_fkey (nombre, categoria, club))
+    `)
+    .eq('fecha', fecha);
 
-    const { data, error } = await query;
-    if (error) throw error;
-
-    // Filtrar por categoría si se especifica
-    if (categoria && categoria !== 'Todas') {
-      return (data || []).filter(r => r.atletas?.usuarios?.categoria === categoria);
-    }
-    return data || [];
-  } catch (err) {
-    console.error('[asistenciaService] fetchAsistenciaPorFecha:', err);
-    return [];
+  if (error) {
+    console.error('[asistenciaService] fetchAsistenciaPorFecha:', error);
+    throw error;
   }
+
+  // Filtrar por categoría si se especifica
+  if (categoria && categoria !== 'Todas') {
+    return (data || []).filter(r => r.atletas?.usuarios?.categoria === categoria);
+  }
+  return data || [];
 }
 
 /**
