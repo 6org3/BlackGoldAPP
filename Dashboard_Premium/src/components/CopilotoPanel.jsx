@@ -155,7 +155,7 @@ const CopilotoPanel = ({ abierto, onCerrar, atletaId = null }) => {
                 type="button"
                 onClick={onCerrar}
                 aria-label="Cerrar copiloto"
-                className="ml-auto shrink-0 w-9 h-9 grid place-items-center rounded-control text-fg-muted hover:text-fg text-xl transition-colors"
+                className="ml-auto shrink-0 min-w-11 min-h-11 grid place-items-center rounded-control text-fg-muted hover:text-fg text-xl transition-colors"
               >
                 ×
               </button>
@@ -201,7 +201,7 @@ const CopilotoPanel = ({ abierto, onCerrar, atletaId = null }) => {
                   type="button"
                   onClick={() => handleEnviar(q)}
                   disabled={enviando}
-                  className="text-2xs font-bold px-3 py-1.5 rounded-full bg-surface-card border border-white/10 text-fg-secondary hover:border-mental hover:text-mental-soft transition-colors disabled:opacity-50"
+                  className="text-2xs font-bold px-3.5 min-h-11 md:min-h-9 inline-flex items-center rounded-full bg-surface-card border border-white/10 text-fg-secondary hover:border-mental hover:text-mental-soft transition-colors disabled:opacity-50"
                 >
                   {q}
                 </button>

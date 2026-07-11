@@ -90,17 +90,17 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
           {/* Category & age badges */}
           <div className="flex flex-wrap gap-1.5 mb-4">
             {atleta.categoria && (
-              <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-brand/30 text-brand bg-brand/5">
+              <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-brand/30 text-brand bg-brand/5">
                 {atleta.categoria}
               </span>
             )}
             {atleta.edad && (
-              <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 text-fg-secondary bg-white/5">
+              <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-white/20 text-fg-secondary bg-white/5">
                 {atleta.edad} años
               </span>
             )}
             {atleta.nivel_desarrollo && (
-              <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-success/30 text-success-soft bg-success/5">
+              <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-success/30 text-success-soft bg-success/5">
                 {atleta.nivel_desarrollo}
               </span>
             )}
@@ -267,7 +267,7 @@ function ToggleChip({ active, label, activeClasses, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-2 min-h-[36px] rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${
+      className={`flex items-center gap-1.5 px-3 min-h-11 md:min-h-9 rounded-lg text-2xs font-bold uppercase tracking-widest transition-colors ${
         active ? activeClasses : 'bg-white/5 text-gray-500 border border-white/10'
       }`}
     >
@@ -549,7 +549,7 @@ function StatCard({ label, value, color, large }) {
   };
   return (
     <div className={`border rounded-control p-3 ${colors[color] || colors.blue}`}>
-      <p className="text-[8px] font-bold uppercase tracking-widest opacity-70 mb-1">{label}</p>
+      <p className="text-3xs font-bold uppercase tracking-widest opacity-70 mb-1">{label}</p>
       <p className={`font-black leading-none ${large ? 'text-2xl' : 'text-base'}`}>{value}</p>
     </div>
   );

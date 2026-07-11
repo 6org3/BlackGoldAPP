@@ -157,7 +157,7 @@ export default function HistorialPruebas({ atletaId }) {
             <button
               key={p.id}
               onClick={() => { setPilarActivo(p.id); setPruebaActiva(null); }}
-              className={`px-3.5 py-2.5 min-h-[40px] rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
+              className={`px-3.5 min-h-11 md:min-h-9 inline-flex items-center rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
                 activo
                   ? 'border-current text-white'
                   : 'border-white/10 text-fg-faint hover:text-fg-secondary hover:border-white/20'
@@ -176,10 +176,10 @@ export default function HistorialPruebas({ atletaId }) {
       {/* Drill-down: selector de prueba concreta dentro del sub-pilar */}
       {pruebasDelPilar.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[8px] text-fg-faint font-bold uppercase tracking-widest">Prueba:</span>
+          <span className="text-3xs text-fg-faint font-bold uppercase tracking-widest">Prueba:</span>
           <button
             onClick={() => setPruebaActiva(null)}
-            className={`px-3 py-2 min-h-[36px] rounded-md text-2xs font-bold uppercase tracking-widest border transition ${
+            className={`px-3 min-h-11 md:min-h-9 inline-flex items-center rounded-md text-2xs font-bold uppercase tracking-widest border transition ${
               !pruebaActiva ? 'bg-white/10 border-white/30 text-white' : 'border-white/10 text-fg-faint hover:text-fg-secondary'
             }`}
           >
@@ -189,7 +189,7 @@ export default function HistorialPruebas({ atletaId }) {
             <button
               key={pt}
               onClick={() => setPruebaActiva(pt)}
-              className={`px-3 py-2 min-h-[36px] rounded-md text-2xs font-bold uppercase tracking-widest border transition ${
+              className={`px-3 min-h-11 md:min-h-9 inline-flex items-center rounded-md text-2xs font-bold uppercase tracking-widest border transition ${
                 pruebaActiva === pt
                   ? 'border-current text-white'
                   : 'border-white/10 text-fg-faint hover:text-fg-secondary'
@@ -206,17 +206,17 @@ export default function HistorialPruebas({ atletaId }) {
       {!pruebaActiva && datos.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-surface-sunken border border-white/5 rounded-control p-3 text-center">
-            <p className="text-[8px] text-fg-faint font-bold uppercase tracking-widest mb-1">Último</p>
+            <p className="text-3xs text-fg-faint font-bold uppercase tracking-widest mb-1">Último</p>
             <p className="text-2xl font-black" style={{ color: pilarSeleccionado?.color }}>{ultimo}</p>
           </div>
           <div className="bg-surface-sunken border border-white/5 rounded-control p-3 text-center">
-            <p className="text-[8px] text-fg-faint font-bold uppercase tracking-widest mb-1">Mejor</p>
+            <p className="text-3xs text-fg-faint font-bold uppercase tracking-widest mb-1">Mejor</p>
             <p className="text-2xl font-black text-brand">
               {Math.max(...datos.map(d => d.score))}
             </p>
           </div>
           <div className="bg-surface-sunken border border-white/5 rounded-control p-3 text-center">
-            <p className="text-[8px] text-fg-faint font-bold uppercase tracking-widest mb-1">Tendencia</p>
+            <p className="text-3xs text-fg-faint font-bold uppercase tracking-widest mb-1">Tendencia</p>
             <div className="flex justify-center mt-1">
               <Tendencia size={24} className={tendenciaColor} />
             </div>

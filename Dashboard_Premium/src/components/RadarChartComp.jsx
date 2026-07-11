@@ -60,7 +60,13 @@ export default function RadarChartComp({ atleta, todosLosAtletas, showCategoria 
 
   return (
     <div className="w-full h-64 sm:h-56 relative mt-4">
-      <ResponsiveContainer width="100%" height="100%">
+      {/* initialDimension: sin esto, Recharts mide el contenedor en el mismo
+          tick del mount (antes de que el ResizeObserver reporte el tamaño
+          real) y advierte "width(-1) height(-1)" — benigno hoy, pero es la
+          misma condición de carrera que en un dispositivo lento deja el
+          radar invisible (auditoría atleta 2026-07-09). El valor es solo
+          la mejor suposición para el primer frame; el real llega enseguida. */}
+      <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 320, height: 256 }}>
         <RadarChart cx="50%" cy="50%" outerRadius={esMovil ? '68%' : '60%'} data={data}>
           <defs>
             <filter id={`glow-${atleta.id}`} x="-20%" y="-20%" width="140%" height="140%">
@@ -136,18 +142,18 @@ export default function RadarChartComp({ atleta, todosLosAtletas, showCategoria 
         <div className="flex items-center justify-center space-x-6 mt-1">
           <div className="flex items-center space-x-1.5">
             <div className="w-2 h-2 rounded-full bg-brand shadow-[0_0_6px_rgba(255,215,0,0.5)]"></div>
-            <span className="text-[8px] text-fg-secondary font-bold uppercase tracking-widest">Atleta</span>
+            <span className="text-3xs text-fg-secondary font-bold uppercase tracking-widest">Atleta</span>
           </div>
           {showCategoria && (
             <div className="flex items-center space-x-1.5 opacity-80">
               <div className="w-2 h-2 rounded-full bg-success"></div>
-              <span className="text-[8px] text-fg-secondary font-bold uppercase tracking-widest">Categoría</span>
+              <span className="text-3xs text-fg-secondary font-bold uppercase tracking-widest">Categoría</span>
             </div>
           )}
           {showClub && (
             <div className="flex items-center space-x-1.5 opacity-60">
               <div className="w-2 h-2 rounded-full bg-white/20"></div>
-              <span className="text-[8px] text-fg-secondary font-bold uppercase tracking-widest">Club</span>
+              <span className="text-3xs text-fg-secondary font-bold uppercase tracking-widest">Club</span>
             </div>
           )}
         </div>
