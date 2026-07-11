@@ -164,6 +164,10 @@ export async function evaluarSesion(sesionId, { se_logro, notas_evaluacion }) {
   return data;
 }
 
+// Lanza si la consulta falla: devolver [] aquí sería indistinguible de "sin
+// sesiones registradas todavía" (auditoría UX owner 2026-07-09) — quien
+// llama decide cómo mostrar el error, en vez de que el historial se vea
+// silenciosamente vacío.
 export async function fetchSesionesControl({ grupoId = null, atletaId = null, limit = 20 } = {}) {
   let q = supabase
     .from('sesiones_control')
@@ -177,6 +181,6 @@ export async function fetchSesionesControl({ grupoId = null, atletaId = null, li
   if (grupoId) q = q.eq('grupo_id', grupoId);
   if (atletaId) q = q.eq('atleta_id', atletaId);
   const { data, error } = await q;
-  if (error) { console.error(error); return []; }
+  if (error) { console.error(error); throw error; }
   return data || [];
 }
