@@ -255,6 +255,8 @@ El rol **no** cambia tokens (mismo dark premium para todos) — cambia jerarquí
 | `#121214`, `#0d0d0f`, `#18181b` sueltos | `surface-card` / `surface-sunken` / `surface-raised` |
 | `text-[9px]` / `text-[10px]` + `tracking-[0.2em]` | `text-3xs` / `text-2xs` + `tracking-eyebrow` |
 | `text-gray-400/500/600` | `text-fg-secondary` / `text-fg-muted` / `text-fg-faint` |
+
+**Nota de contraste pendiente** (auditoría padres 2026-07-09): `fg-muted` (#6B7280 sobre `surface-base` #09090B) mide ≈4.12:1, bajo el umbral AA de 4.5:1 para texto normal — se usa en `text-2xs`/`text-3xs` (9-10px) para fechas, contadores y labels de apoyo en toda la app. `fg-faint` (#4B5563, ≈2.6:1) está documentado arriba como "solo decorativo, nunca información": si un uso muestra información real (no decoración), usar `fg-muted` como mínimo, nunca `fg-faint` — bug real encontrado y corregido en `EstadoCuentaPadre.jsx` ("Cargando…" usaba `fg-faint`). Subir el hex base de `fg-muted` es un cambio de alcance multi-portal (ya usado en coach/atleta/padres) — no se aplica unilateralmente aquí; queda como decisión pendiente del owner del design system.
 | `text-emerald-400`, `bg-emerald-500/10`… | `text-success-soft`, `bg-success/10`… |
 | `rounded-3xl` / `rounded-2xl` / `rounded-xl` (en su rol) | `rounded-card` / `rounded-panel` / `rounded-control` |
 | `shadow-[0_0_20px_rgba(255,215,0,0.4)]` | `shadow-glow-gold` |
