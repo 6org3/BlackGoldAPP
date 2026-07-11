@@ -98,6 +98,9 @@ export function resolverAudienciaLocal(atletas = [], { segmento_tipo, segmento_p
   return { atletas: seleccion.length, seleccion };
 }
 
+// Lanza si la consulta falla: devolver [] aquí sería indistinguible de "sin
+// mensajes todavía" (auditoría UX owner 2026-07-09) — quien llama decide
+// cómo mostrar el error, en vez de que el feed se vea silenciosamente vacío.
 export async function fetchComunicaciones({ tipo = null, limit = 30 } = {}) {
   let q = supabase
     .from('comunicaciones')
@@ -109,7 +112,7 @@ export async function fetchComunicaciones({ tipo = null, limit = 30 } = {}) {
     .limit(limit);
   if (tipo) q = q.eq('tipo', tipo);
   const { data, error } = await q;
-  if (error) { console.error(error); return []; }
+  if (error) { console.error(error); throw error; }
   return data || [];
 }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Megaphone, Users, User, UserCheck, Layers, Tag, Calendar, Filter,
-  Search, Send, MessageSquare, CheckCircle2, UsersRound,
+  Search, Send, MessageSquare, CheckCircle2, UsersRound, AlertTriangle,
 } from 'lucide-react';
 import {
   crearComunicacion, fetchComunicaciones, generarLinkWhatsApp,
@@ -33,6 +33,7 @@ const iconSegmento = (c) => SEGMENTO_CONFIG[c.segmento_tipo]?.icon || Megaphone;
 const colorSegmento = (c) => SEGMENTO_CONFIG[c.segmento_tipo]?.color || 'text-fg-secondary bg-white/5 border-white/10';
 
 export default function AdminComunicaciones({ user, atletas = [] }) {
+  const club = user?.club;
   const [comunicaciones, setComunicaciones] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [gruposByAtleta, setGruposByAtleta] = useState({});
@@ -48,17 +49,24 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [errorCarga, setErrorCarga] = useState(false);
 
   const load = useCallback(async () => {
-    const [c, g, m] = await Promise.all([
-      fetchComunicaciones({ limit: 30 }),
-      fetchGrupos(user?.club),
-      fetchMembresiaGrupos(),
-    ]);
-    setComunicaciones(c);
-    setGrupos(g);
-    setGruposByAtleta(m);
-  }, [user?.club]);
+    try {
+      const [c, g, m] = await Promise.all([
+        fetchComunicaciones({ limit: 30 }),
+        fetchGrupos(club),
+        fetchMembresiaGrupos(),
+      ]);
+      setComunicaciones(c);
+      setGrupos(g);
+      setGruposByAtleta(m);
+      setErrorCarga(false);
+    } catch (e) {
+      console.error('Error cargando comunicaciones:', e);
+      setErrorCarga(true);
+    }
+  }, [club]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -341,8 +349,23 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
         {/* PANEL DERECHO: Feed de mensajes */}
         <div>
           <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Feed Reciente</h3>
+          {errorCarga && (
+            <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-panel border border-danger/40 bg-danger/10 p-4">
+              <AlertTriangle size={18} className="text-danger-soft shrink-0" />
+              <p className="flex-1 min-w-[180px] text-xs font-bold text-danger-soft">
+                No se pudo cargar el feed. Esto no significa que esté vacío — puede ser un problema de conexión.
+              </p>
+              <button
+                type="button"
+                onClick={load}
+                className="inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-control bg-danger/20 border border-danger/50 text-danger-soft text-2xs font-black uppercase tracking-widest hover:bg-danger/30 transition"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
           <div className="space-y-3 lg:max-h-[70vh] lg:overflow-y-auto overscroll-contain lg:pr-1">
-            {comunicaciones.length === 0 && (
+            {!errorCarga && comunicaciones.length === 0 && (
               <div className="text-center py-16 text-fg-faint">
                 <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-bold">No hay mensajes aún</p>
