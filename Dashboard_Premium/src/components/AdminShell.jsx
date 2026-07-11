@@ -36,9 +36,13 @@ export default function AdminShell({ children, padding = 'p-6 md:p-10', conGlow 
   return (
     <CopilotoProvider fabElevado={fabElevado}>
     <div className="flex h-dvh bg-surface-base overflow-hidden text-white">
+      {/* ocultarFabModoCancha: el FAB amarillo del Sidebar taparía el ítem
+          "Misiones" de la BottomNav en móvil; Modo Cancha queda accesible
+          desde el drawer y el CTA del Inicio (mismo criterio que HomeShell). */}
       <Sidebar
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
+        ocultarFabModoCancha
       />
 
       <main className={`flex-1 overflow-y-auto overflow-x-hidden relative z-0 ${padding} ${itemsNav ? 'pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-[calc(env(safe-area-inset-bottom)+24px)]' : 'pb-[calc(env(safe-area-inset-bottom)+24px)]'}`}>
