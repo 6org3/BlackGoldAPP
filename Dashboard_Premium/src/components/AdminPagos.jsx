@@ -83,13 +83,19 @@ export default function AdminPagos({ user, atletas = [] }) {
     load();
   }, [vencidosListos, load]);
 
-  // Métricas (una sola pasada, memoizada)
-  const { pagados, pendientes, vencidos, becados, recaudado, porCobrar } = useMemo(() => {
-    const m = { pagados: 0, pendientes: 0, vencidos: 0, becados: 0, recaudado: 0, porCobrar: 0 };
+  // Métricas (una sola pasada, memoizada).
+  // Un atleta sin grupo asignado igual recibe una fila de pago (fallback de
+  // precio, generar_pagos_mes v28) — sin eso, "Vencidos"/"Por Cobrar" cuentan
+  // como alerta real algo que en realidad es "nadie configuró su plan
+  // todavía". Esos pagos se separan en `sinPlan`, no en vencidos/pendientes.
+  const { pagados, pendientes, vencidos, becados, sinPlan, recaudado, porCobrar } = useMemo(() => {
+    const m = { pagados: 0, pendientes: 0, vencidos: 0, becados: 0, sinPlan: 0, recaudado: 0, porCobrar: 0 };
     pagos.forEach(p => {
       const monto = p.monto_final || 0;
       const pagado = p.monto_pagado || 0;
+      const sinGrupo = !p.atletas?.grupo_id;
       if (p.estado === 'Pagado') { m.pagados += 1; m.recaudado += monto; }
+      else if (sinGrupo && (p.estado === 'Pendiente' || p.estado === 'Vencido')) { m.sinPlan += 1; m.recaudado += pagado; m.porCobrar += monto - pagado; }
       else if (p.estado === 'Pendiente' || p.estado === 'Por Verificar') { m.pendientes += 1; m.porCobrar += monto - pagado; }
       else if (p.estado === 'Abonado') { m.pendientes += 1; m.recaudado += pagado; m.porCobrar += monto - pagado; }
       else if (p.estado === 'Vencido') { m.vencidos += 1; m.recaudado += pagado; m.porCobrar += monto - pagado; }
@@ -345,11 +351,12 @@ export default function AdminPagos({ user, atletas = [] }) {
       </div>
 
       {/* Stats Bar */}
-      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="relative z-10 grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         {[
           { label: 'Recaudado', value: `$${recaudado.toFixed(0)}`, sub: `${pagados} pagos completos`, color: 'text-success-soft', border: 'border-success/20' },
           { label: 'Por Cobrar', value: `$${porCobrar.toFixed(0)}`, sub: `${pendientes} pendientes`, color: 'text-yellow-400', border: 'border-yellow-500/20' },
           { label: 'Vencidos', value: vencidos, sub: 'requieren atención', color: 'text-danger-soft', border: 'border-danger/20' },
+          { label: 'Sin Plan', value: sinPlan, sub: 'falta asignar grupo', color: 'text-caution-soft', border: 'border-caution/20' },
           { label: 'Becados', value: becados, sub: 'del grupo', color: 'text-mental-soft', border: 'border-mental/20' },
         ].map(stat => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
@@ -385,7 +392,13 @@ export default function AdminPagos({ user, atletas = [] }) {
         ) : (
           pagos.map((pago, idx) => {
             const atletaNombre = pago.atletas?.usuarios?.nombre || '—';
-            const cfg = ESTADO_CFG[pago.estado] || ESTADO_CFG.Pendiente;
+            // Sin grupo asignado + aún no pagado: la fila arrastra el precio
+            // fallback de generar_pagos_mes, no un plan real — no se etiqueta
+            // como "Vencido"/"Pendiente" para no leerse como alerta real.
+            const esSinPlan = !pago.atletas?.grupo_id && (pago.estado === 'Pendiente' || pago.estado === 'Vencido');
+            const cfg = esSinPlan
+              ? { color: 'text-caution-soft bg-caution/10 border-caution/30', icon: Hourglass }
+              : (ESTADO_CFG[pago.estado] || ESTADO_CFG.Pendiente);
             const Icon = cfg?.icon;
             const dias = diasParaVencer(pago.fecha_vencimiento);
             const alertaVencimiento = pago.estado === 'Pendiente' && dias !== null && dias <= 3;
@@ -430,7 +443,7 @@ export default function AdminPagos({ user, atletas = [] }) {
                   </span>
                   <div className={`flex items-center space-x-1 px-2 py-1 rounded-lg border text-3xs font-black ${cfg?.color}`}>
                     {Icon && <Icon size={11} />}
-                    <span>{pago.estado}</span>
+                    <span>{esSinPlan ? 'Sin Plan' : pago.estado}</span>
                   </div>
                 </div>
 

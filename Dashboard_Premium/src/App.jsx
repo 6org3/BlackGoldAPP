@@ -60,7 +60,11 @@ function App() {
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
-      <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-12 relative">
+      {/* pb móvil reserva espacio para el FAB flotante "Modo Cancha" que
+          Sidebar monta en esta superficie (bottom 24px + ~56px de alto) — si
+          no, queda flotando sobre la última tarjeta al hacer scroll hasta
+          el final. */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-12 pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-12 relative">
         {/* Blobs decorativos solo en desktop: el blur gigante + mix-blend
             fuerza composición GPU cara en móviles de gama baja. */}
         <div className="hidden md:block absolute top-[-20%] left-[10%] w-[800px] h-[600px] bg-brand/5 blur-[150px] pointer-events-none rounded-full mix-blend-screen"></div>

@@ -160,6 +160,9 @@ Receta base: `text-2xs font-black uppercase tracking-eyebrow px-2.5 py-1 rounded
 - **Neutro:** `bg-white/10 border-white/20 text-fg`
 - **Rango:** emoji + `text-rank-{id}` con `border-rank-{id}/30 bg-rank-{id}/5`
 - **Dot de estado en vivo:** `size-2 rounded-full bg-{acento} animate-pulse` (o `animate-pulse-glow` si debe irradiar)
+- **Estado derivado / sin confirmar** (dato generado automáticamente — placeholder de migración, cálculo sin plan asignado, valor por defecto que nadie revisó): nunca usar el mismo badge/color que el dato real equivalente, aunque coincida en texto. Usar tono `caution` (`text-caution-soft bg-caution/10 border-caution/30`) con una etiqueta que nombre la ausencia ("Sin representante confirmado", "Sin plan asignado") en vez de mostrar el valor generado como si fuera dato confirmado. Precedente: representante placeholder de migración en Control de Pagos (`AdminPagos.jsx`).
+
+En listas grandes (roster, tabla de pagos), no dupliques un mismo dato con dos representaciones (nombre bonito + su `id`/slug crudo al lado) — si el crudo no aporta información nueva, se elimina, no se muestra "por si acaso".
 
 ### 4.4 Barras de progreso
 
@@ -180,6 +183,10 @@ Backdrop `bg-black/80 backdrop-blur-sm`; contenedor `bg-surface-raised border bo
 
 Ítem: `rounded-control text-2xs font-black uppercase tracking-eyebrow min-h-11`.
 Activo: `bg-brand/10 text-brand border border-brand/20` (+ indicador `w-1 rounded-full bg-brand` lateral en sidebar / inferior en tabs). Inactivo: `text-fg-muted hover:text-fg hover:bg-white/5`. Móvil: bottom bar con safe-area (`pb-[env(safe-area-inset-bottom)]`).
+
+**Filtros colapsables en móvil:** cuando una vista tiene 3+ filtros (categoría, nivel, posición, género…), no los muestres siempre expandidos en el breakpoint móvil — se comen la pantalla antes de la primera tarjeta de contenido. Patrón canónico (`AdminAtletasFiltersPanel.jsx`): botón "Filtros" (ícono `Filter` + dot `bg-brand animate-pulse` si hay filtros activos) que despliega el panel con `AnimatePresence`/`height: 0 → auto`. En desktop (`lg:` o el breakpoint que ya use la vista) los filtros pueden quedar siempre visibles inline — el colapso es un problema específico de móvil, no hace falta imponerlo arriba de ese breakpoint.
+
+**Espacio reservado bajo contenido con FAB flotante:** una superficie que monta `BottomNav` (74px + safe-area) y el FAB del Copiloto (`CopilotoLauncher`, otros 16px de offset + 48px de alto sobre la BottomNav) debe reservar como `padding-bottom` del contenido scrolleable la suma de ambos, no solo la altura de la BottomNav — de lo contrario el FAB queda flotando sobre la última tarjeta visible al hacer scroll hasta el final.
 
 ### 4.8 Secciones de dashboard
 
