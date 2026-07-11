@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, User } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
@@ -6,6 +6,17 @@ import { useAuth } from '../AuthContext';
 
 export default function EditarPerfilModal({ onClose, onRefresh }) {
   const { user } = useAuth();
+  const closeBtnRef = useRef(null);
+
+  // Semántica de diálogo (mismo patrón que ModoCanchaModal): foco inicial
+  // en Cerrar y cierre con Escape.
+  useEffect(() => {
+    closeBtnRef.current?.focus();
+    const onKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   const [form, setForm] = useState({
     nombre: user.nombre || '',
     cedula: user.cedula || '',
@@ -67,13 +78,16 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <motion.div 
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="editar-perfil-title"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         className="glass-card max-w-lg w-full rounded-panel p-6 relative max-h-[90dvh] overflow-y-auto"
       >
-        <button onClick={onClose} aria-label="Cerrar" className="absolute right-2 top-2 p-3 text-fg-muted hover:text-white">
+        <button ref={closeBtnRef} onClick={onClose} aria-label="Cerrar" className="absolute right-2 top-2 p-3 text-fg-muted hover:text-white">
           <X size={20} />
         </button>
 
@@ -82,7 +96,7 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
             <User className="text-brand" size={20} />
           </div>
           <div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight">Editar Perfil</h3>
+            <h3 id="editar-perfil-title" className="text-xl font-black text-white uppercase tracking-tight">Editar Perfil</h3>
             <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest">Actualiza tus datos personales</p>
           </div>
         </div>

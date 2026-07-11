@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { fetchEstadoCuentaPadre, fetchClubConfig, subirComprobante } from '../api/pagosService';
 import { renderPlantilla, linkWhatsApp } from '../lib/plantillasWhatsApp';
+import { useToast } from '../hooks/useToast';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -31,6 +32,7 @@ function conceptoDe(pago) {
  * `hijo` viene de fetchPadreData: hijo.id = usuario, hijo.atleta_id = fila atletas.
  */
 export default function EstadoCuentaPadre({ hijo, user }) {
+  const { mostrarToast, pedirConfirmacion } = useToast();
   const [cuenta, setCuenta] = useState({ abiertos: [], historial: [] });
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ export default function EstadoCuentaPadre({ hijo, user }) {
       await subirComprobante({ pagoId: pago.id, atletaId: hijo.atleta_id, file }, user.id);
       await load();
       // Aviso opcional al club con un toque
-      if (config?.whatsapp_club && window.confirm('Comprobante subido ✅ ¿Avisar al club por WhatsApp?')) {
+      if (config?.whatsapp_club && await pedirConfirmacion('Comprobante subido ✅ ¿Avisar al club por WhatsApp?')) {
         const texto = renderPlantilla('aviso_comprobante_subido', {
           nombre_atleta: hijo.nombre, concepto: conceptoDe(pago),
         });
@@ -67,7 +69,7 @@ export default function EstadoCuentaPadre({ hijo, user }) {
       }
     } catch (e) {
       console.error(e);
-      alert(`No se pudo subir el comprobante: ${e.message}`);
+      mostrarToast(`No se pudo subir el comprobante: ${e.message}`, { tipo: 'error' });
     } finally {
       setSubiendoId(null);
     }
@@ -91,7 +93,7 @@ export default function EstadoCuentaPadre({ hijo, user }) {
       </div>
 
       {loading ? (
-        <p className="text-sm text-fg-faint font-bold py-2">Cargando…</p>
+        <p className="text-sm text-fg-muted font-bold py-2">Cargando…</p>
       ) : alDia ? (
         <div className="flex items-center justify-between p-3 bg-success/10 border border-success/30 rounded-control">
           <span className="text-2xs font-bold text-success uppercase tracking-widest">Al Día 🖤💛</span>
