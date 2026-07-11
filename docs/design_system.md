@@ -76,6 +76,8 @@ La app se siente como el túnel de vestuarios de un club profesional de noche: *
 Nuevas utilidades: `text-3xs` (9px), `text-2xs` (10px), `tracking-eyebrow` (0.2em). Reemplazan `text-[9px]`, `text-[10px]`, `tracking-[0.2em]`.
 Números siempre con `tabular-nums`. Nunca usar pesos que Outfit no carga (500/700).
 
+**Piso legible: `text-3xs` (9px) es el tamaño mínimo permitido, en cualquier pantalla.** No existe token por debajo — un `text-[8px]` o similar es un arbitrario prohibido (§8) además de quedar bajo lo cómodo en móvil (auditoría atleta 2026-07-09: labels de apoyo repetidas en 8px en `StatCard`, patrón "label chico + valor grande" perfectamente válido, pero con el label 1px por debajo del piso).
+
 ### 2.3 Espaciado y radios
 
 - Escala Tailwind de 4px. Tarjeta principal: `p-6 md:p-8`; tarjeta compacta/panel: `p-4` o `p-5`; gaps de grillas: `gap-4 md:gap-6`.

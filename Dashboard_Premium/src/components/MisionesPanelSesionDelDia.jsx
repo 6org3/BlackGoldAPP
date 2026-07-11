@@ -53,14 +53,14 @@ export default function SesionDelDia({
                   { label: 'Trabajo Equipo', val: observacionHoy.trabajo_equipo },
                 ].map(({ label, val }) => (
                   <div key={label}>
-                    <p className="text-[8px] text-fg-muted font-bold uppercase tracking-widest">{label}</p>
+                    <p className="text-3xs text-fg-muted font-bold uppercase tracking-widest">{label}</p>
                     <p className="text-xs font-black text-white">{val}/10</p>
                   </div>
                 ))}
               </div>
               {observacionHoy.insignia && (
                 <div>
-                  <p className="text-[8px] text-brand font-bold uppercase tracking-widest mb-1">Insignias Obtenidas</p>
+                  <p className="text-3xs text-brand font-bold uppercase tracking-widest mb-1">Insignias Obtenidas</p>
                   <p className="text-xs font-bold text-white">{observacionHoy.insignia}</p>
                 </div>
               )}
