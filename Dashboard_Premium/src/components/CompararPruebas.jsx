@@ -46,7 +46,9 @@ const FILA_SELECCIONADA = 'rgba(255,215,0,0.06)';
 // Gráfico 1 — dot-plot de distribución (SVG propio, geometría distChart)
 // ────────────────────────────────────────────────────────────────
 function DistribucionChart({ filas, mediaCategoria, mediaClub, unidad, invertido, seleccionadoId, onSelect }) {
-  const W = 330, rowH = 30, top = 24, x0 = 58, x1 = 306;
+  // rowH 44: cada fila es un target táctil (HIG/design system §4.3) — el SVG
+  // renderiza ≈1:1 con sus unidades de viewBox en el ancho móvil del card.
+  const W = 330, rowH = 44, top = 24, x0 = 58, x1 = 306;
   const H = top + filas.length * rowH + 6;
 
   const todos = [...filas.map(f => f.valor), mediaCategoria, mediaClub].filter(v => v != null);
@@ -93,7 +95,7 @@ function DistribucionChart({ filas, mediaCategoria, mediaClub, unidad, invertido
             }}
             className="cursor-pointer focus:outline-none focus-visible:outline-2 focus-visible:outline-brand"
           >
-            <rect x="0" y={y - 13} width={W} height="26" rx="6" fill={sel ? FILA_SELECCIONADA : 'transparent'} />
+            <rect x="0" y={y - rowH / 2 + 2} width={W} height={rowH - 4} rx="6" fill={sel ? FILA_SELECCIONADA : 'transparent'} />
             <text x="6" y={y} fill={sel ? COLORS.gold[500] : COLORS.fg.secondary} fontSize="11" fontWeight={sel ? 800 : 600} dominantBaseline="middle">
               {primerNombre(f.nombre)}
             </text>
@@ -395,7 +397,7 @@ export default function CompararPruebas({ user }) {
                     type="button"
                     aria-pressed={activa}
                     onClick={() => setCategoriaElegida(cat)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
+                    className={`inline-flex items-center min-h-11 md:min-h-9 rounded-full px-3.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
                       activa
                         ? 'bg-brand/10 border-brand text-brand'
                         : 'bg-surface-card border-white/10 text-fg-secondary hover:border-brand/30 hover:text-white'
@@ -419,7 +421,7 @@ export default function CompararPruebas({ user }) {
                   type="button"
                   aria-pressed={activa}
                   onClick={() => setPruebaElegida(p.nombre)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
+                  className={`inline-flex items-center min-h-11 md:min-h-9 rounded-full px-3.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
                     activa
                       ? 'bg-brand/10 border-brand text-brand'
                       : 'bg-surface-card border-white/10 text-fg-secondary hover:border-brand/30 hover:text-white'

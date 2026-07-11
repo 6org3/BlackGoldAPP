@@ -584,12 +584,12 @@ export default function AdminMisiones() {
 
       {/* Banco de Misiones — con curaduría del catálogo (D3): las misiones
           propuestas por el MCP/IA nacen inactivas hasta que el coach las active. */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h3 className="text-xl font-black text-white uppercase tracking-tight">Banco de Misiones</h3>
         <div className="flex flex-wrap gap-1 items-center">
           {[['todas', 'Todas'], ['activas', 'Activas'], ['propuestas', 'Propuestas']].map(([id, label]) => (
             <button key={id} onClick={() => setFiltroBanco(id)}
-              className={`px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
+              className={`inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
                 filtroBanco === id
                   ? 'bg-brand/15 border-brand/40 text-brand'
                   : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'
@@ -600,7 +600,7 @@ export default function AdminMisiones() {
           <span className="w-px h-5 bg-white/10 mx-1" />
           {[['todos', 'Todo lugar'], ['cancha', 'Cancha'], ['casa', 'Casa']].map(([id, label]) => (
             <button key={id} onClick={() => setFiltroContexto(id)}
-              className={`px-3 py-1.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
+              className={`inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
                 filtroContexto === id
                   ? 'bg-brand/15 border-brand/40 text-brand'
                   : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'

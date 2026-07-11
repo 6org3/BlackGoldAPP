@@ -315,7 +315,7 @@ export default function AdminPagos({ user, atletas = [] }) {
       {/* Toolbar */}
       <div className="relative z-10 flex flex-wrap gap-3 mb-6">
         {/* Mes / Año */}
-        <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-control px-4 py-2.5">
+        <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-control px-4 min-h-11 md:min-h-9">
           <div className="relative flex items-center">
             <select value={mes} onChange={e => setMes(Number(e.target.value))}
               className="bg-transparent text-sm text-white font-bold focus:outline-none cursor-pointer appearance-none pr-5">
@@ -332,7 +332,7 @@ export default function AdminPagos({ user, atletas = [] }) {
         <div className="flex items-center flex-wrap gap-1 bg-white/5 border border-white/10 rounded-control p-1">
           {[{ id: 'Todos', nombre: 'Todos' }, ...grupos].map(g => (
             <button key={g.id} onClick={() => setGrupoId(g.id)}
-              className={`px-3 py-2 min-h-10 rounded-lg text-2xs font-black uppercase tracking-widest transition ${
+              className={`px-3.5 min-h-11 md:min-h-9 inline-flex items-center rounded-lg text-2xs font-black uppercase tracking-widest transition ${
                 grupoId === g.id ? 'bg-brand/10 text-brand border border-brand/30' : 'text-fg-muted hover:text-white'
               }`}>{g.nombre}</button>
           ))}

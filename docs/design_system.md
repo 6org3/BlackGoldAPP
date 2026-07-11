@@ -155,11 +155,25 @@ Estados: hover desktop via `.glow-border`; loading con `.skeleton`; nunca elevar
 
 ### 4.3 Chips / Badges
 
-Receta base: `text-2xs font-black uppercase tracking-eyebrow px-2.5 py-1 rounded-full border`.
+Dos familias con contratos distintos — la primera pregunta ante un chip es **¿se toca o solo se lee?**
+
+**Badge informativo (no interactivo):** `text-2xs font-black uppercase tracking-eyebrow px-2.5 py-1 rounded-full border`. Puede ser compacto porque nadie lo toca.
 - **Semántico:** `bg-{acento}/10 border-{acento}/25 text-{acento}-soft`
 - **Neutro:** `bg-white/10 border-white/20 text-fg`
 - **Rango:** emoji + `text-rank-{id}` con `border-rank-{id}/30 bg-rank-{id}/5`
 - **Dot de estado en vivo:** `size-2 rounded-full bg-{acento} animate-pulse` (o `animate-pulse-glow` si debe irradiar)
+
+**Chip tocable (filtro, tab, selector de mes/tipo):** misma piel que el badge pero con piso táctil obligatorio: `min-h-11 px-3.5 inline-flex items-center` (denso desktop: `md:min-h-9`). Estado activo como la navegación: `bg-brand/10 text-brand border-brand/40`; inactivo `bg-white/5 border-white/10 text-fg-secondary`. Regla dura: **ningún control tocable baja de `min-h-11` en móvil** (auditoría coach 2026-07-09 midió chips de 22–38px en 5 pantallas — ese es el anti-patrón).
+
+### 4.3b Barra de filtros colapsable (listados con >2 controles)
+
+En móvil, los filtros no pueden costar más pantalla que el contenido (auditoría coach: 85% del primer viewport de Gestionar Atletas era filtros). Patrón canónico:
+
+- **Siempre visible:** buscador (`§4.5`) + botón ghost "Filtros" con contador de activos (`bg-white/5 border border-white/10 min-h-11` + badge `bg-brand text-on-brand` con el número).
+- **Colapsado por defecto** en `<md`; expandido en desktop si hay espacio (`md:block`).
+- El panel expandido usa `rounded-panel bg-surface-sunken border border-white/5 p-3 grid gap-2` y se anima con `animate-fade-in-up`.
+- Los combos dentro del panel siguen la receta de campo (§4.5, `min-h-11`).
+- Chips de filtros activos visibles fuera del panel (con `×` para quitar cada uno) para que el estado nunca quede oculto.
 
 ### 4.4 Barras de progreso
 
@@ -189,6 +203,8 @@ Layout por vista: **héroe/KPIs → contenido principal → secundario**, `grid 
 ### 4.9 Gráficos (Recharts — usar `CHART` de designTokens.js)
 
 Serie del atleta siempre `gold-500`; comparativas (media categoría/club) en blanco alfa — el color con significado se reserva al atleta. Grid `CHART.grid`, ejes `CHART.axis`, tooltip estilo `CHART.tooltip` (surface-top + borde white/10). Radar: fill `rgba(255,215,0,0.15)`. Sparklines: barras `w-1 bg-brand rounded-sm opacity-60`.
+
+**Restricción CVD de `CHART.pilares`** (validador dataviz, superficie `#121214`): `agilidad #A855F7` y `tiro #3B82F6` son casi idénticos en visión deután (ΔE 1.9). La paleta solo es válida con codificación secundaria: cada marca lleva su etiqueta de pilar (eje o direct label). Nunca usarla como series simultáneas identificadas solo por color (p. ej. multilínea sin etiquetas) ni cambiar el orden fijo de asignación por pilar.
 
 ---
 
