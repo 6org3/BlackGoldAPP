@@ -86,10 +86,11 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const sinRevisar = atletasFiltrados.filter(a => !revisados.has(a.id)).length;
 
   const handleGuardar = async () => {
-    // Nadie tocó ni una sola fila y no había asistencia previa guardada para
-    // hoy: pedir una confirmación explícita antes de grabar el grupo entero
-    // como "Presente" sin que el coach haya revisado a nadie.
-    if (sinRevisar === total && total > 0 && !pidiendoConfirmacion) {
+    // Cualquier fila sin revisar (no solo cuando son TODAS) se grabaría en
+    // silencio como "Presente" por defecto — pedir confirmación explícita
+    // también cuando el coach revisó solo una parte del grupo y dejó el
+    // resto sin tocar, que es el caso más probable con un grupo grande.
+    if (sinRevisar > 0 && !pidiendoConfirmacion) {
       setPidiendoConfirmacion(true);
       return;
     }
@@ -278,7 +279,9 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         )}
         {pidiendoConfirmacion && (
           <p className="text-xs text-caution-soft font-bold text-right" role="alert">
-            No revisaste a ningún atleta — se guardaría a los {total} como "Presente" por defecto.
+            {sinRevisar === total
+              ? `No revisaste a ningún atleta — se guardaría a los ${total} como "Presente" por defecto.`
+              : `Quedan ${sinRevisar} de ${total} atletas sin revisar — se guardarían como "Presente" por defecto.`}
           </p>
         )}
         <button

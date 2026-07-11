@@ -1,4 +1,5 @@
-import { Search, ListFilter, Target, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import { Search, ListFilter, Target, ChevronDown, Filter } from 'lucide-react';
 
 const categorias = ['Todas', 'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)', 'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores'];
 const posiciones = ['Todas', 'Generador', 'Escolta', 'Alero Físico', 'Ala-Pívot', 'Ancla Fuerte'];
@@ -11,12 +12,15 @@ const SelectChevron = () => (
 );
 
 export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltroChange, ordenarPor, setOrdenarPor, setShowAsignador }) {
+  const [showFilters, setShowFilters] = useState(false);
+  const filtrosActivos = filtros.genero !== 'Todos' || filtros.categoria !== 'Todas' || filtros.posicion !== 'Todas' || filtros.nivelDesarrollo !== 'Todos';
+
   return (
     <div className="flex flex-wrap items-center justify-between mb-8 relative z-10 gap-4 bg-white/5 border border-white/10 p-4 rounded-panel backdrop-blur-md">
 
-      {/* Buscador */}
-      <div className="w-full lg:w-1/4 min-w-[200px]">
-        <div className="relative">
+      {/* Buscador + toggle de filtros (mobile) */}
+      <div className="w-full lg:w-1/4 min-w-[200px] flex items-center gap-2">
+        <div className="relative flex-1">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" />
           <input
             type="text"
@@ -27,9 +31,23 @@ export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltr
             className="w-full bg-surface-card border border-brand/30 text-white text-base md:text-[11px] font-bold tracking-wide rounded-control pl-9 pr-3 py-2.5 focus:outline-none focus:border-brand/60 focus:shadow-[0_0_15px_rgba(255,215,0,0.15)] transition"
           />
         </div>
+        <button
+          type="button"
+          onClick={() => setShowFilters(v => !v)}
+          aria-expanded={showFilters}
+          aria-label="Mostrar u ocultar filtros"
+          className={`lg:hidden shrink-0 flex items-center gap-1.5 px-3 py-2.5 min-h-11 rounded-control border text-2xs font-black uppercase tracking-widest transition ${
+            showFilters || filtrosActivos
+              ? 'bg-brand/10 border-brand/30 text-brand'
+              : 'bg-surface-card border-white/10 text-fg-muted'
+          }`}
+        >
+          <Filter size={14} />
+          {filtrosActivos && <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />}
+        </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto pb-2 lg:pb-0">
+      <div className={`${showFilters ? 'flex' : 'hidden'} lg:flex flex-wrap items-center gap-3 w-full lg:w-auto pb-2 lg:pb-0`}>
         <div className="flex flex-col">
           <label htmlFor="filtro-genero" className="text-2xs text-fg-muted font-bold uppercase tracking-widest mb-1 ml-1">Género</label>
           <div className="relative">
