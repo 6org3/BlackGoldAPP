@@ -299,8 +299,10 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         )}
       </div>
 
-      {/* Botón Guardar — sticky para que la acción principal quede siempre al alcance del pulgar */}
-      <div className="sticky bottom-0 z-20 -mx-6 md:-mx-12 -mb-6 md:-mb-12 px-6 md:px-12 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] bg-surface-base/90 backdrop-blur border-t border-white/5 flex flex-col items-end gap-2">
+      {/* Botón Guardar — sticky para que la acción principal quede siempre al
+          alcance del pulgar. En móvil se apoya sobre la BottomNav (bottom-[74px])
+          y suelta la safe-area, que ya la absorbe la barra; en desktop pega al borde. */}
+      <div className="sticky bottom-[74px] md:bottom-0 z-20 -mx-6 md:-mx-12 -mb-6 md:-mb-12 px-6 md:px-12 py-3 md:pb-[calc(env(safe-area-inset-bottom)+12px)] bg-surface-base/90 backdrop-blur border-t border-white/5 flex flex-col items-end gap-2">
         {errorGuardar && (
           <p className="text-xs text-danger-soft font-bold" role="alert">{errorGuardar}</p>
         )}
