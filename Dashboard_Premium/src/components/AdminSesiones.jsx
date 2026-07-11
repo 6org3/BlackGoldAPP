@@ -4,7 +4,7 @@ import {
   ClipboardList, Users, User, Calendar,
   CheckCircle2, AlertCircle, XCircle, Search, Plus,
   MessageSquare, Dumbbell, Brain, Activity, Shield, Zap,
-  Clock, ChevronRight
+  Clock, ChevronRight, AlertTriangle
 } from 'lucide-react';
 import {
   fetchGrupos, fetchEjercicios,
@@ -46,6 +46,7 @@ const TIPO_A_OBJETIVO = {
 function getTodayStr() { return new Date().toISOString().split('T')[0]; }
 
 export default function AdminSesiones({ user, atletas = [] }) {
+  const club = user?.club;
   const [modo, setModo] = useState('Grupal'); // 'Grupal' | 'Individual'
   const [grupos, setGrupos] = useState([]);
   const [ejerciciosCatalogo, setEjerciciosCatalogo] = useState([]);
@@ -57,6 +58,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
   const [saved, setSaved] = useState(false);
   const [busquedaAtleta, setBusquedaAtleta] = useState('');
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
+  const [errorCarga, setErrorCarga] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
@@ -73,18 +75,24 @@ export default function AdminSesiones({ user, atletas = [] }) {
   });
 
   const load = useCallback(async () => {
-    const [g, e, p, h] = await Promise.all([
-      fetchGrupos(user?.club),
-      fetchEjercicios(),
-      fetchPruebasEvaluacion(),
-      fetchSesionesControl({ limit: 15 }),
-    ]);
-    setGrupos(g);
-    setEjerciciosCatalogo(e);
-    setPruebasCatalogo(p);
-    setHistorial(h);
-    if (g.length > 0) setForm(f => ({ ...f, grupoId: g[0].id }));
-  }, [user?.club]);
+    try {
+      const [g, e, p, h] = await Promise.all([
+        fetchGrupos(club),
+        fetchEjercicios(),
+        fetchPruebasEvaluacion(),
+        fetchSesionesControl({ limit: 15 }),
+      ]);
+      setGrupos(g);
+      setEjerciciosCatalogo(e);
+      setPruebasCatalogo(p);
+      setHistorial(h);
+      if (g.length > 0) setForm(f => ({ ...f, grupoId: g[0].id }));
+      setErrorCarga(false);
+    } catch (e) {
+      console.error('Error cargando sesiones:', e);
+      setErrorCarga(true);
+    }
+  }, [club]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -166,8 +174,14 @@ export default function AdminSesiones({ user, atletas = [] }) {
   const handleEvaluar = async (sesionId) => {
     await evaluarSesion(sesionId, { se_logro: evalData.se_logro, notas_evaluacion: evalData.notas });
     setEvaluandoId(null);
-    const h = await fetchSesionesControl({ limit: 15 });
-    setHistorial(h);
+    try {
+      const h = await fetchSesionesControl({ limit: 15 });
+      setHistorial(h);
+    } catch (e) {
+      // La evaluación ya se guardó; si el refresh del historial falla, no
+      // hace falta bloquear el flujo — el próximo load() lo recupera.
+      console.error('Error refrescando historial tras evaluar:', e);
+    }
   };
 
   // Guarda el formulario actual como plantilla reutilizable (catalogo_sesiones):
@@ -475,8 +489,23 @@ export default function AdminSesiones({ user, atletas = [] }) {
             <h3 className="text-sm font-black text-white uppercase tracking-widest">Historial Reciente</h3>
             <span className="text-3xs text-fg-muted font-bold">{historial.length} sesiones</span>
           </div>
+          {errorCarga && (
+            <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-panel border border-danger/40 bg-danger/10 p-4">
+              <AlertTriangle size={18} className="text-danger-soft shrink-0" />
+              <p className="flex-1 min-w-[180px] text-xs font-bold text-danger-soft">
+                No se pudo cargar el historial. Esto no significa que esté vacío — puede ser un problema de conexión.
+              </p>
+              <button
+                type="button"
+                onClick={load}
+                className="inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-control bg-danger/20 border border-danger/50 text-danger-soft text-2xs font-black uppercase tracking-widest hover:bg-danger/30 transition"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
           <div className="space-y-3">
-            {historial.length === 0 && (
+            {!errorCarga && historial.length === 0 && (
               <div className="text-center py-16 text-fg-faint">
                 <ClipboardList size={32} className="mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-bold">No hay sesiones registradas</p>
