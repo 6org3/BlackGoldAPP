@@ -116,6 +116,35 @@ export async function fetchEvaluacionesProgramadasHoy(coachId) {
   return data || [];
 }
 
+/** Sesiones PLANIFICADAS de hoy del coach (hero "Hoy" del home). Vienen de
+ *  sesiones_control — la agenda que crea AdminSesiones — no de
+ *  sesiones_programadas, que solo recibe filas al iniciar Modo Cancha o
+ *  programar evaluaciones. */
+export async function fetchSesionesPlanificadasHoy(coachId) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const { data, error } = await supabase
+    .from('sesiones_control')
+    .select('*, grupos_entrenamiento (nombre, horario)')
+    .eq('coach_id', coachId)
+    .eq('fecha', hoy)
+    .order('created_at', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+/** Sesiones en curso del coach (marker [EN_CURSO] estampado por Modo Cancha).
+ *  Fuente única de la query que antes duplicaban Sidebar y ModoCanchaModal. */
+export async function fetchSesionesEnCurso(coachId) {
+  const { data, error } = await supabase
+    .from('sesiones_programadas')
+    .select('*')
+    .eq('coach_id', coachId)
+    .eq('estado', 'Programada')
+    .ilike('notas', '[EN_CURSO]%');
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
 // `club`: sin filtro de club en el select, la fila devuelta depende
 // enteramente de RLS para no mezclar grupos de otros clubes — se filtra
 // también acá como defensa en profundidad (mismo criterio que
