@@ -4,11 +4,12 @@ import {
   DollarSign, CheckCircle2, AlertTriangle, Clock,
   MessageSquare, Plus, RefreshCw, Shield, ChevronDown,
   FileSearch, Hourglass, CircleDollarSign, Ban, Paperclip,
-  Settings, PackagePlus, Send, Wallet, FileText,
+  Settings, PackagePlus, Send, Wallet, FileText, History, Download,
 } from 'lucide-react';
 import {
   fetchPagosMes, registrarTransaccion, registrarTransferenciaAsistida,
   actualizarEstadoVencidos, generarPagosMensuales, fetchGruposClub, fetchContactosPago,
+  exportarPagosCSV,
 } from '../api/pagosService';
 import { registrarEnvioWhatsApp } from '../api/comunicacionesService';
 import { renderPlantilla, normalizarTelefonoEC, linkWhatsApp } from '../lib/plantillasWhatsApp';
@@ -18,6 +19,7 @@ import ConfiguracionPagos from './ConfiguracionPagos';
 import CargosExtra from './CargosExtra';
 import ColaRecordatorios from './ColaRecordatorios';
 import CajaResumen from './CajaResumen';
+import AuditoriaPago from './AuditoriaPago';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -53,6 +55,7 @@ export default function AdminPagos({ user, atletas = [] }) {
   const [mostrarConfig, setMostrarConfig] = useState(false);
   const [mostrarCola, setMostrarCola] = useState(false);
   const [mostrarCaja, setMostrarCaja] = useState(false);
+  const [auditoriaPago, setAuditoriaPago] = useState(null); // { id, nombre } | null
 
   // Formulario inline de registro de transacción (abonos incluidos)
   const [registrandoId, setRegistrandoId] = useState(null);
@@ -348,6 +351,12 @@ export default function AdminPagos({ user, atletas = [] }) {
           <RefreshCw size={13} />
           <span>Actualizar</span>
         </button>
+
+        <button onClick={() => exportarPagosCSV(pagos, { mes, anio })} disabled={pagos.length === 0}
+          className="flex items-center space-x-1.5 px-3 py-2.5 min-h-11 border border-white/10 rounded-control text-fg-muted hover:text-white text-xs font-bold transition-colors disabled:opacity-40">
+          <Download size={13} />
+          <span>Exportar CSV</span>
+        </button>
       </div>
 
       {/* Stats Bar */}
@@ -512,12 +521,21 @@ export default function AdminPagos({ user, atletas = [] }) {
                       <span className="text-3xs text-fg-faint">{pago.fecha_pago} · {pago.forma_pago}</span>
                     </>
                   )}
+                  <button onClick={() => setAuditoriaPago({ id: pago.id, nombre: atletaNombre })}
+                    title="Ver auditoría" aria-label="Ver auditoría"
+                    className="p-2.5 min-w-11 min-h-11 flex items-center justify-center text-fg-muted hover:text-white transition-colors">
+                    <History size={16} />
+                  </button>
                 </div>
               </motion.div>
             );
           })
         )}
       </div>
+
+      {auditoriaPago && (
+        <AuditoriaPago pagoId={auditoriaPago.id} atletaNombre={auditoriaPago.nombre} onClose={() => setAuditoriaPago(null)} />
+      )}
     </div>
   );
 }

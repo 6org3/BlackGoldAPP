@@ -477,3 +477,95 @@ export async function anularCargo(pagoId, motivo) {
     .eq('id', pagoId);
   if (error) throw error;
 }
+
+// ── Auditoría formal — v30 ────────────────────────────────────────────────────
+// pagos_auditoria se alimenta sola vía trigger (trg_registrar_auditoria_pago);
+// nadie escribe aquí desde el cliente. Solo lectura, RLS ya scopea por club.
+export async function fetchAuditoriaPago(pagoId) {
+  const { data, error } = await supabase
+    .from('pagos_auditoria')
+    .select('*, usuarios (nombre)')
+    .eq('pago_id', pagoId)
+    .order('created_at', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+// ── Exportes CSV — v30 ────────────────────────────────────────────────────────
+// Generación client-side (sin librería): construir el string y descargar por
+// Blob. Escapa comillas/comas/saltos de línea por celda (RFC 4180 básico).
+const csvCelda = (valor) => {
+  const s = valor == null ? '' : String(valor);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+const descargarCSV = (filas, nombreArchivo) => {
+  const contenido = filas.map(fila => fila.map(csvCelda).join(',')).join('\r\n');
+  // BOM UTF-8 para que Excel abra tildes/ñ sin pedir encoding manual.
+  const blob = new Blob(['﻿' + contenido], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+// Un CSV por pago del mes visible en AdminPagos (mismo dataset que la tabla).
+export function exportarPagosCSV(pagos, { mes, anio } = {}) {
+  const cabecera = ['Atleta', 'Grupo', 'Concepto', 'Monto', 'Pagado', 'Saldo', 'Estado', 'Forma de pago', 'Fecha de pago', 'Vencimiento'];
+  const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const filas = pagos.map(p => [
+    p.atletas?.usuarios?.nombre || '',
+    p.atletas?.grupo_nombre || '',
+    p.concepto || (p.tipo === 'Mensualidad' ? `Mensualidad ${MESES[p.mes] || ''}` : p.tipo),
+    (p.monto_final || 0).toFixed(2),
+    (p.monto_pagado || 0).toFixed(2),
+    Math.max((p.monto_final || 0) - (p.monto_pagado || 0), 0).toFixed(2),
+    p.estado,
+    p.forma_pago || '',
+    p.fecha_pago || '',
+    p.fecha_vencimiento || '',
+  ]);
+  const sufijo = mes && anio ? `${String(mes).padStart(2, '0')}-${anio}` : new Date().toISOString().slice(0, 10);
+  descargarCSV([cabecera, ...filas], `pagos_${sufijo}.csv`);
+}
+
+// Un CSV por transacción recibida en el rango (para el contador: cada
+// entrada de dinero real, no el estado agregado del pago). Reusa el mismo
+// filtro de fechas que CajaResumen (createdAt de pago_transacciones).
+export async function fetchTransaccionesRango(desdeISO, hastaISO) {
+  const { data, error } = await supabase
+    .from('pago_transacciones')
+    .select(`
+      monto, forma_pago, referencia, created_at,
+      usuarios!pago_transacciones_registrado_por_fkey (nombre),
+      pagos!inner (
+        concepto, tipo, mes, anio,
+        atletas!inner (usuarios!inner!atletas_usuario_id_fkey (nombre))
+      )
+    `)
+    .gte('created_at', desdeISO)
+    .lte('created_at', hastaISO)
+    .order('created_at', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+export function exportarTransaccionesCSV(transacciones, { mes, anio } = {}) {
+  const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const cabecera = ['Fecha', 'Atleta', 'Concepto', 'Monto', 'Forma de pago', 'Referencia', 'Registrado por'];
+  const filas = transacciones.map(t => [
+    new Date(t.created_at).toLocaleString('es-EC'),
+    t.pagos?.atletas?.usuarios?.nombre || '',
+    t.pagos?.concepto || (t.pagos?.tipo === 'Mensualidad' ? `Mensualidad ${MESES[t.pagos.mes] || ''}` : t.pagos?.tipo || ''),
+    (t.monto || 0).toFixed(2),
+    t.forma_pago || '',
+    t.referencia || '',
+    t.usuarios?.nombre || '',
+  ]);
+  const sufijo = mes && anio ? `${String(mes).padStart(2, '0')}-${anio}` : new Date().toISOString().slice(0, 10);
+  descargarCSV([cabecera, ...filas], `transacciones_contador_${sufijo}.csv`);
+}

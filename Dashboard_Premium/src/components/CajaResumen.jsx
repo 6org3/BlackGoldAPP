@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, RefreshCw, Coins, Layers, AlertTriangle } from 'lucide-react';
-import { fetchPagosMes, fetchArqueoEfectivo } from '../api/pagosService';
+import { Wallet, RefreshCw, Coins, Layers, AlertTriangle, Download } from 'lucide-react';
+import { fetchPagosMes, fetchArqueoEfectivo, fetchTransaccionesRango, exportarTransaccionesCSV } from '../api/pagosService';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -16,12 +16,18 @@ export default function CajaResumen({ mes, anio }) {
   const [pagos, setPagos] = useState([]);
   const [arqueo, setArqueo] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exportando, setExportando] = useState(false);
+
+  // Rango del mes para transacciones (fecha de cobro, no fecha del pago
+  // generado) — el mismo criterio para arqueo de efectivo y export contable.
+  const rangoMes = useCallback(() => ({
+    desde: new Date(anio, mes - 1, 1).toISOString(),
+    hasta: new Date(anio, mes, 1).toISOString(),
+  }), [anio, mes]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    // Rango del mes para el arqueo de efectivo (transacciones, no fecha del pago).
-    const desde = new Date(anio, mes - 1, 1).toISOString();
-    const hasta = new Date(anio, mes, 1).toISOString();
+    const { desde, hasta } = rangoMes();
     const [pgs, arq] = await Promise.all([
       fetchPagosMes(mes, anio, 'Todos'),
       fetchArqueoEfectivo(desde, hasta),
@@ -29,9 +35,21 @@ export default function CajaResumen({ mes, anio }) {
     setPagos(pgs);
     setArqueo(arq);
     setLoading(false);
-  }, [mes, anio]);
+  }, [mes, anio, rangoMes]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleExportarContador = async () => {
+    setExportando(true);
+    try {
+      const { desde, hasta } = rangoMes();
+      const transacciones = await fetchTransaccionesRango(desde, hasta);
+      if (transacciones.length === 0) { alert('No hay transacciones registradas en este mes.'); return; }
+      exportarTransaccionesCSV(transacciones, { mes, anio });
+    } finally {
+      setExportando(false);
+    }
+  };
 
   const totalEfectivo = useMemo(() => arqueo.reduce((a, r) => a + r.total, 0), [arqueo]);
 
@@ -80,9 +98,16 @@ export default function CajaResumen({ mes, anio }) {
             Cierre de caja · {MESES[mes]} {anio}
           </h3>
         </div>
-        <button onClick={load} aria-label="Recargar" className="p-2 min-w-10 min-h-10 flex items-center justify-center text-fg-muted hover:text-white transition-colors">
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button onClick={handleExportarContador} disabled={exportando}
+            className="flex items-center gap-1.5 px-3 py-2 min-h-10 border border-white/10 rounded-control text-2xs font-black uppercase tracking-widest text-fg-muted hover:text-white transition-colors disabled:opacity-40">
+            <Download size={13} />
+            <span>{exportando ? 'Exportando…' : 'Exportar para el contador'}</span>
+          </button>
+          <button onClick={load} aria-label="Recargar" className="p-2 min-w-10 min-h-10 flex items-center justify-center text-fg-muted hover:text-white transition-colors">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {loading ? (
