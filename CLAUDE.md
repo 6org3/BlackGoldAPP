@@ -48,30 +48,4 @@ Black Gold — un ecosistema de club de baloncesto para el club en Sucumbíos (E
 
 ## Rack documental deportivo (conocimiento del deporte)
 
-El **rack** es el corpus de ciencia del deporte del club, indexado en memoria con BM25 por `blackgold-mcp/src/rack.js` (normaliza acentos y expande sinónimos ES/EN derivados de `packages/analytics-core/vocabulario.js`). Las tools del MCP le inyectan contexto automáticamente (`contextoRack` en `analyze_athlete_pillars`, `generate_custom_mission`, `suggest_next_test`, `analyze_athlete_readiness`, `generar_catalogo_misiones`, `generar_catalogo_pruebas`, `generar_descripciones_pruebas`) y lo exponen para consulta directa (`consultar_rack`, `listar_rack`, `mapa_conocimiento`). Todo fundamento se cita como `[archivo › sección]`. **Regla dura: el conocimiento del deporte vive en el rack, nunca hardcodeado en `src/index.js`.**
-
-Fuentes del corpus (manifest declarativo en `blackgold-mcp/knowledge/rack.config.json`):
-
-- Todo `.md`/`.txt` de `blackgold-mcp/knowledge/` (área `metodologia` por defecto; su `README.md` se excluye del índice).
-- Docs deportivos de `docs/` declarados uno a uno en el manifest, con su `area`.
-- Carpetas personales con copyright vía la env `RACK_DIRS` (rutas separadas por `;`, área `extra`) — NUNCA commitear ese material al repo.
-
-### Inventario actual (19 docs, ~393 fragmentos; `npm run rack` da el detalle vivo)
-
-- **`metodologia`** (en `knowledge/`): `fundamentos_iniciacion_vinueza` (guía raíz ecuatoriana, Vinueza), `taxonomia_pilares_subpilares` (ontología del sistema), `fases_sensibles_entrenabilidad`, `periodizacion_entrenamiento_anual`, `crecimiento_maduracion` (edad biológica/PHV), `deteccion_talentos`, `nutricion_adolescente`, `recuperacion_carga_descanso`, `prevencion_lesiones_baloncesto`, `trabajo_casa_atleta`, `perfil_entrenador`.
-- **`baremos`** (en `docs/`): `baremos_cientificos` (valores normativos por bucket).
-- **`entrenamiento`** (en `docs/`): `manual_entrenamiento` (biblioteca de ejercicios por sub-pilar), `entrenamiento_coordinacion` (capacidades coordinativas).
-- **`tactica`** (en `docs/`): `tactica_small_ball` (sistema), `tactica_defensiva`, `fundamentos_individuales`.
-- **`mentalidad`** (en `docs/`): `mentalidad_mamba`.
-- **`referencias`** (en `docs/`): `referencias_academicas` (bibliografía consolidada con DOI).
-
-### Cómo nutrir/mantener el rack (flujo obligatorio)
-
-1. **Formato:** `.md` con headings `##`/`###` — el chunker corta por ellos y la sección aparece en la cita. Frontmatter YAML opcional: `subpilares: [tiro, agilidad]` y `area: <área>`.
-2. **Ubicación e indexado:** en `knowledge/` se auto-indexa (área `metodologia` salvo que el frontmatter declare otra `area:`). En `docs/`, hay que **declararlo** en `knowledge/rack.config.json` con su `area` (si no, no se indexa).
-3. **Etiquetado por sub-pilar:** doc-level en frontmatter; override por sección con `<!-- subpilares: tiro -->` (comentario HTML invisible; sustituye la herencia solo para esa sección). Las keys DEBEN existir en `packages/analytics-core/taxonomia.js`: radar = `fuerza, explosividad, resistencia, movilidad, tiro, agilidad, tactica, resiliencia`; monitoreo = `recuperacion, composicion_corporal`. El selftest falla ante keys huérfanas.
-4. **Áreas válidas:** `metodologia | baremos | entrenamiento | tactica | mentalidad | referencias | extra`.
-5. **Contenido:** síntesis ORIGINAL con fuentes citadas (DOI/ISBN), NO texto verbatim de libros con copyright (ese material va local por `RACK_DIRS`, no al repo). Preferir normas de población ecuatoriana (Vinueza) cuando cubran la edad/prueba. Cada dato/dosis/umbral remite a una fuente; cerrar el doc con `## Fuentes`. No transponer baremos de adulto a menores.
-6. **Verificar:** `npm run rack` (indexa, valida etiquetas contra la taxonomía, corre golden queries por sub-pilar esperando el doc en top-3 y reporta cobertura). No debe haber avisos de "sub-pilar desconocido"; se busca ≥3 fragmentos etiquetados por cada sub-pilar.
-
-README operativo del corpus: `blackgold-mcp/knowledge/README.md`. Al añadir docs, mantener sincronizado este inventario.
+Corpus de ciencia del deporte del club, indexado con BM25 por `blackgold-mcp/src/rack.js`. Detalle completo (fuentes, inventario de docs, cómo nutrirlo) en [`blackgold-mcp/CLAUDE.md`](blackgold-mcp/CLAUDE.md) y la skill `add-rack-doc`. **Regla dura: el conocimiento del deporte vive en el rack, nunca hardcodeado en `src/index.js`.**
