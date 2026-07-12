@@ -9,7 +9,7 @@ import ModoCanchaModal from '../components/ModoCanchaModal';
 import { recoveryPill } from '../lib/recoveryPill';
 import { tieneSenal } from '../lib/senalesAtleta';
 import { fetchTodosLosAtletas } from '../api/atletasService';
-import { fetchEvaluacionesProgramadasHoy } from '../api/sesionesService';
+import { fetchEvaluacionesProgramadasHoy, fetchSesionesPlanificadasHoy, fetchSesionesEnCurso } from '../api/sesionesService';
 
 /**
  * CoachHomePage (/coach) — home nativo del coach: "gestiona mi día".
@@ -25,6 +25,8 @@ export default function CoachHomePage() {
   const [atletas, setAtletas] = useState([]);
   const [loadingAtletas, setLoadingAtletas] = useState(true);
   const [evaluacionesHoy, setEvaluacionesHoy] = useState([]);
+  const [sesionesHoy, setSesionesHoy] = useState([]);
+  const [activasCount, setActivasCount] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -35,12 +37,53 @@ export default function CoachHomePage() {
     fetchEvaluacionesProgramadasHoy(user.id)
       .then((data) => { if (activo) setEvaluacionesHoy(data || []); })
       .catch((err) => console.error('Error cargando sesiones de hoy:', err));
+    fetchSesionesPlanificadasHoy(user.id)
+      .then((data) => { if (activo) setSesionesHoy(data || []); })
+      .catch((err) => console.error('Error cargando la agenda de hoy:', err));
+    fetchSesionesEnCurso(user.id)
+      .then((data) => { if (activo) setActivasCount((data || []).length); })
+      .catch((err) => console.error('Error cargando sesiones activas:', err));
     return () => { activo = false; };
   }, [user]);
 
   const conSenal = atletas.filter(tieneSenal);
   const fechaHoy = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });
   const primerNombre = (user.nombre || '').split(' ')[0] || 'Coach';
+
+  // Refetch de "en curso" al cerrar Modo Cancha: el contador del hero debe
+  // reflejar sesiones iniciadas/finalizadas durante esa visita al modal.
+  const cerrarModoCancha = () => {
+    setShowModoCancha(false);
+    fetchSesionesEnCurso(user.id)
+      .then((data) => setActivasCount((data || []).length))
+      .catch((err) => console.error('Error refrescando sesiones activas:', err));
+  };
+
+  // Hero "Hoy": prioriza la primera sesión PLANIFICADA (sesiones_control,
+  // agenda real de AdminSesiones) sobre el conteo de evaluaciones sueltas.
+  const heroHoy = useMemo(() => {
+    if (sesionesHoy.length === 0) return null;
+    const sesion = sesionesHoy[0];
+    const grupoNombre = sesion.grupos_entrenamiento?.nombre;
+    const esIndividual = sesion.tipo === 'Individual' || !grupoNombre;
+    const titulo = `${esIndividual ? 'Individual' : grupoNombre} · ${sesion.objetivo_tipo}`;
+
+    const partes = [];
+    if (sesion.grupo_id) {
+      const nAtletas = atletas.filter((a) => a.grupo_id === sesion.grupo_id).length;
+      if (nAtletas > 0) partes.push(`${nAtletas} atleta${nAtletas === 1 ? '' : 's'} en el grupo`);
+    }
+    if (evaluacionesHoy.length > 0) {
+      partes.push(`${evaluacionesHoy.length} evaluación${evaluacionesHoy.length === 1 ? '' : 'es'} por tomar`);
+    }
+    if (sesionesHoy.length > 1) {
+      partes.push(`y ${sesionesHoy.length - 1} más`);
+    }
+    // Caso borde sin ninguna parte honesta que mostrar (p.ej. sesión
+    // individual sin evaluaciones ni sesiones adicionales hoy).
+    const subtitulo = partes.length > 0 ? partes.join(' · ') : 'Entra a Modo Cancha para gestionarla en campo.';
+    return { titulo, subtitulo };
+  }, [sesionesHoy, atletas, evaluacionesHoy]);
 
   // Foco de desarrollo (híbrido): los 3 atletas con menor overall (ya
   // evaluados) se eligen client-side; su misión recomendada la trae cada
@@ -70,16 +113,28 @@ export default function CoachHomePage() {
           <div className="flex items-center justify-between gap-4 -mt-1">
             <div>
               <p className="font-black text-lg leading-snug">
-                {evaluacionesHoy.length > 0
-                  ? `${evaluacionesHoy.length} ${evaluacionesHoy.length === 1 ? 'evaluación programada' : 'evaluaciones programadas'}`
-                  : 'Sin evaluaciones programadas'}
+                {heroHoy
+                  ? heroHoy.titulo
+                  : evaluacionesHoy.length > 0
+                    ? `${evaluacionesHoy.length} ${evaluacionesHoy.length === 1 ? 'evaluación programada' : 'evaluaciones programadas'}`
+                    : 'Sin evaluaciones programadas'}
               </p>
               <p className="text-sm text-fg-secondary mt-1">
-                {evaluacionesHoy.length > 0
-                  ? 'Entra a Modo Cancha para tomarlas en campo.'
-                  : 'Tu plantel te espera — captura, asistencia y evaluación en campo.'}
+                {heroHoy
+                  ? heroHoy.subtitulo
+                  : evaluacionesHoy.length > 0
+                    ? 'Entra a Modo Cancha para tomarlas en campo.'
+                    : 'Tu plantel te espera — captura, asistencia y evaluación en campo.'}
               </p>
             </div>
+            {activasCount > 0 && (
+              <div className="text-center shrink-0">
+                <p className="text-2xl font-black text-brand tabular-nums">{activasCount}</p>
+                <p className="text-3xs uppercase tracking-widest text-fg-muted font-bold">
+                  {activasCount === 1 ? 'en curso' : 'activas'}
+                </p>
+              </div>
+            )}
           </div>
           <button
             onClick={() => setShowModoCancha(true)}
@@ -179,7 +234,7 @@ export default function CoachHomePage() {
         <Plantel user={user} />
       </HomeShell>
 
-      <ModoCanchaModal isOpen={showModoCancha} onClose={() => setShowModoCancha(false)} />
+      <ModoCanchaModal isOpen={showModoCancha} onClose={cerrarModoCancha} />
     </>
   );
 }

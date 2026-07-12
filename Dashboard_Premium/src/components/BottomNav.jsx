@@ -4,15 +4,19 @@
 // la resuelve quien la monta — HomeShell navega por ruta, AthleteLayout
 // cambia de tab, PadreDashboard hace scroll a anclas.
 export default function BottomNav({ items, activo, onSelect }) {
-  const idx = Math.max(0, items.findIndex((it) => it.key === activo));
+  // -1 cuando ninguna ruta del rol coincide (ej. coach en /admin/pagos): en ese
+  // caso NO pintamos el highlight en vez de forzarlo sobre el primer ítem.
+  const idx = items.findIndex((it) => it.key === activo);
 
   return (
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 h-[74px] bg-surface-base/85 backdrop-blur-xl border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
-      <div
-        className="absolute top-0 h-[3px] rounded-b bg-gradient-to-r from-brand-strong to-brand shadow-glow-gold transition-transform duration-300 motion-reduce:transition-none"
-        style={{ width: `${100 / items.length}%`, transform: `translateX(${idx * 100}%)` }}
-        aria-hidden="true"
-      />
+      {idx >= 0 && (
+        <div
+          className="absolute top-0 h-[3px] rounded-b bg-gradient-to-r from-brand-strong to-brand shadow-glow-gold transition-transform duration-300 motion-reduce:transition-none"
+          style={{ width: `${100 / items.length}%`, transform: `translateX(${idx * 100}%)` }}
+          aria-hidden="true"
+        />
+      )}
       <div className="flex h-full">
         {items.map((item) => {
           const active = item.key === activo;

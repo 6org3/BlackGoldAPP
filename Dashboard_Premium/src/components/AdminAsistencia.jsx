@@ -31,6 +31,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
+  const [errorCarga, setErrorCarga] = useState(false);
   const [pidiendoConfirmacion, setPidiendoConfirmacion] = useState(false);
 
   // Cargar asistencias existentes para la fecha/categoría seleccionada.
@@ -38,7 +39,14 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   // filtro visual): así cambiar fecha/categoría con texto en el buscador
   // no descarta las marcas del resto del grupo.
   const loadAsistencias = useCallback(async () => {
-    const registros = await fetchAsistenciaPorFecha(fecha, filtroCategoria === 'Todas' ? null : filtroCategoria);
+    let registros;
+    try {
+      registros = await fetchAsistenciaPorFecha(fecha, filtroCategoria === 'Todas' ? null : filtroCategoria);
+      setErrorCarga(false);
+    } catch {
+      registros = [];
+      setErrorCarga(true);
+    }
     const base = {};
     atletas
       .filter(a => filtroCategoria === 'Todas' || a.categoria === filtroCategoria)
@@ -86,10 +94,11 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const sinRevisar = atletasFiltrados.filter(a => !revisados.has(a.id)).length;
 
   const handleGuardar = async () => {
-    // Nadie tocó ni una sola fila y no había asistencia previa guardada para
-    // hoy: pedir una confirmación explícita antes de grabar el grupo entero
-    // como "Presente" sin que el coach haya revisado a nadie.
-    if (sinRevisar === total && total > 0 && !pidiendoConfirmacion) {
+    // Cualquier fila sin revisar (no solo cuando son TODAS) se grabaría en
+    // silencio como "Presente" por defecto — pedir confirmación explícita
+    // también cuando el coach revisó solo una parte del grupo y dejó el
+    // resto sin tocar, que es el caso más probable con un grupo grande.
+    if (sinRevisar > 0 && !pidiendoConfirmacion) {
       setPidiendoConfirmacion(true);
       return;
     }
@@ -183,6 +192,26 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         </div>
       </div>
 
+      {/* Aviso de carga fallida: sin el estado guardado, la lista de abajo
+          parte de "Presente" por defecto y guardar podría pisar un pase de
+          lista real — el coach tiene que saberlo antes de tocar Guardar. */}
+      {errorCarga && (
+        <div role="alert" className="relative z-10 mb-6 flex flex-wrap items-center gap-3 rounded-panel border border-danger/40 bg-danger/10 p-4 backdrop-blur-md">
+          <AlertTriangle size={18} className="text-danger-soft shrink-0" />
+          <p className="flex-1 min-w-[200px] text-xs font-bold text-danger-soft">
+            No se pudo cargar la asistencia guardada de esta fecha. La lista parte de
+            "Presente" por defecto — si guardas ahora podrías sobrescribir un pase de lista anterior.
+          </p>
+          <button
+            type="button"
+            onClick={loadAsistencias}
+            className="inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-control bg-danger/20 border border-danger/50 text-danger-soft text-2xs font-black uppercase tracking-widest hover:bg-danger/30 transition"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* Stats Bar */}
       <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
@@ -271,14 +300,18 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         )}
       </div>
 
-      {/* Botón Guardar — sticky para que la acción principal quede siempre al alcance del pulgar */}
-      <div className="sticky bottom-0 z-20 -mx-6 md:-mx-12 -mb-6 md:-mb-12 px-6 md:px-12 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] bg-surface-base/90 backdrop-blur border-t border-white/5 flex flex-col items-end gap-2">
+      {/* Botón Guardar — sticky para que la acción principal quede siempre al
+          alcance del pulgar. En móvil se apoya sobre la BottomNav (bottom-[74px])
+          y suelta la safe-area, que ya la absorbe la barra; en desktop pega al borde. */}
+      <div className="sticky bottom-[74px] md:bottom-0 z-20 -mx-6 md:-mx-12 -mb-6 md:-mb-12 px-6 md:px-12 py-3 md:pb-[calc(env(safe-area-inset-bottom)+12px)] bg-surface-base/90 backdrop-blur border-t border-white/5 flex flex-col items-end gap-2">
         {errorGuardar && (
           <p className="text-xs text-danger-soft font-bold" role="alert">{errorGuardar}</p>
         )}
         {pidiendoConfirmacion && (
           <p className="text-xs text-caution-soft font-bold text-right" role="alert">
-            No revisaste a ningún atleta — se guardaría a los {total} como "Presente" por defecto.
+            {sinRevisar === total
+              ? `No revisaste a ningún atleta — se guardaría a los ${total} como "Presente" por defecto.`
+              : `Quedan ${sinRevisar} de ${total} atletas sin revisar — se guardarían como "Presente" por defecto.`}
           </p>
         )}
         <button

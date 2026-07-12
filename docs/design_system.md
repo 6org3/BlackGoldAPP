@@ -76,6 +76,8 @@ La app se siente como el túnel de vestuarios de un club profesional de noche: *
 Nuevas utilidades: `text-3xs` (9px), `text-2xs` (10px), `tracking-eyebrow` (0.2em). Reemplazan `text-[9px]`, `text-[10px]`, `tracking-[0.2em]`.
 Números siempre con `tabular-nums`. Nunca usar pesos que Outfit no carga (500/700).
 
+**Piso legible: `text-3xs` (9px) es el tamaño mínimo permitido, en cualquier pantalla.** No existe token por debajo — un `text-[8px]` o similar es un arbitrario prohibido (§8) además de quedar bajo lo cómodo en móvil (auditoría atleta 2026-07-09: labels de apoyo repetidas en 8px en `StatCard`, patrón "label chico + valor grande" perfectamente válido, pero con el label 1px por debajo del piso).
+
 ### 2.3 Espaciado y radios
 
 - Escala Tailwind de 4px. Tarjeta principal: `p-6 md:p-8`; tarjeta compacta/panel: `p-4` o `p-5`; gaps de grillas: `gap-4 md:gap-6`.
@@ -155,11 +157,28 @@ Estados: hover desktop via `.glow-border`; loading con `.skeleton`; nunca elevar
 
 ### 4.3 Chips / Badges
 
-Receta base: `text-2xs font-black uppercase tracking-eyebrow px-2.5 py-1 rounded-full border`.
+Dos familias con contratos distintos — la primera pregunta ante un chip es **¿se toca o solo se lee?**
+
+**Badge informativo (no interactivo):** `text-2xs font-black uppercase tracking-eyebrow px-2.5 py-1 rounded-full border`. Puede ser compacto porque nadie lo toca.
 - **Semántico:** `bg-{acento}/10 border-{acento}/25 text-{acento}-soft`
 - **Neutro:** `bg-white/10 border-white/20 text-fg`
 - **Rango:** emoji + `text-rank-{id}` con `border-rank-{id}/30 bg-rank-{id}/5`
 - **Dot de estado en vivo:** `size-2 rounded-full bg-{acento} animate-pulse` (o `animate-pulse-glow` si debe irradiar)
+- **Estado derivado / sin confirmar** (dato generado automáticamente — placeholder de migración, cálculo sin plan asignado, valor por defecto que nadie revisó): nunca usar el mismo badge/color que el dato real equivalente, aunque coincida en texto. Usar tono `caution` (`text-caution-soft bg-caution/10 border-caution/30`) con una etiqueta que nombre la ausencia ("Sin representante confirmado", "Sin plan asignado") en vez de mostrar el valor generado como si fuera dato confirmado. Precedente: representante placeholder de migración en Control de Pagos (`AdminPagos.jsx`).
+
+En listas grandes (roster, tabla de pagos), no dupliques un mismo dato con dos representaciones (nombre bonito + su `id`/slug crudo al lado) — si el crudo no aporta información nueva, se elimina, no se muestra "por si acaso".
+
+**Chip tocable (filtro, tab, selector de mes/tipo):** misma piel que el badge pero con piso táctil obligatorio: `min-h-11 px-3.5 inline-flex items-center` (denso desktop: `md:min-h-9`). Estado activo como la navegación: `bg-brand/10 text-brand border-brand/40`; inactivo `bg-white/5 border-white/10 text-fg-secondary`. Regla dura: **ningún control tocable baja de `min-h-11` en móvil** (auditoría coach 2026-07-09 midió chips de 22–38px en 5 pantallas — ese es el anti-patrón).
+
+### 4.3b Barra de filtros colapsable (listados con >2 controles)
+
+En móvil, los filtros no pueden costar más pantalla que el contenido (auditoría coach: 85% del primer viewport de Gestionar Atletas era filtros). Patrón canónico:
+
+- **Siempre visible:** buscador (`§4.5`) + botón ghost "Filtros" con contador de activos (`bg-white/5 border border-white/10 min-h-11` + badge `bg-brand text-on-brand` con el número).
+- **Colapsado por defecto** en `<md`; expandido en desktop si hay espacio (`md:block`).
+- El panel expandido usa `rounded-panel bg-surface-sunken border border-white/5 p-3 grid gap-2` y se anima con `animate-fade-in-up`.
+- Los combos dentro del panel siguen la receta de campo (§4.5, `min-h-11`).
+- Chips de filtros activos visibles fuera del panel (con `×` para quitar cada uno) para que el estado nunca quede oculto.
 
 ### 4.4 Barras de progreso
 
@@ -181,6 +200,10 @@ Backdrop `bg-black/80 backdrop-blur-sm`; contenedor `bg-surface-raised border bo
 Ítem: `rounded-control text-2xs font-black uppercase tracking-eyebrow min-h-11`.
 Activo: `bg-brand/10 text-brand border border-brand/20` (+ indicador `w-1 rounded-full bg-brand` lateral en sidebar / inferior en tabs). Inactivo: `text-fg-muted hover:text-fg hover:bg-white/5`. Móvil: bottom bar con safe-area (`pb-[env(safe-area-inset-bottom)]`).
 
+**Filtros colapsables en móvil:** cuando una vista tiene 3+ filtros (categoría, nivel, posición, género…), no los muestres siempre expandidos en el breakpoint móvil — se comen la pantalla antes de la primera tarjeta de contenido. Patrón canónico (`AdminAtletasFiltersPanel.jsx`): botón "Filtros" (ícono `Filter` + dot `bg-brand animate-pulse` si hay filtros activos) que despliega el panel con `AnimatePresence`/`height: 0 → auto`. En desktop (`lg:` o el breakpoint que ya use la vista) los filtros pueden quedar siempre visibles inline — el colapso es un problema específico de móvil, no hace falta imponerlo arriba de ese breakpoint.
+
+**Espacio reservado bajo contenido con FAB flotante:** una superficie que monta `BottomNav` (74px + safe-area) y el FAB del Copiloto (`CopilotoLauncher`, otros 16px de offset + 48px de alto sobre la BottomNav) debe reservar como `padding-bottom` del contenido scrolleable la suma de ambos, no solo la altura de la BottomNav — de lo contrario el FAB queda flotando sobre la última tarjeta visible al hacer scroll hasta el final.
+
 ### 4.8 Secciones de dashboard
 
 Header de sección: eyebrow + título, ícono `text-brand size-5`, separador `border-t border-white/10 pt-6 mt-6`.
@@ -189,6 +212,8 @@ Layout por vista: **héroe/KPIs → contenido principal → secundario**, `grid 
 ### 4.9 Gráficos (Recharts — usar `CHART` de designTokens.js)
 
 Serie del atleta siempre `gold-500`; comparativas (media categoría/club) en blanco alfa — el color con significado se reserva al atleta. Grid `CHART.grid`, ejes `CHART.axis`, tooltip estilo `CHART.tooltip` (surface-top + borde white/10). Radar: fill `rgba(255,215,0,0.15)`. Sparklines: barras `w-1 bg-brand rounded-sm opacity-60`.
+
+**Restricción CVD de `CHART.pilares`** (validador dataviz, superficie `#121214`): `agilidad #A855F7` y `tiro #3B82F6` son casi idénticos en visión deután (ΔE 1.9). La paleta solo es válida con codificación secundaria: cada marca lleva su etiqueta de pilar (eje o direct label). Nunca usarla como series simultáneas identificadas solo por color (p. ej. multilínea sin etiquetas) ni cambiar el orden fijo de asignación por pilar.
 
 ---
 
@@ -255,6 +280,8 @@ El rol **no** cambia tokens (mismo dark premium para todos) — cambia jerarquí
 | `#121214`, `#0d0d0f`, `#18181b` sueltos | `surface-card` / `surface-sunken` / `surface-raised` |
 | `text-[9px]` / `text-[10px]` + `tracking-[0.2em]` | `text-3xs` / `text-2xs` + `tracking-eyebrow` |
 | `text-gray-400/500/600` | `text-fg-secondary` / `text-fg-muted` / `text-fg-faint` |
+
+**Nota de contraste pendiente** (auditoría padres 2026-07-09): `fg-muted` (#6B7280 sobre `surface-base` #09090B) mide ≈4.12:1, bajo el umbral AA de 4.5:1 para texto normal — se usa en `text-2xs`/`text-3xs` (9-10px) para fechas, contadores y labels de apoyo en toda la app. `fg-faint` (#4B5563, ≈2.6:1) está documentado arriba como "solo decorativo, nunca información": si un uso muestra información real (no decoración), usar `fg-muted` como mínimo, nunca `fg-faint` — bug real encontrado y corregido en `EstadoCuentaPadre.jsx` ("Cargando…" usaba `fg-faint`). Subir el hex base de `fg-muted` es un cambio de alcance multi-portal (ya usado en coach/atleta/padres) — no se aplica unilateralmente aquí; queda como decisión pendiente del owner del design system.
 | `text-emerald-400`, `bg-emerald-500/10`… | `text-success-soft`, `bg-success/10`… |
 | `rounded-3xl` / `rounded-2xl` / `rounded-xl` (en su rol) | `rounded-card` / `rounded-panel` / `rounded-control` |
 | `shadow-[0_0_20px_rgba(255,215,0,0.4)]` | `shadow-glow-gold` |

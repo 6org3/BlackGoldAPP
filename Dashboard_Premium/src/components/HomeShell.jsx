@@ -37,7 +37,11 @@ export default function HomeShell({ eyebrow, titulo, contexto, children }) {
         ocultarFabModoCancha
       />
 
-      <main className={`flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-10 relative ${itemsNav ? 'pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-[calc(env(safe-area-inset-bottom)+24px)]' : 'pb-[calc(env(safe-area-inset-bottom)+24px)]'}`}>
+      {/* pb móvil con BottomNav (74px) reserva hasta el borde superior del FAB
+          del Copiloto (74+16px de offset + 48px de alto ≈ 138px), no solo la
+          altura de la barra — si no, el FAB queda flotando sobre la última
+          tarjeta al hacer scroll hasta el final. */}
+      <main className={`flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-10 relative ${itemsNav ? 'pb-[calc(env(safe-area-inset-bottom)+142px)] md:pb-[calc(env(safe-area-inset-bottom)+24px)]' : 'pb-[calc(env(safe-area-inset-bottom)+24px)]'}`}>
         {/* Glow ambiental solo en desktop (mismo criterio que /dashboard:
             el blur gigante es caro en móviles de gama baja). */}
         <div className="hidden md:block absolute top-[-20%] left-[10%] w-[800px] h-[600px] bg-brand/5 blur-[150px] pointer-events-none rounded-full mix-blend-screen"></div>

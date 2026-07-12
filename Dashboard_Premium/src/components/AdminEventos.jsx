@@ -94,7 +94,7 @@ export default function AdminEventos({ user, atletas = [] }) {
           <div className="flex flex-wrap gap-2">
             {TIPOS.map(([val, label]) => (
               <button key={val} type="button" onClick={() => setTipo(val)}
-                className={`px-3 py-2 rounded-control border text-2xs font-black uppercase tracking-wider transition ${
+                className={`inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-control border text-2xs font-black uppercase tracking-wider transition ${
                   tipo === val ? 'bg-brand/10 border-brand/40 text-brand' : 'border-white/10 text-fg-muted hover:bg-white/5'
                 }`}>{label}</button>
             ))}
@@ -129,7 +129,7 @@ export default function AdminEventos({ user, atletas = [] }) {
 
           <div>
             <h4 className="text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">¿A quién se convoca?</h4>
-            <AudienceSelector atletas={atletas} onChange={setAudiencia} />
+            <AudienceSelector atletas={atletas} club={user?.club} onChange={setAudiencia} />
           </div>
 
           <button onClick={handlePublicar} disabled={saving || !puedePublicar}

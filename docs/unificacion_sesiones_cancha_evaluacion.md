@@ -351,9 +351,13 @@ motor en un solo cerebro:
 - **`blackgold-mcp`**: nueva tool `analyze_athlete_readiness` (lee `atleta_readiness`,
   calcula score+alertas y recomienda misiones de recuperación) + `insertar_misiones_recuperacion`
   (autoría de misiones `pilar='recuperacion'`, agnósticas de nivel/edad).
-- **Pendiente (contenido):** el catálogo aún no tiene misiones `pilar='recuperacion'`; hay
-  que redactarlas (higiene de sueño, hidratación, recuperación activa, gestión de carga)
-  vía `insertar_misiones_recuperacion` para que la recomendación tenga qué proponer.
+- ~~**Pendiente (contenido):** el catálogo aún no tiene misiones `pilar='recuperacion'`~~
+  ✅ HECHO (2026-07-05): 8 misiones de recuperación insertadas (1 por cada trigger +
+  1 multi `sueno_deficiente,hidratacion_baja`), fundadas en AASM (sueño), ACSM/NATA
+  (hidratación) y Vinueza/NSCA (gestión de carga). Requirió el **hotfix v24**: el CHECK
+  `misiones_pilar_check` (v17) no admitía `recuperacion` NI `resistencia` — por eso el
+  catálogo tenía 0 de ambas; todo INSERT fallaba. v24 amplió el CHECK. Nacen
+  `activa=false` → el coach las activa en AdminMisiones.
 - **Pendiente (consolidación profunda):** unificar el loop automático de la Edge Function
   (`detectarDebilidades`/`seleccionarMisiones`, baremo-driven) con este motor de déficits
   por `condicion_trigger` — siguen siendo dos mecanismos (§2.4).
@@ -514,9 +518,11 @@ sesión fue solo diseño + decisiones, **cero código y cero migraciones**.
     Sub-16 Desarrollo vs `poor` 15 para chico Sub-16 Elite (género y nivel operando);
     Yo-Yo IR1 revivido (`above_avg` con su shape legacy por género). Suite 229/229.
   - Pendiente de contenido futuro (no bloquea): conseguir las tablas originales de
-    Vinueza para reemplazar los cortes provisionales de 600m/1000m; misiones
-    `pilar='fisico'` orientadas a resistencia; pruebas para `tactica` (solo 1, rating
-    subjetivo).
+    Vinueza para reemplazar los cortes provisionales de 600m/1000m; ~~misiones de
+    resistencia~~ ✅ HECHAS (2026-07-05: 8 misiones `pilar='resistencia'`, 4 buckets ×
+    general/especifica, nivel_objetivo=null, fundadas en Vinueza/NSCA; verificado que
+    `seleccionarMisiones` las alcanza; nacen inactivas — requirió v24, ver §4.1);
+    pruebas para `tactica` (solo 1, rating subjetivo).
 
   Lo construido (tooling):
   - `blackgold-mcp/knowledge/fundamentos_iniciacion_vinueza.md` — la guía metodológica

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp } from 'lucide-react';
+import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp, LogOut } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaModal from './ModoCanchaModal';
 import { supabase } from '../api/supabaseClient';
+import { fetchSesionesEnCurso } from '../api/sesionesService';
 import { HOMES_POR_ROL, rutaHomeParaRol } from '../lib/featureFlags';
 
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultarFabModoCancha = false }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -27,13 +28,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
   useEffect(() => {
     if (userId && (userRol === 'coach' || userRol === 'owner' || userRol === 'superadmin')) {
       const fetchActiveSession = async () => {
-        const { data } = await supabase
-          .from('sesiones_programadas')
-          .select('id')
-          .eq('coach_id', userId)
-          .eq('estado', 'Programada')
-          .ilike('notas', '[EN_CURSO]%');
-        if (data) setActiveSessionCount(data.length);
+        const data = await fetchSesionesEnCurso(userId);
+        setActiveSessionCount(data.length);
       };
       fetchActiveSession();
 
@@ -52,6 +48,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = previo; };
   }, [isMobileMenuOpen]);
+
+  const handleLogout = () => { logout(); navigate('/login'); };
 
   return (
     <>
@@ -189,14 +187,25 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
       </nav>
 
       <div className="p-8 border-t border-white/5 bg-gradient-to-t from-black/50 to-transparent">
-        <div className="flex items-center space-x-4">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-black font-black shadow-glow-gold">
-            {user.nombre?.charAt(0) || 'U'}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-4 min-w-0">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-black font-black shadow-glow-gold shrink-0">
+              {user.nombre?.charAt(0) || 'U'}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white tracking-wide truncate">{user.nombre}</p>
+              <p className="text-2xs text-fg-secondary uppercase tracking-eyebrow mt-1">Rol: {user.rol}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-white tracking-wide">{user.nombre}</p>
-            <p className="text-2xs text-fg-secondary uppercase tracking-eyebrow mt-1">Rol: {user.rol}</p>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="group grid place-items-center min-h-11 min-w-11 rounded-control bg-white/5 hover:bg-danger/10 border border-white/10 hover:border-danger/30 transition duration-300 shrink-0"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            data-testid="btn-logout-sidebar"
+          >
+            <LogOut size={16} className="text-fg-secondary group-hover:text-danger-soft transition-colors" />
+          </button>
         </div>
       </div>
     </aside>

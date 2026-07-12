@@ -16,8 +16,11 @@ import { CopilotoContext } from '../hooks/useCopiloto';
 /**
  * @param {string|null} [atletaIdPorDefecto] — atleta de contexto de esta
  *   superficie; reactivo (p.ej. el padre cambiando de hijo).
+ * @param {boolean} [fabElevado] — en móvil sube el FAB por encima de un footer
+ *   sticky del módulo (p.ej. Guardar en Asistencia). Default false: cero cambio
+ *   para HomeShell/AthleteLayout/PadreDashboard.
  */
-export function CopilotoProvider({ children, atletaIdPorDefecto = null }) {
+export function CopilotoProvider({ children, atletaIdPorDefecto = null, fabElevado = false }) {
   const [abierto, setAbierto] = useState(false);
   // Override explícito de la sesión de chat abierta (p.ej. "Pregúntale" sobre
   // OTRO atleta distinto del default); null = usa atletaIdPorDefecto.
@@ -37,7 +40,7 @@ export function CopilotoProvider({ children, atletaIdPorDefecto = null }) {
         type="button"
         onClick={() => abrir()}
         aria-label="Abrir el Copiloto Black Gold"
-        className="fixed bottom-[calc(74px+env(safe-area-inset-bottom)+16px)] md:bottom-6 right-4 z-40 h-12 pl-3.5 pr-4 flex items-center gap-2 rounded-full bg-gradient-to-br from-mental to-mental/70 text-fg text-sm font-extrabold shadow-modal hover:brightness-110 active:scale-95 transition"
+        className={`fixed ${fabElevado ? 'bottom-[calc(74px+env(safe-area-inset-bottom)+88px)]' : 'bottom-[calc(74px+env(safe-area-inset-bottom)+16px)]'} md:bottom-6 right-4 z-40 h-12 pl-3.5 pr-4 flex items-center gap-2 rounded-full bg-gradient-to-br from-mental to-mental/70 text-fg text-sm font-extrabold shadow-modal hover:brightness-110 active:scale-95 transition`}
       >
         <span className="w-6 h-6 grid place-items-center rounded-full bg-white/15 text-sm" aria-hidden="true">✦</span>
         Copiloto

@@ -116,11 +116,48 @@ export async function fetchEvaluacionesProgramadasHoy(coachId) {
   return data || [];
 }
 
-export async function fetchGrupos() {
+/** Sesiones PLANIFICADAS de hoy del coach (hero "Hoy" del home). Vienen de
+ *  sesiones_control — la agenda que crea AdminSesiones — no de
+ *  sesiones_programadas, que solo recibe filas al iniciar Modo Cancha o
+ *  programar evaluaciones. */
+export async function fetchSesionesPlanificadasHoy(coachId) {
+  const hoy = new Date().toISOString().split('T')[0];
   const { data, error } = await supabase
+    .from('sesiones_control')
+    .select('*, grupos_entrenamiento (nombre, horario)')
+    .eq('coach_id', coachId)
+    .eq('fecha', hoy)
+    .order('created_at', { ascending: true });
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+/** Sesiones en curso del coach (marker [EN_CURSO] estampado por Modo Cancha).
+ *  Fuente única de la query que antes duplicaban Sidebar y ModoCanchaModal. */
+export async function fetchSesionesEnCurso(coachId) {
+  const { data, error } = await supabase
+    .from('sesiones_programadas')
+    .select('*')
+    .eq('coach_id', coachId)
+    .eq('estado', 'Programada')
+    .ilike('notas', '[EN_CURSO]%');
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+// `club`: sin filtro de club en el select, la fila devuelta depende
+// enteramente de RLS para no mezclar grupos de otros clubes — se filtra
+// también acá como defensa en profundidad (mismo criterio que
+// fetchTodosLosAtletas en atletasService.js).
+export async function fetchGrupos(club = null) {
+  let query = supabase
     .from('grupos_entrenamiento')
     .select('*')
     .order('nombre');
+  if (club) {
+    query = query.eq('club', club);
+  }
+  const { data, error } = await query;
   if (error) { console.error(error); return []; }
   return data || [];
 }
@@ -156,6 +193,10 @@ export async function evaluarSesion(sesionId, { se_logro, notas_evaluacion }) {
   return data;
 }
 
+// Lanza si la consulta falla: devolver [] aquí sería indistinguible de "sin
+// sesiones registradas todavía" (auditoría UX owner 2026-07-09) — quien
+// llama decide cómo mostrar el error, en vez de que el historial se vea
+// silenciosamente vacío.
 export async function fetchSesionesControl({ grupoId = null, atletaId = null, limit = 20 } = {}) {
   let q = supabase
     .from('sesiones_control')
@@ -169,6 +210,6 @@ export async function fetchSesionesControl({ grupoId = null, atletaId = null, li
   if (grupoId) q = q.eq('grupo_id', grupoId);
   if (atletaId) q = q.eq('atleta_id', atletaId);
   const { data, error } = await q;
-  if (error) { console.error(error); return []; }
+  if (error) { console.error(error); throw error; }
   return data || [];
 }

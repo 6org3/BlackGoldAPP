@@ -13,6 +13,7 @@ import { getXPProgress } from '../lib/xpProgress';
 import ScoutingReportTemplate from '../components/ScoutingReportTemplate';
 import { Download, Loader2 } from 'lucide-react';
 import { evaluarDeficits } from '../lib/didacticEngine';
+import { mensajeParaPadre } from '../lib/mensajesPadreDeficit';
 import { getSubPilarScores } from '../lib/radarCalc';
 import { COLORS, CHART, MOTION, staggerDelay } from '../lib/designTokens';
 
@@ -23,6 +24,8 @@ import CardReadinessIA from '../components/CardReadinessIA';
 import BottomNav from '../components/BottomNav';
 import Gauge from '../components/Gauge';
 import { CopilotoProvider } from '../components/CopilotoLauncher';
+import { ToastProvider } from '../components/Toast';
+import { useToast } from '../hooks/useToast';
 import { fetchAsistenciaPct } from '../api/asistenciaService';
 
 const NAV_ITEMS = [
@@ -31,6 +34,17 @@ const NAV_ITEMS = [
   { key: 'pagos', label: 'Pagos', Icono: FileText },
   { key: 'reporte', label: 'Reporte', Icono: Download },
 ];
+
+// Etiquetas cortas del radar por diccionario, no por slicing ciego (mismo
+// patrón que RadarChartComp.jsx): "Efic. Táctica" ya viene abreviada a mano
+// en radarData — cortarla de nuevo a 8 caracteres la deja en "Efic. T…".
+const ETIQUETAS_CORTAS_RADAR = {
+  Explosividad: 'Explos.',
+  'Efic. Táctica': 'Táctica',
+  'Técnica Tiro': 'Tiro',
+  Resiliencia: 'Resil.',
+  Movilidad: 'Movil.',
+};
 
 const METRICAS_CONFIG = [
   { key: 'fuerza', label: 'Fuerza' },
@@ -42,8 +56,9 @@ const METRICAS_CONFIG = [
   { key: 'resiliencia', label: 'Resiliencia' },
 ];
 
-export default function PadreDashboard() {
+function PadreDashboardContenido() {
   const { user, logout } = useAuth();
+  const { mostrarToast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ hijos: [], sesiones: [], anuncios: [] });
@@ -51,6 +66,10 @@ export default function PadreDashboard() {
   const [notas, setNotas] = useState([]);
   const [misiones, setMisiones] = useState([]);
   const [convocatorias, setConvocatorias] = useState([]);
+  // atleta_id del hijo cuyos datos (notas/misiones/convocatorias) ya están
+  // reflejados en los estados de arriba; se compara contra hijoActual más abajo
+  // para derivar "cargando" sin depender de un setState síncrono en el efecto
+  const [hijoDatosCargadosId, setHijoDatosCargadosId] = useState(null);
   const reportRef = React.useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -87,7 +106,7 @@ export default function PadreDashboard() {
       pdf.save(`Scouting_Report_${hijoActual.nombre.replace(/\s+/g, '_')}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert("Hubo un error al generar el PDF.");
+      mostrarToast("Hubo un error al generar el PDF.", { tipo: 'error' });
     } finally {
       setIsExporting(false);
     }
@@ -118,6 +137,11 @@ export default function PadreDashboard() {
 
   const hijoActual = data.hijos[selectedHijoIndex];
 
+  // Derivado, no un setState síncrono en el efecto: en cuanto hijoActual
+  // cambia, esta comparación ya no matchea y "cargando" queda true desde el
+  // primer render tras el cambio, sin esperar a que el efecto corra.
+  const cargandoHijo = !!hijoActual && hijoDatosCargadosId !== hijoActual.atleta_id;
+
   useEffect(() => {
     if (!hijoActual) return;
     let cancelled = false;
@@ -131,6 +155,7 @@ export default function PadreDashboard() {
         setNotas(n);
         setMisiones(m);
         setConvocatorias(conv);
+        setHijoDatosCargadosId(hijoActual.atleta_id);
       }
     };
     loadHijoData();
@@ -151,7 +176,7 @@ export default function PadreDashboard() {
     } catch (e) {
       console.error('Error al confirmar asistencia:', e);
       setConvocatorias(previas);
-      alert('No se pudo registrar tu respuesta. Intenta de nuevo.');
+      mostrarToast('No se pudo registrar tu respuesta. Intenta de nuevo.', { tipo: 'error' });
     }
   };
 
@@ -234,7 +259,7 @@ export default function PadreDashboard() {
             <User size={14} /><span className="hidden sm:inline">Editar Perfil</span>
           </button>
           <button onClick={handleLogout} aria-label="Cerrar sesión" className="flex items-center justify-center gap-2 min-h-11 min-w-11 text-xs text-danger-soft hover:text-red-300 transition-colors uppercase font-bold tracking-widest bg-danger-soft/10 px-4 py-2 rounded-control border border-danger-soft/20" data-testid="btn-logout">
-            <LogOut size={14} /><span>Desconectar</span>
+            <LogOut size={14} /><span className="hidden sm:inline">Desconectar</span>
           </button>
         </div>
       </header>
@@ -285,8 +310,8 @@ export default function PadreDashboard() {
           {/* Columna Izquierda: Radar y Estado */}
           <div className="space-y-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-4 sm:p-6 rounded-panel border border-white/10">
-              <div className="flex justify-between items-start mb-4">
-                <div>
+              <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
+                <div className="min-w-0">
                   <h2 className="text-xl font-black uppercase tracking-widest mb-1 text-white">{hijoActual.nombre}</h2>
                   <p className={`text-xs font-bold uppercase tracking-widest ${hijoActual.rango?.textColor}`}>
                     Grupo: {hijoActual.rango?.nombre}
@@ -295,7 +320,7 @@ export default function PadreDashboard() {
                 <button
                   onClick={exportPDF}
                   disabled={isExporting}
-                  className="flex items-center justify-center gap-2 bg-brand text-on-brand border border-brand/50 text-2xs font-black uppercase tracking-eyebrow px-4 py-2.5 min-h-11 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 shrink-0 whitespace-nowrap bg-brand text-on-brand border border-brand/50 text-2xs font-black uppercase tracking-eyebrow px-4 py-2.5 min-h-11 rounded-control shadow-glow-gold hover:bg-brand-hover active:scale-[0.97] transition disabled:opacity-50"
                 >
                   {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                   {isExporting ? 'Generando...' : 'Exportar Scout'}
@@ -335,7 +360,7 @@ export default function PadreDashboard() {
                       <PolarAngleAxis
                         dataKey="subject"
                         tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 'bold' }}
-                        tickFormatter={(v) => (v.length > 8 ? `${v.slice(0, 7)}…` : v)}
+                        tickFormatter={(v) => ETIQUETAS_CORTAS_RADAR[v] || v}
                       />
                       <Tooltip
                         contentStyle={{ backgroundColor: CHART.tooltip.background, border: CHART.tooltip.border, borderRadius: '12px', fontSize: '12px', color: CHART.tooltip.color }}
@@ -353,19 +378,21 @@ export default function PadreDashboard() {
               <h3 className="text-xs font-bold uppercase tracking-widest text-brand mb-4 flex items-center">
                 <MessageSquare className="mr-2 w-4 h-4" /> Notas del Coach
               </h3>
-              {notas.length === 0 ? (
+              {cargandoHijo ? (
+                <div className="skeleton h-16" aria-hidden="true"></div>
+              ) : notas.length === 0 ? (
                 <p className="text-xs text-fg-muted font-medium">Aún no hay notas registradas para este atleta.</p>
               ) : (
-                <div className="space-y-3">
+                <ul className="space-y-3">
                   {notas.map(n => (
-                    <div key={n.id} className="bg-white/5 border border-white/10 rounded-panel p-3">
+                    <li key={n.id} className="bg-white/5 border border-white/10 rounded-panel p-3">
                       <p className="text-2xs text-fg-secondary uppercase tracking-widest mb-1">
                         {new Date(n.created_at).toLocaleDateString()}
                       </p>
                       <p className="text-xs text-white leading-relaxed">{n.contenido}</p>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </motion.div>
 
@@ -468,7 +495,7 @@ export default function PadreDashboard() {
                           </span>
                         </div>
                         <p className="text-sm text-gray-200 leading-relaxed">
-                          {deficit.mensaje}
+                          {mensajeParaPadre(deficit)}
                         </p>
                       </motion.div>
                     ))}
@@ -492,10 +519,12 @@ export default function PadreDashboard() {
                 pendientes; antes, con la lista vacía, tocar el tab no hacía nada. */}
             <motion.div ref={eventosRef} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card p-4 sm:p-6 rounded-panel border border-info/30 bg-info/5">
               <h3 className="text-xs font-bold uppercase tracking-widest text-info-soft mb-4 flex items-center"><CalendarDays className="mr-2 w-4 h-4" /> Convocatorias</h3>
-              {convocatorias.length === 0 ? (
+              {cargandoHijo ? (
+                <div className="skeleton h-20" aria-hidden="true"></div>
+              ) : convocatorias.length === 0 ? (
                 <p className="text-xs text-fg-muted font-medium">No tienes convocatorias pendientes por ahora.</p>
               ) : (
-                <div className="space-y-4">
+                <ul className="space-y-4">
                   {convocatorias.map((c) => {
                     const ev = c.eventos || {};
                     const fecha = ev.fecha_evento ? new Date(ev.fecha_evento) : null;
@@ -505,7 +534,7 @@ export default function PadreDashboard() {
                       { val: 'no_asiste', label: 'No puedo', icon: <X size={14} />, on: 'bg-danger text-white border-danger', off: 'text-danger-soft border-danger/30 hover:bg-danger/10' },
                     ];
                     return (
-                      <div key={c.id} className="bg-black/40 p-4 rounded-panel border border-white/10">
+                      <li key={c.id} className="bg-black/40 p-4 rounded-panel border border-white/10">
                         <div className="flex justify-between items-start mb-1">
                           <span className="text-3xs font-black uppercase px-2 py-0.5 rounded-full bg-brand/10 border border-brand/30 text-brand">
                             {TIPO_EVENTO_LABEL[ev.tipo] || ev.tipo}
@@ -535,10 +564,10 @@ export default function PadreDashboard() {
                             Tu respuesta: {c.estado_rsvp === 'asiste' ? 'Asiste' : c.estado_rsvp === 'duda' ? 'Tal vez' : 'No asiste'}
                           </p>
                         )}
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
+                </ul>
               )}
             </motion.div>
 
@@ -546,29 +575,31 @@ export default function PadreDashboard() {
             {data.anuncios.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-4 sm:p-6 rounded-panel border border-brand/30 bg-brand/5">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-brand mb-4 flex items-center"><Bell className="mr-2 w-4 h-4" /> Anuncios del Club</h3>
-                <div className="space-y-4">
+                <ul className="space-y-4">
                   {data.anuncios.map(anuncio => (
-                    <div key={anuncio.id} className="bg-black/40 p-4 rounded-panel border border-white/5">
+                    <li key={anuncio.id} className="bg-black/40 p-4 rounded-panel border border-white/5">
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-bold text-white">{anuncio.titulo}</h4>
                         <span className="text-3xs text-fg-muted uppercase">{new Date(anuncio.created_at).toLocaleDateString()}</span>
                       </div>
                       <p className="text-sm text-gray-300">{anuncio.mensaje}</p>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </motion.div>
             )}
 
             {/* Misiones del Atleta */}
-            {misiones.length > 0 && (
+            {cargandoHijo ? (
+              <div className="skeleton h-24" aria-hidden="true"></div>
+            ) : misiones.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card p-4 sm:p-6 rounded-panel border border-white/10">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-brand mb-4 flex items-center">
                   <Target className="mr-2 w-4 h-4" /> Misiones
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {misiones.map(mision => (
-                    <div key={mision.id} className="bg-white/5 rounded-panel border border-white/10 overflow-hidden">
+                    <li key={mision.id} className="bg-white/5 rounded-panel border border-white/10 overflow-hidden">
                       {mision.tipo === 'youtube' && mision.videoUrl ? (
                         <iframe
                           className="w-full aspect-video"
@@ -599,9 +630,9 @@ export default function PadreDashboard() {
                         <p className="text-xs text-fg-secondary line-clamp-2 mb-3">{mision.descripcion}</p>
                         <p className="text-2xs text-brand font-bold uppercase tracking-widest">+{mision.xpRecompensa} XP</p>
                       </div>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </motion.div>
             )}
 
@@ -659,5 +690,16 @@ export default function PadreDashboard() {
       <BottomNav items={NAV_ITEMS} activo={navActivo} onSelect={irANav} />
     </div>
     </CopilotoProvider>
+  );
+}
+
+// ToastProvider en el nivel superior: así tanto los handlers de este componente
+// como EstadoCuentaPadre pueden consumir useToast() (un componente no puede
+// consumir un contexto que él mismo monta dentro de su propio JSX).
+export default function PadreDashboard() {
+  return (
+    <ToastProvider>
+      <PadreDashboardContenido />
+    </ToastProvider>
   );
 }
