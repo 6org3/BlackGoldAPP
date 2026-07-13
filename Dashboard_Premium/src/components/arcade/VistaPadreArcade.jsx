@@ -95,8 +95,16 @@ const MOCK = {
 
 function fechaEventoLine(ev) {
   if (!ev) return '';
-  const f = ev.fecha_evento ? new Date(`${ev.fecha_evento}T00:00:00`) : null;
-  const fecha = f ? `${DIAS_SEM[f.getDay()]} ${f.getDate()} ${MESES[f.getMonth()].slice(0, 3).toLowerCase()}` : '';
+  let fecha = '';
+  if (ev.fecha_evento) {
+    // fecha_evento es TIMESTAMPTZ: tomar solo la parte YYYY-MM-DD para evitar
+    // corrimientos de zona horaria al construir el Date.
+    const [y, m, d] = String(ev.fecha_evento).slice(0, 10).split('-').map(Number);
+    if (y && m && d) {
+      const dt = new Date(y, m - 1, d);
+      fecha = `${DIAS_SEM[dt.getDay()]} ${d} ${MESES[m - 1].slice(0, 3).toLowerCase()}`;
+    }
+  }
   return [fecha, (ev.hora_inicio || '').slice(0, 5), ev.sede].filter(Boolean).join(' · ');
 }
 

@@ -25,4 +25,9 @@ export default defineConfig([
       globals: { ...globals.mocha, cy: 'readonly', Cypress: 'readonly', expect: 'readonly', assert: 'readonly' },
     },
   },
+  {
+    // Scripts operativos de un solo uso: entorno Node (process, etc.).
+    files: ['scripts/**/*.{js,mjs}'],
+    languageOptions: { globals: globals.node },
+  },
 ])
