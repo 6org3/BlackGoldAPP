@@ -25,18 +25,21 @@ export default function PanelRetencion({ ctx }) {
 
       <MicroLabel color={C.warn} size={9.5} style={{ margin: '0 0 8px' }}>EN RIESGO DE BAJA · {ctx.riesgoCount}</MicroLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {ctx.riesgo.map((r, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, background: C.card, border: `1px solid ${r.border}`, clipPath: cut(10), padding: '11px 12px' }}>
+        {ctx.riesgo.map((r) => (
+          <div key={r.rowKey} style={{ display: 'flex', alignItems: 'center', gap: 11, background: C.card, border: `1px solid ${r.border}`, clipPath: cut(10), padding: '11px 12px' }}>
             <div style={{ width: 34, height: 34, clipPath: HEX, background: r.avatarBg, display: 'grid', placeItems: 'center', color: r.avatarFg, fontWeight: 900, fontSize: 12, flex: 'none' }}>{r.initial}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{r.name}</p>
-              <p style={{ margin: '1px 0 0', fontSize: 9.5, color: r.motivoColor }}>{r.motivo}</p>
+              {/* aria-live: anuncia a lector de pantalla el cambio a "Dado de baja del club". */}
+              <p style={{ margin: '1px 0 0', fontSize: 9.5, color: r.motivoColor }} aria-live="polite">{r.motivo}</p>
             </div>
             <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
               {r.showContactar && (
-                <button type="button" onClick={r.onBtn} style={{ padding: '8px 11px', clipPath: cut(7), background: r.btnBg, border: `1px solid ${r.btnBorder}`, color: r.btnFg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: 'pointer' }}>{r.btnLabel}</button>
+                <button type="button" onClick={r.onBtn} aria-label={`Contactar a ${r.name}`} style={{ padding: '8px 11px', clipPath: cut(7), background: r.btnBg, border: `1px solid ${r.btnBorder}`, color: r.btnFg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: 'pointer' }}>{r.btnLabel}</button>
               )}
-              <button type="button" onClick={r.onBaja} disabled={!r.onBaja} style={{ padding: '8px 11px', clipPath: cut(7), background: r.bajaBg, border: `1px solid ${r.bajaBorder}`, color: r.bajaFg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: r.onBaja ? 'pointer' : 'default' }}>{r.bajaLabel}</button>
+              {r.bajaButtons.map((b) => (
+                <button key={b.key} type="button" onClick={b.onClick} aria-label={b.ariaLabel} style={{ padding: '8px 11px', clipPath: cut(7), background: b.bg, border: `1px solid ${b.border}`, color: b.fg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: 'pointer' }}>{b.label}</button>
+              ))}
             </div>
           </div>
         ))}

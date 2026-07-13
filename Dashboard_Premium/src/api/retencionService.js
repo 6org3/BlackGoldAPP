@@ -36,14 +36,20 @@ function hoyLocal() {
  * panel de Retención. Escribe atletas.estado_membresia/fecha_baja (columnas v31);
  * la RLS `atletas_update` + el trigger `proteger_columnas_atletas` permiten la
  * escritura a staff (owner/coach/superadmin), no al propio atleta.
+ *
+ * Dar de baja es idempotente: el `.neq('estado_membresia','baja')` evita
+ * reescribir `fecha_baja` de un atleta que YA estaba de baja (re-darlo de baja
+ * en otro mes movería su baja de mes en el histórico de fn_retencion_club). Si
+ * ya estaba de baja, el UPDATE no afecta filas y no hay error — no-op seguro.
  * @param {string} atletaId atletas.id.
  * @param {boolean} [dar=true] true = dar de baja; false = reactivar (activo, sin fecha_baja).
  */
 export async function marcarBaja(atletaId, dar = true) {
-  const patch = dar
-    ? { estado_membresia: 'baja', fecha_baja: hoyLocal() }
-    : { estado_membresia: 'activo', fecha_baja: null };
-  const { error } = await supabase.from('atletas').update(patch).eq('id', atletaId);
+  let query = supabase.from('atletas');
+  query = dar
+    ? query.update({ estado_membresia: 'baja', fecha_baja: hoyLocal() }).eq('id', atletaId).neq('estado_membresia', 'baja')
+    : query.update({ estado_membresia: 'activo', fecha_baja: null }).eq('id', atletaId);
+  const { error } = await query;
   if (error) throw error;
   return { success: true };
 }
