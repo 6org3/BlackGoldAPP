@@ -3,11 +3,13 @@
 
    Estrategia: OVERLAY. Parte de DUENO_MOCK y reemplaza los números que SÍ
    existen hoy en Supabase — KPIs del resumen, finanzas por mes (recaudado/por
-   cobrar/vencidos/becados), asistencia media y por categoría — reutilizando los
-   servicios y la derivación exacta de ClubHomePage. Lo que aún no tiene fuente
-   (heatmap de ocupación, ranking de coaches, retención/churn, meta real,
-   filas de acción verificar/recordar, "hoy en el club" club-wide) queda mock,
-   marcado `// TODO`. Cualquier error degrada a DUENO_MOCK completo.
+   cobrar/vencidos/becados), asistencia media y por categoría, y el heatmap de
+   ocupación de cancha (v32, fn_ocupacion_cancha) — reutilizando los servicios y
+   la derivación exacta de ClubHomePage. Lo que aún no tiene fuente (ranking de
+   coaches, retención/churn, meta real, filas de acción verificar/recordar, "hoy
+   en el club" club-wide) queda mock, marcado `// TODO`. Cualquier error o falta
+   de datos degrada a DUENO_MOCK (heat cae a DUENO_MOCK.heat; el resto, al mock
+   completo).
 
    Nota de meses: el prototipo asume may/jun/jul. Como hoy es julio 2026 eso
    calza con los últimos 3 meses; TODO: etiquetas de mes dinámicas fuera de julio.
@@ -15,6 +17,7 @@
 import { fetchTodosLosAtletas } from '../../api/atletasService';
 import { fetchAsistenciaPct } from '../../api/asistenciaService';
 import { fetchPagosMes } from '../../api/pagosService';
+import { fetchOcupacionCancha } from '../../api/ocupacionService';
 import { tieneSenal } from '../../lib/senalesAtleta';
 import { DUENO_MOCK } from './duenoMock';
 
@@ -68,7 +71,7 @@ export async function fetchDuenoPanel(user) {
     const p1 = mesAtras(1);
     const p2 = mesAtras(2);
 
-    const [asisAll, asis14, asis16, asis18, pJul, pJun, pMay] = await Promise.all([
+    const [asisAll, asis14, asis16, asis18, pJul, pJun, pMay, realHeat] = await Promise.all([
       fetchAsistenciaPct(allIds, 30),
       fetchAsistenciaPct(idsCat(list, '14'), 30),
       fetchAsistenciaPct(idsCat(list, '16'), 30),
@@ -76,6 +79,7 @@ export async function fetchDuenoPanel(user) {
       fetchPagosMes(now.getMonth() + 1, now.getFullYear()).catch(() => []),
       fetchPagosMes(p1.m, p1.y).catch(() => []),
       fetchPagosMes(p2.m, p2.y).catch(() => []),
+      fetchOcupacionCancha(60).catch(() => null),
     ]);
 
     const finanzas = { may: derivePagos(pMay), jun: derivePagos(pJun), jul: derivePagos(pJul) };
@@ -108,7 +112,11 @@ export async function fetchDuenoPanel(user) {
       sub: catCount[r.k] ? `${catCount[r.k]} atletas` : r.sub,
     }));
 
-    return { ...DUENO_MOCK, demo: false, kpis, finanzas, asistencia, catRows };
+    // Heatmap de ocupación real (v32). null (DB vacía / sin permiso / error) →
+    // conserva DUENO_MOCK.heat, que ya viene por el spread de arriba.
+    const heat = realHeat || DUENO_MOCK.heat;
+
+    return { ...DUENO_MOCK, demo: false, kpis, finanzas, asistencia, catRows, heat };
   } catch {
     return DUENO_MOCK; // degradación defensiva
   }
