@@ -138,7 +138,48 @@
     from { transform: translateX(-100%); }
     to   { transform: translateX(100%); }
   }
+
+  /* ----------------------------------------------------------
+     ARCADE HUD — lenguaje visual de Modo Cancha / Vista Padre.
+     Silkscreen (pixel) SOLO para números grandes y micro-labels
+     uppercase; el cuerpo sigue en --font-sans (Outfit).
+     Los rgba/gradientes/clip-paths del HUD viven centralizados en
+     src/components/arcade/arcadeTokens.js (mismo patrón que
+     designTokens.js), no dispersos por las pantallas.
+     ---------------------------------------------------------- */
+  --font-pixel: 'Silkscreen', 'Outfit', ui-monospace, monospace;
 }
+
+/* --------------------------------------------------------------
+   Keyframes ARCADE HUD — globales, fuera de @theme a propósito.
+   Los consumen estilos inline (animation:'bg-...') en arcade/*, no
+   utilidades Tailwind, así que NO deben depender del tree-shaking de
+   @theme (que solo emite un @keyframes si se usa su clase animate-*).
+   -------------------------------------------------------------- */
+/* Indicadores "vivos": ● de sesión activa, dots de riesgo. */
+@keyframes bg-blink { 0%, 60%, 100% { opacity: 1; } 30% { opacity: 0.25; } }
+/* Aparición con rebote — éxito, insignia desbloqueada, trofeo de cierre. */
+@keyframes bg-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1); opacity: 1; }
+}
+/* Entra desde abajo — filas de resultados en el reparto de XP. */
+@keyframes bg-rise {
+  0%   { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+/* Cursor de terminal parpadeante (micro-labels de estado). */
+@keyframes bg-cursor { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+/* Pulso de glow dorado — botón hex central de la nav. */
+@keyframes bg-glow-pulse {
+  0%, 100% { box-shadow: 0 0 14px rgb(255 215 0 / 0.45); }
+  50%      { box-shadow: 0 0 26px rgb(255 215 0 / 0.75); }
+}
+
+/* Inputs del HUD: el placeholder toma el gris de labels (--color-fg-muted,
+   #6B7280) — los estilos inline no pueden alcanzar el pseudo-elemento. */
+.arcade-input::placeholder { color: var(--color-fg-muted); opacity: 1; }
 
 /* --------------------------------------------------------------
    CAPA 3 · COMPONENTE — tokens de dimensión compartidos

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp, LogOut } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ModoCanchaModal from './ModoCanchaModal';
+import ModoCanchaArcade from './arcade/ModoCanchaArcade';
 import { supabase } from '../api/supabaseClient';
 import { fetchSesionesEnCurso } from '../api/sesionesService';
 import { HOMES_POR_ROL, rutaHomeParaRol } from '../lib/featureFlags';
@@ -214,16 +214,20 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
         superficie ya monta su propia BottomNav + FAB Copiloto (PR7), para no
         apilar tres controles flotantes sobre el mismo rincón inferior. */}
     {!ocultarFabModoCancha && (user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
-      <>
-        <button
-          onClick={() => setShowModoCancha(true)}
-          aria-label="Abrir Modo Cancha"
-          className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-brand text-black p-4 rounded-full shadow-glow-gold hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition flex items-center justify-center md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
-        >
-          <Zap size={24} fill="currentColor" />
-        </button>
-        <ModoCanchaModal isOpen={showModoCancha} onClose={() => setShowModoCancha(false)} />
-      </>
+      <button
+        onClick={() => setShowModoCancha(true)}
+        aria-label="Abrir Modo Cancha"
+        className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-brand text-black p-4 rounded-full shadow-glow-gold hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition flex items-center justify-center md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
+      >
+        <Zap size={24} fill="currentColor" />
+      </button>
+    )}
+    {/* El takeover se monta siempre para staff (NO gateado por
+        ocultarFabModoCancha): el botón "Modo Cancha" del drawer —siempre
+        visible— debe abrirlo en toda superficie, incluidas /admin/* y los
+        homes por rol donde el FAB sí se oculta. */}
+    {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+      <ModoCanchaArcade isOpen={showModoCancha} onClose={() => setShowModoCancha(false)} />
     )}
     </>
   );
