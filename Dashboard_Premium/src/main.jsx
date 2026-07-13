@@ -72,7 +72,9 @@ const VistaAtletaArcade = lazy(() => import('./components/arcade/VistaAtletaArca
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
 const CoachHomePage = lazy(() => import('./pages/CoachHomePage.jsx'))
-const ClubHomePage = lazy(() => import('./pages/ClubHomePage.jsx'))
+// Panel Dueño en estilo "Arcade HUD" (rediseño del handoff): 5 paneles mock-first
+// + cableado real (KPIs/finanzas/asistencia). ClubHomePage.jsx queda como legacy.
+const VistaDuenoArcade = lazy(() => import('./components/arcade/VistaDuenoArcade.jsx'))
 const SistemaHomePage = lazy(() => import('./pages/SistemaHomePage.jsx'))
 
 // La PWA instalada abre en '/': si supabase-js aún tiene sesión válida no hay
@@ -142,7 +144,7 @@ createRoot(document.getElementById('root')).render(
             path="/club"
             element={
               <PrivateRoute roles={['superadmin', 'owner']}>
-                <ClubHomePage />
+                <VistaDuenoArcade />
               </PrivateRoute>
             }
           />
