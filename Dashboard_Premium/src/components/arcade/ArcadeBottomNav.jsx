@@ -16,14 +16,29 @@ const PADRE = [
   { key: 'pagos', label: 'PAGOS', Icon: MapPin },
 ];
 
+// Atleta: 4 zonas, acento oro (como el prototipo ScreenAtleta), sin hex central.
+// La clave 'inicio' calza con state.aTab del portal (BASE es su etiqueta).
+const ATLETA = [
+  { key: 'inicio', label: 'BASE', Icon: Home },
+  { key: 'misiones', label: 'MISIONES', Icon: Target },
+  { key: 'progreso', label: 'PROGRESO', Icon: TrendingUp },
+  { key: 'eventos', label: 'EVENTOS', Icon: Calendar },
+];
+
+const VARIANTS = {
+  coach: { items: COACH, accent: C.gold, border: 'rgba(255,215,0,.16)' },
+  padre: { items: PADRE, accent: C.info, border: 'rgba(96,165,250,.2)' },
+  atleta: { items: ATLETA, accent: C.gold, border: 'rgba(255,215,0,.16)' },
+};
+
 /**
- * Nav inferior del HUD. Coach: 5 zonas con botón hex central elevado
- * (Cancha). Padre: 4 zonas. `onNavigate(key)` enruta.
+ * Nav inferior del HUD. Coach: 5 zonas con botón hex central elevado (Cancha).
+ * Padre/Atleta: 4 zonas. `onNavigate(key)` enruta.
  */
 export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate }) {
-  const isCoach = variant === 'coach';
-  const items = isCoach ? COACH : PADRE;
-  const accent = isCoach ? C.gold : C.info;
+  const v = VARIANTS[variant] || VARIANTS.coach;
+  const items = v.items;
+  const accent = v.accent;
 
   return (
     <nav
@@ -34,7 +49,7 @@ export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate 
         background: 'rgba(5,5,7,.94)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
-        borderTop: `1px solid ${isCoach ? 'rgba(255,215,0,.16)' : 'rgba(96,165,250,.2)'}`,
+        borderTop: `1px solid ${v.border}`,
         display: 'flex',
       }}
     >

@@ -9,7 +9,7 @@ export const HOMES_POR_ROL = {
   superadmin: true,
   owner: true,
   coach: true,
-  atleta: false,
+  atleta: true, // portal Atleta Arcade HUD montado en /atleta (rediseño del handoff)
   padre: false,
 };
 
