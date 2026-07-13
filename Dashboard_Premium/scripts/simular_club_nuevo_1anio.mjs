@@ -21,8 +21,10 @@
 // Valores de columnas "enum-like" verificados leyendo la UI/servicios reales
 // (no inventados): ver comentarios inline en cada sección.
 //
-// IMPORTANTE: este script NUNCA debe correr con SIMULAR = false sin que un
-// humano revise el contenido primero. No cambia esta constante.
+// IMPORTANTE: este script NUNCA debe correr en modo real sin que un humano
+// revise el contenido primero. Por eso el modo real está detrás de una
+// variable de entorno explícita (SEED_REAL=1) y el default sigue siendo el
+// dry-run seguro que no escribe nada.
 
 import { createClient } from '@supabase/supabase-js';
 import path from 'path';
@@ -33,7 +35,8 @@ import { BAREMOS, calcularOverall } from '../../packages/analytics-core/baremos.
 import { calcularEdad, calcularCategoriaFEB } from '../../packages/analytics-core/categoriaFEB.js';
 import { calcularXPMision } from '../../packages/analytics-core/recomendaciones.js';
 
-const SIMULAR = true;
+// Dry-run por defecto. Para escribir de verdad: SEED_REAL=1 node scripts/simular_club_nuevo_1anio.mjs
+const SIMULAR = process.env.SEED_REAL !== '1';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.join(__dirname, '..', '.env.local'));
