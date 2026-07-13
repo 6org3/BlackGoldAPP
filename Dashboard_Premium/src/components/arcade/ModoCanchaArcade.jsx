@@ -56,14 +56,29 @@ function footerFor(state, actions, roster) {
     }
     case 'lista': {
       const pc = presentesP(state, roster).length;
-      return { label: `INICIAR SESIÓN · ${pc} ✓`, enabled: pc > 0, tone: 'green', onClick: actions.start };
+      return {
+        label: `INICIAR SESIÓN · ${pc} ✓`,
+        enabled: pc > 0,
+        tone: 'green',
+        onClick: () => actions.start({ classType: state.classType, level: state.level, present: state.present, roster }),
+      };
     }
     case 'cierre': {
       const dc = destacadosList(state, roster).length;
-      return { label: `FINALIZAR · +${dc * XP_POR_DESTACADO} XP`, enabled: dc > 0, tone: 'gold', onClick: actions.finish };
+      return {
+        label: `FINALIZAR · +${dc * XP_POR_DESTACADO} XP`,
+        enabled: dc > 0,
+        tone: 'gold',
+        onClick: () => actions.finish({ session: state.closingSession, present: state.present, roster }),
+      };
     }
     case 'evaluar':
-      return { label: 'GUARDAR EVALUACIÓN', enabled: true, tone: 'green', onClick: actions.saveEval };
+      return {
+        label: 'GUARDAR EVALUACIÓN',
+        enabled: true,
+        tone: 'green',
+        onClick: () => actions.saveEval({ atletaId: state.evalTargetId, scores: state.scores[state.evalTargetId] }),
+      };
     default:
       return null;
   }

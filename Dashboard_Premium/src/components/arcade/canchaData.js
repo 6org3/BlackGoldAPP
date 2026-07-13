@@ -129,11 +129,17 @@ export async function startSession({ user, classType, level, present, roster, fo
   const tipoStr = labelTipo(classType, level);
   const tipoDB = classType === '1v1' ? 'Individual' : 'Grupal';
   const notasStr = `[EN_CURSO] ${tipoStr}`;
+  // La RLS de sesiones_programadas (v29) exige atleta_id O grupo_id del club del
+  // coach. El flujo Arcade no elige grupo, así que anclamos la sesión al primer
+  // presente (siempre en el club del coach) — la asistencia real va por atleta en
+  // la tabla `asistencia`; este atleta_id solo scopea la fila para la RLS.
+  const ancla = roster.find((a) => present[a.id] === 'P') || null;
 
   const { data: sesion, error } = await supabase
     .from('sesiones_programadas')
     .insert({
       coach_id: user.id,
+      atleta_id: ancla ? ancla.id : null,
       fecha: fechaStr,
       hora_inicio: horaStr,
       hora_fin: horaStr,

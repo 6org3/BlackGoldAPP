@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useMemo, useState, useRef } from 'react';
+import { useReducer, useEffect, useMemo, useState } from 'react';
 import { ROSTER, SEED_SESSIONS, LEVELS } from './canchaMock';
 import { fetchRoster, fetchActiveSessions, startSession, saveSubjectiveEval, closeClass } from './canchaData';
 
@@ -172,15 +172,6 @@ export default function useCanchaSession(user) {
   const [loading, setLoading] = useState(!!user);
   const isReal = !!user;
 
-  // Refs "última versión" para que las acciones async lean el estado vigente
-  // sin recrearse en cada render (se sincronizan tras el commit, no en render).
-  const stateRef = useRef(state);
-  const rosterRef = useRef(roster);
-  useEffect(() => {
-    stateRef.current = state;
-    rosterRef.current = roster;
-  });
-
   // Carga inicial de datos reales (roster + sesiones activas).
   useEffect(() => {
     if (!user) return undefined;
@@ -219,41 +210,32 @@ export default function useCanchaSession(user) {
       chooseToggle: (id) => dispatch({ type: 'CHOOSE_TOGGLE', id }),
       toLista: () => dispatch({ type: 'TO_LISTA' }),
       mark: (id, val) => dispatch({ type: 'MARK', id, val }),
-      allPresent: () => {
-        const s = stateRef.current;
-        const r = rosterRef.current;
-        const list = s.classType === '1v1' ? r.filter((a) => s.present[a.id]) : r.filter((a) => a.nivel === s.level);
-        dispatch({ type: 'ALL_PRESENT', roster: list.length ? list : r });
-      },
-      start: async () => {
-        const s = stateRef.current;
-        const r = rosterRef.current;
+      allPresent: (list) => dispatch({ type: 'ALL_PRESENT', roster: list || [] }),
+      start: async ({ classType, level, present, roster: r }) => {
         if (user) {
           try {
-            const focusName = s.classType === '1v1' ? r.find((a) => s.present[a.id] === 'P')?.name : null;
-            const session = await startSession({ user, classType: s.classType, level: s.level, present: s.present, roster: r, focusName });
+            const focusName = classType === '1v1' ? r.find((a) => present[a.id] === 'P')?.name : null;
+            const session = await startSession({ user, classType, level, present, roster: r, focusName });
             dispatch({ type: 'ADD_SESSION', session });
             return;
           } catch {
             /* cae al arranque local para no bloquear la UI */
           }
         }
-        const first = r.find((a) => s.present[a.id] === 'P');
-        const label = s.classType === '1v1' && first ? `1v1 · ${first.name}` : 'Sub-16 · Físico';
-        const present = r.filter((a) => s.present[a.id] === 'P').length;
-        dispatch({ type: 'START', id: `main-${Date.now()}`, start: hhmm(new Date()), label, present });
+        const first = r.find((a) => present[a.id] === 'P');
+        const label = classType === '1v1' && first ? `1v1 · ${first.name}` : 'Sub-16 · Físico';
+        const presentCount = r.filter((a) => present[a.id] === 'P').length;
+        dispatch({ type: 'START', id: `main-${Date.now()}`, start: hhmm(new Date()), label, present: presentCount });
       },
       openSession: (id) => dispatch({ type: 'OPEN_SESSION', id }),
       focusSession: (id) => dispatch({ type: 'FOCUS_SESSION', id }),
       terminateEval: (id) => dispatch({ type: 'TERMINATE_EVAL', id }),
       terminateBg: (id) => dispatch({ type: 'TERMINATE_BG', id }),
-      finish: async () => {
-        const s = stateRef.current;
-        const r = rosterRef.current;
-        if (user && s.closingSession && String(s.closingSession.id).indexOf('main-') !== 0) {
-          const presentIds = r.filter((a) => s.present[a.id] === 'P').map((a) => a.id);
+      finish: async ({ session, present, roster: r }) => {
+        if (user && session && String(session.id).indexOf('main-') !== 0) {
+          const presentIds = r.filter((a) => present[a.id] === 'P').map((a) => a.id);
           try {
-            await closeClass({ session: s.closingSession, presentAtletaIds: presentIds });
+            await closeClass({ session, presentAtletaIds: presentIds });
           } catch {
             /* la sesión queda en curso; se puede reintentar */
           }
@@ -265,13 +247,11 @@ export default function useCanchaSession(user) {
       toggleDestacado: (id) => dispatch({ type: 'TOGGLE_DESTACADO', id }),
       openEval: (id) => dispatch({ type: 'OPEN_EVAL', id }),
       setStar: (axis, val) => dispatch({ type: 'SET_STAR', axis, val }),
-      saveEval: async () => {
-        const s = stateRef.current;
-        const id = s.evalTargetId;
+      saveEval: async ({ atletaId, scores }) => {
         dispatch({ type: 'SAVE_EVAL' });
-        if (user && id) {
+        if (user && atletaId) {
           try {
-            await saveSubjectiveEval({ user, atletaId: id, scores: s.scores[id] || {} });
+            await saveSubjectiveEval({ user, atletaId, scores: scores || {} });
           } catch {
             /* la UI ya marcó guardado; el write se puede reintentar */
           }

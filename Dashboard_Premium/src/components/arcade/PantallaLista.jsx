@@ -16,7 +16,7 @@ export default function PantallaLista({ state, actions, roster = [] }) {
         </p>
         <button
           type="button"
-          onClick={actions.allPresent}
+          onClick={() => actions.allPresent(listRoster)}
           style={{
             flex: 'none',
             padding: '9px 12px',
