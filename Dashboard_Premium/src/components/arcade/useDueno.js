@@ -1,6 +1,7 @@
 import { useReducer, useEffect, useMemo, useState } from 'react';
 import { DUENO_MOCK } from './duenoMock';
 import { fetchDuenoPanel } from './duenoData';
+import { marcarBaja } from '../../api/retencionService';
 
 /**
  * Máquina de estado del panel Dueño (port del reducer del prototipo). Con `user`
@@ -20,6 +21,8 @@ const initialState = {
   dRecordados: {},
   dVerificados: {},
   dContactados: {},
+  dBajaArmar: null, // id de atleta con la baja "armada" (esperando confirmación)
+  dBajas: {}, // atletas dados de baja en esta sesión (feedback optimista)
 };
 
 function reducer(state, action) {
@@ -40,6 +43,16 @@ function reducer(state, action) {
       return { ...state, dVerificados: { ...state.dVerificados, [action.id]: true } };
     case 'CONTACTAR':
       return { ...state, dContactados: { ...state.dContactados, [action.id]: true } };
+    case 'ARM_BAJA':
+      // Toca "dar de baja" una vez → arma la confirmación de ESA fila (desarma otras).
+      return { ...state, dBajaArmar: action.id };
+    case 'DAR_BAJA':
+      return { ...state, dBajas: { ...state.dBajas, [action.id]: true }, dBajaArmar: null };
+    case 'REVERT_BAJA': {
+      const nb = { ...state.dBajas };
+      delete nb[action.id];
+      return { ...state, dBajas: nb };
+    }
     default:
       return state;
   }
@@ -50,6 +63,9 @@ export default function useDueno(user) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [data, setData] = useState(() => (isReal ? null : DUENO_MOCK));
   const [loading, setLoading] = useState(isReal);
+  // `version` fuerza un refetch tras una acción que muta datos (dar de baja):
+  // no se toca `loading` para no mostrar "CARGANDO…" en un refresco puntual.
+  const [version, setVersion] = useState(0);
 
   // Solo el modo real hidrata (el demo nace con DUENO_MOCK/loading=false en el
   // init). El estado se escribe únicamente tras el await (react-hooks/set-state-in-effect).
@@ -72,7 +88,7 @@ export default function useDueno(user) {
     return () => {
       alive = false;
     };
-  }, [isReal, user]);
+  }, [isReal, user, version]);
 
   const actions = useMemo(
     () => ({
@@ -85,8 +101,21 @@ export default function useDueno(user) {
       verificar: (id) => dispatch({ type: 'VERIFICAR', id }),
       recordar: (id) => dispatch({ type: 'RECORDAR', id }),
       contactar: (id) => dispatch({ type: 'CONTACTAR', id }),
+      // Dar de baja (dos toques): 1º arma la confirmación, 2º ejecuta.
+      armBaja: (id) => dispatch({ type: 'ARM_BAJA', id }),
+      darBaja: async (id) => {
+        dispatch({ type: 'DAR_BAJA', id }); // optimista: la fila pasa a "dado de baja"
+        if (isReal) {
+          try {
+            await marcarBaja(id, true); // UPDATE estado_membresia='baja' + fecha_baja
+            setVersion((v) => v + 1); // refetch → gauge/activos/altas-bajas reales
+          } catch {
+            dispatch({ type: 'REVERT_BAJA', id }); // revertir el feedback si el write falla
+          }
+        }
+      },
     }),
-    [],
+    [isReal],
   );
 
   return { state, data, actions, loading, isReal };

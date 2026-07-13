@@ -155,6 +155,8 @@ function ctxEquipo(state, data, actions) {
 function ctxRetencion(state, data, actions) {
   const r = data.retencion;
   const contactados = state.dContactados || {};
+  const bajas = state.dBajas || {};
+  const armar = state.dBajaArmar || null;
   return {
     retDash: `${((CIRC * r.retPct) / 100).toFixed(0)} ${Math.ceil(CIRC)}`,
     retPct: `${r.retPct}%`,
@@ -170,16 +172,26 @@ function ctxRetencion(state, data, actions) {
     riesgoCount: String(r.riesgo.length),
     riesgo: r.riesgo.map((x) => {
       const done = !!contactados[x.id];
+      const dada = !!bajas[x.id]; // ya dado de baja en esta sesión
+      const armada = armar === x.id; // baja armada, esperando confirmación
       return {
         initial: x.initial, avatarBg: hueBg(x.hue), avatarFg: hueFg(x.hue), name: x.name,
-        motivo: done ? 'Contactado · seguimiento esta semana' : x.motivo,
-        motivoColor: done ? C.ok : x.mc,
-        border: done ? 'rgba(52,211,153,.3)' : 'rgba(251,146,60,.25)',
+        motivo: dada ? 'Dado de baja del club' : done ? 'Contactado · seguimiento esta semana' : x.motivo,
+        motivoColor: dada ? C.danger : done ? C.ok : x.mc,
+        border: dada ? 'rgba(239,68,68,.3)' : done ? 'rgba(52,211,153,.3)' : 'rgba(251,146,60,.25)',
+        // CONTACTAR — se oculta si el atleta ya fue dado de baja.
+        showContactar: !dada,
         btnLabel: done ? '✓ HECHO' : 'CONTACTAR',
         btnBg: done ? 'rgba(52,211,153,.12)' : 'rgba(255,215,0,.1)',
         btnFg: done ? C.ok : C.gold,
         btnBorder: done ? 'rgba(52,211,153,.4)' : 'rgba(255,215,0,.4)',
         onBtn: () => actions.contactar(x.id),
+        // DAR DE BAJA — dos toques (armar → confirmar). Acción del dueño (write real).
+        bajaLabel: dada ? '✓ DE BAJA' : armada ? '¿CONFIRMAR?' : 'DAR DE BAJA',
+        bajaBg: dada ? 'rgba(239,68,68,.12)' : armada ? 'rgba(239,68,68,.18)' : 'transparent',
+        bajaFg: dada || armada ? C.danger : C.text3,
+        bajaBorder: dada || armada ? 'rgba(239,68,68,.45)' : 'rgba(255,255,255,.14)',
+        onBaja: dada ? undefined : armada ? () => actions.darBaja(x.id) : () => actions.armBaja(x.id),
       };
     }),
   };

@@ -32,7 +32,12 @@ export default function PanelRetencion({ ctx }) {
               <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{r.name}</p>
               <p style={{ margin: '1px 0 0', fontSize: 9.5, color: r.motivoColor }}>{r.motivo}</p>
             </div>
-            <button type="button" onClick={r.onBtn} style={{ flex: 'none', padding: '9px 11px', clipPath: cut(7), background: r.btnBg, border: `1px solid ${r.btnBorder}`, color: r.btnFg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: 'pointer' }}>{r.btnLabel}</button>
+            <div style={{ flex: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {r.showContactar && (
+                <button type="button" onClick={r.onBtn} style={{ padding: '8px 11px', clipPath: cut(7), background: r.btnBg, border: `1px solid ${r.btnBorder}`, color: r.btnFg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: 'pointer' }}>{r.btnLabel}</button>
+              )}
+              <button type="button" onClick={r.onBaja} disabled={!r.onBaja} style={{ padding: '8px 11px', clipPath: cut(7), background: r.bajaBg, border: `1px solid ${r.bajaBorder}`, color: r.bajaFg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: r.onBaja ? 'pointer' : 'default' }}>{r.bajaLabel}</button>
+            </div>
           </div>
         ))}
       </div>

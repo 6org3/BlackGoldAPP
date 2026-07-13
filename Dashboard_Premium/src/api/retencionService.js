@@ -23,3 +23,27 @@ export async function fetchRetencionClub(meses = 5) {
   if (error || !data) return null;
   return data; // { total, activos, ret_pct, altas_bajas }
 }
+
+// Fecha local YYYY-MM-DD (Ecuador UTC-5): evita el corrimiento de día de
+// toISOString() cerca de medianoche al fijar la fecha de baja.
+function hoyLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Marca (o revierte) la baja de membresía de un atleta — acción del dueño en el
+ * panel de Retención. Escribe atletas.estado_membresia/fecha_baja (columnas v31);
+ * la RLS `atletas_update` + el trigger `proteger_columnas_atletas` permiten la
+ * escritura a staff (owner/coach/superadmin), no al propio atleta.
+ * @param {string} atletaId atletas.id.
+ * @param {boolean} [dar=true] true = dar de baja; false = reactivar (activo, sin fecha_baja).
+ */
+export async function marcarBaja(atletaId, dar = true) {
+  const patch = dar
+    ? { estado_membresia: 'baja', fecha_baja: hoyLocal() }
+    : { estado_membresia: 'activo', fecha_baja: null };
+  const { error } = await supabase.from('atletas').update(patch).eq('id', atletaId);
+  if (error) throw error;
+  return { success: true };
+}
