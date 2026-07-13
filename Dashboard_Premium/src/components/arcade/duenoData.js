@@ -3,11 +3,14 @@
 
    Estrategia: OVERLAY. Parte de DUENO_MOCK y reemplaza los números que SÍ
    existen hoy en Supabase — KPIs del resumen, finanzas por mes (recaudado/por
-   cobrar/vencidos/becados), asistencia media y por categoría — reutilizando los
-   servicios y la derivación exacta de ClubHomePage. Lo que aún no tiene fuente
-   (heatmap de ocupación, ranking de coaches, retención/churn, meta real,
-   filas de acción verificar/recordar, "hoy en el club" club-wide) queda mock,
-   marcado `// TODO`. Cualquier error degrada a DUENO_MOCK completo.
+   cobrar/vencidos/becados), asistencia media y por categoría, el heatmap de
+   ocupación de cancha (v32, fn_ocupacion_cancha), el ranking de coaches (v31,
+   fn_coach_stats), la retención/altas-bajas (v31, fn_retencion_club) y la meta
+   de recaudación (v31, club_config) — reutilizando los servicios y la derivación
+   exacta de ClubHomePage. Lo que aún no tiene fuente (filas de acción verificar/
+   recordar, "hoy en el club" club-wide) queda mock, marcado `// TODO`. Cada capa
+   degrada a mock por separado (heat → DUENO_MOCK.heat, coaches/retención → mock);
+   ante excepción, al DUENO_MOCK completo.
 
    Nota de meses: el prototipo asume may/jun/jul. Como hoy es julio 2026 eso
    calza con los últimos 3 meses; TODO: etiquetas de mes dinámicas fuera de julio.
@@ -17,6 +20,7 @@ import { fetchAsistenciaPct } from '../../api/asistenciaService';
 import { fetchPagosMes, fetchClubConfig } from '../../api/pagosService';
 import { fetchCoachStats } from '../../api/coachesService';
 import { fetchRetencionClub } from '../../api/retencionService';
+import { fetchOcupacionCancha } from '../../api/ocupacionService';
 import { tieneSenal } from '../../lib/senalesAtleta';
 import { C } from './arcadeTokens';
 import { DUENO_MOCK } from './duenoMock';
@@ -106,7 +110,7 @@ export async function fetchDuenoPanel(user) {
     const p1 = mesAtras(1);
     const p2 = mesAtras(2);
 
-    const [asisAll, asis14, asis16, asis18, pJul, pJun, pMay, clubConfig, coachRows, retClub] = await Promise.all([
+    const [asisAll, asis14, asis16, asis18, pJul, pJun, pMay, clubConfig, coachRows, retClub, realHeat] = await Promise.all([
       fetchAsistenciaPct(allIds, 30),
       fetchAsistenciaPct(idsCat(list, '14'), 30),
       fetchAsistenciaPct(idsCat(list, '16'), 30),
@@ -117,6 +121,7 @@ export async function fetchDuenoPanel(user) {
       fetchClubConfig(user.club).catch(() => null),
       fetchCoachStats(30).catch(() => []),
       fetchRetencionClub(5).catch(() => null),
+      fetchOcupacionCancha(60).catch(() => null),
     ]);
 
     // Meta real del donut de Finanzas (club_config.meta_recaudacion_mensual, v31);
@@ -157,8 +162,11 @@ export async function fetchDuenoPanel(user) {
     // D5 · Retención — total/activos/altas-bajas reales (fn_retencion_club, v31)
     // + `riesgo` del proxy de señales; sin datos reales → DUENO_MOCK.retencion.
     const retencion = mapRetencion(retClub, list);
+    // D3 · Heatmap de ocupación real (v32). null (DB vacía / sin permiso / error) →
+    // conserva DUENO_MOCK.heat, que ya viene por el spread de arriba.
+    const heat = realHeat || DUENO_MOCK.heat;
 
-    return { ...DUENO_MOCK, demo: false, kpis, finanzas, asistencia, catRows, coaches, retencion };
+    return { ...DUENO_MOCK, demo: false, kpis, finanzas, asistencia, catRows, coaches, retencion, heat };
   } catch {
     return DUENO_MOCK; // degradación defensiva
   }
