@@ -17,9 +17,13 @@ import { supabase } from './supabaseClient';
  * @param {string} atletaId - atletas.id
  * @param {number} [xpDelta=0] - XP a sumar.
  * @param {Object<string, number>} [statBoosts={}] - { columna: incremento } aplicado con Math.min(100, actual+inc).
+ * @param {Object} [opts={}] - Metadatos del ledger de XP (xp_eventos, v31).
+ * @param {string|null} [opts.coachId] - usuarios.id del coach que otorga (null si no aplica).
+ * @param {string} [opts.motivo] - Descripción legible (p. ej. "Evaluación Modo Cancha").
+ * @param {string} [opts.origen] - Origen técnico (p. ej. "observaciones_cancha", "misiones").
  * @returns {Promise<Object|null>} Los campos actualizados, o null si el atleta no existe.
  */
-export async function otorgarXP(atletaId, xpDelta = 0, statBoosts = {}) {
+export async function otorgarXP(atletaId, xpDelta = 0, statBoosts = {}, opts = {}) {
   if (!atletaId) return null;
 
   const columnas = ['xp_total', ...Object.keys(statBoosts)];
@@ -36,5 +40,25 @@ export async function otorgarXP(atletaId, xpDelta = 0, statBoosts = {}) {
   }
 
   await supabase.from('atletas').update(updates).eq('id', atletaId);
+
+  // Ledger de XP (xp_eventos, v31): registro BEST-EFFORT del movimiento — habilita
+  // el XP semanal del atleta y el XP repartido por coach del dueño. NO debe romper
+  // el otorgamiento si la tabla no existe (migración sin aplicar) o la RLS bloquea;
+  // por eso va tras el UPDATE y se ignora cualquier error/throw. Solo se registra
+  // cuando hay delta (la columna delta es NOT NULL y un 0 no aporta al historial).
+  if (xpDelta) {
+    try {
+      await supabase.from('xp_eventos').insert({
+        atleta_id: atletaId,
+        coach_id: opts.coachId ?? null,
+        delta: xpDelta,
+        motivo: opts.motivo ?? null,
+        origen: opts.origen ?? null,
+      });
+    } catch {
+      /* best-effort: el ledger no debe romper el otorgamiento de XP */
+    }
+  }
+
   return updates;
 }

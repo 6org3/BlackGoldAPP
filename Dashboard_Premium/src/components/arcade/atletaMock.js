@@ -96,4 +96,5 @@ export const ATLETA_MOCK = {
     { res: 'W', resHue: 'green', score: '54–48', titulo: 'vs Cóndores', sub: 'Sáb 5 jul · Mateo: 8 pts · 4 reb' },
     { res: 'L', resHue: 'red', score: '39–51', titulo: 'vs Halcones', sub: 'Dom 22 jun · Mateo: 6 pts · 2 ast' },
   ],
+  weeks: WEEKS_MOCK, // paridad de forma con fetchAtletaPanel (XP semanal, v31).
 };

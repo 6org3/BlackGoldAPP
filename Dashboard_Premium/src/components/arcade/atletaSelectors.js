@@ -182,6 +182,8 @@ function ctxProgreso(state, data, actions) {
   const sel = state.aPilar || 'explosividad';
   const selAxis = radar.find((a) => a.key === sel) || radar[0] || { key: sel, label: '', value: 0 };
   const nivelIdx = Math.max(0, NIVELES.indexOf(p.nivelDesarrollo));
+  // XP semanal real (data.weeks, v31) o mock si el atleta aún no tiene ledger.
+  const weeksSrc = (data.weeks && data.weeks.length) ? data.weeks : WEEKS_MOCK;
 
   return {
     resumenLine: `${(p.nivelDesarrollo || '').toUpperCase()} · ${p.xp.current.toLocaleString()} XP TOTAL · PWR ${p.pwr}`,
@@ -213,8 +215,8 @@ function ctxProgreso(state, data, actions) {
       unlocked: b.n > 0,
       countLabel: b.n > 0 ? `×${b.n}` : '—',
     })),
-    weeks: WEEKS_MOCK.map((w, i) => {
-      const last = i === WEEKS_MOCK.length - 1;
+    weeks: weeksSrc.map((w, i) => {
+      const last = i === weeksSrc.length - 1;
       const nCells = Math.max(1, Math.round(w.xp / 25));
       return {
         xp: String(w.xp),

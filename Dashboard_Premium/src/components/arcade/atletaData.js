@@ -9,6 +9,7 @@
    overall_score. Produce el MISMO objeto `data` que ATLETA_MOCK, para que los
    selectores no ramifiquen demo vs real.
    ============================================================ */
+import { supabase } from '../../api/supabaseClient';
 import { fetchMisiones, completarMision } from '../../api/misionesService';
 import { fetchConvocatoriasAtleta, fetchTableroConvocados, responderRSVP } from '../../api/eventosService';
 import { fetchSesionesAtleta } from '../../api/sesionesEntrenamientoService';
@@ -93,15 +94,40 @@ function hoyEntrenasDe(sesiones) {
   };
 }
 
+/** XP de las últimas 6 semanas (ledger xp_eventos, v31) para la pantalla de
+    Progreso. Ventana móvil de 7 días; S6 = semana actual. Devuelve null (→ el
+    selector cae a WEEKS_MOCK) si no hay eventos o la tabla no existe. */
+async function fetchXPSemanal(atletaId) {
+  if (!atletaId) return null;
+  const desde = new Date();
+  desde.setDate(desde.getDate() - 7 * 6);
+  const { data, error } = await supabase
+    .from('xp_eventos')
+    .select('delta, created_at')
+    .eq('atleta_id', atletaId)
+    .gte('created_at', desde.toISOString());
+  if (error || !Array.isArray(data) || data.length === 0) return null;
+  const WEEK = 7 * 24 * 3600 * 1000;
+  const ahora = Date.now();
+  const buckets = Array.from({ length: 6 }, () => 0);
+  data.forEach((e) => {
+    const semAtras = Math.floor((ahora - new Date(e.created_at).getTime()) / WEEK); // 0 = esta semana
+    const idx = 5 - semAtras;
+    if (idx >= 0 && idx < 6) buckets[idx] += Number(e.delta) || 0;
+  });
+  return buckets.map((xp, i) => ({ label: `S${i + 1}`, xp }));
+}
+
 /**
  * Carga el panel del atleta. Cada fetch degrada a vacío/null en error para no
  * romper el HUD (patrón padreData). Devuelve el objeto `data` del selector.
  */
 export async function fetchAtletaPanel(user) {
-  const [misionesRaw, convocatorias, sesiones] = await Promise.all([
+  const [misionesRaw, convocatorias, sesiones, weeks] = await Promise.all([
     fetchMisiones(user.id).catch(() => []), // user.id = usuario_id
     fetchConvocatoriasAtleta([user.atleta_id]).catch(() => []),
     fetchSesionesAtleta(user.atleta_id).catch(() => []),
+    fetchXPSemanal(user.atleta_id).catch(() => null),
   ]);
 
   const misiones = (misionesRaw || []).map(mapMision);
@@ -167,6 +193,7 @@ export async function fetchAtletaPanel(user) {
     misiones,
     eventos,
     historial,
+    weeks, // XP semanal real (xp_eventos, v31) o null → el selector cae a WEEKS_MOCK.
   };
 }
 

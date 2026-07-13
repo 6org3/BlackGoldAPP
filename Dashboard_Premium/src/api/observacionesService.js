@@ -29,7 +29,7 @@ export const insertarObservacion = async (data) => {
   if (error) throw error;
 
   if (data.xp_agregado) {
-    await otorgarXP(data.atleta_id, data.xp_agregado);
+    await otorgarXP(data.atleta_id, data.xp_agregado, {}, { coachId: data.coach_id ?? null, motivo: 'Observación de cancha', origen: 'observaciones_cancha' });
   }
 
   return obsData;

@@ -307,7 +307,7 @@ export default function useCanchaSession(user) {
           // los del roster filtrado por nivel.
           const presentIds = Object.keys(present).filter((id) => present[id] === 'P');
           try {
-            await closeClass({ session, presentAtletaIds: presentIds });
+            await closeClass({ user, session, presentAtletaIds: presentIds });
           } catch {
             /* la sesión queda en curso; se puede reintentar */
           }

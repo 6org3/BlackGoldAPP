@@ -187,7 +187,7 @@ export async function evaluarSesion(sesionId, { se_logro, notas_evaluacion }) {
   if (data.atleta_id && (se_logro === 'Sí' || se_logro === 'Parcial')) {
     let xpBase = xpBaseSesion(data.tipo);
     if (se_logro === 'Parcial') xpBase = Math.floor(xpBase / 2);
-    if (xpBase > 0) await otorgarXP(data.atleta_id, xpBase);
+    if (xpBase > 0) await otorgarXP(data.atleta_id, xpBase, {}, { coachId: data.coach_id ?? null, motivo: 'Evaluación de sesión', origen: 'sesiones_control' });
   }
 
   return data;
