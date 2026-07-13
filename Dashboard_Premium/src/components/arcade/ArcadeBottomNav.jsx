@@ -1,4 +1,4 @@
-import { Home, Users, TrendingUp, Briefcase, Target, Calendar, MapPin, Zap } from 'lucide-react';
+import { Home, Users, TrendingUp, Briefcase, Target, Calendar, MapPin, Zap, Activity, RotateCcw, DollarSign } from 'lucide-react';
 import { HEX, C, GRAD, PIXEL } from './arcadeTokens';
 
 const COACH = [
@@ -25,20 +25,32 @@ const ATLETA = [
   { key: 'eventos', label: 'EVENTOS', Icon: Calendar },
 ];
 
+// Dueño: 5 zonas con hex central elevado = FINANZAS (icono $), como Cancha del coach.
+const DUENO = [
+  { key: 'resumen', label: 'RESUMEN', Icon: Home },
+  { key: 'asistencia', label: 'ASISTENCIA', Icon: Activity },
+  { key: 'finanzas', label: 'FINANZAS', center: true },
+  { key: 'equipo', label: 'EQUIPO', Icon: Users },
+  { key: 'retencion', label: 'RETENCIÓN', Icon: RotateCcw },
+];
+
 const VARIANTS = {
-  coach: { items: COACH, accent: C.gold, border: 'rgba(255,215,0,.16)' },
+  coach: { items: COACH, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: Zap, centerFill: true },
   padre: { items: PADRE, accent: C.info, border: 'rgba(96,165,250,.2)' },
   atleta: { items: ATLETA, accent: C.gold, border: 'rgba(255,215,0,.16)' },
+  dueno: { items: DUENO, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: DollarSign, centerFill: false },
 };
 
 /**
- * Nav inferior del HUD. Coach: 5 zonas con botón hex central elevado (Cancha).
- * Padre/Atleta: 4 zonas. `onNavigate(key)` enruta.
+ * Nav inferior del HUD. Coach: 5 zonas con hex central elevado (Cancha, rayo).
+ * Dueño: 5 zonas con hex central ($, Finanzas). Padre/Atleta: 4 zonas.
+ * `onNavigate(key)` enruta.
  */
 export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate }) {
   const v = VARIANTS[variant] || VARIANTS.coach;
   const items = v.items;
   const accent = v.accent;
+  const CenterIcon = v.CenterIcon || Zap;
 
   return (
     <nav
@@ -80,7 +92,11 @@ export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate 
                   filter: 'drop-shadow(0 0 16px rgba(255,215,0,.55))',
                 }}
               >
-                <Zap size={24} fill="currentColor" strokeWidth={0} />
+                {v.centerFill ? (
+                  <CenterIcon size={24} fill="currentColor" strokeWidth={0} />
+                ) : (
+                  <CenterIcon size={22} strokeWidth={2.4} />
+                )}
               </button>
               <span
                 style={{
