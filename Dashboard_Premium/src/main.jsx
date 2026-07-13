@@ -66,6 +66,9 @@ const AdminSesionesPage = lazy(() => import('./pages/AdminSesionesPage.jsx'))
 const CompararPruebasPage = lazy(() => import('./pages/CompararPruebasPage.jsx'))
 // Vista Padre en estilo "Arcade HUD" con datos reales de Supabase (fase 5 completa).
 const VistaPadreArcade = lazy(() => import('./components/arcade/VistaPadreArcade.jsx'))
+// Portal Atleta en estilo "Arcade HUD" (rediseño del handoff): 5 pantallas
+// mock-first + cableado real (misiones/eventos/pilares/XP).
+const VistaAtletaArcade = lazy(() => import('./components/arcade/VistaAtletaArcade.jsx'))
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
 const CoachHomePage = lazy(() => import('./pages/CoachHomePage.jsx'))
@@ -151,15 +154,13 @@ createRoot(document.getElementById('root')).render(
               </PrivateRoute>
             }
           />
-          {/* Alias semántico del blueprint: App ya conmuta a AthleteLayout
-              para rol atleta, así que /atleta reusa <App /> sin duplicar
-              data-loading. La extracción a una página nativa propia llega
-              con el rediseño del home del atleta. */}
+          {/* Portal Atleta Arcade HUD (rediseño del handoff). El shell legacy
+              AthleteLayout sigue disponible en /dashboard como respaldo. */}
           <Route
             path="/atleta"
             element={
               <PrivateRoute roles={['atleta']}>
-                <App />
+                <VistaAtletaArcade />
               </PrivateRoute>
             }
           />
