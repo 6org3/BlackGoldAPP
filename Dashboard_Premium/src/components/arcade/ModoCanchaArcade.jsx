@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../AuthContext';
 import { C, BORDER, GRAD, cut, PIXEL, gridBackground, fmtClock } from './arcadeTokens';
-import { XP_POR_DESTACADO } from './canchaMock';
-import { presentesP, destacadosList } from './canchaSelectors';
+import { presentesP, destacadosList, xpClaseTotal } from './canchaSelectors';
 import useCanchaSession from './useCanchaSession';
 import MicroLabel from './MicroLabel';
 import ArcadeBottomNav from './ArcadeBottomNav';
@@ -42,6 +41,11 @@ function headerFor(state, roster) {
       const a = roster.find((x) => x.id === state.evalTargetId) || roster[0];
       return { label: 'EVALUAR ATLETA', title: a?.name || 'Atleta' };
     }
+    case 'activa': {
+      // Header con chevron Atrás → salida a cancha sin cerrar la sesión (#1).
+      const f = state.sessions.find((x) => x.id === state.focusedId) || state.sessions[0];
+      return { label: 'EN CURSO', title: f?.label || 'Sesión' };
+    }
     default:
       return null;
   }
@@ -65,20 +69,25 @@ function footerFor(state, actions, roster) {
     }
     case 'cierre': {
       const dc = destacadosList(state, roster).length;
+      // Muestra el XP que realmente se otorgará: asistencia + evaluación (#7).
+      const { total } = xpClaseTotal(state);
       return {
-        label: `FINALIZAR · +${dc * XP_POR_DESTACADO} XP`,
+        label: `FINALIZAR · +${total} XP`,
         enabled: dc > 0,
         tone: 'gold',
         onClick: () => actions.finish({ session: state.closingSession, present: state.present, roster }),
       };
     }
-    case 'evaluar':
+    case 'evaluar': {
+      // Idempotencia: si ya se guardó, no re-otorgar XP (writes aditivos) (#5).
+      const yaGuardado = !!state.savedIds[state.evalTargetId];
       return {
-        label: 'GUARDAR EVALUACIÓN',
-        enabled: true,
+        label: yaGuardado ? 'YA EVALUADO ✓' : 'GUARDAR EVALUACIÓN',
+        enabled: !yaGuardado,
         tone: 'green',
         onClick: () => actions.saveEval({ atletaId: state.evalTargetId, scores: state.scores[state.evalTargetId] }),
       };
+    }
     default:
       return null;
   }

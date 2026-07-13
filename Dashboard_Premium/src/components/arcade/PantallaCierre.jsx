@@ -1,4 +1,5 @@
 import { C, BORDER, cut, PIXEL, fmtClock } from './arcadeTokens';
+import { AXES } from './canchaMock';
 import { presentesP } from './canchaSelectors';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
@@ -21,12 +22,16 @@ export default function PantallaCierre({ state, actions, roster = [] }) {
         {present.map((a) => {
           const sel = !!state.destacados[a.id];
           const saved = !!state.savedIds[a.id];
+          // Insignias desde el snapshot guardado (no scores en vivo): el chip
+          // refleja lo realmente otorgado aunque se reabra y editen estrellas (#7).
+          const sc = state.savedScores?.[a.id] || {};
+          const insignias = Object.values(sc).filter((v) => v === 5).length; // ejes a 5★ (#10)
           let status, statusColor;
           if (!sel) {
             status = 'Toca el hexágono para destacar';
             statusColor = C.text3;
           } else if (saved) {
-            status = '✓ Evaluado · insignias activas';
+            status = insignias > 0 ? `✓ Evaluado · ${insignias} insignia${insignias === 1 ? '' : 's'}` : '✓ Evaluado';
             statusColor = C.ok;
           } else {
             status = '★ Destacado · falta evaluar';
@@ -79,7 +84,7 @@ export default function PantallaCierre({ state, actions, roster = [] }) {
                     cursor: 'pointer',
                   }}
                 >
-                  {saved ? '✓ 5★' : 'EVALUAR'}
+                  {saved ? `✓ ${insignias}/${AXES.length}` : 'EVALUAR'}
                 </button>
               )}
             </div>

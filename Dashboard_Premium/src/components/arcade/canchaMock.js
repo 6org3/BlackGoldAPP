@@ -12,18 +12,22 @@
    recableado. Mantener los mismos campos (id, name, pos, pwr, hue, alert).
    ============================================================ */
 
-/** Roster de ejemplo — Sub-16 (brief §13). `hue` = color por estado/perfil. */
+/**
+ * Roster de ejemplo — Sub-16 (brief §13). `hue` = color por estado/perfil.
+ * `nivel` calza con LEVELS.name (Micro/Desarrollo/Elite) para filtrar la lista
+ * por bloque; `cedula` (EC 10 dígitos, ficticia) alimenta la búsqueda 1v1.
+ */
 export const ROSTER = [
-  { id: 'dylan', name: 'Dylan Suárez', pos: 'Alero', pwr: 81, hue: 'green' },
-  { id: 'mateo', name: 'Mateo Chávez', pos: 'Base', pwr: 64, hue: 'gold', alert: '💧 Hidratación' },
-  { id: 'thiago', name: 'Thiago Vera', pos: 'Pívot', pwr: 48, hue: 'red', alert: '▲▲ Sobreent.' },
-  { id: 'bruno', name: 'Bruno Ferreira', pos: 'Escolta', pwr: 58, hue: 'blue' },
-  { id: 'kevin', name: 'Kevin Ortiz', pos: 'Base', pwr: 55, hue: 'blue' },
-  { id: 'ivan', name: 'Iván Molina', pos: 'Ala-Pívot', pwr: 61, hue: 'green' },
-  { id: 'samuel', name: 'Samuel Reyes', pos: 'Alero', pwr: 53, hue: 'blue' },
-  { id: 'diego', name: 'Diego Paredes', pos: 'Escolta', pwr: 49, hue: 'orange' },
-  { id: 'oscar', name: 'Óscar Ramos', pos: 'Pívot', pwr: 57, hue: 'blue' },
-  { id: 'lucas', name: 'Lucas Ibáñez', pos: 'Base', pwr: 62, hue: 'green' },
+  { id: 'dylan', name: 'Dylan Suárez', pos: 'Alero', pwr: 81, hue: 'green', nivel: 'Micro', cedula: '2150483726' },
+  { id: 'mateo', name: 'Mateo Chávez', pos: 'Base', pwr: 64, hue: 'gold', alert: '💧 Hidratación', nivel: 'Micro', cedula: '2148390571' },
+  { id: 'thiago', name: 'Thiago Vera', pos: 'Pívot', pwr: 48, hue: 'red', alert: '▲▲ Sobreent.', nivel: 'Micro', cedula: '2159028143' },
+  { id: 'bruno', name: 'Bruno Ferreira', pos: 'Escolta', pwr: 58, hue: 'blue', nivel: 'Micro', cedula: '2140295867' },
+  { id: 'kevin', name: 'Kevin Ortiz', pos: 'Base', pwr: 55, hue: 'blue', nivel: 'Desarrollo', cedula: '2153847190' },
+  { id: 'ivan', name: 'Iván Molina', pos: 'Ala-Pívot', pwr: 61, hue: 'green', nivel: 'Desarrollo', cedula: '2146018395' },
+  { id: 'samuel', name: 'Samuel Reyes', pos: 'Alero', pwr: 53, hue: 'blue', nivel: 'Desarrollo', cedula: '2157390482' },
+  { id: 'diego', name: 'Diego Paredes', pos: 'Escolta', pwr: 49, hue: 'orange', nivel: 'Elite', cedula: '2142856013' },
+  { id: 'oscar', name: 'Óscar Ramos', pos: 'Pívot', pwr: 57, hue: 'blue', nivel: 'Elite', cedula: '2158204736' },
+  { id: 'lucas', name: 'Lucas Ibáñez', pos: 'Base', pwr: 62, hue: 'green', nivel: 'Elite', cedula: '2149573028' },
 ];
 
 /** 4 ejes de la evaluación subjetiva; cada uno desbloquea una insignia a 5★. */
@@ -42,11 +46,11 @@ export const BADGE_DEFS = [
   { key: 'sangre', icon: '🧊', name: 'SANGRE\nFRÍA' },
 ];
 
-/** Niveles del bloque grupal (paso 1). */
+/** Niveles del bloque grupal (paso 1). El `count` se deriva del roster (#4). */
 export const LEVELS = [
-  { tier: 'I', name: 'Micro', desc: 'Base formativa · fundamentos', count: 6, hue: 'cyan' },
-  { tier: 'II', name: 'Desarrollo', desc: 'Competitivo · carga media', count: 10, hue: 'gold' },
-  { tier: 'III', name: 'Elite', desc: 'Alto rendimiento', count: 5, hue: 'green' },
+  { tier: 'I', name: 'Micro', desc: 'Base formativa · fundamentos', hue: 'cyan' },
+  { tier: 'II', name: 'Desarrollo', desc: 'Competitivo · carga media', hue: 'gold' },
+  { tier: 'III', name: 'Elite', desc: 'Alto rendimiento', hue: 'green' },
 ];
 
 /** Sesiones activas seed (demo de múltiples sesiones simultáneas). */
@@ -54,5 +58,3 @@ export const SEED_SESSIONS = [
   { id: 's14', label: 'Sub-14 · Técnico', block: 'Manejo de balón N2', start: '15:30', elapsed: 2730, present: 9, hue: 'blue', evaluable: false },
   { id: 'p1', label: '1v1 · Dylan Suárez', block: 'Tiro exterior', start: '16:10', elapsed: 305, present: 1, hue: 'green', evaluable: false },
 ];
-
-export const XP_POR_DESTACADO = 50;
