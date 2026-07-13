@@ -1,6 +1,14 @@
 import { useReducer, useEffect, useMemo, useState } from 'react';
 import { ROSTER, SEED_SESSIONS, LEVELS } from './canchaMock';
-import { fetchRoster, fetchActiveSessions, startSession, saveSubjectiveEval, closeClass } from './canchaData';
+import {
+  fetchRoster,
+  fetchActiveSessions,
+  fetchPlannedToday,
+  fetchSessionAttendance,
+  startSession,
+  saveSubjectiveEval,
+  closeClass,
+} from './canchaData';
 
 /**
  * Máquina de estados del flujo Modo Cancha (port del reducer del prototipo).
@@ -87,7 +95,13 @@ function reducer(state, action) {
     }
 
     case 'OPEN_SESSION':
-      return { ...state, focusedId: action.id, step: 'activa' };
+      return {
+        ...state,
+        focusedId: action.id,
+        step: 'activa',
+        // Reanudar: fusiona la asistencia reconstruida de la sesión.
+        present: action.present ? { ...state.present, ...action.present } : state.present,
+      };
 
     case 'FOCUS_SESSION':
       return { ...state, focusedId: action.id };
@@ -169,17 +183,19 @@ function reducer(state, action) {
 export default function useCanchaSession(user) {
   const [state, dispatch] = useReducer(reducer, user, initialState);
   const [roster, setRoster] = useState(() => (user ? [] : ROSTER));
+  const [planned, setPlanned] = useState([]);
   const [loading, setLoading] = useState(!!user);
   const isReal = !!user;
 
-  // Carga inicial de datos reales (roster + sesiones activas).
+  // Carga inicial de datos reales (roster + sesiones activas + agenda de hoy).
   useEffect(() => {
     if (!user) return undefined;
     let alive = true;
-    Promise.all([fetchRoster(user), fetchActiveSessions(user)])
-      .then(([r, sess]) => {
+    Promise.all([fetchRoster(user), fetchActiveSessions(user), fetchPlannedToday(user)])
+      .then(([r, sess, pl]) => {
         if (!alive) return;
         setRoster(r);
+        setPlanned(pl);
         dispatch({ type: 'HYDRATE_SESSIONS', sessions: sess });
         setLoading(false);
       })
@@ -227,13 +243,26 @@ export default function useCanchaSession(user) {
         const presentCount = r.filter((a) => present[a.id] === 'P').length;
         dispatch({ type: 'START', id: `main-${Date.now()}`, start: hhmm(new Date()), label, present: presentCount });
       },
-      openSession: (id) => dispatch({ type: 'OPEN_SESSION', id }),
+      openSession: async (id) => {
+        if (user) {
+          try {
+            const present = await fetchSessionAttendance(id);
+            dispatch({ type: 'OPEN_SESSION', id, present });
+            return;
+          } catch {
+            /* sin asistencia reconstruida — se abre igual */
+          }
+        }
+        dispatch({ type: 'OPEN_SESSION', id });
+      },
       focusSession: (id) => dispatch({ type: 'FOCUS_SESSION', id }),
       terminateEval: (id) => dispatch({ type: 'TERMINATE_EVAL', id }),
       terminateBg: (id) => dispatch({ type: 'TERMINATE_BG', id }),
-      finish: async ({ session, present, roster: r }) => {
+      finish: async ({ session, present }) => {
         if (user && session && String(session.id).indexOf('main-') !== 0) {
-          const presentIds = r.filter((a) => present[a.id] === 'P').map((a) => a.id);
+          // Todos los presentes (incluye los reconstruidos al reanudar), no solo
+          // los del roster filtrado por nivel.
+          const presentIds = Object.keys(present).filter((id) => present[id] === 'P');
           try {
             await closeClass({ session, presentAtletaIds: presentIds });
           } catch {
@@ -261,5 +290,5 @@ export default function useCanchaSession(user) {
     [user],
   );
 
-  return { state, actions, roster, levels, isReal, loading };
+  return { state, actions, roster, levels, isReal, loading, planned };
 }

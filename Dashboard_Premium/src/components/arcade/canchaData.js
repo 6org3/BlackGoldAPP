@@ -18,6 +18,7 @@ import { upsertAsistencia } from '../../api/asistenciaService';
 import { crearSesionEntrenamiento } from '../../api/sesionesEntrenamientoService';
 import { insertarObservacion } from '../../api/observacionesService';
 import { otorgarXP } from '../../api/xpService';
+import { fetchSesionesPlanificadasHoy } from '../../api/sesionesService';
 import { xpBaseSesion } from '../../../../packages/analytics-core/xp.js';
 
 // Eje Arcade → columna de observaciones_cancha + insignia (umbral 5★).
@@ -107,6 +108,35 @@ export function mapSession(s, present = 0) {
     evaluable: true,
     notas: s.notas || label,
   };
+}
+
+/**
+ * Asistencia guardada de una sesión (para REANUDAR una sesión abierta desde el
+ * landing): { [atletaId]: 'P' | 'A' }. Así el cierre puede otorgar XP base a los
+ * presentes aunque no se haya pasado lista en este flujo.
+ */
+export async function fetchSessionAttendance(sesionId) {
+  const { data } = await supabase.from('asistencia').select('atleta_id, estado').eq('sesion_id', sesionId);
+  const present = {};
+  (data || []).forEach((r) => {
+    if (r.estado === 'Presente') present[r.atleta_id] = 'P';
+    else if (r.estado === 'Ausente') present[r.atleta_id] = 'A';
+  });
+  return present;
+}
+
+/** Sesiones planificadas de hoy (agenda de AdminSesiones) para el landing. */
+export async function fetchPlannedToday(user) {
+  const rows = await fetchSesionesPlanificadasHoy(user.id).catch(() => []);
+  return (rows || []).map((s) => {
+    const grupo = s.grupos_entrenamiento?.nombre;
+    const esIndividual = s.tipo === 'Individual' || !grupo;
+    return {
+      id: s.id,
+      label: `${esIndividual ? 'Individual' : grupo} · ${s.objetivo_tipo || 'Sesión'}`,
+      sub: s.grupos_entrenamiento?.horario || s.objetivo_descripcion || '',
+    };
+  });
 }
 
 // Etiqueta legible del tipo (para notas — la columna `tipo` solo acepta Grupal|Individual).

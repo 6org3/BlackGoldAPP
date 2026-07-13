@@ -100,6 +100,40 @@ describe('Arcade HUD — escrituras reales (fase 5)', () => {
     cy.contains(/\+.*XP/i).should('be.visible');
   });
 
+  // Requiere sembrar una sesión activa antes:
+  //   node scripts/sembrar_sesion_activa_qa.js
+  it('Coach — reanuda una sesión activa (reconstruye asistencia) y la cierra con XP', () => {
+    cy.viewport(412, 860);
+    cy.intercept('PATCH', '**/rest/v1/atletas*').as('patchAtleta');
+    cy.intercept('PATCH', '**/rest/v1/sesiones_programadas*').as('patchSesion');
+
+    login(QA.coach);
+    cy.visit('/dashboard');
+    cy.get('.animate-spin', { timeout: 20000 }).should('not.exist');
+    cy.get('[aria-label="Abrir Modo Cancha"]', { timeout: 20000 }).click({ force: true });
+
+    // Entrar a la sesión activa sembrada (reanudar).
+    cy.contains(/SESIONES ACTIVAS/i, { timeout: 15000 }).should('be.visible');
+    cy.get('[aria-label^="Entrar a"]', { timeout: 10000 }).first().click({ force: true });
+
+    // Sesión en foco → terminar y evaluar.
+    cy.contains(/SESIÓN EN FOCO/i, { timeout: 15000 }).should('be.visible');
+    cy.contains('button', /TERMINAR Y EVALUAR/i).click({ force: true });
+
+    // Cierre: la asistencia reconstruida hace aparecer al atleta presente.
+    // Se lo marca destacado (habilita Finalizar) y se cierra SIN evaluar → solo
+    // XP base de asistencia.
+    cy.contains(/DESTACADOS DE HOY/i, { timeout: 15000 }).should('be.visible');
+    cy.contains(/QA Atleta Demo/i, { timeout: 10000 }).should('be.visible');
+    cy.get('[aria-label^="Marcar como destacado"]', { timeout: 10000 }).first().click({ force: true });
+    cy.contains('button', /FINALIZAR/i, { timeout: 10000 }).should('not.be.disabled').click({ force: true });
+
+    // Cierre real: XP base a los presentes + sesión Completada.
+    cy.wait('@patchAtleta').its('response.statusCode').should('be.oneOf', [200, 204]);
+    cy.wait('@patchSesion').its('response.statusCode').should('be.oneOf', [200, 204]);
+    cy.contains(/CLASE FINALIZADA/i, { timeout: 15000 }).should('be.visible');
+  });
+
   it('Padre — la vista carga con datos reales y confirma asistencia si hay evento', () => {
     cy.viewport(412, 860);
     cy.intercept('PATCH', '**/rest/v1/evento_convocados*').as('rsvp');

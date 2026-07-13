@@ -21,7 +21,7 @@ const TIPOS = [
   { key: 'eval', emoji: '🧪', name: 'EVALUACIÓN\nGRUPAL', sub: 'CMJ · Sprint · Tiro' },
 ];
 
-export default function PantallaCancha({ state, actions, onClose, demo = true, coachInitial = 'PA' }) {
+export default function PantallaCancha({ state, actions, onClose, demo = true, coachInitial = 'PA', planned = [] }) {
   const sessions = state.sessions;
   const hasActive = sessions.length > 0;
 
@@ -137,8 +137,8 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
         ))}
       </div>
 
-      {/* Programadas hoy — ilustrativas (solo en modo demo/preview) */}
-      {demo && (
+      {/* Programadas hoy — demo (ilustrativas) o agenda real (sesiones_control). */}
+      {demo ? (
         <>
           <MicroLabel color={C.text3} size={9.5} style={{ marginBottom: 8 }}>PROGRAMADAS HOY</MicroLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -173,7 +173,27 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
             </div>
           </div>
         </>
-      )}
+      ) : planned.length > 0 ? (
+        <>
+          <MicroLabel color={C.text3} size={9.5} style={{ marginBottom: 8 }}>PROGRAMADAS HOY</MicroLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {planned.map((p) => (
+              <CutCard
+                key={p.id}
+                onClick={() => actions.pickType('grupal')}
+                ariaLabel={`Iniciar ${p.label}`}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>{p.label}</p>
+                  {p.sub && <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>{p.sub}</p>}
+                </div>
+                <span style={{ fontFamily: PIXEL, fontSize: 9.5, color: C.gold }}>INICIAR ►</span>
+              </CutCard>
+            ))}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

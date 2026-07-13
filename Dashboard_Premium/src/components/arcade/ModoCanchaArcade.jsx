@@ -86,7 +86,7 @@ function footerFor(state, actions, roster) {
 
 function CanchaTakeover({ onClose }) {
   const { user } = useAuth();
-  const { state, actions, roster, levels, isReal } = useCanchaSession(user);
+  const { state, actions, roster, levels, isReal, planned } = useCanchaSession(user);
   const navigate = useNavigate();
   const coachInitial = user?.nombre
     ? user.nombre.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -220,7 +220,9 @@ function CanchaTakeover({ onClose }) {
 
         {/* Área de scroll con la pantalla actual */}
         <div style={{ flex: 1, overflowY: 'auto', padding: scrollPad, WebkitOverflowScrolling: 'touch' }}>
-          {state.step === 'cancha' && <PantallaCancha state={state} actions={actions} onClose={onClose} demo={!isReal} coachInitial={coachInitial} />}
+          {state.step === 'cancha' && (
+            <PantallaCancha state={state} actions={actions} onClose={onClose} demo={!isReal} coachInitial={coachInitial} planned={planned} />
+          )}
           {state.step === 'nivel' && <PantallaNivel actions={actions} levels={levels} />}
           {state.step === 'buscador' && <PantallaBuscador state={state} actions={actions} roster={roster} />}
           {state.step === 'lista' && <PantallaLista state={state} actions={actions} roster={roster} />}
