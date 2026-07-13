@@ -212,7 +212,10 @@ function ctxProgreso(state, data, actions) {
       };
     }),
     insignias: INSIGNIAS_MOCK.map((b) => {
-      const n = insCounts ? (insCounts[b.key] || 0) : b.n;
+      // Sin conteos reales: en demo usa el conteo mock; para un atleta real (la
+      // lectura de observaciones_cancha falló) muestra 0 = insignia bloqueada, no
+      // un mock falso (coherente con la racha, que se oculta ante el mismo error).
+      const n = insCounts ? (insCounts[b.key] || 0) : (data.demo ? b.n : 0);
       return {
         icon: b.icon,
         name: b.name,
