@@ -118,9 +118,9 @@ async function fetchXPSemanal(atletaId) {
   return buckets.map((xp, i) => ({ label: `S${i + 1}`, xp }));
 }
 
-/** Racha de asistencia: nº de pases de lista `Presente` consecutivos más
-    recientes (RLS `asistencia_select_propio`). Solo `Ausente` (falta sin
-    justificar) corta; `Justificada`/`Lesionado` no cuentan ni rompen la racha.
+/** Racha de asistencia: nº de DÍAS con `Presente` consecutivos más recientes
+    (RLS `asistencia_select_propio`). Solo `Ausente` (falta sin justificar)
+    corta; `Justificada`/`Lesionado` no cuentan ni rompen la racha.
     Devuelve null si no hay asistencia (→ el HUD no muestra el chip 🔥, igual
     que 0). Un 0 real (falta reciente) también oculta el chip por el `ctx.racha ?`
     del render.
@@ -138,10 +138,24 @@ async function fetchRacha(atletaId) {
     .order('created_at', { ascending: false })
     .limit(90);
   if (error || !Array.isArray(data) || data.length === 0) return null;
+  return contarRachaDias(data);
+}
+
+/** Cuenta días de racha desde filas de asistencia YA ordenadas por `fecha` desc.
+    Deduplica por día: desde v22 puede haber >1 fila por fecha (pase de lista con
+    sesion_id NULL + sesión de Modo Cancha), y sumar por fila inflaría la racha.
+    Estado del día: alguna 'Ausente' rompe; alguna 'Presente' sin 'Ausente' suma
+    1; solo 'Justificada'/'Lesionado' ni suma ni rompe. Pura (exportada para test). */
+export function contarRachaDias(filas) {
+  const estadosPorDia = new Map(); // Map conserva orden de inserción = fecha desc
+  for (const r of filas) {
+    if (!estadosPorDia.has(r.fecha)) estadosPorDia.set(r.fecha, new Set());
+    estadosPorDia.get(r.fecha).add(r.estado);
+  }
   let racha = 0;
-  for (const r of data) {
-    if (r.estado === 'Presente') racha += 1;
-    else if (r.estado === 'Ausente') break;
+  for (const estados of estadosPorDia.values()) {
+    if (estados.has('Ausente')) break;
+    if (estados.has('Presente')) racha += 1;
   }
   return racha;
 }
