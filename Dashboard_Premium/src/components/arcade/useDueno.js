@@ -1,6 +1,8 @@
-import { useReducer, useEffect, useMemo, useState } from 'react';
+import { useReducer, useEffect, useMemo, useState, useContext } from 'react';
 import { DUENO_MOCK } from './duenoMock';
 import { fetchDuenoPanel } from './duenoData';
+import { marcarBaja } from '../../api/retencionService';
+import { ToastContext } from '../../hooks/useToast';
 
 /**
  * Máquina de estado del panel Dueño (port del reducer del prototipo). Con `user`
@@ -20,12 +22,16 @@ const initialState = {
   dRecordados: {},
   dVerificados: {},
   dContactados: {},
+  dBajaArmar: null, // id de atleta con la baja "armada" (esperando confirmación)
+  dBajas: {}, // atletas dados de baja en esta sesión (feedback optimista)
 };
 
 function reducer(state, action) {
   switch (action.type) {
     case 'GO_TAB':
-      return { ...state, dTab: action.tab };
+      // Cambiar de panel desarma cualquier baja pendiente de confirmar: el
+      // estado "¿CONFIRMAR?" no debe sobrevivir a la navegación.
+      return { ...state, dTab: action.tab, dBajaArmar: null };
     case 'PICK_MES':
       return { ...state, dMes: action.mes };
     case 'PICK_CAT':
@@ -40,6 +46,19 @@ function reducer(state, action) {
       return { ...state, dVerificados: { ...state.dVerificados, [action.id]: true } };
     case 'CONTACTAR':
       return { ...state, dContactados: { ...state.dContactados, [action.id]: true } };
+    case 'ARM_BAJA':
+      // Toca "dar de baja" una vez → arma la confirmación de ESA fila (desarma otras).
+      return { ...state, dBajaArmar: action.id };
+    case 'CANCEL_BAJA':
+      // Botón "CANCELAR" del par de confirmación: desarma sin ejecutar.
+      return { ...state, dBajaArmar: null };
+    case 'DAR_BAJA':
+      return { ...state, dBajas: { ...state.dBajas, [action.id]: true }, dBajaArmar: null };
+    case 'REVERT_BAJA': {
+      const nb = { ...state.dBajas };
+      delete nb[action.id];
+      return { ...state, dBajas: nb };
+    }
     default:
       return state;
   }
@@ -50,29 +69,41 @@ export default function useDueno(user) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [data, setData] = useState(() => (isReal ? null : DUENO_MOCK));
   const [loading, setLoading] = useState(isReal);
+  // `version` fuerza un refetch tras una acción que muta datos (dar de baja):
+  // no se toca `loading` para no mostrar "CARGANDO…" en un refresco puntual.
+  const [version, setVersion] = useState(0);
+  // Toast opcional: se lee del contexto sin el hook `useToast` (que lanzaría) para
+  // que el panel siga funcionando en preview aislada sin <ToastProvider>.
+  const toast = useContext(ToastContext);
 
   // Solo el modo real hidrata (el demo nace con DUENO_MOCK/loading=false en el
   // init). El estado se escribe únicamente tras el await (react-hooks/set-state-in-effect).
   useEffect(() => {
     if (!isReal) return undefined;
     let alive = true;
+    const esRefresco = version > 0; // refetch tras una mutación, ya hubo carga real
     fetchDuenoPanel(user)
       .then((d) => {
-        if (alive) {
-          setData(d);
+        if (!alive) return;
+        // En un refresco no degradar el panel real a demo: si fetchDuenoPanel
+        // devolvió DUENO_MOCK (demo:true) por un error transitorio, conservar los
+        // datos reales ya cargados en vez de caer a mock con badge DEMO.
+        if (esRefresco && d && d.demo) {
           setLoading(false);
+          return;
         }
+        setData(d);
+        setLoading(false);
       })
       .catch(() => {
-        if (alive) {
-          setData(DUENO_MOCK);
-          setLoading(false);
-        }
+        if (!alive) return;
+        if (!esRefresco) setData(DUENO_MOCK); // solo en la carga inicial
+        setLoading(false);
       });
     return () => {
       alive = false;
     };
-  }, [isReal, user]);
+  }, [isReal, user, version]);
 
   const actions = useMemo(
     () => ({
@@ -85,8 +116,38 @@ export default function useDueno(user) {
       verificar: (id) => dispatch({ type: 'VERIFICAR', id }),
       recordar: (id) => dispatch({ type: 'RECORDAR', id }),
       contactar: (id) => dispatch({ type: 'CONTACTAR', id }),
+      // Dar de baja (dos toques): 1º arma la confirmación, 2º ejecuta.
+      armBaja: (id) => dispatch({ type: 'ARM_BAJA', id }),
+      cancelBaja: () => dispatch({ type: 'CANCEL_BAJA' }), // "CANCELAR": desarma sin ejecutar
+      darBaja: async (id) => {
+        dispatch({ type: 'DAR_BAJA', id }); // optimista: la fila pasa a "dado de baja"
+        if (isReal) {
+          try {
+            await marcarBaja(id, true); // UPDATE estado_membresia='baja' + fecha_baja
+            setVersion((v) => v + 1); // refetch → gauge/activos/altas-bajas reales
+          } catch (e) {
+            dispatch({ type: 'REVERT_BAJA', id }); // revertir el feedback si el write falla
+            console.error('No se pudo dar de baja al atleta:', e);
+            if (toast) toast.mostrarToast('No se pudo dar de baja. Reintenta.', { tipo: 'error' });
+          }
+        }
+      },
+      // Deshacer (reactivar) tras una baja confirmada: marcarBaja(false).
+      reactivar: async (id) => {
+        dispatch({ type: 'REVERT_BAJA', id }); // optimista: la fila vuelve a "activa"
+        if (isReal) {
+          try {
+            await marcarBaja(id, false); // UPDATE estado_membresia='activo' + fecha_baja=null
+            setVersion((v) => v + 1); // refetch → gauge/activos/altas-bajas reales
+          } catch (e) {
+            dispatch({ type: 'DAR_BAJA', id }); // re-marca la baja si el write falla
+            console.error('No se pudo reactivar al atleta:', e);
+            if (toast) toast.mostrarToast('No se pudo reactivar. Reintenta.', { tipo: 'error' });
+          }
+        }
+      },
     }),
-    [],
+    [isReal, toast],
   );
 
   return { state, data, actions, loading, isReal };

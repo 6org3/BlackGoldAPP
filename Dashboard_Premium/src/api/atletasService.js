@@ -161,6 +161,8 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
       nivel_desarrollo: a.nivel_desarrollo,
       perfil_mental: a.perfil_mental,
       estado_recuperacion: a.estado_recuperacion,
+      estado_membresia: a.estado_membresia, // v31: ciclo de vida de membresía (activo/inactivo/baja)
+      fecha_baja: a.fecha_baja,
       restriccion_movilidad: a.restriccion_movilidad,
       prevencion_impacto: a.prevencion_impacto,
       peso_kg: a.peso_kg,

@@ -23,3 +23,33 @@ export async function fetchRetencionClub(meses = 5) {
   if (error || !data) return null;
   return data; // { total, activos, ret_pct, altas_bajas }
 }
+
+// Fecha local YYYY-MM-DD (Ecuador UTC-5): evita el corrimiento de día de
+// toISOString() cerca de medianoche al fijar la fecha de baja.
+function hoyLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Marca (o revierte) la baja de membresía de un atleta — acción del dueño en el
+ * panel de Retención. Escribe atletas.estado_membresia/fecha_baja (columnas v31);
+ * la RLS `atletas_update` + el trigger `proteger_columnas_atletas` permiten la
+ * escritura a staff (owner/coach/superadmin), no al propio atleta.
+ *
+ * Dar de baja es idempotente: el `.neq('estado_membresia','baja')` evita
+ * reescribir `fecha_baja` de un atleta que YA estaba de baja (re-darlo de baja
+ * en otro mes movería su baja de mes en el histórico de fn_retencion_club). Si
+ * ya estaba de baja, el UPDATE no afecta filas y no hay error — no-op seguro.
+ * @param {string} atletaId atletas.id.
+ * @param {boolean} [dar=true] true = dar de baja; false = reactivar (activo, sin fecha_baja).
+ */
+export async function marcarBaja(atletaId, dar = true) {
+  let query = supabase.from('atletas');
+  query = dar
+    ? query.update({ estado_membresia: 'baja', fecha_baja: hoyLocal() }).eq('id', atletaId).neq('estado_membresia', 'baja')
+    : query.update({ estado_membresia: 'activo', fecha_baja: null }).eq('id', atletaId);
+  const { error } = await query;
+  if (error) throw error;
+  return { success: true };
+}

@@ -26,6 +26,10 @@ import { C } from './arcadeTokens';
 import { DUENO_MOCK } from './duenoMock';
 
 const money = (n) => '$' + (Math.round(Number(n) || 0)).toLocaleString('en-US');
+// Membresía activa (v31). Estado ausente = activo (columna NOT NULL DEFAULT
+// 'activo'; robusto si el select aún no trajera la columna). 'baja'/'inactivo'
+// quedan fuera, para cuadrar con el gauge de fn_retencion_club (WHERE 'activo').
+const esActivo = (a) => (a.estado_membresia ?? 'activo') === 'activo';
 const MESES_UP = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
 const ymLabel = (ym) => MESES_UP[(Number(String(ym).slice(5, 7)) || 0) - 1] || String(ym);
 const idsCat = (list, digits) => list.filter((a) => String(a.categoria || '').includes(digits)).map((a) => a.atleta_id).filter(Boolean);
@@ -83,7 +87,10 @@ function mapRetencion(ret, list) {
   const activos = Number(ret.activos) || 0;
   const ab = (ret.altas_bajas || []).map((x) => ({ m: ymLabel(x.ym), a: Number(x.altas) || 0, b: Number(x.bajas) || 0 }));
   const neto = ab.reduce((s, x) => s + x.a - x.b, 0);
-  const riesgo = (list || []).filter(tieneSenal).slice(0, 6).map((a) => {
+  // Solo atletas con membresía activa entran en "en riesgo": un atleta ya dado de
+  // baja no debe reaparecer aquí (el gauge server-side ya lo descontó). El estado
+  // ausente se trata como activo (columna v31 NOT NULL DEFAULT 'activo').
+  const riesgo = (list || []).filter((a) => esActivo(a) && tieneSenal(a)).slice(0, 6).map((a) => {
     const r = motivoRiesgo(a);
     return { id: a.atleta_id, initial: (a.nombre || '?').charAt(0).toUpperCase(), hue: r.hue, name: a.nombre || 'Atleta', motivo: r.motivo, mc: r.mc };
   });
@@ -130,13 +137,16 @@ export async function fetchDuenoPanel(user) {
     const finanzas = { may: derivePagos(pMay, metaReal), jun: derivePagos(pJun, metaReal), jul: derivePagos(pJul, metaReal) };
     const julF = finanzas.jul;
     const pctMeta = julF.meta ? Math.round((100 * julF.recaudado) / julF.meta) : 0;
-    const enRiesgo = list.filter(tieneSenal).length;
+    // "Atletas activos" y "en riesgo" cuentan solo membresías activas, para no
+    // seguir sumando a quien ya fue dado de baja (cuadra con el gauge de Retención).
+    const activos = list.filter(esActivo);
+    const enRiesgo = activos.filter(tieneSenal).length;
 
     const base = DUENO_MOCK.kpis;
     const kpis = [
       { ...base[0], val: money(julF.recaudado), sub: `${pctMeta}% de la meta` },
       { ...base[1], val: `${asisAll}%` },
-      { ...base[2], val: String(list.length) },
+      { ...base[2], val: String(activos.length) },
       { ...base[3], val: String(enRiesgo) },
     ];
 

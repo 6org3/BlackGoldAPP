@@ -155,6 +155,8 @@ function ctxEquipo(state, data, actions) {
 function ctxRetencion(state, data, actions) {
   const r = data.retencion;
   const contactados = state.dContactados || {};
+  const bajas = state.dBajas || {};
+  const armar = state.dBajaArmar || null;
   return {
     retDash: `${((CIRC * r.retPct) / 100).toFixed(0)} ${Math.ceil(CIRC)}`,
     retPct: `${r.retPct}%`,
@@ -170,16 +172,52 @@ function ctxRetencion(state, data, actions) {
     riesgoCount: String(r.riesgo.length),
     riesgo: r.riesgo.map((x) => {
       const done = !!contactados[x.id];
+      const dada = !!bajas[x.id]; // ya dado de baja en esta sesión
+      const armada = armar === x.id; // baja armada, esperando confirmación
+      const name = x.name || 'Atleta';
+      // Botones de la acción de baja según el estado de la fila:
+      //  · reposo → un único "DAR DE BAJA" (arma la confirmación)
+      //  · armada → DOS objetivos táctiles distintos: CANCELAR / ¿CONFIRMAR?
+      //    (el CANCELAR da salida sin ejecutar; ya no es un único botón que
+      //    se auto-confirma en el mismo sitio)
+      //  · dada  → "↩ DESHACER" (reactivar, write real)
+      let bajaButtons;
+      if (dada) {
+        bajaButtons = [{
+          key: 'undo', label: '↩ DESHACER',
+          bg: 'rgba(239,68,68,.12)', fg: C.danger, border: 'rgba(239,68,68,.45)',
+          onClick: () => actions.reactivar(x.id), ariaLabel: `Deshacer la baja de ${name}`,
+        }];
+      } else if (armada) {
+        bajaButtons = [
+          { key: 'cancel', label: 'CANCELAR',
+            bg: 'transparent', fg: C.text2, border: 'rgba(255,255,255,.14)',
+            onClick: () => actions.cancelBaja(), ariaLabel: `Cancelar la baja de ${name}` },
+          { key: 'confirm', label: '¿CONFIRMAR?',
+            bg: 'rgba(239,68,68,.18)', fg: C.danger, border: 'rgba(239,68,68,.45)',
+            onClick: () => actions.darBaja(x.id), ariaLabel: `Confirmar la baja de ${name}` },
+        ];
+      } else {
+        bajaButtons = [{
+          key: 'arm', label: 'DAR DE BAJA',
+          bg: 'transparent', fg: C.text2, border: 'rgba(255,255,255,.14)',
+          onClick: () => actions.armBaja(x.id), ariaLabel: `Dar de baja a ${name}`,
+        }];
+      }
       return {
-        initial: x.initial, avatarBg: hueBg(x.hue), avatarFg: hueFg(x.hue), name: x.name,
-        motivo: done ? 'Contactado · seguimiento esta semana' : x.motivo,
-        motivoColor: done ? C.ok : x.mc,
-        border: done ? 'rgba(52,211,153,.3)' : 'rgba(251,146,60,.25)',
+        rowKey: x.id, // key estable (UUID real / id de mock), no el índice
+        initial: x.initial, avatarBg: hueBg(x.hue), avatarFg: hueFg(x.hue), name,
+        motivo: dada ? 'Dado de baja del club' : done ? 'Contactado · seguimiento esta semana' : x.motivo,
+        motivoColor: dada ? C.danger : done ? C.ok : x.mc,
+        border: dada ? 'rgba(239,68,68,.3)' : done ? 'rgba(52,211,153,.3)' : 'rgba(251,146,60,.25)',
+        // CONTACTAR — oculto mientras la baja está armada o ya ejecutada.
+        showContactar: !dada && !armada,
         btnLabel: done ? '✓ HECHO' : 'CONTACTAR',
         btnBg: done ? 'rgba(52,211,153,.12)' : 'rgba(255,215,0,.1)',
         btnFg: done ? C.ok : C.gold,
         btnBorder: done ? 'rgba(52,211,153,.4)' : 'rgba(255,215,0,.4)',
         onBtn: () => actions.contactar(x.id),
+        bajaButtons,
       };
     }),
   };
