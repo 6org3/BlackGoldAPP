@@ -38,12 +38,14 @@ export const PILAR_TIPS = {
   resiliencia: 'Constancia sólida. Hidrátate mejor y sube aún más.',
 };
 
-/** Insignias del atleta (grid de 4). Conteo mock — TODO: agregado real. */
+/** Insignias del atleta (grid de 4). `key` = nombre canónico guardado en
+    observaciones_cancha.insignia (espejo de AXIS_DB); en modo real el conteo `n`
+    se sustituye por data.insigniasCounts[key]. */
 export const INSIGNIAS_MOCK = [
-  { icon: '🔋', name: 'MOTOR\nINAGOTABLE', n: 2 },
-  { icon: '🐍', name: 'MAMBA\nMENTALITY', n: 1 },
-  { icon: '👑', name: 'LÍDER', n: 0 },
-  { icon: '🧊', name: 'SANGRE\nFRÍA', n: 0 },
+  { icon: '🔋', key: 'Motor Inagotable', name: 'MOTOR\nINAGOTABLE', n: 2 },
+  { icon: '🐍', key: 'Mamba Mentality', name: 'MAMBA\nMENTALITY', n: 1 },
+  { icon: '👑', key: 'Líder', name: 'LÍDER', n: 0 },
+  { icon: '🧊', key: 'Sangre Fría', name: 'SANGRE\nFRÍA', n: 0 },
 ];
 
 /** XP de las últimas 6 semanas (columnas apiladas). Mock — TODO: agregado real. */
@@ -97,4 +99,5 @@ export const ATLETA_MOCK = {
     { res: 'L', resHue: 'red', score: '39–51', titulo: 'vs Halcones', sub: 'Dom 22 jun · Mateo: 6 pts · 2 ast' },
   ],
   weeks: WEEKS_MOCK, // paridad de forma con fetchAtletaPanel (XP semanal, v31).
+  insigniasCounts: null, // null → el selector usa los conteos `n` de INSIGNIAS_MOCK (demo).
 };

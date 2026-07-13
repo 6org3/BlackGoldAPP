@@ -118,16 +118,73 @@ async function fetchXPSemanal(atletaId) {
   return buckets.map((xp, i) => ({ label: `S${i + 1}`, xp }));
 }
 
+/** Racha de asistencia: nº de pases de lista `Presente` consecutivos más
+    recientes (RLS `asistencia_select_propio`). Solo `Ausente` (falta sin
+    justificar) corta; `Justificada`/`Lesionado` no cuentan ni rompen la racha.
+    Devuelve null si no hay asistencia (→ el HUD no muestra el chip 🔥, igual
+    que 0). Un 0 real (falta reciente) también oculta el chip por el `ctx.racha ?`
+    del render.
+
+    `fecha` es date (sin hora) y desde v22 puede haber >1 fila por día (pase de
+    lista con sesion_id NULL + sesión de Modo Cancha), así que se desempata por
+    `created_at` desc para que "más reciente primero" sea determinista. */
+async function fetchRacha(atletaId) {
+  if (!atletaId) return null;
+  const { data, error } = await supabase
+    .from('asistencia')
+    .select('estado, fecha, created_at')
+    .eq('atleta_id', atletaId)
+    .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(90);
+  if (error || !Array.isArray(data) || data.length === 0) return null;
+  let racha = 0;
+  for (const r of data) {
+    if (r.estado === 'Presente') racha += 1;
+    else if (r.estado === 'Ausente') break;
+  }
+  return racha;
+}
+
+// Nombres canónicos de insignia (espejo de AXIS_DB en canchaData.js): lo que el
+// Modo Cancha guarda en observaciones_cancha.insignia al poner 5★ en un eje.
+const INSIGNIA_KEYS = ['Motor Inagotable', 'Mamba Mentality', 'Líder', 'Sangre Fría'];
+
+/** Conteo real de insignias del atleta desde observaciones_cancha.insignia
+    (texto con nombres separados por ', '; RLS `observaciones_select_propio`).
+    Devuelve { '<nombre>': n } por cada insignia canónica, o null en error (→ el
+    selector cae a los conteos de INSIGNIAS_MOCK). Éxito con 0 insignias devuelve
+    todo en 0 (grid real: las 4 bloqueadas). */
+async function fetchInsignias(atletaId) {
+  if (!atletaId) return null;
+  const { data, error } = await supabase
+    .from('observaciones_cancha')
+    .select('insignia')
+    .eq('atleta_id', atletaId)
+    .not('insignia', 'is', null);
+  if (error || !Array.isArray(data)) return null;
+  const counts = Object.fromEntries(INSIGNIA_KEYS.map((k) => [k, 0]));
+  data.forEach((r) => {
+    String(r.insignia || '').split(',').forEach((raw) => {
+      const name = raw.trim();
+      if (name in counts) counts[name] += 1;
+    });
+  });
+  return counts;
+}
+
 /**
  * Carga el panel del atleta. Cada fetch degrada a vacío/null en error para no
  * romper el HUD (patrón padreData). Devuelve el objeto `data` del selector.
  */
 export async function fetchAtletaPanel(user) {
-  const [misionesRaw, convocatorias, sesiones, weeks] = await Promise.all([
+  const [misionesRaw, convocatorias, sesiones, weeks, racha, insigniasCounts] = await Promise.all([
     fetchMisiones(user.id).catch(() => []), // user.id = usuario_id
     fetchConvocatoriasAtleta([user.atleta_id]).catch(() => []),
     fetchSesionesAtleta(user.atleta_id).catch(() => []),
     fetchXPSemanal(user.atleta_id).catch(() => null),
+    fetchRacha(user.atleta_id).catch(() => null),
+    fetchInsignias(user.atleta_id).catch(() => null),
   ]);
 
   const misiones = (misionesRaw || []).map(mapMision);
@@ -183,7 +240,7 @@ export async function fetchAtletaPanel(user) {
       fechaLine: null,
       pwr: user.overall_score || 0,
       nivelDesarrollo: user.nivel_desarrollo || 'Micro',
-      racha: null, // TODO: no hay racha en datos
+      racha, // racha de asistencia real (o null → chip 🔥 oculto)
       xp,
     },
     radar: radar7(user),
@@ -194,6 +251,7 @@ export async function fetchAtletaPanel(user) {
     eventos,
     historial,
     weeks, // XP semanal real (xp_eventos, v31) o null → el selector cae a WEEKS_MOCK.
+    insigniasCounts, // conteo real por insignia (observaciones_cancha) o null → INSIGNIAS_MOCK.
   };
 }
 
