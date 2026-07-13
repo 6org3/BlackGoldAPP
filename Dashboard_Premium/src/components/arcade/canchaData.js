@@ -259,7 +259,7 @@ export async function saveSubjectiveEval({ user, atletaId, scores }) {
     xp_ganada: xpGanada,
     notas: 'Evaluación Modo Cancha',
   });
-  await otorgarXP(atletaId, xpGanada);
+  await otorgarXP(atletaId, xpGanada, {}, { coachId: user.id, motivo: 'Evaluación Modo Cancha', origen: 'observaciones_cancha' });
   return { xpGanada, insignias: labels };
 }
 
@@ -267,9 +267,9 @@ export async function saveSubjectiveEval({ user, atletaId, scores }) {
  * Cierra la clase: otorga XP base de asistencia a cada presente (xpBaseSesion
  * según el tipo/nivel embebido en notas) y marca la sesión Completada.
  */
-export async function closeClass({ session, presentAtletaIds }) {
+export async function closeClass({ user, session, presentAtletaIds }) {
   const baseXP = xpBaseSesion(session?.notas || '');
-  await Promise.all(presentAtletaIds.map((id) => otorgarXP(id, baseXP)));
+  await Promise.all(presentAtletaIds.map((id) => otorgarXP(id, baseXP, {}, { coachId: user.id, motivo: 'Asistencia a sesión', origen: 'modo_cancha' })));
   const notasLimpias = (session?.notas || '').replace('[EN_CURSO]', '').trim();
   await supabase.from('sesiones_programadas').update({ estado: 'Completada', notas: notasLimpias }).eq('id', session.id);
   return { baseXP, count: presentAtletaIds.length };

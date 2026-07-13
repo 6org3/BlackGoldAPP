@@ -141,7 +141,9 @@ export const aprobarMision = async (progresoId) => {
 
     if (atletaData) {
       const finalXP = calcularXPMision(progresoData.misiones, atletaData);
-      await otorgarXP(atletaId, finalXP);
+      // Sin coach a mano en este flujo (aprobación por progresoId) → coachId null:
+      // el XP suma al historial semanal del atleta, pero no se atribuye a un coach.
+      await otorgarXP(atletaId, finalXP, {}, { coachId: null, motivo: 'Misión aprobada', origen: 'misiones' });
     }
   }
 
