@@ -184,6 +184,8 @@ function ctxProgreso(state, data, actions) {
   const nivelIdx = Math.max(0, NIVELES.indexOf(p.nivelDesarrollo));
   // XP semanal real (data.weeks, v31) o mock si el atleta aún no tiene ledger.
   const weeksSrc = (data.weeks && data.weeks.length) ? data.weeks : WEEKS_MOCK;
+  // Conteo real de insignias (data.insigniasCounts) o los conteos de INSIGNIAS_MOCK.
+  const insCounts = data.insigniasCounts || null;
 
   return {
     resumenLine: `${(p.nivelDesarrollo || '').toUpperCase()} · ${p.xp.current.toLocaleString()} XP TOTAL · PWR ${p.pwr}`,
@@ -209,12 +211,15 @@ function ctxProgreso(state, data, actions) {
         onPick: () => actions.pilarPick(pl.key),
       };
     }),
-    insignias: INSIGNIAS_MOCK.map((b) => ({
-      icon: b.icon,
-      name: b.name,
-      unlocked: b.n > 0,
-      countLabel: b.n > 0 ? `×${b.n}` : '—',
-    })),
+    insignias: INSIGNIAS_MOCK.map((b) => {
+      const n = insCounts ? (insCounts[b.key] || 0) : b.n;
+      return {
+        icon: b.icon,
+        name: b.name,
+        unlocked: n > 0,
+        countLabel: n > 0 ? `×${n}` : '—',
+      };
+    }),
     weeks: weeksSrc.map((w, i) => {
       const last = i === weeksSrc.length - 1;
       const nCells = Math.max(1, Math.round(w.xp / 25));
