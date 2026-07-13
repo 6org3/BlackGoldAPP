@@ -14,7 +14,7 @@ import {
  * Máquina de estados del flujo Modo Cancha (port del reducer del prototipo).
  * Fase 5: si hay `user` (coach), carga roster + sesiones activas reales y las
  * acciones start/saveEval/finish ESCRIBEN en Supabase (via canchaData). Sin
- * user, corre 100% con mocks (para /arcade-preview sin login).
+ * user, corre 100% con mocks (fallback defensivo sin sesión).
  *
  * El flujo Arcade es subjetivo: escribe observaciones_cancha + XP; NO mueve
  * overall_score (eso es el pipeline de pruebas objetivas, fuera de alcance).

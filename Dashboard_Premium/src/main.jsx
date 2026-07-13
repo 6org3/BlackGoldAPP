@@ -64,15 +64,13 @@ const AdminEventosPage = lazy(() => import('./pages/AdminEventosPage.jsx'))
 const AdminAsistenciaPage = lazy(() => import('./pages/AdminAsistenciaPage.jsx'))
 const AdminSesionesPage = lazy(() => import('./pages/AdminSesionesPage.jsx'))
 const CompararPruebasPage = lazy(() => import('./pages/CompararPruebasPage.jsx'))
-// Rediseño "Arcade HUD" (fase 3-4, datos mock). La página previa con datos
-// reales sigue en pages/PadreDashboard.jsx para el recableado a Supabase (fase 5).
-const PadreDashboard = lazy(() => import('./components/arcade/VistaPadreArcade.jsx'))
+// Vista Padre en estilo "Arcade HUD" con datos reales de Supabase (fase 5 completa).
+const VistaPadreArcade = lazy(() => import('./components/arcade/VistaPadreArcade.jsx'))
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
 const CoachHomePage = lazy(() => import('./pages/CoachHomePage.jsx'))
 const ClubHomePage = lazy(() => import('./pages/ClubHomePage.jsx'))
 const SistemaHomePage = lazy(() => import('./pages/SistemaHomePage.jsx'))
-const ArcadePreview = lazy(() => import('./pages/ArcadePreview.jsx'))
 
 // La PWA instalada abre en '/': si supabase-js aún tiene sesión válida no hay
 // que volver a pedir credenciales, se entra directo al panel según el rol.
@@ -124,7 +122,7 @@ createRoot(document.getElementById('root')).render(
             path="/padre"
             element={
               <PrivateRoute roles={['padre']}>
-                <PadreDashboard />
+                <VistaPadreArcade />
               </PrivateRoute>
             }
           />
@@ -237,8 +235,6 @@ createRoot(document.getElementById('root')).render(
               </PrivateRoute>
             }
           />
-          {/* Preview solo-DEV del rediseño Arcade HUD (se retira tras validar). */}
-          {import.meta.env.DEV && <Route path="/arcade-preview" element={<ArcadePreview />} />}
           <Route path="/" element={<RootRedirect />} />
           {/* Cualquier URL desconocida (typo, deep-link viejo) vuelve al
               redirect raíz en vez de renderizar una pantalla negra. */}
