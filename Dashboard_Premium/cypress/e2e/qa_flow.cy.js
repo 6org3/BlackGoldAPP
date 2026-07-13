@@ -27,7 +27,7 @@ describe('Black Gold QA Flow', () => {
     cy.get('.animate-spin').should('not.exist');
 
     // 3. MODO CANCHA
-    // Nota: "Modo Cancha" es un modal (ModoCanchaModal.jsx) que se abre sobre /dashboard,
+    // Nota: "Modo Cancha" es un takeover (arcade/ModoCanchaArcade.jsx) que se abre sobre /dashboard,
     // NO una ruta propia — antes este spec esperaba (incorrectamente) que la URL cambiara
     // a "/cancha", algo que nunca existió en el router (ver src/main.jsx). Se verifica el
     // modal por su contenido, no por la URL.
