@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext';
 import HomeShell, { ContextChip, SectionEyebrow } from '../components/HomeShell';
 import Plantel from '../components/Plantel';
 import CardFocoAtleta from '../components/CardFocoAtleta';
-import ModoCanchaModal from '../components/ModoCanchaModal';
+import ModoCanchaArcade from '../components/arcade/ModoCanchaArcade';
 import { recoveryPill } from '../lib/recoveryPill';
 import { tieneSenal } from '../lib/senalesAtleta';
 import { fetchTodosLosAtletas } from '../api/atletasService';
@@ -234,7 +234,7 @@ export default function CoachHomePage() {
         <Plantel user={user} />
       </HomeShell>
 
-      <ModoCanchaModal isOpen={showModoCancha} onClose={cerrarModoCancha} />
+      <ModoCanchaArcade isOpen={showModoCancha} onClose={cerrarModoCancha} />
     </>
   );
 }

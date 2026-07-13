@@ -11,9 +11,12 @@
     <!-- Carga no bloqueante: en 3G/4G rural el primer render no espera el
          round-trip a fonts.googleapis.com (media=print se aplica sin bloquear
          y onload la promueve a all). -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- Silkscreen (pixel) se suma a Outfit en un solo request: SOLO se usa en
+         números grandes y micro-etiquetas del lenguaje "Arcade HUD" (Modo Cancha,
+         Vista Padre); el cuerpo sigue en Outfit. -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
     </noscript>
     <title>Black Gold Premium Dashboard</title>
   </head>
