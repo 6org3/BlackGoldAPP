@@ -135,3 +135,25 @@ export const fmtClock = (sec = 0) => {
 
 /** Fuente pixel (Silkscreen) — vía token CSS para respetar el fallback. */
 export const PIXEL = "var(--font-pixel, 'Silkscreen', monospace)";
+
+/* ---- Densidad / desktop (Ola 0 · design_system_arcade.md §6) ----
+   El HUD nació móvil-first a 480px; para tablas/formularios/paneles de ancho
+   completo se conservan los átomos (retícula, cortes, hexágonos, oro, pixel
+   para labels/números) y solo cambian densidad y piso de cuerpo. Estos son
+   los valores normativos del §6.1/§6.5. */
+export const GRID_STEP_DESKTOP = 44; // retícula 40–48px a ancho completo (no 36)
+export const ROW_H = 44; // fila/control táctil — móvil y por defecto (atleta/padre)
+export const ROW_H_DENSE = 36; // fila/control denso — coach/owner/staff en desktop
+export const BODY_MIN = 9; // piso de cuerpo fuera del marco 480px (px)
+
+/** Retícula dorada a ancho completo (paneles/tablas desktop): paso 44px y halo
+ *  superior más ancho que el marco de teléfono; mismos alfas tenues que
+ *  `gridBackground`. Es el "campo de juego" de las superficies data-densas. */
+export const gridBackgroundDesktop = {
+  backgroundColor: C.bgApp,
+  backgroundImage:
+    'linear-gradient(rgba(255,215,0,.024) 1px, transparent 1px),' +
+    'linear-gradient(90deg, rgba(255,215,0,.024) 1px, transparent 1px),' +
+    'radial-gradient(1200px 520px at 50% -10%, rgba(255,215,0,.06), transparent 60%)',
+  backgroundSize: `${GRID_STEP_DESKTOP}px ${GRID_STEP_DESKTOP}px, ${GRID_STEP_DESKTOP}px ${GRID_STEP_DESKTOP}px, 100% 100%`,
+};
