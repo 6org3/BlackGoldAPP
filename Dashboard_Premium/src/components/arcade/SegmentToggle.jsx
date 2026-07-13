@@ -44,7 +44,7 @@ export default function SegmentToggle({ value, onPresent, onAbsent, name }) {
           ...cell,
           borderLeft: `1px solid ${BORDER.neutralSoft}`,
           background: a ? C.dangerDeep : 'transparent',
-          color: a ? '#FFFFFF' : C.text2,
+          color: a ? C.onDanger : C.text2,
         }}
       >
         A
