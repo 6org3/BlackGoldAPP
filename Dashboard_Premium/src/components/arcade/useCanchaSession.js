@@ -1,27 +1,20 @@
-import { useReducer, useEffect, useMemo } from 'react';
-import { ROSTER, SEED_SESSIONS } from './canchaMock';
+import { useReducer, useEffect, useMemo, useState, useRef } from 'react';
+import { ROSTER, SEED_SESSIONS, LEVELS } from './canchaMock';
+import { fetchRoster, fetchActiveSessions, startSession, saveSubjectiveEval, closeClass } from './canchaData';
 
 /**
- * Máquina de estados del flujo Modo Cancha (port del reducer del prototipo
- * "Arcade HUD"). Un solo cronómetro (setInterval 1s) hace avanzar el
- * `elapsed` de TODAS las sesiones activas, corran o no en foco.
+ * Máquina de estados del flujo Modo Cancha (port del reducer del prototipo).
+ * Fase 5: si hay `user` (coach), carga roster + sesiones activas reales y las
+ * acciones start/saveEval/finish ESCRIBEN en Supabase (via canchaData). Sin
+ * user, corre 100% con mocks (para /arcade-preview sin login).
  *
- * Estado:
- *   step        cancha|nivel|buscador|lista|activa|cierre|evaluar|fin
- *   classType   grupal|indiv|1v1|eval | null
- *   level       Micro|Desarrollo|Elite | null
- *   present     { [atletaId]: 'P'|'A'|undefined }
- *   sessions    Session[]  (simultáneas)
- *   focusedId   sesión en foco en 'activa'
- *   lastElapsed seg de la última sesión terminada (para 'cierre')
- *   destacados  { [id]: bool }
- *   scores      { [id]: { fisico?, actitud?, foco?, equipo? } }  (1..5)
- *   evalTargetId / savedIds
+ * El flujo Arcade es subjetivo: escribe observaciones_cancha + XP; NO mueve
+ * overall_score (eso es el pipeline de pruebas objetivas, fuera de alcance).
  */
 
 const hhmm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
-const initialState = () => ({
+const initialState = (user) => ({
   step: 'cancha',
   classType: null,
   level: null,
@@ -30,9 +23,10 @@ const initialState = () => ({
   scores: {},
   evalTargetId: null,
   savedIds: {},
-  sessions: SEED_SESSIONS.map((s) => ({ ...s })),
+  sessions: user ? [] : SEED_SESSIONS.map((s) => ({ ...s })),
   focusedId: null,
   lastElapsed: 0,
+  closingSession: null, // sesión que se está cerrando (para el write de cierre)
 });
 
 function reducer(state, action) {
@@ -40,6 +34,9 @@ function reducer(state, action) {
     case 'TICK':
       if (!state.sessions.length) return state;
       return { ...state, sessions: state.sessions.map((x) => ({ ...x, elapsed: x.elapsed + 1 })) };
+
+    case 'HYDRATE_SESSIONS':
+      return { ...state, sessions: action.sessions };
 
     case 'PICK_TYPE': {
       const t = action.tipo;
@@ -61,7 +58,7 @@ function reducer(state, action) {
       return { ...state, present: { ...state.present, [action.id]: action.val } };
 
     case 'ALL_PRESENT': {
-      const list = state.classType === '1v1' ? ROSTER.filter((a) => state.present[a.id]) : ROSTER;
+      const list = action.roster;
       const present = { ...state.present };
       list.forEach((a) => {
         present[a.id] = 'P';
@@ -69,24 +66,22 @@ function reducer(state, action) {
       return { ...state, present };
     }
 
+    // Sesión real ya creada en Supabase (payload = sesión mapeada).
+    case 'ADD_SESSION':
+      return { ...state, sessions: [...state.sessions, action.session], focusedId: action.session.id, step: 'activa' };
+
+    // Sesión local (mock, sin backend).
     case 'START': {
-      const presentCount = ROSTER.filter((a) => state.present[a.id] === 'P').length;
-      let label;
-      if (state.classType === '1v1') {
-        const first = ROSTER.find((a) => state.present[a.id] === 'P');
-        label = `1v1 · ${first ? first.name : 'Atleta'}`;
-      } else {
-        label = 'Sub-16 · Físico';
-      }
       const sess = {
         id: action.id,
-        label,
+        label: action.label,
         block: state.level || (state.classType === '1v1' ? '1v1' : 'Sesión'),
         start: action.start,
         elapsed: 0,
-        present: presentCount,
+        present: action.present,
         hue: 'gold',
         evaluable: true,
+        notas: `[EN_CURSO] ${action.label}`,
       };
       return { ...state, sessions: [...state.sessions, sess], focusedId: action.id, step: 'activa' };
     }
@@ -103,6 +98,7 @@ function reducer(state, action) {
         ...state,
         sessions: state.sessions.filter((x) => x.id !== action.id),
         lastElapsed: f ? f.elapsed : 0,
+        closingSession: f || null,
         step: 'cierre',
       };
     }
@@ -127,6 +123,7 @@ function reducer(state, action) {
         evalTargetId: null,
         savedIds: {},
         focusedId: null,
+        closingSession: null,
       };
 
     case 'BACK':
@@ -169,15 +166,51 @@ function reducer(state, action) {
   }
 }
 
-export default function useCanchaSession() {
-  const [state, dispatch] = useReducer(reducer, undefined, initialState);
+export default function useCanchaSession(user) {
+  const [state, dispatch] = useReducer(reducer, user, initialState);
+  const [roster, setRoster] = useState(() => (user ? [] : ROSTER));
+  const [loading, setLoading] = useState(!!user);
+  const isReal = !!user;
 
-  // Un único ticker para todas las sesiones activas (el `elapsed` de cada
-  // sesión avanza aunque no esté en foco). En fase 5 se deriva de started_at.
+  // Refs "última versión" para que las acciones async lean el estado vigente
+  // sin recrearse en cada render (se sincronizan tras el commit, no en render).
+  const stateRef = useRef(state);
+  const rosterRef = useRef(roster);
+  useEffect(() => {
+    stateRef.current = state;
+    rosterRef.current = roster;
+  });
+
+  // Carga inicial de datos reales (roster + sesiones activas).
+  useEffect(() => {
+    if (!user) return undefined;
+    let alive = true;
+    Promise.all([fetchRoster(user), fetchActiveSessions(user)])
+      .then(([r, sess]) => {
+        if (!alive) return;
+        setRoster(r);
+        dispatch({ type: 'HYDRATE_SESSIONS', sessions: sess });
+        setLoading(false);
+      })
+      .catch(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+
+  // Un único ticker para todas las sesiones activas.
   useEffect(() => {
     const t = setInterval(() => dispatch({ type: 'TICK' }), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Niveles con conteo real por nivel_desarrollo (o estático en mock).
+  const levels = useMemo(
+    () => LEVELS.map((l) => ({ ...l, count: isReal ? roster.filter((a) => a.nivel === l.name).length : l.count })),
+    [roster, isReal],
+  );
 
   const actions = useMemo(
     () => ({
@@ -186,22 +219,67 @@ export default function useCanchaSession() {
       chooseToggle: (id) => dispatch({ type: 'CHOOSE_TOGGLE', id }),
       toLista: () => dispatch({ type: 'TO_LISTA' }),
       mark: (id, val) => dispatch({ type: 'MARK', id, val }),
-      allPresent: () => dispatch({ type: 'ALL_PRESENT' }),
-      start: () => dispatch({ type: 'START', id: `main-${Date.now()}`, start: hhmm(new Date()) }),
+      allPresent: () => {
+        const s = stateRef.current;
+        const r = rosterRef.current;
+        const list = s.classType === '1v1' ? r.filter((a) => s.present[a.id]) : r.filter((a) => a.nivel === s.level);
+        dispatch({ type: 'ALL_PRESENT', roster: list.length ? list : r });
+      },
+      start: async () => {
+        const s = stateRef.current;
+        const r = rosterRef.current;
+        if (user) {
+          try {
+            const focusName = s.classType === '1v1' ? r.find((a) => s.present[a.id] === 'P')?.name : null;
+            const session = await startSession({ user, classType: s.classType, level: s.level, present: s.present, roster: r, focusName });
+            dispatch({ type: 'ADD_SESSION', session });
+            return;
+          } catch {
+            /* cae al arranque local para no bloquear la UI */
+          }
+        }
+        const first = r.find((a) => s.present[a.id] === 'P');
+        const label = s.classType === '1v1' && first ? `1v1 · ${first.name}` : 'Sub-16 · Físico';
+        const present = r.filter((a) => s.present[a.id] === 'P').length;
+        dispatch({ type: 'START', id: `main-${Date.now()}`, start: hhmm(new Date()), label, present });
+      },
       openSession: (id) => dispatch({ type: 'OPEN_SESSION', id }),
       focusSession: (id) => dispatch({ type: 'FOCUS_SESSION', id }),
       terminateEval: (id) => dispatch({ type: 'TERMINATE_EVAL', id }),
       terminateBg: (id) => dispatch({ type: 'TERMINATE_BG', id }),
-      finish: () => dispatch({ type: 'FINISH' }),
+      finish: async () => {
+        const s = stateRef.current;
+        const r = rosterRef.current;
+        if (user && s.closingSession && String(s.closingSession.id).indexOf('main-') !== 0) {
+          const presentIds = r.filter((a) => s.present[a.id] === 'P').map((a) => a.id);
+          try {
+            await closeClass({ session: s.closingSession, presentAtletaIds: presentIds });
+          } catch {
+            /* la sesión queda en curso; se puede reintentar */
+          }
+        }
+        dispatch({ type: 'FINISH' });
+      },
       reset: () => dispatch({ type: 'RESET' }),
       back: () => dispatch({ type: 'BACK' }),
       toggleDestacado: (id) => dispatch({ type: 'TOGGLE_DESTACADO', id }),
       openEval: (id) => dispatch({ type: 'OPEN_EVAL', id }),
       setStar: (axis, val) => dispatch({ type: 'SET_STAR', axis, val }),
-      saveEval: () => dispatch({ type: 'SAVE_EVAL' }),
+      saveEval: async () => {
+        const s = stateRef.current;
+        const id = s.evalTargetId;
+        dispatch({ type: 'SAVE_EVAL' });
+        if (user && id) {
+          try {
+            await saveSubjectiveEval({ user, atletaId: id, scores: s.scores[id] || {} });
+          } catch {
+            /* la UI ya marcó guardado; el write se puede reintentar */
+          }
+        }
+      },
     }),
-    [],
+    [user],
   );
 
-  return { state, actions };
+  return { state, actions, roster, levels, isReal, loading };
 }

@@ -1,12 +1,14 @@
 import { C, BORDER, GRAD, cut, PIXEL } from './arcadeTokens';
-import { ROSTER, AXES, BADGE_DEFS } from './canchaMock';
+import { AXES, BADGE_DEFS } from './canchaMock';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
 import StarRating from './StarRating';
 import Badge from './Badge';
 
-export default function PantallaEvaluar({ state, actions }) {
-  const a = ROSTER.find((x) => x.id === state.evalTargetId) || ROSTER[0];
+const ATLETA_FALLBACK = { name: 'Atleta', hue: 'blue', pos: '—', pwr: 0 };
+
+export default function PantallaEvaluar({ state, actions, roster = [] }) {
+  const a = roster.find((x) => x.id === state.evalTargetId) || roster[0] || ATLETA_FALLBACK;
   const sc = state.scores[state.evalTargetId] || {};
 
   return (

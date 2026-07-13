@@ -1,11 +1,11 @@
 import { C, BORDER, cut, PIXEL } from './arcadeTokens';
-import { ROSTER } from './canchaMock';
+import { rosterLista } from './canchaSelectors';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
 import SegmentToggle from './SegmentToggle';
 
-export default function PantallaLista({ state, actions }) {
-  const listRoster = state.classType === '1v1' ? ROSTER.filter((a) => state.present[a.id]) : ROSTER;
+export default function PantallaLista({ state, actions, roster = [] }) {
+  const listRoster = rosterLista(state, roster);
   const presentCount = listRoster.filter((a) => state.present[a.id] === 'P').length;
 
   return (

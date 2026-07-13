@@ -2,8 +2,10 @@ import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
+import { useAuth } from '../../AuthContext';
 import { C, BORDER, GRAD, cut, PIXEL, gridBackground, fmtClock } from './arcadeTokens';
-import { ROSTER, XP_POR_DESTACADO } from './canchaMock';
+import { XP_POR_DESTACADO } from './canchaMock';
+import { presentesP, destacadosList } from './canchaSelectors';
 import useCanchaSession from './useCanchaSession';
 import MicroLabel from './MicroLabel';
 import ArcadeBottomNav from './ArcadeBottomNav';
@@ -26,7 +28,7 @@ function footerStyle(enabled, tone) {
 }
 
 // Cabecera de flujo por paso (chevron + micro-label + título).
-function headerFor(state) {
+function headerFor(state, roster) {
   switch (state.step) {
     case 'nivel':
       return { label: 'PASO 1 · BLOQUE', title: 'Nueva sesión' };
@@ -37,8 +39,8 @@ function headerFor(state) {
     case 'cierre':
       return { label: 'PASO 3 · DESTACADOS', title: 'Cierre de clase' };
     case 'evaluar': {
-      const a = ROSTER.find((x) => x.id === state.evalTargetId) || ROSTER[0];
-      return { label: 'EVALUAR ATLETA', title: a.name };
+      const a = roster.find((x) => x.id === state.evalTargetId) || roster[0];
+      return { label: 'EVALUAR ATLETA', title: a?.name || 'Atleta' };
     }
     default:
       return null;
@@ -46,19 +48,18 @@ function headerFor(state) {
 }
 
 // CTA persistente por paso (label + habilitado + acción + tono).
-function footerFor(state, actions) {
+function footerFor(state, actions, roster) {
   switch (state.step) {
     case 'buscador': {
-      const n = ROSTER.filter((a) => state.present[a.id]).length;
+      const n = roster.filter((a) => state.present[a.id]).length;
       return { label: `CONTINUAR · ${n}`, enabled: n > 0, tone: 'gold', onClick: actions.toLista };
     }
     case 'lista': {
-      const listRoster = state.classType === '1v1' ? ROSTER.filter((a) => state.present[a.id]) : ROSTER;
-      const pc = listRoster.filter((a) => state.present[a.id] === 'P').length;
+      const pc = presentesP(state, roster).length;
       return { label: `INICIAR SESIÓN · ${pc} ✓`, enabled: pc > 0, tone: 'green', onClick: actions.start };
     }
     case 'cierre': {
-      const dc = ROSTER.filter((a) => state.present[a.id] === 'P' && state.destacados[a.id]).length;
+      const dc = destacadosList(state, roster).length;
       return { label: `FINALIZAR · +${dc * XP_POR_DESTACADO} XP`, enabled: dc > 0, tone: 'gold', onClick: actions.finish };
     }
     case 'evaluar':
@@ -69,8 +70,12 @@ function footerFor(state, actions) {
 }
 
 function CanchaTakeover({ onClose }) {
-  const { state, actions } = useCanchaSession();
+  const { user } = useAuth();
+  const { state, actions, roster, levels, isReal } = useCanchaSession(user);
   const navigate = useNavigate();
+  const coachInitial = user?.nombre
+    ? user.nombre.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
+    : 'PA';
   const reduce = useReducedMotion();
   const panelRef = useRef(null);
 
@@ -112,8 +117,8 @@ function CanchaTakeover({ onClose }) {
     };
   }, [onClose]);
 
-  const header = headerFor(state);
-  const footer = footerFor(state, actions);
+  const header = headerFor(state, roster);
+  const footer = footerFor(state, actions, roster);
   const showNav = state.step === 'cancha';
   const isActiva = state.step === 'activa';
 
@@ -200,14 +205,14 @@ function CanchaTakeover({ onClose }) {
 
         {/* Área de scroll con la pantalla actual */}
         <div style={{ flex: 1, overflowY: 'auto', padding: scrollPad, WebkitOverflowScrolling: 'touch' }}>
-          {state.step === 'cancha' && <PantallaCancha state={state} actions={actions} onClose={onClose} />}
-          {state.step === 'nivel' && <PantallaNivel actions={actions} />}
-          {state.step === 'buscador' && <PantallaBuscador state={state} actions={actions} />}
-          {state.step === 'lista' && <PantallaLista state={state} actions={actions} />}
+          {state.step === 'cancha' && <PantallaCancha state={state} actions={actions} onClose={onClose} demo={!isReal} coachInitial={coachInitial} />}
+          {state.step === 'nivel' && <PantallaNivel actions={actions} levels={levels} />}
+          {state.step === 'buscador' && <PantallaBuscador state={state} actions={actions} roster={roster} />}
+          {state.step === 'lista' && <PantallaLista state={state} actions={actions} roster={roster} />}
           {isActiva && <PantallaActiva focused={focused} others={others} actions={actions} />}
-          {state.step === 'cierre' && <PantallaCierre state={state} actions={actions} />}
-          {state.step === 'evaluar' && <PantallaEvaluar state={state} actions={actions} />}
-          {state.step === 'fin' && <PantallaFin state={state} actions={actions} />}
+          {state.step === 'cierre' && <PantallaCierre state={state} actions={actions} roster={roster} />}
+          {state.step === 'evaluar' && <PantallaEvaluar state={state} actions={actions} roster={roster} />}
+          {state.step === 'fin' && <PantallaFin state={state} actions={actions} roster={roster} />}
         </div>
 
         {/* Minibar flotante de la sesión en foco */}

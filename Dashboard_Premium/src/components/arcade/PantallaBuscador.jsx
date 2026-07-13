@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { C, BORDER, cut, PIXEL } from './arcadeTokens';
-import { ROSTER } from './canchaMock';
 import CutCard from './CutCard';
 import HexAvatar from './HexAvatar';
 
-export default function PantallaBuscador({ state, actions }) {
+export default function PantallaBuscador({ state, actions, roster = [] }) {
   const [q, setQ] = useState('');
   const term = q.trim().toLowerCase();
-  const rows = term ? ROSTER.filter((a) => `${a.name} ${a.pos}`.toLowerCase().includes(term)) : ROSTER;
+  const rows = term ? roster.filter((a) => `${a.name} ${a.pos}`.toLowerCase().includes(term)) : roster;
 
   return (
     <div>

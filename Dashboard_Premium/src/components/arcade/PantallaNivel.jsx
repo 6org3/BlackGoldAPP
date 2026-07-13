@@ -1,5 +1,4 @@
 import { C, BORDER, PIXEL } from './arcadeTokens';
-import { LEVELS } from './canchaMock';
 import CutCard from './CutCard';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
@@ -11,7 +10,7 @@ const TIER = {
   green: { ic: 'rgba(52,211,153,.18)', icf: C.ok, br: 'rgba(52,211,153,.3)' },
 };
 
-export default function PantallaNivel({ actions }) {
+export default function PantallaNivel({ actions, levels = [] }) {
   return (
     <div>
       <p style={{ margin: '0 0 4px', fontSize: 13, color: C.text2, lineHeight: 1.5 }}>
@@ -19,7 +18,7 @@ export default function PantallaNivel({ actions }) {
       </p>
       <MicroLabel color={C.text3} style={{ margin: '14px 0 10px' }}>BLOQUE DE NIVEL</MicroLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {LEVELS.map((lv) => {
+        {levels.map((lv) => {
           const t = TIER[lv.hue] || TIER.gold;
           return (
             <CutCard

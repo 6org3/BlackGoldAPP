@@ -1,9 +1,9 @@
 import { C, BORDER, GRAD, cut, HEX, PIXEL, GLOW } from './arcadeTokens';
-import { ROSTER, AXES, XP_POR_DESTACADO } from './canchaMock';
+import { AXES, XP_POR_DESTACADO } from './canchaMock';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
 
-export default function PantallaFin({ state, actions }) {
+export default function PantallaFin({ state, actions, roster = [] }) {
   const ids = Object.keys(state.destacados).filter((id) => state.destacados[id]);
   const xpTotal = ids.length * XP_POR_DESTACADO;
 
@@ -39,7 +39,7 @@ export default function PantallaFin({ state, actions }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '18px 0' }}>
         {ids.map((id) => {
-          const a = ROSTER.find((x) => x.id === id) || {};
+          const a = roster.find((x) => x.id === id) || {};
           const sc = state.scores[id] || {};
           const nb = AXES.filter((ax) => (sc[ax.key] || 0) === 5).length;
           const note = nb > 0 ? `${nb} insignia${nb > 1 ? 's' : ''} · destacado` : 'Destacado de hoy';

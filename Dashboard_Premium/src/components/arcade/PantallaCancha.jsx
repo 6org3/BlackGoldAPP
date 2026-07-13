@@ -21,7 +21,7 @@ const TIPOS = [
   { key: 'eval', emoji: '🧪', name: 'EVALUACIÓN\nGRUPAL', sub: 'CMJ · Sprint · Tiro' },
 ];
 
-export default function PantallaCancha({ state, actions, onClose }) {
+export default function PantallaCancha({ state, actions, onClose, demo = true, coachInitial = 'PA' }) {
   const sessions = state.sessions;
   const hasActive = sessions.length > 0;
 
@@ -60,7 +60,7 @@ export default function PantallaCancha({ state, actions, onClose }) {
           >
             <X size={16} strokeWidth={2.4} />
           </button>
-          <HexAvatar initial="PA" size={48} background={GRAD.goldHex} color={C.ink} glow style={{ fontSize: 15 }} />
+          <HexAvatar initial={coachInitial} size={48} background={GRAD.goldHex} color={C.ink} glow style={{ fontSize: 15 }} />
         </div>
       </div>
 
@@ -137,39 +137,43 @@ export default function PantallaCancha({ state, actions, onClose }) {
         ))}
       </div>
 
-      {/* Programadas hoy */}
-      <MicroLabel color={C.text3} size={9.5} style={{ marginBottom: 8 }}>PROGRAMADAS HOY</MicroLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <CutCard
-          onClick={() => actions.pickType('grupal')}
-          ariaLabel="Iniciar sesión Sub-16 Físico"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}
-        >
-          <div>
-            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>16:00 · Sub-16 · Físico</p>
-            <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>12 convocados · Prof. Andrade</p>
+      {/* Programadas hoy — ilustrativas (solo en modo demo/preview) */}
+      {demo && (
+        <>
+          <MicroLabel color={C.text3} size={9.5} style={{ marginBottom: 8 }}>PROGRAMADAS HOY</MicroLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <CutCard
+              onClick={() => actions.pickType('grupal')}
+              ariaLabel="Iniciar sesión Sub-16 Físico"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}
+            >
+              <div>
+                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>16:00 · Sub-16 · Físico</p>
+                <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>12 convocados · Prof. Andrade</p>
+              </div>
+              <span style={{ fontFamily: PIXEL, fontSize: 9.5, color: C.gold }}>INICIAR ►</span>
+            </CutCard>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 10,
+                background: C.card,
+                border: `1px solid ${BORDER.neutral}`,
+                clipPath: cut(10),
+                padding: '12px 14px',
+              }}
+            >
+              <div>
+                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>18:00 · Sub-14 · Técnico</p>
+                <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>Manejo de balón N2</p>
+              </div>
+              <span style={{ fontFamily: PIXEL, fontSize: 9.5, color: C.text4 }}>18:00</span>
+            </div>
           </div>
-          <span style={{ fontFamily: PIXEL, fontSize: 9.5, color: C.gold }}>INICIAR ►</span>
-        </CutCard>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            background: C.card,
-            border: `1px solid ${BORDER.neutral}`,
-            clipPath: cut(10),
-            padding: '12px 14px',
-          }}
-        >
-          <div>
-            <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>18:00 · Sub-14 · Técnico</p>
-            <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>Manejo de balón N2</p>
-          </div>
-          <span style={{ fontFamily: PIXEL, fontSize: 9.5, color: C.text4 }}>18:00</span>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

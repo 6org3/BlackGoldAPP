@@ -1,10 +1,10 @@
 import { C, BORDER, cut, PIXEL, fmtClock } from './arcadeTokens';
-import { ROSTER } from './canchaMock';
+import { presentesP } from './canchaSelectors';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
 
-export default function PantallaCierre({ state, actions }) {
-  const present = ROSTER.filter((a) => state.present[a.id] === 'P');
+export default function PantallaCierre({ state, actions, roster = [] }) {
+  const present = presentesP(state, roster);
   const destacadoCount = present.filter((a) => state.destacados[a.id]).length;
 
   return (
