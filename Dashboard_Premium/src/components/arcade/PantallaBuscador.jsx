@@ -7,7 +7,8 @@ import HexAvatar from './HexAvatar';
 export default function PantallaBuscador({ state, actions, roster = [] }) {
   const [q, setQ] = useState('');
   const term = q.trim().toLowerCase();
-  const rows = term ? roster.filter((a) => `${a.name} ${a.pos}`.toLowerCase().includes(term)) : roster;
+  // Filtra por nombre o cédula (el placeholder ya lo anuncia) (#9).
+  const rows = term ? roster.filter((a) => `${a.name} ${a.cedula || ''}`.toLowerCase().includes(term)) : roster;
 
   return (
     <div>

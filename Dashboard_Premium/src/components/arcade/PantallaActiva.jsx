@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react';
-import { C, BORDER, GRAD, cut, HEX, PIXEL, GLOW, hueFg, fmtClock } from './arcadeTokens';
+import { C, BORDER, GRAD, cut, PIXEL, GLOW, hueFg, fmtClock } from './arcadeTokens';
 import MicroLabel from './MicroLabel';
 import CutCard from './CutCard';
 import LiveDot from './LiveDot';
@@ -60,31 +60,6 @@ export default function PantallaActiva({ focused, others, actions }) {
                 <ChevronRight size={15} strokeWidth={2.4} color={C.text3} style={{ flex: 'none' }} />
               </CutCard>
             ))}
-          </div>
-        </>
-      )}
-
-      {/* En esta clase (solo sesión evaluable) */}
-      {focused.evaluable && (
-        <>
-          <MicroLabel color={C.text3} size={9.5} style={{ marginBottom: 8 }}>EN ESTA CLASE</MicroLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: C.card, border: `1px solid ${BORDER.neutral}`, clipPath: cut(10), padding: '13px 14px' }}>
-              <div style={{ width: 34, height: 34, clipPath: HEX, background: 'rgba(255,215,0,.16)', display: 'grid', placeItems: 'center', fontSize: 16, flex: 'none' }} aria-hidden="true">📋</div>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>Bloque físico · circuito</p>
-                <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>Plantilla cargada · 4 estaciones</p>
-              </div>
-              <span style={{ fontFamily: PIXEL, fontSize: 9, color: C.ok }}>EN CURSO</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: C.card, border: `1px solid ${BORDER.neutral}`, clipPath: cut(10), padding: '13px 14px' }}>
-              <div style={{ width: 34, height: 34, clipPath: HEX, background: 'rgba(96,165,250,.16)', display: 'grid', placeItems: 'center', fontSize: 16, flex: 'none' }} aria-hidden="true">💧</div>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>Recordatorio hidratación</p>
-                <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>Mateo Chávez · alerta IA</p>
-              </div>
-              <span style={{ fontFamily: PIXEL, fontSize: 9, color: C.gold }}>OK</span>
-            </div>
           </div>
         </>
       )}

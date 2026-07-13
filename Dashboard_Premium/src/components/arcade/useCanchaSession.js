@@ -31,6 +31,7 @@ const initialState = (user) => ({
   scores: {},
   evalTargetId: null,
   savedIds: {},
+  savedScores: {}, // snapshot de scores al GUARDAR — para que lo mostrado = lo otorgado (#7)
   sessions: user ? [] : SEED_SESSIONS.map((s) => ({ ...s })),
   focusedId: null,
   lastElapsed: 0,
@@ -54,9 +55,10 @@ function reducer(state, action) {
     case 'PICK_LEVEL':
       return { ...state, level: action.level, step: 'lista', present: {} };
 
+    // 1v1: selección exclusiva — elegir un atleta reemplaza al anterior (#8).
     case 'CHOOSE_TOGGLE': {
       const cur = state.present[action.id];
-      return { ...state, present: { ...state.present, [action.id]: cur ? undefined : 'P' } };
+      return { ...state, present: cur ? {} : { [action.id]: 'P' } };
     }
 
     case 'TO_LISTA':
@@ -74,9 +76,19 @@ function reducer(state, action) {
       return { ...state, present };
     }
 
-    // Sesión real ya creada en Supabase (payload = sesión mapeada).
+    // Sesión real ya creada en Supabase (payload = sesión mapeada). Se le adjunta
+    // el contexto del flujo (asistencia/tipo/nivel) para que el cierre de ESTA
+    // sesión use SUS datos aunque haya otras sesiones evaluables activas (#2).
     case 'ADD_SESSION':
-      return { ...state, sessions: [...state.sessions, action.session], focusedId: action.session.id, step: 'activa' };
+      return {
+        ...state,
+        sessions: [
+          ...state.sessions,
+          { ...action.session, attendance: state.present, classType: state.classType, level: state.level },
+        ],
+        focusedId: action.session.id,
+        step: 'activa',
+      };
 
     // Sesión local (mock, sin backend).
     case 'START': {
@@ -86,7 +98,10 @@ function reducer(state, action) {
         block: state.level || (state.classType === '1v1' ? '1v1' : 'Sesión'),
         start: action.start,
         elapsed: 0,
-        present: action.present,
+        present: action.present, // conteo para display
+        attendance: state.present, // asistencia por-atleta para el cierre (#2)
+        classType: state.classType,
+        level: state.level,
         hue: 'gold',
         evaluable: true,
         notas: `[EN_CURSO] ${action.label}`,
@@ -99,8 +114,14 @@ function reducer(state, action) {
         ...state,
         focusedId: action.id,
         step: 'activa',
-        // Reanudar: fusiona la asistencia reconstruida de la sesión.
+        // Reanudar: fusiona la asistencia reconstruida en el present de trabajo Y
+        // en la propia sesión, para que su cierre otorgue XP a SUS presentes (#2).
         present: action.present ? { ...state.present, ...action.present } : state.present,
+        sessions: action.present
+          ? state.sessions.map((x) =>
+              x.id === action.id ? { ...x, attendance: { ...(x.attendance || {}), ...action.present } } : x,
+            )
+          : state.sessions,
       };
 
     case 'FOCUS_SESSION':
@@ -113,6 +134,18 @@ function reducer(state, action) {
         sessions: state.sessions.filter((x) => x.id !== action.id),
         lastElapsed: f ? f.elapsed : 0,
         closingSession: f || null,
+        // Restaura el contexto de la sesión que se cierra (no el del último flujo)
+        // y arranca el cierre con destacados/scores/guardados limpios (#2). Si su
+        // asistencia no se pudo reconstruir (f.attendance undefined tras un fetch
+        // fallido), arranca vacío en vez de heredar el present de otro flujo (#2b).
+        classType: f ? f.classType || null : state.classType,
+        level: f ? f.level || null : state.level,
+        present: f && f.attendance ? f.attendance : {},
+        destacados: {},
+        scores: {},
+        savedIds: {},
+        savedScores: {},
+        evalTargetId: null,
         step: 'cierre',
       };
     }
@@ -136,6 +169,7 @@ function reducer(state, action) {
         scores: {},
         evalTargetId: null,
         savedIds: {},
+        savedScores: {},
         focusedId: null,
         closingSession: null,
       };
@@ -144,6 +178,7 @@ function reducer(state, action) {
       switch (state.step) {
         case 'nivel':
         case 'buscador':
+        case 'activa': // salir a la cancha sin cerrar la sesión (queda activa) (#1)
           return { ...state, step: 'cancha' };
         case 'lista':
           return { ...state, step: state.classType === '1v1' ? 'buscador' : 'nivel' };
@@ -173,7 +208,14 @@ function reducer(state, action) {
     }
 
     case 'SAVE_EVAL':
-      return { ...state, savedIds: { ...state.savedIds, [state.evalTargetId]: true }, step: 'cierre' };
+      return {
+        ...state,
+        savedIds: { ...state.savedIds, [state.evalTargetId]: true },
+        // Congela los scores otorgados: editar estrellas luego no cambia el XP
+        // mostrado (GUARDAR queda deshabilitado, así que tampoco se re-otorga) (#7).
+        savedScores: { ...state.savedScores, [state.evalTargetId]: state.scores[state.evalTargetId] || {} },
+        step: 'cierre',
+      };
 
     default:
       return state;
@@ -214,9 +256,10 @@ export default function useCanchaSession(user) {
   }, []);
 
   // Niveles con conteo real por nivel_desarrollo (o estático en mock).
+  // Conteo por nivel derivado siempre del roster (mock y real ya traen `nivel`) (#4).
   const levels = useMemo(
-    () => LEVELS.map((l) => ({ ...l, count: isReal ? roster.filter((a) => a.nivel === l.name).length : l.count })),
-    [roster, isReal],
+    () => LEVELS.map((l) => ({ ...l, count: roster.filter((a) => a.nivel === l.name).length })),
+    [roster],
   );
 
   const actions = useMemo(

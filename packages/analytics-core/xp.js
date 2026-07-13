@@ -37,3 +37,29 @@ export function xpBaseSesion(tipo) {
   }
   return XP_BASE_SESION.default;
 }
+
+// XP de una EVALUACIÓN subjetiva de cancha (destacado) — FUENTE ÚNICA.
+// Es otra escala distinta al XP base por asistir (xpBaseSesion): premia el
+// desempeño en los 4 ejes (1-5★) con bono al llegar a 5★ (insignia).
+// Debe coincidir con lo que otorga saveSubjectiveEval (canchaData.js) y con lo
+// que muestra el flujo Arcade; si divergen, el coach ve un número ≠ al otorgado.
+export const XP_INSIGNIA = { fisico: 40, actitud: 50, foco: 50, equipo: 40 };
+
+/**
+ * XP de la evaluación de un atleta destacado: suma de las estrellas ×5 más el
+ * bono de insignia por cada eje que llega a 5★. Un destacado sin evaluar
+ * (scores vacío) da 0.
+ *
+ * @param {Object<string, number>} scores - { fisico, actitud, foco, equipo } en 1-5.
+ * @returns {number}
+ */
+export function xpEvaluacion(scores = {}) {
+  let estrellas = 0;
+  let bono = 0;
+  for (const [eje, xpBono] of Object.entries(XP_INSIGNIA)) {
+    const v = scores?.[eje] || 0;
+    estrellas += v;
+    if (v === 5) bono += xpBono;
+  }
+  return estrellas * 5 + bono;
+}

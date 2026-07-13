@@ -19,14 +19,15 @@ import { crearSesionEntrenamiento } from '../../api/sesionesEntrenamientoService
 import { insertarObservacion } from '../../api/observacionesService';
 import { otorgarXP } from '../../api/xpService';
 import { fetchSesionesPlanificadasHoy } from '../../api/sesionesService';
-import { xpBaseSesion } from '../../../../packages/analytics-core/xp.js';
+import { xpBaseSesion, xpEvaluacion } from '../../../../packages/analytics-core/xp.js';
 
-// Eje Arcade → columna de observaciones_cancha + insignia (umbral 5★).
+// Eje Arcade → columna de observaciones_cancha + insignia (umbral 5★). El XP de
+// la evaluación lo calcula xpEvaluacion (analytics-core), no una tabla local (#7).
 const AXIS_DB = {
-  fisico: { col: 'esfuerzo', insignia: 'Motor Inagotable', xp: 40 },
-  actitud: { col: 'actitud', insignia: 'Mamba Mentality', xp: 50 },
-  foco: { col: 'foco', insignia: 'Sangre Fría', xp: 50 },
-  equipo: { col: 'trabajo_equipo', insignia: 'Líder', xp: 40 },
+  fisico: { col: 'esfuerzo', insignia: 'Motor Inagotable' },
+  actitud: { col: 'actitud', insignia: 'Mamba Mentality' },
+  foco: { col: 'foco', insignia: 'Sangre Fría' },
+  equipo: { col: 'trabajo_equipo', insignia: 'Líder' },
 };
 
 /** Deriva hue + alerta de readiness/estado (cosmético). */
@@ -49,6 +50,7 @@ export function mapAtleta(a) {
     usuarioId: a.id,
     name: a.nombre || 'Atleta',
     pos: a.posicion || '—',
+    cedula: a.cedula || '', // búsqueda 1v1 por cédula (#9)
     pwr: a.overall_score || 0,
     nivel: a.nivel_desarrollo || 'Desarrollo',
     categoria: a.categoria || null,
@@ -93,9 +95,17 @@ export async function fetchActiveSessions(user) {
 /** Fila de sesiones_programadas → sesión Arcade (elapsed derivado de hora_inicio). */
 export function mapSession(s, present = 0) {
   const label = (s.notas || '').replace('[EN_CURSO]', '').trim() || s.tipo || 'Sesión';
-  const [h, m, sec] = (s.hora_inicio || '00:00:00').split(':').map(Number);
-  const inicio = new Date();
-  inicio.setHours(h || 0, m || 0, sec || 0, 0);
+  // Inicio real desde la fecha+hora guardadas (no HOY): así el cronómetro no se
+  // resetea al cruzar medianoche ni pierde sesiones de días anteriores (#6).
+  const horaStr = s.hora_inicio || '00:00:00';
+  let inicio;
+  if (s.fecha) {
+    inicio = new Date(`${String(s.fecha).slice(0, 10)}T${horaStr}`);
+  } else {
+    const [h, m, sec] = horaStr.split(':').map(Number);
+    inicio = new Date();
+    inicio.setHours(h || 0, m || 0, sec || 0, 0);
+  }
   const elapsed = Math.max(0, Math.floor((Date.now() - inicio.getTime()) / 1000));
   return {
     id: s.id,
@@ -154,8 +164,10 @@ function labelTipo(classType, level) {
  */
 export async function startSession({ user, classType, level, present, roster, focusName }) {
   const ahora = new Date();
-  const horaStr = ahora.toTimeString().split(' ')[0]; // HH:MM:SS
-  const fechaStr = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+  const horaStr = ahora.toTimeString().split(' ')[0]; // HH:MM:SS (local)
+  // Fecha en hora LOCAL (Ecuador UTC-5), no UTC: cerca de medianoche toISOString
+  // daría el día siguiente y descuadraría fecha vs hora y el filtro por día (#6).
+  const fechaStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
   const tipoStr = labelTipo(classType, level);
   const tipoDB = classType === '1v1' ? 'Individual' : 'Grupal';
   const notasStr = `[EN_CURSO] ${tipoStr}`;
@@ -231,18 +243,13 @@ export async function startSession({ user, classType, level, present, roster, fo
 export async function saveSubjectiveEval({ user, atletaId, scores }) {
   const cols = {};
   const labels = [];
-  let xpInsignias = 0;
-  let sumStars = 0;
   Object.entries(AXIS_DB).forEach(([axis, def]) => {
     const v = scores?.[axis] || 0;
     cols[def.col] = v * 2; // 1-5 → 0-10 (CHECK de la columna)
-    sumStars += v;
-    if (v === 5) {
-      labels.push(def.insignia);
-      xpInsignias += def.xp;
-    }
+    if (v === 5) labels.push(def.insignia);
   });
-  const xpGanada = sumStars * 5 + xpInsignias;
+  // FUENTE ÚNICA de XP de evaluación — idéntica a la que muestra el cierre (#7).
+  const xpGanada = xpEvaluacion(scores);
 
   await insertarObservacion({
     atleta_id: atletaId,

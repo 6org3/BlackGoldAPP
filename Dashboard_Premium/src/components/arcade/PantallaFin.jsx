@@ -1,11 +1,18 @@
 import { C, BORDER, GRAD, cut, HEX, PIXEL, GLOW } from './arcadeTokens';
-import { AXES, XP_POR_DESTACADO } from './canchaMock';
+import { AXES } from './canchaMock';
+import { xpClaseTotal } from './canchaSelectors';
+import { xpEvaluacion } from '../../../../packages/analytics-core/xp.js';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
 
 export default function PantallaFin({ state, actions, roster = [] }) {
-  const ids = Object.keys(state.destacados).filter((id) => state.destacados[id]);
-  const xpTotal = ids.length * XP_POR_DESTACADO;
+  // XP mostrado = lo realmente otorgado: asistencia (todos los presentes) +
+  // evaluación (solo las GUARDADAS). Coincide con closeClass + saveSubjectiveEval (#7).
+  const { total, base, presentCount, destacadoCount } = xpClaseTotal(state);
+  // Lista a quienes contribuyen: destacados marcados + cualquiera con evaluación
+  // guardada (por si se desmarcó tras guardar). XP/insignias desde el snapshot.
+  const presentIds = Object.keys(state.present || {}).filter((id) => state.present[id] === 'P');
+  const ids = presentIds.filter((id) => state.destacados[id] || state.savedIds?.[id]);
 
   return (
     <div>
@@ -31,18 +38,26 @@ export default function PantallaFin({ state, actions, roster = [] }) {
           CLASE FINALIZADA
         </MicroLabel>
         <h1 style={{ margin: '10px 0 0', fontSize: 30, fontWeight: 900, letterSpacing: '-.03em' }}>
-          +{xpTotal}{' '}
+          +{total}{' '}
           <span style={{ background: GRAD.goldText, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>XP</span>
         </h1>
-        <p style={{ margin: '6px 0 0', fontSize: 12, color: C.text2 }}>repartido entre {ids.length} destacados</p>
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: C.text2 }}>
+          {presentCount} presente{presentCount === 1 ? '' : 's'} · {destacadoCount} destacado{destacadoCount === 1 ? '' : 's'}
+        </p>
+        {base > 0 && (
+          <p style={{ margin: '3px 0 0', fontSize: 10.5, color: C.text3 }}>
+            incluye +{base} XP base de asistencia
+          </p>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, margin: '18px 0' }}>
         {ids.map((id) => {
           const a = roster.find((x) => x.id === id) || {};
-          const sc = state.scores[id] || {};
+          const sc = state.savedScores?.[id] || {};
           const nb = AXES.filter((ax) => (sc[ax.key] || 0) === 5).length;
-          const note = nb > 0 ? `${nb} insignia${nb > 1 ? 's' : ''} · destacado` : 'Destacado de hoy';
+          const xpA = xpEvaluacion(sc);
+          const note = nb > 0 ? `${nb} insignia${nb > 1 ? 's' : ''} · destacado` : xpA > 0 ? 'Destacado evaluado' : 'Destacado · sin evaluar';
           return (
             <div
               key={id}
@@ -62,7 +77,7 @@ export default function PantallaFin({ state, actions, roster = [] }) {
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{a.name}</p>
                 <p style={{ margin: '1px 0 0', fontSize: 9.5, color: C.text3 }}>{note}</p>
               </div>
-              <span style={{ fontFamily: PIXEL, fontSize: 12, color: C.gold }}>+{XP_POR_DESTACADO}</span>
+              <span style={{ fontFamily: PIXEL, fontSize: 12, color: xpA > 0 ? C.gold : C.text3 }}>+{xpA}</span>
             </div>
           );
         })}
