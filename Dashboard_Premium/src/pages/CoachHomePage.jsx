@@ -6,17 +6,72 @@ import HomeShell, { ContextChip, SectionEyebrow } from '../components/HomeShell'
 import Plantel from '../components/Plantel';
 import CardFocoAtleta from '../components/CardFocoAtleta';
 import ModoCanchaArcade from '../components/arcade/ModoCanchaArcade';
+import CutCard from '../components/arcade/CutCard';
+import HexAvatar from '../components/arcade/HexAvatar';
+import MicroLabel from '../components/arcade/MicroLabel';
+import { C, BORDER, GRAD, TINT, cut, PIXEL } from '../components/arcade/arcadeTokens';
 import { recoveryPill } from '../lib/recoveryPill';
 import { tieneSenal } from '../lib/senalesAtleta';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchEvaluacionesProgramadasHoy, fetchSesionesPlanificadasHoy, fetchSesionesEnCurso } from '../api/sesionesService';
 
+// Tinte del chip de modalidad (nivel de la clase / 1 a 1). Sin rgba crudo.
+const CHIP_MODALIDAD = {
+  ok:   { color: C.ok,   border: BORDER.okSoft, tint: TINT.ok },
+  gold: { color: C.gold, border: BORDER.gold16, tint: TINT.gold },
+};
+
+// Las sesiones NO se organizan por categoría FEB (esa es para baremos), sino
+// por modalidad: clase grupal (por nivel de desarrollo, edades mixtas), grupo
+// del club o individualizada. El nivel de una clase se deriva de sus miembros.
+const nivelDeGrupo = (grupoId, atletas) => {
+  const miembros = atletas.filter((a) => a.grupo_id === grupoId);
+  if (miembros.length === 0) return null;
+  const conteo = {};
+  miembros.forEach((a) => {
+    const n = a.nivel_desarrollo || 'Sin nivel';
+    conteo[n] = (conteo[n] || 0) + 1;
+  });
+  return Object.entries(conteo).sort((a, b) => b[1] - a[1])[0][0];
+};
+
+/** Modalidad de una sesión de sesiones_control: individual (1 a 1) o clase
+ *  grupal (con nivel derivado). Devuelve lo necesario para hero y agenda. */
+const modalidadDeSesion = (s, atletas) => {
+  const grupoNombre = s.grupos_entrenamiento?.nombre;
+  const esIndividual = s.tipo === 'Individual' || !grupoNombre;
+  const objetivo = s.objetivo_tipo || 'Sesión';
+  if (esIndividual) {
+    const atleta = atletas.find((a) => a.atleta_id === s.atleta_id);
+    return {
+      modalidad: 'Individualizado',
+      marker: '○',
+      color: C.gold,
+      chip: '1 a 1',
+      chipTono: 'gold',
+      titulo: `Individualizado · ${objetivo}`,
+      sub: atleta ? `1 a 1 · ${atleta.nombre}` : '1 a 1',
+    };
+  }
+  const nivel = nivelDeGrupo(s.grupo_id, atletas);
+  return {
+    modalidad: 'Clase grupal',
+    marker: '●',
+    color: C.ok,
+    chip: nivel ? `Nivel ${nivel}` : null,
+    chipTono: 'ok',
+    titulo: `${grupoNombre} · ${objetivo}`,
+    sub: 'Clase grupal · por nivel',
+  };
+};
+
 /**
  * CoachHomePage (/coach) — home nativo del coach: "gestiona mi día".
- * Fase 1 del rediseño (blueprint §3.2): saludo + card hero "Hoy" con CTA a
- * Modo Cancha, franja de atletas con señales de recuperación/readiness y el
- * Plantel embebido. Las cards IA (foco de desarrollo, misión sugerida)
- * llegan en la Fase 2 vía brain gateway.
+ * Ola 2 · PR 2.3 (convergencia Arcade + regla de dominio): el hero habla en
+ * MODALIDAD DE SESIÓN (clase grupal por nivel de desarrollo / individualizada),
+ * no en categoría FEB — las clases mezclan edades/categorías y se agrupan por
+ * nivel o por grupo del club. Chrome del HUD (CutCard, MicroLabel, HexAvatar).
+ * Las cards IA (foco de desarrollo, readiness) llegan por el brain gateway.
  */
 export default function CoachHomePage() {
   const { user } = useAuth();
@@ -50,8 +105,6 @@ export default function CoachHomePage() {
   const fechaHoy = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });
   const primerNombre = (user.nombre || '').split(' ')[0] || 'Coach';
 
-  // Refetch de "en curso" al cerrar Modo Cancha: el contador del hero debe
-  // reflejar sesiones iniciadas/finalizadas durante esa visita al modal.
   const cerrarModoCancha = () => {
     setShowModoCancha(false);
     fetchSesionesEnCurso(user.id)
@@ -59,35 +112,33 @@ export default function CoachHomePage() {
       .catch((err) => console.error('Error refrescando sesiones activas:', err));
   };
 
-  // Hero "Hoy": prioriza la primera sesión PLANIFICADA (sesiones_control,
-  // agenda real de AdminSesiones) sobre el conteo de evaluaciones sueltas.
+  // Hero "Hoy": la primera sesión planificada, presentada por su modalidad,
+  // con subtítulo honesto (atletas del grupo, edades mixtas, evaluaciones).
   const heroHoy = useMemo(() => {
     if (sesionesHoy.length === 0) return null;
-    const sesion = sesionesHoy[0];
-    const grupoNombre = sesion.grupos_entrenamiento?.nombre;
-    const esIndividual = sesion.tipo === 'Individual' || !grupoNombre;
-    const titulo = `${esIndividual ? 'Individual' : grupoNombre} · ${sesion.objetivo_tipo}`;
-
+    const s = sesionesHoy[0];
+    const base = modalidadDeSesion(s, atletas);
+    if (base.modalidad === 'Individualizado') {
+      const partes = [];
+      if (base.sub !== '1 a 1') partes.push(base.sub.replace('1 a 1 · ', ''));
+      if (evaluacionesHoy.length > 0) partes.push(`${evaluacionesHoy.length} evaluación${evaluacionesHoy.length === 1 ? '' : 'es'} por tomar`);
+      return { ...base, subtitulo: partes.length ? partes.join(' · ') : 'Sesión 1 a 1 · entra a Modo Cancha' };
+    }
+    const miembros = atletas.filter((a) => a.grupo_id === s.grupo_id);
+    const categoriasDistintas = new Set(miembros.map((a) => a.categoria).filter(Boolean)).size;
     const partes = [];
-    if (sesion.grupo_id) {
-      const nAtletas = atletas.filter((a) => a.grupo_id === sesion.grupo_id).length;
-      if (nAtletas > 0) partes.push(`${nAtletas} atleta${nAtletas === 1 ? '' : 's'} en el grupo`);
-    }
-    if (evaluacionesHoy.length > 0) {
-      partes.push(`${evaluacionesHoy.length} evaluación${evaluacionesHoy.length === 1 ? '' : 'es'} por tomar`);
-    }
-    if (sesionesHoy.length > 1) {
-      partes.push(`y ${sesionesHoy.length - 1} más`);
-    }
-    // Caso borde sin ninguna parte honesta que mostrar (p.ej. sesión
-    // individual sin evaluaciones ni sesiones adicionales hoy).
-    const subtitulo = partes.length > 0 ? partes.join(' · ') : 'Entra a Modo Cancha para gestionarla en campo.';
-    return { titulo, subtitulo };
+    if (miembros.length > 0) partes.push(`${miembros.length} atleta${miembros.length === 1 ? '' : 's'}`);
+    if (categoriasDistintas > 1) partes.push('edades mixtas');
+    if (evaluacionesHoy.length > 0) partes.push(`${evaluacionesHoy.length} evaluación${evaluacionesHoy.length === 1 ? '' : 'es'} por tomar`);
+    return { ...base, subtitulo: partes.length ? partes.join(' · ') : 'Entra a Modo Cancha para gestionarla en campo.' };
   }, [sesionesHoy, atletas, evaluacionesHoy]);
 
-  // Foco de desarrollo (híbrido): los 3 atletas con menor overall (ya
-  // evaluados) se eligen client-side; su misión recomendada la trae cada
-  // CardFocoAtleta del brain-gateway (readiness del día, máx. 3 llamadas).
+  // Resto de sesiones del día (la primera ya es el titular del hero).
+  const agendaResto = useMemo(
+    () => sesionesHoy.slice(1).map((s, i) => ({ key: s.id || i, ...modalidadDeSesion(s, atletas) })),
+    [sesionesHoy, atletas],
+  );
+
   const foco = useMemo(
     () => atletas
       .filter((a) => (a.overall_score || 0) > 0)
@@ -96,64 +147,106 @@ export default function CoachHomePage() {
     [atletas],
   );
 
+  const chipCfg = heroHoy?.chip ? (CHIP_MODALIDAD[heroHoy.chipTono] || CHIP_MODALIDAD.gold) : null;
+
   return (
     <>
       <HomeShell
         eyebrow={fechaHoy}
         titulo={<>Hola, <span className="text-gradient-gold">{primerNombre}</span></>}
-        contexto={
-          <ContextChip>
-            🎯 Tu categoría · {user.categoria && user.categoria !== 'Todas' ? user.categoria : 'Todas las categorías'}
-          </ContextChip>
-        }
+        contexto={<ContextChip>🎯 Tu plantel · {atletas.length} atleta{atletas.length === 1 ? '' : 's'}</ContextChip>}
       >
-        {/* Card hero "Hoy" */}
-        <div className="rounded-card border border-brand/20 bg-gradient-to-br from-brand/15 via-brand-strong/5 to-surface-card shadow-card p-5">
-          <SectionEyebrow>Hoy</SectionEyebrow>
-          <div className="flex items-center justify-between gap-4 -mt-1">
-            <div>
-              <p className="font-black text-lg leading-snug">
-                {heroHoy
-                  ? heroHoy.titulo
-                  : evaluacionesHoy.length > 0
-                    ? `${evaluacionesHoy.length} ${evaluacionesHoy.length === 1 ? 'evaluación programada' : 'evaluaciones programadas'}`
-                    : 'Sin evaluaciones programadas'}
-              </p>
-              <p className="text-sm text-fg-secondary mt-1">
-                {heroHoy
-                  ? heroHoy.subtitulo
-                  : evaluacionesHoy.length > 0
-                    ? 'Entra a Modo Cancha para tomarlas en campo.'
-                    : 'Tu plantel te espera — captura, asistencia y evaluación en campo.'}
-              </p>
-            </div>
-            {activasCount > 0 && (
-              <div className="text-center shrink-0">
-                <p className="text-2xl font-black text-brand tabular-nums">{activasCount}</p>
-                <p className="text-3xs uppercase tracking-widest text-fg-muted font-bold">
-                  {activasCount === 1 ? 'en curso' : 'activas'}
+        {/* Hero "Hoy" — por modalidad de sesión (no categoría FEB) */}
+        <CutCard cut={12} background={GRAD.heroGold} border={BORDER.goldMid} padding="0" style={{ overflow: 'hidden' }}>
+          <div style={{ padding: '16px 16px 4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <MicroLabel color={C.goldDeep} size={9.5} tracking=".12em">
+                  <span aria-hidden="true">▸</span> Hoy{heroHoy ? ` · ${heroHoy.modalidad}` : ''}
+                </MicroLabel>
+                <h2 style={{ margin: '6px 0 0', fontSize: 19, fontWeight: 900, letterSpacing: '-.01em', color: C.text }}>
+                  {heroHoy
+                    ? heroHoy.titulo
+                    : evaluacionesHoy.length > 0
+                      ? `${evaluacionesHoy.length} ${evaluacionesHoy.length === 1 ? 'evaluación programada' : 'evaluaciones programadas'}`
+                      : 'Sin sesiones hoy'}
+                </h2>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: C.text2 }}>
+                  {heroHoy
+                    ? heroHoy.subtitulo
+                    : evaluacionesHoy.length > 0
+                      ? 'Entra a Modo Cancha para tomarlas en campo.'
+                      : 'Tu plantel te espera — captura, asistencia y evaluación en campo.'}
                 </p>
+                {chipCfg && (
+                  <span style={{
+                    marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontFamily: PIXEL, fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase',
+                    padding: '3px 8px', clipPath: cut(5),
+                    color: chipCfg.color, border: `1px solid ${chipCfg.border}`, background: chipCfg.tint,
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', animation: 'bg-blink 1.5s infinite' }} />
+                    {heroHoy.chip}
+                  </span>
+                )}
+              </div>
+              {activasCount > 0 && (
+                <div style={{ textAlign: 'center', flex: 'none' }}>
+                  <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 24, color: C.gold }}>{activasCount}</p>
+                  <MicroLabel color={C.text3} size={9} tracking=".08em">{activasCount === 1 ? 'en curso' : 'activas'}</MicroLabel>
+                </div>
+              )}
+            </div>
+
+            {/* También hoy: resto de sesiones del día con su modalidad */}
+            {agendaResto.length > 0 && (
+              <div style={{ marginTop: 12, paddingTop: 6, borderTop: `1px solid ${BORDER.gold}` }}>
+                <MicroLabel color={C.text3} size={9.5} tracking=".1em" style={{ marginBottom: 2 }}>También hoy</MicroLabel>
+                {agendaResto.map((item) => (
+                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 0', borderTop: `1px solid ${BORDER.neutral06}` }}>
+                    <span style={{ fontFamily: PIXEL, fontSize: 10, color: item.color, width: 14, textAlign: 'center', flex: 'none' }} aria-hidden="true">{item.marker}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.titulo}</p>
+                      <MicroLabel color={C.text3} size={9} tracking=".06em">{item.sub}</MicroLabel>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-          <button
-            onClick={() => setShowModoCancha(true)}
-            className="mt-4 w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-control font-black text-sm uppercase tracking-widest text-on-brand bg-gradient-to-r from-brand to-brand-strong shadow-glow-gold hover:brightness-110 active:scale-[0.98] transition"
-          >
-            <Zap size={18} fill="currentColor" /> Entrar a Modo Cancha
-          </button>
-          <button
-            onClick={() => navigate('/admin/sesiones')}
-            className="mt-2 w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-control text-xs font-bold uppercase tracking-widest text-fg-secondary border border-white/10 hover:border-brand/30 hover:text-brand transition"
-          >
-            <FlaskConical size={14} /> Planificar sesiones
-          </button>
-        </div>
+
+          {/* CTAs del hero */}
+          <div style={{ padding: '8px 16px 16px' }}>
+            <button
+              onClick={() => setShowModoCancha(true)}
+              className="cut-focus"
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '14px', clipPath: cut(12), background: GRAD.goldCTA, color: C.ink,
+                fontSize: 13, fontWeight: 900, letterSpacing: '.08em', textTransform: 'uppercase', cursor: 'pointer', border: 'none',
+              }}
+            >
+              <Zap size={17} fill="currentColor" /> Entrar a Modo Cancha
+            </button>
+            <button
+              onClick={() => navigate('/admin/sesiones')}
+              className="cut-focus"
+              style={{
+                width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '10px', clipPath: cut(8), background: 'transparent', color: C.text2,
+                fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer',
+                border: `1px solid ${BORDER.neutralSoft}`,
+              }}
+            >
+              <FlaskConical size={13} /> Planificar sesiones <span aria-hidden="true">▸</span>
+            </button>
+          </div>
+        </CutCard>
 
         {/* Franja: atletas con señal de recuperación/hidratación (card IA) */}
         <SectionEyebrow pill="✦ IA" pillTono="mental">Atletas a mirar hoy</SectionEyebrow>
-        <div className="rounded-card border border-mental/20 bg-surface-sunken p-4">
-          <p className="border-l-2 border-mental pl-2.5 text-xs text-fg-secondary leading-relaxed mb-3">
+        <CutCard cut={10} border={BORDER.ai} padding="16px">
+          <p style={{ margin: '0 0 12px', paddingLeft: 10, borderLeft: `2px solid ${C.ai}`, fontSize: 12.5, lineHeight: 1.5, color: C.text2 }}>
             Mira estos atletas antes de entrenar.
           </p>
           {loadingAtletas ? (
@@ -173,9 +266,7 @@ export default function CoachHomePage() {
                 return (
                   <li key={a.atleta_id || a.id} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                        <span className="text-sm font-black text-white/50 uppercase">{a.nombre?.charAt(0)}</span>
-                      </div>
+                      <HexAvatar size={34} initial={a.nombre?.charAt(0)} style={{ fontSize: 13 }} />
                       <div className="min-w-0">
                         <p className="text-sm font-bold truncate">{a.nombre}</p>
                         <p className="text-2xs text-fg-muted truncate">{a.categoria} · {a.posicion || 'Sin posición'}</p>
@@ -202,7 +293,7 @@ export default function CoachHomePage() {
           <div className="flex items-center gap-1 text-3xs font-mono font-bold text-mental-soft mt-3">
             <span aria-hidden="true">✦</span> readiness diario
           </div>
-        </div>
+        </CutCard>
 
         {/* Foco de desarrollo (híbrido: selección client-side + misión del brain-gateway) */}
         {!loadingAtletas && foco.length > 0 && (
@@ -216,18 +307,21 @@ export default function CoachHomePage() {
           </>
         )}
 
-        {/* Comparar la categoría (teaser fiel al mockup v6) */}
-        <SectionEyebrow pill="nuevo">Comparar la categoría</SectionEyebrow>
-        <button
-          type="button"
+        {/* Comparar por categoría — aquí la categoría FEB SÍ es el eje (baremos) */}
+        <SectionEyebrow pill="nuevo">Comparar por categoría</SectionEyebrow>
+        <CutCard
+          cut={10}
+          className="cut-focus"
           onClick={() => navigate('/admin/comparar')}
-          className="w-full flex items-center justify-between gap-3 rounded-card bg-surface-sunken border border-white/5 hover:border-brand/30 transition active:scale-[0.98] p-4 text-left"
+          ariaLabel="Ver distribución e histórico por prueba"
+          padding="16px"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
         >
-          <span className="flex items-center gap-2 text-sm font-bold">
-            <TrendingUp size={16} className="text-brand" /> Ver distribución e histórico por prueba
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: C.text }}>
+            <TrendingUp size={16} style={{ color: C.gold }} /> Ver distribución e histórico por prueba
           </span>
-          <ChevronRight size={16} className="text-brand shrink-0" />
-        </button>
+          <ChevronRight size={16} style={{ color: C.gold, flex: 'none' }} />
+        </CutCard>
 
         {/* Plantel embebido (módulo reutilizable extraído de /dashboard) */}
         <SectionEyebrow>Plantel</SectionEyebrow>
