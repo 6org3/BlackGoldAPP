@@ -95,6 +95,7 @@ export const TINT = {
   info: 'rgba(96,165,250,.08)',
   ok:   'rgba(52,211,153,.08)',
   ai:   'rgba(168,85,247,.1)',
+  danger: 'rgba(248,113,113,.1)', // fondo tenue de mensajes de error (espejo de C.danger)
 };
 
 /** Relleno del polígono de datos del RadarChart — oro translúcido (.18). */

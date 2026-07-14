@@ -3,6 +3,17 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { Sparkles, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import CutCard from './arcade/CutCard';
+import HexAvatar from './arcade/HexAvatar';
+import MicroLabel from './arcade/MicroLabel';
+import { C, BORDER, GRAD, GLOW, TINT, cut, gridBackground } from './arcade/arcadeTokens';
+
+/* Campo del Formulario-HUD (design_system_arcade.md §6.3): borde y foco por
+   clase (el foco dorado no debe quedar pisado por un borde inline); color,
+   forma cortada y fondo por arcadeTokens. */
+const FIELD_CLASS =
+  'cut-focus arcade-input w-full min-h-11 py-3 text-base md:text-sm border border-white/10 focus:outline-none focus:border-brand/60 transition-colors';
+const FIELD_STYLE = { clipPath: cut(7), background: C.cardAlt1, color: C.text };
 
 export default function Login() {
   const [identificador, setIdentificador] = useState('');
@@ -42,108 +53,146 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-dvh px-4 bg-surface-base text-white relative overflow-hidden">
-      {/* Luces Ambientales */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand/5 blur-[120px] rounded-full pointer-events-none mix-blend-screen"></div>
-      
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="glass-card w-full max-w-md p-6 sm:p-10 rounded-card relative z-10 glow-border"
+    <div
+      className="flex items-center justify-center min-h-dvh px-4 relative overflow-hidden"
+      style={{ ...gridBackground, color: C.text }}
+    >
+      {/* Entrada solo con opacity: el MotionConfig global reducedMotion="user"
+          (main.jsx) congela los transforms en su valor `initial`, así que un
+          scale/y de entrada dejaría la tarjeta encogida/desplazada —y los
+          hit-targets bajo 44px— para usuarios con reduced-motion. */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md relative z-10"
       >
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-4">
-            <Sparkles className="text-brand w-12 h-12" />
-          </div>
-          <h1 className="text-4xl font-black tracking-tighter uppercase mb-2">
-            Black Gold <span className="text-brand">SaaS</span>
-          </h1>
-          <p className="text-xs text-fg-secondary font-bold tracking-eyebrow uppercase">Plataforma Educativa Deportiva</p>
-        </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label htmlFor="login-id" className="block text-xs font-bold text-fg-secondary uppercase tracking-widest mb-2">
-              Ingresa tu correo, teléfono o cédula
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-muted w-5 h-5" />
-              <input
-                id="login-id"
-                type="text"
-                autoComplete="username"
-                autoCapitalize="none"
-                spellCheck={false}
-                value={identificador}
-                onChange={(e) => setIdentificador(e.target.value)}
-                className="w-full bg-surface-card/80 border border-white/10 rounded-control py-4 pl-12 pr-4 text-white focus:outline-none focus:border-brand/50 focus:shadow-[0_0_15px_rgba(255,215,0,0.2)] transition"
-                placeholder="ejemplo@correo.com, 0999..., 172..."
-                required
-              />
+        <CutCard
+          cut={14}
+          background={C.card}
+          border={BORDER.gold16}
+          padding="28px 24px 24px"
+          style={{ boxShadow: GLOW.phone }}
+        >
+          {/* Identidad */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <HexAvatar size={64} background={GRAD.goldHex} color={C.ink}>
+                <Sparkles size={28} strokeWidth={2.5} />
+              </HexAvatar>
             </div>
+            <h1 className="text-3xl font-black tracking-tight uppercase" style={{ color: C.text }}>
+              Black <span style={{ color: C.gold }}>Gold</span>
+            </h1>
+            <MicroLabel style={{ marginTop: 6 }}>Plataforma Deportiva</MicroLabel>
           </div>
 
-          <div>
-            <label htmlFor="login-pass" className="block text-xs font-bold text-fg-secondary uppercase tracking-widest mb-2">
-              Contraseña
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-muted w-5 h-5" />
-              <input
-                id="login-pass"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-surface-card/80 border border-white/10 rounded-control py-4 pl-12 pr-12 text-white focus:outline-none focus:border-brand/50 focus:shadow-[0_0_15px_rgba(255,215,0,0.2)] transition"
-                placeholder="••••••••"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 -mr-3 text-fg-muted hover:text-white transition-colors"
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <MicroLabel as="label" htmlFor="login-id" style={{ display: 'block', marginBottom: 8 }}>
+                Correo, teléfono o cédula
+              </MicroLabel>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: C.text3 }} />
+                <input
+                  id="login-id"
+                  type="text"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  value={identificador}
+                  onChange={(e) => setIdentificador(e.target.value)}
+                  className={`${FIELD_CLASS} pl-11 pr-4`}
+                  style={FIELD_STYLE}
+                  placeholder="ejemplo@correo.com, 0999..., 172..."
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <MicroLabel as="label" htmlFor="login-pass" style={{ display: 'block', marginBottom: 8 }}>
+                Contraseña
+              </MicroLabel>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: C.text3 }} />
+                <input
+                  id="login-pass"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`${FIELD_CLASS} pl-11 pr-12`}
+                  style={FIELD_STYLE}
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="cut-focus absolute right-1 top-1/2 -translate-y-1/2 min-w-11 min-h-11 flex items-center justify-center transition-colors"
+                  style={{ color: C.text3 }}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <motion.div
+                role="alert"
+                aria-live="assertive"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center px-3 py-2.5"
+                style={{
+                  clipPath: cut(6),
+                  background: TINT.danger,
+                  border: `1px solid ${BORDER.danger}`,
+                  color: C.danger,
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
+                {error}
+              </motion.div>
+            )}
 
-          {error && (
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-danger text-xs font-bold bg-danger/10 p-3 rounded-lg border border-danger/20 text-center"
-            >
-              {error}
-            </motion.p>
-          )}
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-brand hover:bg-brand-hover text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control shadow-glow-gold transition disabled:opacity-50 active:scale-[0.99]"
-          >
-            {loading ? 'Validando ADN...' : 'Desbloquear Poneglyph'}
-          </button>
-        </form>
-
-        <div className="mt-8 text-center border-t border-white/10 pt-6">
-          <p className="text-2xs text-fg-muted font-bold uppercase tracking-widest mb-4">
-            Acceso Autorizado Únicamente para Miembros
-          </p>
-          <p className="text-xs text-fg-secondary">
-            ¿No eres miembro aún?{' '}
             <button
-              onClick={() => navigate('/registro')}
-              className="text-brand hover:text-white transition-colors font-bold uppercase tracking-wider"
+              type="submit"
+              disabled={loading}
+              className="cut-focus w-full flex items-center justify-center min-h-11 disabled:opacity-50 active:scale-[0.99] transition"
+              style={{
+                clipPath: cut(12),
+                background: GRAD.goldCTA,
+                color: C.ink,
+                fontWeight: 900,
+                fontSize: 14,
+                letterSpacing: '.08em',
+                textTransform: 'uppercase',
+                border: 'none',
+                padding: '13px',
+              }}
             >
-              Regístrate Aquí
+              {loading ? 'Ingresando…' : 'Iniciar Sesión'}
             </button>
-          </p>
-        </div>
+          </form>
+
+          <div className="mt-7 pt-6 text-center" style={{ borderTop: `1px solid ${BORDER.neutral}` }}>
+            <MicroLabel style={{ marginBottom: 10 }}>Acceso solo para miembros</MicroLabel>
+            <p className="text-sm" style={{ color: C.text2 }}>
+              ¿No eres miembro aún?{' '}
+              <button
+                onClick={() => navigate('/registro')}
+                className="cut-focus inline-flex items-center min-h-11 px-2 font-bold uppercase tracking-wide"
+                style={{ color: C.gold }}
+              >
+                Regístrate aquí
+              </button>
+            </p>
+          </div>
+        </CutCard>
       </motion.div>
     </div>
   );

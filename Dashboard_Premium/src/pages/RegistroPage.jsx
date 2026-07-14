@@ -4,6 +4,26 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, User, Phone, Loader2, CheckCircle2 } from 'lucide-react';
 import { registrarDesdeFormularioPublico } from '../api/registroPublicoService';
 import { calcularEdad } from '../api/utilsAtletas';
+import CutCard from '../components/arcade/CutCard';
+import HexAvatar from '../components/arcade/HexAvatar';
+import MicroLabel from '../components/arcade/MicroLabel';
+import { C, BORDER, GRAD, GLOW, TINT, cut, gridBackground } from '../components/arcade/arcadeTokens';
+
+/* Campo del Formulario-HUD (design_system_arcade.md §6.3): borde y foco por
+   clase (el foco dorado no debe quedar pisado por un borde inline); color,
+   forma cortada y fondo por arcadeTokens. */
+const FIELD_CLASS =
+  'cut-focus arcade-input w-full min-h-11 px-4 py-3 text-base md:text-sm border border-white/10 focus:outline-none focus:border-brand/60 transition-colors';
+const FIELD_STYLE = { clipPath: cut(7), background: C.cardAlt1, color: C.text };
+
+function LabelHUD({ htmlFor, required, children }) {
+  return (
+    <MicroLabel as="label" htmlFor={htmlFor} style={{ display: 'block', marginBottom: 6 }}>
+      {children}
+      {required && <span style={{ color: C.danger }}> *</span>}
+    </MicroLabel>
+  );
+}
 
 export default function RegistroPage() {
   const navigate = useNavigate();
@@ -54,126 +74,172 @@ export default function RegistroPage() {
 
   if (success) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-surface-base text-white p-6 relative overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-success/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen"></div>
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass-card p-12 rounded-card text-center max-w-md w-full border border-success/30">
-          <CheckCircle2 className="w-20 h-20 text-success-soft mx-auto mb-6" />
-          <h2 className="text-3xl font-black uppercase tracking-tighter mb-4 text-success-soft">¡Inscripción Exitosa!</h2>
-          <p className="text-fg-secondary text-sm mb-8">El perfil ha sido creado correctamente. Ahora puedes iniciar sesión con tus credenciales.</p>
-          <button onClick={() => navigate('/login')} className="w-full bg-success hover:bg-success-soft text-black font-black uppercase tracking-widest py-4 rounded-control transition">
-            Ir al Portal
-          </button>
+      <div
+        className="flex flex-col items-center justify-center min-h-dvh px-6 relative overflow-hidden"
+        style={{ ...gridBackground, color: C.text }}
+      >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-md relative z-10">
+          <CutCard cut={14} background={C.card} border={BORDER.okSoft} padding="40px 28px" style={{ boxShadow: GLOW.phone, textAlign: 'center' }}>
+            <CheckCircle2 className="w-16 h-16 mx-auto mb-6" style={{ color: C.ok }} />
+            <h2 className="text-2xl font-black uppercase tracking-tight mb-3" style={{ color: C.ok }}>¡Inscripción exitosa!</h2>
+            <p className="text-sm mb-8" style={{ color: C.text2 }}>
+              El perfil se creó correctamente. Ya puedes iniciar sesión con tus credenciales.
+            </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="cut-focus w-full flex items-center justify-center min-h-11 active:scale-[0.99] transition"
+              style={{ clipPath: cut(12), background: GRAD.greenCTA, color: C.inkGreen, fontWeight: 900, fontSize: 14, letterSpacing: '.08em', textTransform: 'uppercase', border: 'none', padding: '13px' }}
+            >
+              Ir al portal
+            </button>
+          </CutCard>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-surface-base text-white p-6 relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand/5 blur-[120px] rounded-full pointer-events-none mix-blend-screen"></div>
-      
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg mt-10">
-        <div className="text-center mb-10">
-          <Sparkles className="text-brand w-12 h-12 mx-auto mb-4" />
-          <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Black Gold <span className="text-brand">Intelligence</span></h1>
-          <p className="text-xs text-fg-secondary font-bold tracking-eyebrow uppercase">Registro de Nuevos Prospectos</p>
+    <div
+      className="flex flex-col items-center min-h-dvh px-4 py-10 relative overflow-hidden"
+      style={{ ...gridBackground, color: C.text }}
+    >
+      {/* Entrada solo con opacity: el MotionConfig global reducedMotion="user"
+          (main.jsx) congela los transforms en su valor `initial`; un y/scale de
+          entrada dejaría la tarjeta desplazada y los hit-targets bajo 44px para
+          usuarios con reduced-motion. */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-lg relative z-10">
+        {/* Identidad */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <HexAvatar size={60} background={GRAD.goldHex} color={C.ink}>
+              <Sparkles size={26} strokeWidth={2.5} />
+            </HexAvatar>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight uppercase" style={{ color: C.text }}>
+            Black <span style={{ color: C.gold }}>Gold</span>
+          </h1>
+          <MicroLabel style={{ marginTop: 6 }}>Registro de nuevos prospectos</MicroLabel>
         </div>
 
-        <div className="glass-card p-8 rounded-card relative z-10 glow-border">
-          {error && <div className="bg-danger/10 border border-danger/30 text-danger-soft text-xs p-3 rounded-lg mb-6 text-center">{error}</div>}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="text-center px-3 py-2.5"
+              style={{ clipPath: cut(6), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger, fontSize: 12, fontWeight: 700 }}
+            >
+              {error}
+            </div>
+          )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-              <h3 className="text-lg font-black uppercase text-brand mb-6 flex items-center"><User className="mr-2" size={20}/> Datos del Atleta</h3>
-              <div className="space-y-4">
-                
-                <div>
-                  <label htmlFor="reg-cedula" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Cédula del Jugador</label>
-                  <input id="reg-cedula" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={10} name="cedula" value={datosAtleta.cedula} onChange={handleAtletaChange} required className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" placeholder="Cédula o ID" />
-                </div>
-                
-                <div>
-                  <label htmlFor="reg-nombre" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Nombre Completo <span className="text-danger">*</span></label>
-                  <input id="reg-nombre" type="text" name="nombre" autoComplete="section-atleta name" value={datosAtleta.nombre} onChange={handleAtletaChange} required className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" placeholder="Ej. Michael Jordan" />
-                </div>
+          {/* Datos del atleta */}
+          <CutCard cut={12} background={C.card} border={BORDER.neutral} padding="20px" style={{ boxShadow: GLOW.phone }}>
+            <div className="flex items-center gap-2 mb-5">
+              <User size={16} style={{ color: C.text3 }} />
+              <MicroLabel size={11} style={{ color: C.text2 }}>Datos del atleta</MicroLabel>
+            </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="reg-genero" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Género <span className="text-danger">*</span></label>
-                    <select id="reg-genero" name="genero" value={datosAtleta.genero} onChange={handleAtletaChange} className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors">
-                      <option value="Masculino">Masculino</option>
-                      <option value="Femenino">Femenino</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="reg-posicion" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Posición</label>
-                    <select id="reg-posicion" name="posicion" value={datosAtleta.posicion} onChange={handleAtletaChange} className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors">
-                      {posiciones.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="reg-telefono" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Teléfono (Opcional)</label>
-                    <input id="reg-telefono" type="tel" name="telefono" autoComplete="section-atleta tel" value={datosAtleta.telefono} onChange={handleAtletaChange} className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" placeholder="0999999999" />
-                  </div>
-                  <div>
-                    <label htmlFor="reg-correo" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Correo Electrónico (Opcional)</label>
-                    <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" placeholder="ejemplo@correo.com" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label htmlFor="reg-fecha-nacimiento" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Fecha de Nacimiento <span className="text-danger">*</span></label>
-                    <input id="reg-fecha-nacimiento" type="date" name="fecha_nacimiento" autoComplete="section-atleta bday" value={datosAtleta.fecha_nacimiento} onChange={handleAtletaChange} required className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="reg-club" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Club (Selecciona o Escribe)</label>
-                  <input id="reg-club" type="text" name="club" list="clubesList" value={datosAtleta.club} onChange={handleAtletaChange} required className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" placeholder="Ej. Black Gold" />
-                  <datalist id="clubesList">
-                    {clubes.map(c => <option key={c} value={c} />)}
-                  </datalist>
-                </div>
-
+            <div className="space-y-4">
+              <div>
+                <LabelHUD htmlFor="reg-cedula">Cédula del jugador</LabelHUD>
+                <input id="reg-cedula" type="text" inputMode="numeric" pattern="[0-9]*" maxLength={10} name="cedula" value={datosAtleta.cedula} onChange={handleAtletaChange} required className={FIELD_CLASS} style={FIELD_STYLE} placeholder="Cédula o ID" />
               </div>
 
-              {esMenorEdad && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-6 border-t border-white/10 mt-6">
-                  <h3 className="text-sm font-black uppercase text-success-soft mb-4 flex items-center">
-                    <Phone className="mr-2" size={16}/> Representante Legal Obligatorio (Menor de Edad)
-                  </h3>
-                  
+              <div>
+                <LabelHUD htmlFor="reg-nombre" required>Nombre completo</LabelHUD>
+                <input id="reg-nombre" type="text" name="nombre" autoComplete="section-atleta name" value={datosAtleta.nombre} onChange={handleAtletaChange} required className={FIELD_CLASS} style={FIELD_STYLE} placeholder="Ej. Michael Jordan" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <LabelHUD htmlFor="reg-genero" required>Género</LabelHUD>
+                  <select id="reg-genero" name="genero" value={datosAtleta.genero} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE}>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                  </select>
+                </div>
+                <div>
+                  <LabelHUD htmlFor="reg-posicion">Posición</LabelHUD>
+                  <select id="reg-posicion" name="posicion" value={datosAtleta.posicion} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE}>
+                    {posiciones.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <LabelHUD htmlFor="reg-telefono">Teléfono (opcional)</LabelHUD>
+                  <input id="reg-telefono" type="tel" name="telefono" autoComplete="section-atleta tel" value={datosAtleta.telefono} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="0999999999" />
+                </div>
+                <div>
+                  <LabelHUD htmlFor="reg-correo">Correo electrónico (opcional)</LabelHUD>
+                  <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="ejemplo@correo.com" />
+                </div>
+              </div>
+
+              <div>
+                <LabelHUD htmlFor="reg-fecha-nacimiento" required>Fecha de nacimiento</LabelHUD>
+                <input id="reg-fecha-nacimiento" type="date" name="fecha_nacimiento" autoComplete="section-atleta bday" value={datosAtleta.fecha_nacimiento} onChange={handleAtletaChange} required className={FIELD_CLASS} style={FIELD_STYLE} />
+              </div>
+
+              <div>
+                <LabelHUD htmlFor="reg-club" required>Club (selecciona o escribe)</LabelHUD>
+                <input id="reg-club" type="text" name="club" list="clubesList" value={datosAtleta.club} onChange={handleAtletaChange} required className={FIELD_CLASS} style={FIELD_STYLE} placeholder="Ej. Black Gold" />
+                <datalist id="clubesList">
+                  {clubes.map(c => <option key={c} value={c} />)}
+                </datalist>
+              </div>
+            </div>
+          </CutCard>
+
+          {/* Representante legal (solo menores de edad) */}
+          {esMenorEdad && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <CutCard cut={12} background={C.card} border={BORDER.okSoft} padding="20px">
+                <div className="flex items-center gap-2 mb-5">
+                  <Phone size={15} style={{ color: C.ok }} />
+                  <MicroLabel size={10.5} style={{ color: C.ok }}>Representante legal obligatorio (menor de edad)</MicroLabel>
+                </div>
+
+                <div className="space-y-4">
                   <div>
-                    <label htmlFor="reg-rep-nombre" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Nombre Completo del Representante <span className="text-danger">*</span></label>
-                    <input id="reg-rep-nombre" type="text" name="nombre" autoComplete="section-representante name" value={datosPadre.nombre} onChange={handlePadreChange} required={esMenorEdad} className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" placeholder="Nombre del Padre/Madre" />
+                    <LabelHUD htmlFor="reg-rep-nombre" required>Nombre completo del representante</LabelHUD>
+                    <input id="reg-rep-nombre" type="text" name="nombre" autoComplete="section-representante name" value={datosPadre.nombre} onChange={handlePadreChange} required={esMenorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="Nombre del padre/madre" />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="reg-rep-telefono" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Teléfono <span className="text-danger">*</span></label>
-                      <input id="reg-rep-telefono" type="tel" name="telefono" autoComplete="section-representante tel" value={datosPadre.telefono} onChange={handlePadreChange} required={esMenorEdad} className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" placeholder="0999999999" />
+                      <LabelHUD htmlFor="reg-rep-telefono" required>Teléfono</LabelHUD>
+                      <input id="reg-rep-telefono" type="tel" name="telefono" autoComplete="section-representante tel" value={datosPadre.telefono} onChange={handlePadreChange} required={esMenorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="0999999999" />
                     </div>
                     <div>
-                      <label htmlFor="reg-rep-correo" className="block text-2xs font-bold text-fg-secondary uppercase tracking-widest mb-1">Correo Electrónico (Opcional)</label>
-                      <input id="reg-rep-correo" type="email" name="correo" autoComplete="section-representante email" value={datosPadre.correo} onChange={handlePadreChange} className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm focus:border-brand/50 outline-none transition-colors" placeholder="correo@ejemplo.com" />
+                      <LabelHUD htmlFor="reg-rep-correo">Correo electrónico (opcional)</LabelHUD>
+                      <input id="reg-rep-correo" type="email" name="correo" autoComplete="section-representante email" value={datosPadre.correo} onChange={handlePadreChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="correo@ejemplo.com" />
                     </div>
                   </div>
-                </motion.div>
-              )}
-
-              <button type="submit" disabled={loading} className="w-full mt-8 bg-brand hover:bg-brand-hover text-on-brand border border-brand/50 font-black uppercase tracking-eyebrow py-4 rounded-control transition flex items-center justify-center disabled:opacity-50 shadow-glow-gold active:scale-[0.99]">
-                {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Finalizar Registro'}
-              </button>
+                </div>
+              </CutCard>
             </motion.div>
-          </form>
-        </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="cut-focus w-full flex items-center justify-center gap-2 min-h-11 disabled:opacity-50 active:scale-[0.99] transition"
+            style={{ clipPath: cut(12), background: GRAD.goldCTA, color: C.ink, fontWeight: 900, fontSize: 14, letterSpacing: '.08em', textTransform: 'uppercase', border: 'none', padding: '13px' }}
+          >
+            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Finalizar registro'}
+          </button>
+        </form>
+
         <div className="mt-6 text-center">
-          <button onClick={() => navigate('/login')} className="text-xs text-fg-secondary hover:text-white transition-colors">
-            ¿Ya tienes una cuenta? <span className="text-brand font-bold uppercase tracking-wider">Iniciar Sesión</span>
+          <button
+            onClick={() => navigate('/login')}
+            className="cut-focus inline-flex items-center min-h-11 px-2 text-sm"
+            style={{ color: C.text2 }}
+          >
+            ¿Ya tienes una cuenta?&nbsp;<span className="font-bold uppercase tracking-wide" style={{ color: C.gold }}>Iniciar sesión</span>
           </button>
         </div>
       </motion.div>
