@@ -8,8 +8,9 @@
    pantalla NO escriben color arbitrario, componen con primitivas y con
    estas constantes.
 
-   Fuente de verdad visual: design_handoff_modo_cancha (Screen.dc.html
-   + README). Al tocar un valor, contrástalo contra ese prototipo.
+   Fuente de verdad visual: docs/design_system_arcade.md. El prototipo
+   Screen.dc.html del handoff original NO está en el repo; ese documento
+   lo reemplaza como origen normativo. Al tocar un valor, contrástalo ahí.
    ============================================================ */
 
 /* ---- Paleta ---- */
@@ -33,6 +34,7 @@ export const C = {
   text4: '#4B5563',
   ink: '#0A0A0C', // texto sobre superficies doradas
   inkGreen: '#04110B', // texto sobre verde sólido
+  onDanger: '#FFFFFF', // texto sobre danger sólido (p.ej. "A" ausente en SegmentToggle)
 
   // Semánticos (base + soft)
   ok: '#34D399',
@@ -82,7 +84,11 @@ export const GRAD = {
   activeGreen: 'linear-gradient(150deg, rgba(16,185,129,.16), rgba(13,13,16,.95))',
   activeGreenSoft: 'linear-gradient(150deg, rgba(16,185,129,.1), rgba(13,13,16,.95))',
   heroInfo: 'linear-gradient(150deg, rgba(96,165,250,.16), rgba(13,13,16,.96) 60%)',
+  rankConnector: 'linear-gradient(90deg,#22D3EE,#FFD700)', // conector cian→oro entre nodos de rango (PantallaAtletaProgreso)
 };
+
+/** Relleno del polígono de datos del RadarChart — oro translúcido (.18). */
+export const RADAR_FILL = 'rgba(255,215,0,.18)';
 
 /* ---- Formas firma (clip-path) ----
    cut(n): esquina cortada (top-right + bottom-left). n = 8/10/12/14.

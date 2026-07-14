@@ -8,6 +8,8 @@
    viewBox 260×215; vértice i → ang=-90°+i·(360/7), r=82·(value/100).
    ============================================================ */
 
+import { C, PIXEL, RADAR_FILL } from './arcadeTokens';
+
 const CX = 130;
 const CY = 112;
 const MAXR = 82;
@@ -32,8 +34,8 @@ export default function RadarChart({
   axes = [],
   selectedKey,
   onSelect,
-  accent = '#FFD700',
-  fill = 'rgba(255,215,0,.18)',
+  accent = C.gold,
+  fill = RADAR_FILL,
 }) {
   const selIdx = Math.max(0, axes.findIndex((a) => a.key === selectedKey));
   const sel = axes.length ? vertex(selIdx, clamp(axes[selIdx]?.value) / 100) : null;
@@ -43,16 +45,15 @@ export default function RadarChart({
       <polygon points={ring(2 / 3)} fill="none" stroke="rgba(255,255,255,.07)" />
       <polygon points={ring(1)} fill="none" stroke="rgba(255,215,0,.12)" />
       <polygon points={dataPoints(axes)} fill={fill} stroke={accent} strokeWidth="2" />
-      {sel && <circle cx={sel[0].toFixed(1)} cy={sel[1].toFixed(1)} r="4.5" fill="#FFEB66" />}
+      {sel && <circle cx={sel[0].toFixed(1)} cy={sel[1].toFixed(1)} r="4.5" fill={C.goldLight} />}
       {axes.map((p, i) => (
         <text
           key={p.key}
           x={LABEL_XY[i][0]}
           y={LABEL_XY[i][1]}
-          fill={p.key === selectedKey ? accent : '#9CA3AF'}
+          fill={p.key === selectedKey ? accent : C.text2}
           textAnchor="middle"
-          fontFamily="Silkscreen"
-          style={{ fontSize: 7, cursor: onSelect ? 'pointer' : 'default' }}
+          style={{ fontFamily: PIXEL, fontSize: 7, cursor: onSelect ? 'pointer' : 'default' }}
           onClick={onSelect ? () => onSelect(p.key) : undefined}
         >
           {p.label}

@@ -38,7 +38,7 @@ export default function PantallaAtletaProgreso({ ctx }) {
         {ctx.rangos.map((r, i) => (
           <div key={r.label} style={{ display: 'contents' }}>
             {i > 0 && (
-              <div style={{ flex: 1, height: 2, margin: '0 8px 16px', background: r.state === 'locked' ? 'rgba(255,255,255,.1)' : 'linear-gradient(90deg,#22D3EE,#FFD700)' }} />
+              <div style={{ flex: 1, height: 2, margin: '0 8px 16px', background: r.state === 'locked' ? 'rgba(255,255,255,.1)' : GRAD.rankConnector }} />
             )}
             <Rango r={r} extra={r.state === 'locked' ? '160 XP' : null} />
           </div>
