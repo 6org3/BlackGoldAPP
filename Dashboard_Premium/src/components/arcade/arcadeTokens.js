@@ -90,6 +90,9 @@ export const GRAD = {
 /** Relleno del polígono de datos del RadarChart — oro translúcido (.18). */
 export const RADAR_FILL = 'rgba(255,215,0,.18)';
 
+/** Variante azul-info del relleno del radar — identidad del portal Padre. */
+export const RADAR_FILL_INFO = 'rgba(96,165,250,.18)';
+
 /* ---- Formas firma (clip-path) ----
    cut(n): esquina cortada (top-right + bottom-left). n = 8/10/12/14.
    HEX:    hexágono de avatares/badges/botón central de nav.
@@ -103,6 +106,7 @@ export const CELL = cut(3);
 export const GLOW = {
   hexGold: 'drop-shadow(0 0 12px rgba(255,215,0,.4))',
   hexGoldStrong: '0 0 20px rgba(255,215,0,.55)',
+  hexGoldMid: '0 0 20px rgba(255,215,0,.45)', // insignias en reposo (Progreso del atleta)
   timer: '0 0 22px rgba(16,185,129,.5)',
   star: '0 0 8px rgba(255,215,0,.5)',
   trophy: '0 0 34px rgba(255,215,0,.5)',
