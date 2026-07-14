@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   CartesianGrid, ReferenceLine,
@@ -11,8 +10,12 @@ import { fetchCatalogoPruebas, fetchEvaluacionesDeAtletas } from '../api/evaluac
 // por atleta (con manejo bilateral) y media de un conjunto en una prueba.
 import { seriePorPrueba, compararPruebaGrupo } from '../../../packages/analytics-core/tendencias.js';
 import { CATEGORIAS_FEB } from '../../../packages/analytics-core/categoriaFEB.js';
-import { COLORS, CHART, VARIANTS } from '../lib/designTokens';
+import { COLORS, CHART } from '../lib/designTokens';
 import { nombresCortos } from '../lib/nombresCortos';
+import CutCard from './arcade/CutCard';
+import HexAvatar from './arcade/HexAvatar';
+import MicroLabel from './arcade/MicroLabel';
+import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
 // Reproduce la vista "Comparar" del mockup v6 (docs/mockup_v6_comparar_graficos.html):
 // selector de categoría + prueba, dot-plot de distribución de la categoría,
@@ -43,6 +46,16 @@ const LINEA_CLUB = CHART.series[1];          // blanco tenue: media del club
 const LINEA_FILA = 'rgba(255,255,255,0.06)'; // guía horizontal de cada fila
 const FILA_SELECCIONADA = 'rgba(255,215,0,0.06)';
 
+// Chip de filtro (categoría/prueba) en idioma Arcade: forma cut(7) + tokens
+// (activo = oro suave/borde dorado; inactivo = tarjeta neutra), en vez de las
+// utilidades DS-v1 bg-brand/bg-surface-card.
+const chipStyle = (activa) => ({
+  clipPath: cut(7),
+  color: activa ? C.gold : C.text3,
+  background: activa ? TINT.gold : C.card,
+  border: `1px solid ${activa ? BORDER.goldStrong : BORDER.neutralSoft}`,
+});
+
 // ────────────────────────────────────────────────────────────────
 // Gráfico 1 — dot-plot de distribución (SVG propio, geometría distChart)
 // ────────────────────────────────────────────────────────────────
@@ -67,13 +80,13 @@ function DistribucionChart({ filas, mediaCategoria, mediaClub, unidad, invertido
       {mediaClub != null && (
         <g aria-hidden="true">
           <line x1={xp(mediaClub)} y1="16" x2={xp(mediaClub)} y2={H - 4} stroke={LINEA_CLUB} strokeWidth="1.3" strokeDasharray="3 3" />
-          <text x={xp(mediaClub)} y="11" fill={CHART.label} fontSize="8" textAnchor="middle" fontWeight="700">club</text>
+          <text x={xp(mediaClub)} y="11" fill={CHART.label} fontSize="9" textAnchor="middle" fontWeight="700">club</text>
         </g>
       )}
       {mediaCategoria != null && (
         <g aria-hidden="true">
           <line x1={xp(mediaCategoria)} y1="16" x2={xp(mediaCategoria)} y2={H - 4} stroke={COLORS.gold[500]} strokeWidth="1.3" strokeDasharray="3 3" />
-          <text x={xp(mediaCategoria)} y="11" fill={COLORS.gold[500]} fontSize="8" textAnchor="middle" fontWeight="700">cat</text>
+          <text x={xp(mediaCategoria)} y="11" fill={COLORS.gold[500]} fontSize="9" textAnchor="middle" fontWeight="700">cat</text>
         </g>
       )}
       {filas.map((f, rank) => {
@@ -138,13 +151,13 @@ function BulletChart({ nombre, valor, mediaCategoria, mediaClub, unidad }) {
       {mediaClub != null && (
         <g aria-hidden="true">
           <line x1={xp(mediaClub)} y1={y - 9} x2={xp(mediaClub)} y2={y + 9} stroke="rgba(255,255,255,0.5)" strokeWidth="2" />
-          <text x={xp(mediaClub)} y={y + 20} fill={CHART.label} fontSize="8" textAnchor="middle">club</text>
+          <text x={xp(mediaClub)} y={y + 20} fill={CHART.label} fontSize="9" textAnchor="middle">club</text>
         </g>
       )}
       {mediaCategoria != null && (
         <g aria-hidden="true">
           <line x1={xp(mediaCategoria)} y1={y - 9} x2={xp(mediaCategoria)} y2={y + 9} stroke={COLORS.gold[600]} strokeWidth="2" />
-          <text x={xp(mediaCategoria)} y={y + 20} fill={COLORS.gold[600]} fontSize="8" textAnchor="middle">cat</text>
+          <text x={xp(mediaCategoria)} y={y + 20} fill={COLORS.gold[600]} fontSize="9" textAnchor="middle">cat</text>
         </g>
       )}
       <circle cx={xp(valor)} cy={y} r="8" fill={COLORS.gold[500]} stroke={COLORS.fg.inverse} strokeWidth="1.5" />
@@ -163,9 +176,9 @@ function CompararSkeleton() {
     <div className="max-w-3xl space-y-4" aria-hidden="true">
       <div className="skeleton h-9 w-2/3" />
       <div className="skeleton h-9 w-full" />
-      <div className="skeleton h-64 w-full rounded-card" />
-      <div className="skeleton h-28 w-full rounded-card" />
-      <div className="skeleton h-56 w-full rounded-card" />
+      <div className="skeleton h-64 w-full" style={{ clipPath: cut(12) }} />
+      <div className="skeleton h-28 w-full" style={{ clipPath: cut(12) }} />
+      <div className="skeleton h-56 w-full" style={{ clipPath: cut(12) }} />
     </div>
   );
 }
@@ -367,8 +380,10 @@ export default function CompararPruebas({ user }) {
 
   if (carga.estado === 'error') {
     return (
-      <div className="max-w-3xl glass-card rounded-card border border-danger/25 p-6">
-        <MensajeVacio>No se pudieron cargar los datos. Intenta de nuevo.</MensajeVacio>
+      <div className="max-w-3xl">
+        <CutCard cut={12} border={BORDER.danger} padding="20px">
+          <MensajeVacio>No se pudieron cargar los datos. Intenta de nuevo.</MensajeVacio>
+        </CutCard>
       </div>
     );
   }
@@ -376,35 +391,35 @@ export default function CompararPruebas({ user }) {
   return (
     <div className="max-w-3xl space-y-6">
       {/* Encabezado */}
-      <div className="flex items-center space-x-3">
-        <GitCompareArrows className="text-brand drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" size={26} />
+      <div className="flex items-center gap-3">
+        <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
+          <GitCompareArrows size={22} strokeWidth={2.5} />
+        </HexAvatar>
         <div>
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight">
-            Comparar <span className="text-gradient-gold">Pruebas</span>
+          <h2 className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: C.text }}>
+            Comparar <span style={{ color: C.gold }}>Pruebas</span>
           </h2>
-          <span className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-2xs font-extrabold tracking-wide text-brand bg-brand/10 border border-brand/25">
-            📊 Entre atletas · vs media de categoría y club · histórico
-          </span>
+          <MicroLabel style={{ marginTop: 6 }}>Entre atletas · vs media de categoría y club · histórico</MicroLabel>
         </div>
       </div>
 
       {atletas.length === 0 ? (
-        <div className="glass-card rounded-card border border-white/10 p-6">
+        <CutCard cut={12} padding="20px">
           <MensajeVacio>No hay atletas visibles para comparar.</MensajeVacio>
-        </div>
+        </CutCard>
       ) : pruebasDisponibles.length === 0 ? (
-        <div className="glass-card rounded-card border border-white/10 p-6">
+        <CutCard cut={12} padding="20px">
           <MensajeVacio>
             Aún no hay evaluaciones registradas. Cuando registres pruebas, aparecerán aquí para comparar.
           </MensajeVacio>
-        </div>
+        </CutCard>
       ) : (
         <>
           {/* Selector de categoría */}
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Categoría">
-            <span className="text-2xs text-fg-faint font-bold uppercase tracking-eyebrow mr-1">Categoría</span>
+            <MicroLabel as="span" style={{ marginRight: 4 }}>Categoría</MicroLabel>
             {categoriaFijaCoach ? (
-              <span className="rounded-full px-3 py-1.5 text-xs font-extrabold border bg-brand/10 border-brand text-brand">
+              <span className="px-3 py-1.5 text-xs font-extrabold" style={chipStyle(true)}>
                 {categoriaFijaCoach}
               </span>
             ) : (
@@ -416,11 +431,8 @@ export default function CompararPruebas({ user }) {
                     type="button"
                     aria-pressed={activa}
                     onClick={() => setCategoriaElegida(cat)}
-                    className={`inline-flex items-center min-h-11 md:min-h-9 rounded-full px-3.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
-                      activa
-                        ? 'bg-brand/10 border-brand text-brand'
-                        : 'bg-surface-card border-white/10 text-fg-secondary hover:border-brand/30 hover:text-white'
-                    }`}
+                    style={chipStyle(activa)}
+                    className="cut-focus inline-flex items-center min-h-11 md:min-h-9 px-3.5 text-xs font-extrabold transition-colors"
                   >
                     {cat}
                   </button>
@@ -431,7 +443,7 @@ export default function CompararPruebas({ user }) {
 
           {/* Selector de prueba (subchips del mockup) */}
           <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Prueba">
-            <span className="text-2xs text-fg-faint font-bold uppercase tracking-eyebrow mr-1">Prueba</span>
+            <MicroLabel as="span" style={{ marginRight: 4 }}>Prueba</MicroLabel>
             {pruebasDisponibles.map(p => {
               const activa = p.nombre === pruebaActiva;
               return (
@@ -442,11 +454,8 @@ export default function CompararPruebas({ user }) {
                   title={p.nombre}
                   aria-label={p.nombre}
                   onClick={() => setPruebaElegida(p.nombre)}
-                  className={`inline-flex items-center min-h-11 md:min-h-9 rounded-full px-3.5 text-xs font-extrabold border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 ${
-                    activa
-                      ? 'bg-brand/10 border-brand text-brand'
-                      : 'bg-surface-card border-white/10 text-fg-secondary hover:border-brand/30 hover:text-white'
-                  }`}
+                  style={chipStyle(activa)}
+                  className="cut-focus inline-flex items-center min-h-11 md:min-h-9 px-3.5 text-xs font-extrabold transition-colors"
                 >
                   {nombreCorto.get(p.nombre) || p.nombre}
                 </button>
@@ -455,12 +464,12 @@ export default function CompararPruebas({ user }) {
           </div>
 
           {/* Gráfico 1 — distribución de la categoría */}
-          <motion.div {...VARIANTS.fadeInUp} className="glass-card rounded-card border border-white/10 p-5 md:p-6">
+          <CutCard cut={12} padding="20px">
             <div className="flex items-center justify-between gap-3 mb-4">
-              <h3 className="min-w-0 truncate text-2xs text-fg-muted font-extrabold uppercase tracking-eyebrow">
+              <MicroLabel as="h3" className="min-w-0 truncate">
                 Distribución en {categoriaActiva}
-              </h3>
-              <span className="shrink-0 rounded-full px-2.5 py-0.5 text-2xs font-bold text-brand bg-brand/10 border border-brand/25">
+              </MicroLabel>
+              <span className="shrink-0 px-2.5 py-0.5 text-2xs font-bold" style={{ clipPath: cut(7), color: C.gold, background: TINT.gold, border: `1px solid ${BORDER.goldMid}` }}>
                 {pruebaActiva}{unidad ? ` · ${unidad}` : ''}
               </span>
             </div>
@@ -488,14 +497,14 @@ export default function CompararPruebas({ user }) {
                 <ChipProcedencia>Tendencias del club · calculado con tus evaluaciones</ChipProcedencia>
               </>
             )}
-          </motion.div>
+          </CutCard>
 
           {/* Gráfico 2 — bullet atleta vs medias */}
           {filaActiva && (
-            <motion.div {...VARIANTS.fadeInUp} className="glass-card rounded-card border border-white/10 p-5 md:p-6">
-              <h3 className="truncate text-2xs text-fg-muted font-extrabold uppercase tracking-eyebrow mb-4">
+            <CutCard cut={12} padding="20px">
+              <MicroLabel as="h3" className="truncate mb-4">
                 {filaActiva.nombre} vs categoría vs club
-              </h3>
+              </MicroLabel>
               <BulletChart
                 nombre={filaActiva.nombre}
                 valor={filaActiva.valor}
@@ -503,17 +512,17 @@ export default function CompararPruebas({ user }) {
                 mediaClub={mediaClub}
                 unidad={unidad}
               />
-            </motion.div>
+            </CutCard>
           )}
 
           {/* Gráfico 3 — histórico del atleta seleccionado */}
           {filaActiva && (
-            <motion.div {...VARIANTS.fadeInUp} className="glass-card rounded-card border border-white/10 p-5 md:p-6">
+            <CutCard cut={12} padding="20px">
               <div className="flex items-center justify-between gap-3 mb-4">
-                <h3 className="min-w-0 truncate text-2xs text-fg-muted font-extrabold uppercase tracking-eyebrow">
+                <MicroLabel as="h3" className="min-w-0 truncate">
                   Histórico de {filaActiva.nombre}
-                </h3>
-                <span className="shrink-0 rounded-full px-2.5 py-0.5 text-2xs font-bold text-brand bg-brand/10 border border-brand/25">
+                </MicroLabel>
+                <span className="shrink-0 px-2.5 py-0.5 text-2xs font-bold" style={{ clipPath: cut(7), color: C.gold, background: TINT.gold, border: `1px solid ${BORDER.goldMid}` }}>
                   {serieHistorico.length} medición{serieHistorico.length !== 1 ? 'es' : ''}
                 </span>
               </div>
@@ -570,7 +579,7 @@ export default function CompararPruebas({ user }) {
                   <ChipProcedencia>Tendencias del club · histórico real de evaluaciones</ChipProcedencia>
                 </>
               )}
-            </motion.div>
+            </CutCard>
           )}
         </>
       )}

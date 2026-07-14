@@ -1,14 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ArrowLeft, Users, TrendingUp, Target, BarChart3, CalendarCheck, Crown, Loader2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Crown, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { supabase } from '../api/supabaseClient';
 import { getSubPilarScores } from '../lib/radarCalc';
-import { COLORS, CHART, staggerDelay } from '../lib/designTokens';
+import { COLORS, CHART } from '../lib/designTokens';
 import Sidebar from '../components/Sidebar';
+import CutCard from '../components/arcade/CutCard';
+import HexAvatar from '../components/arcade/HexAvatar';
+import MicroLabel from '../components/arcade/MicroLabel';
+import KpiTile from '../components/arcade/KpiTile';
+import KpiGrid from '../components/arcade/KpiGrid';
+import LiveDot from '../components/arcade/LiveDot';
+import { C, BORDER, GRAD, GLOW, TINT, cut, gridBackgroundDesktop, PIXEL } from '../components/arcade/arcadeTokens';
 
 const METRIC_LABELS = {
   fuerza: 'Fuerza',
@@ -41,9 +47,9 @@ function useEsMovil() {
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-surface-top border border-white/10 rounded-control px-4 py-3 shadow-2xl">
-      <p className="text-xs font-bold text-white uppercase tracking-widest">{label}</p>
-      <p className="text-lg font-black text-brand mt-1">{payload[0].value}%</p>
+    <div style={{ background: C.cardAlt2, border: `1px solid ${BORDER.neutralSoft}`, clipPath: cut(7), padding: '10px 14px' }}>
+      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: C.text }}>{label}</p>
+      <p className="text-lg font-black mt-1" style={{ color: C.gold }}>{payload[0].value}%</p>
     </div>
   );
 };
@@ -183,108 +189,61 @@ export default function OwnerKPIsPage() {
   }, [atletas]);
 
   const summaryCards = [
-    {
-      label: 'Total Atletas',
-      value: atletas.length,
-      icon: Users,
-      color: 'text-cyan-400',
-      glow: 'shadow-[0_0_20px_rgba(6,182,212,0.15)]',
-    },
-    {
-      label: 'Promedio Integral',
-      value: `${promedioIntegral}%`,
-      icon: TrendingUp,
-      color: 'text-brand',
-      glow: 'shadow-[0_0_20px_rgba(255,215,0,0.15)]',
-    },
-    {
-      label: 'Asistencia Semanal',
-      value: asistenciaPct !== null ? `${asistenciaPct}%` : '—',
-      icon: CalendarCheck,
-      color: 'text-success-soft',
-      glow: 'shadow-[0_0_20px_rgba(52,211,153,0.15)]',
-    },
-    {
-      label: 'Misiones Completadas',
-      value: misionesCompletadas !== null ? misionesCompletadas : '—',
-      icon: Target,
-      color: 'text-mental-soft',
-      glow: 'shadow-[0_0_20px_rgba(168,85,247,0.15)]',
-    },
+    { label: 'Total Atletas', value: atletas.length, color: C.info },
+    { label: 'Promedio Integral', value: `${promedioIntegral}%`, color: C.gold },
+    { label: 'Asistencia Semanal', value: asistenciaPct !== null ? `${asistenciaPct}%` : '—', color: C.ok },
+    { label: 'Misiones Completadas', value: misionesCompletadas !== null ? misionesCompletadas : '—', color: C.ai },
   ];
 
   return (
-    <div className="flex h-dvh bg-surface-base overflow-hidden text-white">
+    <div className="flex h-dvh overflow-hidden" style={{ ...gridBackgroundDesktop, color: C.text }}>
       <Sidebar />
       <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-0">
-        {/* Ambient Glow Effects (solo desktop: composición GPU cara en gama baja) */}
-        <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-[-200px] left-[-200px] w-[600px] h-[600px] bg-brand/[0.03] rounded-full blur-[150px]" />
-          <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-mental/[0.03] rounded-full blur-[150px]" />
-        </div>
-
         <div className="relative z-10 p-6 md:p-12">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center space-x-4 mb-10">
-            <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard" className="p-3 -ml-3 rounded-full text-fg-muted hover:text-white hover:bg-white/5 transition-colors">
+          {/* Header (Panel-denso §6.4: HexAvatar de identidad + título + MicroLabel) */}
+          <div className="flex items-center gap-4 mb-10">
+            <button
+              onClick={() => navigate('/dashboard')}
+              aria-label="Volver al dashboard"
+              className="cut-focus grid place-items-center min-h-11 min-w-11 bg-white/5 hover:bg-white/10 transition-colors"
+              style={{ clipPath: cut(7), color: C.text3 }}
+            >
               <ArrowLeft size={20} />
             </button>
-            <div className="flex items-center space-x-3">
-              <BarChart3 className="text-brand drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" size={28} />
+            <div className="flex items-center gap-3">
+              <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
+                <BarChart3 size={22} strokeWidth={2.5} />
+              </HexAvatar>
               <div>
-                <h2 className="text-3xl font-black uppercase tracking-tight">
-                  KPIs del{' '}
-                  <span className="text-gradient-gold">
-                    Club
-                  </span>
+                <h2 className="text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+                  KPIs del <span style={{ color: C.gold }}>Club</span>
                 </h2>
-                <p className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mt-1">
-                  Panel ejecutivo · Métricas agregadas
-                </p>
+                <MicroLabel style={{ marginTop: 4 }}>Panel ejecutivo · Métricas agregadas</MicroLabel>
               </div>
             </div>
           </div>
 
           {/* Loading */}
           {loading && (
-            <div className="flex flex-col items-center justify-center h-64 text-fg-muted">
+            <div className="flex flex-col items-center justify-center h-64" style={{ color: C.text3 }}>
               <Loader2 size={48} className="mb-4 opacity-20 animate-spin" />
-              <p className="text-xs font-bold uppercase tracking-widest">Cargando datos del club...</p>
+              <MicroLabel>Cargando datos del club...</MicroLabel>
             </div>
           )}
 
           {!loading && (
             <>
-              {/* ===== SECTION 1: Summary Cards ===== */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-                {summaryCards.map((card, i) => (
-                  <motion.div
-                    key={card.label}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: staggerDelay(i) }}
-                    className={`glass-card rounded-panel border border-white/10 p-6 ${card.glow}`}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="text-2xs text-fg-muted font-bold uppercase tracking-widest pr-2">{card.label}</p>
-                      <card.icon size={20} className={card.color} />
-                    </div>
-                    <p className={`text-4xl font-black ${card.color}`}>{card.value}</p>
-                  </motion.div>
+              {/* ===== SECTION 1: Summary KPIs (grid auto-fit §6.4) ===== */}
+              <KpiGrid min={190} gap={12} style={{ marginBottom: 48 }}>
+                {summaryCards.map((card) => (
+                  <KpiTile key={card.label} label={card.label} val={card.value} color={card.color} labelSize={9} />
                 ))}
-              </div>
+              </KpiGrid>
 
               {/* ===== SECTION 2: Metric Weakness Analysis ===== */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
-                className="glass-card rounded-panel border border-white/10 p-6 md:p-8 mb-12"
-              >
-                <h3 className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mb-6">
-                  Análisis de Métricas del Club
-                </h3>
+              <CutCard cut={12} padding="20px" className="mb-12">
+                <MicroLabel as="h3" style={{ marginBottom: 20 }}>Análisis de Métricas del Club</MicroLabel>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -316,25 +275,21 @@ export default function OwnerKPIsPage() {
                   </ResponsiveContainer>
                 </div>
                 {weakestMetric && (
-                  <div className="mt-6 flex items-center space-x-3 bg-danger/10 border border-danger/20 rounded-panel px-5 py-3">
-                    <div className="w-2 h-2 rounded-full bg-danger animate-pulse" />
-                    <p className="text-xs font-bold text-danger-soft uppercase tracking-widest">
+                  <div
+                    className="mt-6 flex items-center gap-3 px-5 py-3"
+                    style={{ background: TINT.danger, border: `1px solid ${BORDER.danger}`, clipPath: cut(7) }}
+                  >
+                    <LiveDot color={C.danger} size={8} />
+                    <p className="text-xs font-bold uppercase tracking-widest" style={{ color: C.danger }}>
                       Punto débil del club: {weakestMetric.name} con un promedio de {weakestMetric.promedio}%
                     </p>
                   </div>
                 )}
-              </motion.div>
+              </CutCard>
 
               {/* ===== SECTION 3: Distribution by Category ===== */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 }}
-                className="glass-card rounded-panel border border-white/10 p-6 md:p-8 mb-12"
-              >
-                <h3 className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mb-6">
-                  Distribución por Categoría
-                </h3>
+              <CutCard cut={12} padding="20px" className="mb-12">
+                <MicroLabel as="h3" style={{ marginBottom: 20 }}>Distribución por Categoría</MicroLabel>
                 <div className="flex flex-col lg:flex-row items-center gap-8">
                   <div className="h-72 w-full lg:w-1/2">
                     <ResponsiveContainer width="100%" height="100%">
@@ -357,9 +312,9 @@ export default function OwnerKPIsPage() {
                           content={({ active, payload }) => {
                             if (!active || !payload?.length) return null;
                             return (
-                              <div className="bg-surface-top border border-white/10 rounded-control px-4 py-3 shadow-2xl">
-                                <p className="text-xs font-bold text-white uppercase tracking-widest">{payload[0].name}</p>
-                                <p className="text-lg font-black text-brand mt-1">{payload[0].value} atletas</p>
+                              <div style={{ background: C.cardAlt2, border: `1px solid ${BORDER.neutralSoft}`, clipPath: cut(7), padding: '10px 14px' }}>
+                                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: C.text }}>{payload[0].name}</p>
+                                <p className="text-lg font-black mt-1" style={{ color: C.gold }}>{payload[0].value} atletas</p>
                               </div>
                             );
                           }}
@@ -369,87 +324,57 @@ export default function OwnerKPIsPage() {
                   </div>
                   <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3 w-full lg:w-1/2">
                     {categoryData.map((cat) => (
-                      <div key={cat.name} className="flex items-center space-x-3 min-w-0 bg-white/[0.02] rounded-panel px-4 py-3 border border-white/5">
-                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                      <div
+                        key={cat.name}
+                        className="flex items-center gap-3 min-w-0 px-4 py-3"
+                        style={{ background: C.cardAlt1, border: `1px solid ${BORDER.neutral}`, clipPath: cut(7) }}
+                      >
+                        <span className="flex-shrink-0" style={{ width: 12, height: 12, borderRadius: '50%', background: cat.color }} />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-white truncate">{cat.name}</p>
-                          <p className="text-2xs text-fg-muted font-bold">{cat.value} atletas</p>
+                          <p className="text-xs font-bold truncate" style={{ color: C.text }}>{cat.name}</p>
+                          <MicroLabel style={{ marginTop: 2 }}>{cat.value} atletas</MicroLabel>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              </motion.div>
+              </CutCard>
 
               {/* ===== SECTION 4: Top 5 Performers ===== */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.55 }}
-              >
-                <div className="flex items-center space-x-3 mb-6">
-                  <Crown size={18} className="text-brand drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" />
-                  <h3 className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow">
-                    Top 5 · Máximos Rendimientos
-                  </h3>
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <Crown size={18} style={{ color: C.gold, filter: GLOW.hexGold }} />
+                  <MicroLabel as="h3">Top 5 · Máximos Rendimientos</MicroLabel>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <KpiGrid min={200} gap={12}>
                   {top5.map((atleta, i) => (
-                    <motion.div
+                    <CutCard
                       key={atleta.atleta_id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.6 + staggerDelay(i) }}
-                      className={`glass-card rounded-panel border p-5 relative overflow-hidden ${
-                        i === 0
-                          ? 'border-brand/30 shadow-[0_0_25px_rgba(255,215,0,0.12)]'
-                          : 'border-white/10'
-                      }`}
+                      cut={12}
+                      padding="16px"
+                      border={i === 0 ? BORDER.goldStrong : BORDER.neutral}
+                      style={i === 0 ? { boxShadow: GLOW.hexGoldMid } : undefined}
                     >
-                      {/* Rank Number */}
-                      <div className={`absolute top-3 right-3 text-3xl font-black ${
-                        i === 0 ? 'text-brand/20' : 'text-white/5'
-                      }`}>
-                        {i + 1}
+                      <div className="flex items-center gap-3">
+                        <span style={{ fontFamily: PIXEL, fontSize: 18, color: i === 0 ? C.gold : C.text3, width: 20, flex: 'none' }}>{i + 1}</span>
+                        <HexAvatar size={36} background={i === 0 ? GRAD.goldHex : undefined} color={i === 0 ? C.ink : undefined}>
+                          {atleta.nombre?.charAt(0) || '—'}
+                        </HexAvatar>
+                        {i === 0 && <Crown size={14} style={{ color: C.gold, marginLeft: 'auto' }} />}
                       </div>
-
-                      {/* Crown for #1 */}
-                      {i === 0 && (
-                        <Crown size={14} className="text-brand mb-2 drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]" />
-                      )}
-
-                      <p className="text-sm font-bold text-white truncate">{atleta.nombre}</p>
-                      <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">
-                        {atleta.categoria}
-                      </p>
-
-                      {/* Rango Badge */}
-                      <div className="mt-3 flex items-center justify-between">
-                        <span className={`text-2xs font-black uppercase tracking-widest ${atleta.rango?.textColor || 'text-fg-secondary'}`}>
-                          {atleta.rango?.nombre}
-                        </span>
-                        <span className={`text-lg font-black ${
-                          i === 0 ? 'text-brand' : 'text-white'
-                        }`}>
-                          {atleta.rango?.pct || 0}%
-                        </span>
+                      <p className="mt-3 text-sm font-bold truncate" style={{ color: C.text }}>{atleta.nombre}</p>
+                      <MicroLabel style={{ marginTop: 2 }}>{atleta.categoria}</MicroLabel>
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <MicroLabel style={{ margin: 0 }}>{atleta.rango?.nombre}</MicroLabel>
+                        <span style={{ fontFamily: PIXEL, fontSize: 16, color: i === 0 ? C.gold : C.text }}>{atleta.rango?.pct || 0}%</span>
                       </div>
-
-                      {/* Progress bar */}
-                      <div className="mt-3 h-1.5 bg-surface-sunken rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${atleta.rango?.pct || 0}%` }}
-                          transition={{ delay: 0.8 + staggerDelay(i, 0.1), duration: 0.8, ease: 'easeOut' }}
-                          className={`h-full rounded-full ${
-                            i === 0 ? 'progress-bar-glow' : 'bg-white/30'
-                          }`}
-                        />
+                      <div className="mt-2" style={{ height: 6, background: C.cardAlt1, clipPath: cut(2), overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${atleta.rango?.pct || 0}%`, background: i === 0 ? GRAD.goldCTA : C.text2 }} />
                       </div>
-                    </motion.div>
+                    </CutCard>
                   ))}
-                </div>
-              </motion.div>
+                </KpiGrid>
+              </div>
             </>
           )}
         </div>
