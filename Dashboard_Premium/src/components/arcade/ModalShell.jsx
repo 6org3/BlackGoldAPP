@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { C, BORDER, GRAD, OVERLAY, cut } from './arcadeTokens';
@@ -63,7 +64,10 @@ export default function ModalShell({ onClose, title, titleClassName = '', icon: 
   }, []);
 
   const alignCls = align === 'end' ? 'items-end sm:items-center' : 'items-center';
-  return (
+  // Portal a <body>: el clip-path de un ancestro (cualquier superficie cut()
+  // del HUD) recorta el pintado de descendientes position:fixed — ver la misma
+  // nota en ModalHUD.jsx.
+  return createPortal(
     <div
       className={`fixed inset-0 z-[100] flex ${alignCls} justify-center p-4`}
       style={{ background: OVERLAY, backdropFilter: 'blur(4px)' }}
@@ -107,6 +111,7 @@ export default function ModalShell({ onClose, title, titleClassName = '', icon: 
           {children}
         </div>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }

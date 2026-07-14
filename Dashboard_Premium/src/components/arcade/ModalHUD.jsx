@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { C, BORDER, GRAD, TINT, cut } from './arcadeTokens';
@@ -160,7 +161,12 @@ export default function ModalHUD({
   const titleId = 'modalhud-title';
   const msgId = message ? 'modalhud-msg' : undefined;
 
-  return (
+  // Portal a <body>: el clip-path de un ancestro (cualquier superficie cut()
+  // del HUD) recorta el PINTADO de descendientes position:fixed aunque no les
+  // cambie el containing block — el diálogo quedaría cortado al polígono del
+  // panel que lo abre. Fuera del árbol DOM del consumidor, el overlay siempre
+  // cubre el viewport.
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(4px)' }}
@@ -249,6 +255,7 @@ export default function ModalHUD({
           </div>
         </form>
       </motion.div>
-    </div>
+    </div>,
+    document.body
   );
 }
