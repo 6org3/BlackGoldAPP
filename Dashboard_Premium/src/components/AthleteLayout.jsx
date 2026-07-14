@@ -60,7 +60,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
         <div className="px-5 pt-6 pb-4 border-b border-white/5">
           <div className="flex items-center space-x-2 mb-1">
             <div className="w-1.5 h-5 bg-brand rounded-full shadow-glow-bar" />
-            <span className="text-sm font-black tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+            <span className="text-sm font-black tracking-tighter uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-fg-muted">
               Black Gold
             </span>
           </div>
@@ -121,7 +121,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
                 className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-left transition duration-200 ${
                   active
                     ? 'bg-brand/10 border border-brand/20 text-brand'
-                    : 'text-fg-muted hover:text-gray-300 hover:bg-white/5 border border-transparent'
+                    : 'text-fg-muted hover:text-fg-secondary hover:bg-white/5 border border-transparent'
                 }`}
               >
                 <Icon size={16} className={active ? 'text-brand' : 'text-fg-muted'} />
@@ -138,7 +138,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
         <div className="px-3 py-4 border-t border-white/5 space-y-1">
           <button
             onClick={() => setShowEditProfile(true)}
-            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-fg-muted hover:text-gray-300 hover:bg-white/5 transition border border-transparent text-left"
+            className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-control text-fg-muted hover:text-fg-secondary hover:bg-white/5 transition border border-transparent text-left"
           >
             <User size={16} className="text-fg-muted" />
             <span className="text-[11px] font-black uppercase tracking-widest">Editar Perfil</span>
@@ -183,7 +183,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
               <button
                 onClick={() => setShowMobileMenu(v => !v)}
                 aria-label="Menú de perfil"
-                className="min-h-11 min-w-11 flex items-center justify-center rounded-control bg-white/5 border border-white/10 text-gray-300 hover:text-white transition-colors"
+                className="min-h-11 min-w-11 flex items-center justify-center rounded-control bg-white/5 border border-white/10 text-fg-secondary hover:text-white transition-colors"
               >
                 <User size={18} />
               </button>
@@ -193,14 +193,14 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
                   <div className="absolute right-0 top-full mt-2 w-52 bg-surface-raised border border-white/10 rounded-control shadow-modal overflow-hidden">
                     <button
                       onClick={() => { setShowMobileMenu(false); setShowEditProfile(true); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-gray-300 hover:bg-white/5 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-white/5 transition-colors"
                     >
                       <User size={16} className="text-fg-muted" />
                       <span className="text-[11px] font-black uppercase tracking-widest">Editar Perfil</span>
                     </button>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-gray-300 hover:bg-danger/10 hover:text-danger-soft transition-colors border-t border-white/5"
+                      className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-danger/10 hover:text-danger-soft transition-colors border-t border-white/5"
                     >
                       <LogOut size={16} className="text-fg-muted" />
                       <span className="text-[11px] font-black uppercase tracking-widest">Cerrar Sesión</span>
@@ -268,7 +268,7 @@ function ToggleChip({ active, label, activeClasses, onClick }) {
     <button
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3 min-h-11 md:min-h-9 rounded-lg text-2xs font-bold uppercase tracking-widest transition-colors ${
-        active ? activeClasses : 'bg-white/5 text-gray-500 border border-white/10'
+        active ? activeClasses : 'bg-white/5 text-fg-muted border border-white/10'
       }`}
     >
       {active ? <Eye size={13} /> : <EyeOff size={13} />}
@@ -327,8 +327,8 @@ function TabInicio({ atleta, todosLosAtletas }) {
       {atleta.estado_recuperacion && atleta.estado_recuperacion !== 'Óptimo' && (
         <div className={`p-4 rounded-panel border backdrop-blur-md ${
           atleta.estado_recuperacion === 'Agotamiento Activo'
-            ? 'bg-amber-950/40 border-warning/40'
-            : 'bg-purple-950/40 border-mental/40'
+            ? 'bg-warning/10 border-warning/40'
+            : 'bg-mental/10 border-mental/40'
         }`}>
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full animate-pulse ${
@@ -338,7 +338,7 @@ function TabInicio({ atleta, todosLosAtletas }) {
               atleta.estado_recuperacion === 'Agotamiento Activo' ? 'text-warning-soft' : 'text-mental-soft'
             }`}>{atleta.estado_recuperacion}</span>
           </div>
-          <p className="mt-1 text-xs text-gray-300 leading-relaxed">
+          <p className="mt-1 text-xs text-fg-secondary leading-relaxed">
             {atleta.estado_recuperacion === 'Agotamiento Activo'
               ? '⚠️ Ritmo cardíaco elevado. Priorizar sueño 10-12h y actividades recreativas.'
               : '⚠️ Rendimiento disminuido sin dolor aparente. Reducir volumen de entrenamiento.'}
@@ -391,9 +391,9 @@ function TabInicio({ atleta, todosLosAtletas }) {
                 key={deficit.condicion}
                 className={`p-3 rounded-panel border ${
                   deficit.prioridad === 'critica'
-                    ? 'bg-red-950/40 border-danger/40'
+                    ? 'bg-danger/10 border-danger/40'
                     : deficit.prioridad === 'alta'
-                    ? 'bg-amber-950/40 border-warning/40'
+                    ? 'bg-warning/10 border-warning/40'
                     : 'bg-white/5 border-white/10'
                 }`}
               >
@@ -413,7 +413,7 @@ function TabInicio({ atleta, todosLosAtletas }) {
                       : 'Sugerencia'}
                   </span>
                 </div>
-                <p className="text-2xs text-gray-300 leading-relaxed">{deficit.mensaje}</p>
+                <p className="text-2xs text-fg-secondary leading-relaxed">{deficit.mensaje}</p>
               </div>
             ))}
           </div>

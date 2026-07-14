@@ -18,7 +18,7 @@ const TIPO_COLORS = {
   torneo:                 'text-mental-soft border-mental/30 bg-mental/5',
   entrenamiento_especial: 'text-success-soft border-success/30 bg-success/5',
   clinica:                'text-info-soft border-info/30 bg-info/5',
-  reunion:                'text-fg-secondary border-gray-500/30 bg-gray-500/5',
+  reunion:                'text-fg-secondary border-white/20 bg-white/5',
   evaluacion:             'text-caution-soft border-caution/30 bg-caution/5',
   social:                 'text-pink-400 border-pink-500/30 bg-pink-500/5',
 };
@@ -115,9 +115,9 @@ export default function EventosAtleta({ atletaId }) {
   if (eventos.length === 0) {
     return (
       <div className="max-w-2xl mx-auto flex flex-col items-center justify-center h-48 text-center">
-        <Calendar size={40} className="text-gray-700 mb-3" />
+        <Calendar size={40} className="text-fg-faint mb-3" />
         <p className="text-fg-muted font-bold uppercase tracking-widest text-xs">Sin convocatorias aún</p>
-        <p className="text-gray-700 text-xs mt-1">Cuando el coach te convoque a un evento aparecerá aquí.</p>
+        <p className="text-fg-muted text-xs mt-1">Cuando el coach te convoque a un evento aparecerá aquí.</p>
       </div>
     );
   }
@@ -149,7 +149,7 @@ export default function EventosAtleta({ atletaId }) {
       {pasados.length > 0 && (
         <section>
           <h3 className="text-2xs font-black uppercase tracking-widest text-fg-muted mb-4 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-gray-600" />
+            <div className="w-1.5 h-1.5 rounded-full bg-fg-muted" />
             Eventos Pasados
           </h3>
           <div className="space-y-3">
@@ -188,11 +188,11 @@ function EventoCard({ evento, index, past, onRsvp, updating }) {
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${tipoColor}`}>
+            <span className={`text-3xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${tipoColor}`}>
               {TIPO_LABELS[evento.tipo] || evento.tipo}
             </span>
             {evento.estado === 'cancelado' && (
-              <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border text-danger-soft border-danger/30 bg-danger/5">
+              <span className="text-3xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full border text-danger-soft border-danger/30 bg-danger/5">
                 Cancelado
               </span>
             )}

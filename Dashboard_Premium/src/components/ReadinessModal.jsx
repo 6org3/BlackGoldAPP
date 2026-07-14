@@ -59,12 +59,12 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
         </button>
 
         <div className="flex items-center space-x-3 mb-6">
-          <div className="p-3 bg-indigo-500/10 rounded-control border border-indigo-500/20">
-            <Activity className="text-indigo-400" size={24} />
+          <div className="p-3 bg-info/10 rounded-control border border-info/20">
+            <Activity className="text-info-soft" size={24} />
           </div>
           <div>
             <h2 className="text-2xl font-black text-white uppercase tracking-tight">Check-in Diario</h2>
-            <p className="text-xs text-indigo-400/80 uppercase tracking-widest font-bold">Athlete Readiness Engine</p>
+            <p className="text-xs text-info-soft/80 uppercase tracking-widest font-bold">Athlete Readiness Engine</p>
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
             <input 
               type="range" min="1" max="10" 
               value={sueno} onChange={(e) => setSueno(e.target.value)}
-              className="w-full h-8 accent-blue-500 cursor-pointer"
+              className="w-full h-11 accent-info cursor-pointer"
             />
             <div className="flex justify-between text-2xs text-fg-muted font-bold uppercase tracking-widest">
               <span>Pésimo (1)</span>
@@ -99,15 +99,15 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
           <div className="space-y-4">
             <div className="flex justify-between items-end">
               <label className="flex items-center space-x-2 text-sm font-bold text-white uppercase tracking-wider">
-                <Activity size={16} className="text-rose-400" />
+                <Activity size={16} className="text-danger-soft" />
                 <span>Nivel de Fatiga Física</span>
               </label>
-              <span className="text-xl font-black text-rose-400">{fatiga}/10</span>
+              <span className="text-xl font-black text-danger-soft">{fatiga}/10</span>
             </div>
             <input 
               type="range" min="1" max="10" 
               value={fatiga} onChange={(e) => setFatiga(e.target.value)}
-              className="w-full h-8 accent-rose-500 cursor-pointer"
+              className="w-full h-11 accent-danger cursor-pointer"
             />
             <div className="flex justify-between text-2xs text-fg-muted font-bold uppercase tracking-widest">
               <span>Agotado (1)</span>
@@ -153,13 +153,13 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full relative group overflow-hidden bg-white/5 border border-white/10 hover:border-indigo-500/50 rounded-control p-4 transition"
+            className="w-full relative group overflow-hidden bg-white/5 border border-white/10 hover:border-info/50 rounded-control p-4 transition"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-r from-info/20 to-mental/20 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative flex items-center justify-center space-x-2 text-white font-bold tracking-eyebrow uppercase text-sm">
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin text-indigo-400" />
+                  <Loader2 className="w-5 h-5 animate-spin text-info-soft" />
                   <span>Guardando...</span>
                 </>
               ) : (
