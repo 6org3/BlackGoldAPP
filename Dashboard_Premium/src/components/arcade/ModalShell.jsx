@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { C, BORDER, GRAD, cut } from './arcadeTokens';
+import { C, BORDER, GRAD, OVERLAY, cut } from './arcadeTokens';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
 
@@ -28,13 +28,20 @@ export default function ModalShell({ onClose, title, titleClassName = '', icon: 
   const closeRef = useRef(null);
   const triggerRef = useRef(null);
 
+  // `onClose` es una arrow nueva en cada render del padre; guardarla en un ref
+  // evita que el efecto de abajo dependa de su identidad y se re-ejecute en cada
+  // render del padre — lo que dispararía su cleanup (restaurar foco al disparador)
+  // sacando el foco del panel a media interacción.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+
   useEffect(() => {
     triggerRef.current = document.activeElement;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const t = setTimeout(() => closeRef.current?.focus(), 0);
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose?.(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return; }
       if (e.key !== 'Tab' || !panelRef.current) return;
       const f = Array.from(
         panelRef.current.querySelectorAll('button, input, textarea, select, a[href], [tabindex]:not([tabindex="-1"])')
@@ -53,13 +60,13 @@ export default function ModalShell({ onClose, title, titleClassName = '', icon: 
       const el = triggerRef.current;
       if (el && typeof el.focus === 'function' && document.contains(el)) el.focus();
     };
-  }, [onClose]);
+  }, []);
 
   const alignCls = align === 'end' ? 'items-end sm:items-center' : 'items-center';
   return (
     <div
       className={`fixed inset-0 z-[100] flex ${alignCls} justify-center p-4`}
-      style={{ background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(4px)' }}
+      style={{ background: OVERLAY, backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <motion.div
@@ -83,7 +90,7 @@ export default function ModalShell({ onClose, title, titleClassName = '', icon: 
         >
           <X size={18} />
         </button>
-        <div className="p-5 sm:p-7">
+        <div className="p-5 sm:p-7" style={align === 'end' ? { paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' } : undefined}>
           <div className="flex items-center gap-3 mb-5 pr-8">
             {Icon && (
               <HexAvatar size={40} background={GRAD.goldHex} color={C.ink}>

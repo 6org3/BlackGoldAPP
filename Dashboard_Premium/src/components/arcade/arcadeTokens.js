@@ -104,6 +104,9 @@ export const RADAR_FILL = 'rgba(255,215,0,.18)';
 /** Variante azul-info del relleno del radar — identidad del portal Padre. */
 export const RADAR_FILL_INFO = 'rgba(96,165,250,.18)';
 
+/** Backdrop de diálogos/modales (overlay oscuro tras el panel). */
+export const OVERLAY = 'rgba(0,0,0,.8)';
+
 /* ---- Formas firma (clip-path) ----
    cut(n): esquina cortada (top-right + bottom-left). n = 8/10/12/14.
    HEX:    hexágono de avatares/badges/botón central de nav.
