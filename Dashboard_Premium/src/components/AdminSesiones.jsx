@@ -13,23 +13,29 @@ import {
 } from '../api/sesionesService';
 import { labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { generarMensajeSesion, generarLinkWhatsApp } from '../api/comunicacionesService';
+import CutCard from './arcade/CutCard';
+import HexAvatar from './arcade/HexAvatar';
+import MicroLabel from './arcade/MicroLabel';
+import ModalHUD from './arcade/ModalHUD';
+import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
 const TIPOS = ['Técnico', 'Físico', 'Táctico', 'Evaluación', 'Recuperación'];
-const TIPO_ICONS = {
-  'Técnico': Brain, 'Físico': Dumbbell, 'Táctico': Shield,
-  'Evaluación': Activity, 'Recuperación': Zap,
+
+// Icono + color Arcade por tipo de objetivo. Antes eran clases semánticas DS v1
+// (info/caution/mental/brand/success); aquí componen con las constantes C.* del HUD.
+const TIPO_META = {
+  'Técnico':      { icon: Brain,    c: C.info },
+  'Físico':       { icon: Dumbbell, c: C.warn },
+  'Táctico':      { icon: Shield,   c: C.ai },
+  'Evaluación':   { icon: Activity, c: C.gold },
+  'Recuperación': { icon: Zap,      c: C.ok },
 };
-const TIPO_COLORS = {
-  'Técnico': 'text-info-soft bg-info/10 border-info/30',
-  'Físico': 'text-caution-soft bg-caution/10 border-caution/30',
-  'Táctico': 'text-mental-soft bg-mental/10 border-mental/30',
-  'Evaluación': 'text-brand bg-brand/10 border-brand/30',
-  'Recuperación': 'text-success-soft bg-success/10 border-success/30',
-};
-const LOGRO_CONFIG = {
-  'Sí':      { color: 'text-success-soft border-success/40 bg-success/10', icon: CheckCircle2 },
-  'Parcial': { color: 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10',   icon: AlertCircle },
-  'No':      { color: 'text-danger-soft border-danger/40 bg-danger/10',            icon: XCircle },
+
+// Resultado de la evaluación → color semántico Arcade (antes "Parcial" usaba yellow crudo).
+const LOGRO_META = {
+  'Sí':      { c: C.ok,     tint: TINT.ok,     icon: CheckCircle2 },
+  'Parcial': { c: C.warn,   tint: TINT.warn,   icon: AlertCircle },
+  'No':      { c: C.danger, tint: TINT.danger, icon: XCircle },
 };
 
 // Mapeo TIPOS (eje "qué clase de actividad") → objetivo canónico de taxonomia.js
@@ -42,6 +48,11 @@ const TIPO_A_OBJETIVO = {
   'Evaluación':   { pilar: null,      sub_pilar: null },
   'Recuperación': { pilar: null,      sub_pilar: null },
 };
+
+// Caja de control (fecha/buscador): superficie cut(7).
+const boxStyle = { clipPath: cut(7), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}` };
+// Input arcade sobre superficie cortada (select/number/textarea del formulario).
+const fieldStyle = { clipPath: cut(6), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}`, color: C.text };
 
 function getTodayStr() { return new Date().toISOString().split('T')[0]; }
 
@@ -59,6 +70,8 @@ export default function AdminSesiones({ user, atletas = [] }) {
   const [busquedaAtleta, setBusquedaAtleta] = useState('');
   const [atletaSeleccionado, setAtletaSeleccionado] = useState(null);
   const [errorCarga, setErrorCarga] = useState(false);
+  // Diálogo HUD activo (reemplaza window.prompt/alert): null | { variant, tone, ... }.
+  const [modal, setModal] = useState(null);
 
   // Form state
   const [form, setForm] = useState({
@@ -130,7 +143,12 @@ export default function AdminSesiones({ user, atletas = [] }) {
   const handleGuardar = async () => {
     if (!form.objetivoDesc.trim()) return;
     if (esEvaluacion && form.pruebasIds.length === 0) {
-      alert('Una sesión de Evaluación necesita al menos una prueba seleccionada.');
+      setModal({
+        variant: 'alert', tone: 'warn', icon: AlertTriangle,
+        eyebrow: 'Falta un dato',
+        title: 'Sin pruebas seleccionadas',
+        message: 'Una sesión de Evaluación necesita al menos una prueba seleccionada.',
+      });
       return;
     }
     setSaving(true);
@@ -185,15 +203,17 @@ export default function AdminSesiones({ user, atletas = [] }) {
   };
 
   // Guarda el formulario actual como plantilla reutilizable (catalogo_sesiones):
-  // aparece en el paso "Objetivo de la Sesión" del Modo Cancha.
-  const handleGuardarPlantilla = async () => {
-    const titulo = window.prompt('Nombre de la plantilla:', form.objetivoDesc.trim().slice(0, 60));
-    if (!titulo || !titulo.trim()) return;
+  // aparece en el paso "Objetivo de la Sesión" del Modo Cancha. El nombre se pide
+  // con un prompt HUD (antes window.prompt) y el resultado se informa con un alert HUD.
+  const guardarPlantilla = async (titulo) => {
+    const nombre = (titulo || '').trim();
+    if (!nombre) return;
+    setModal(null);
     setSaving(true);
     try {
       const objetivo = TIPO_A_OBJETIVO[form.objetivoTipo] || { pilar: null, sub_pilar: null };
       await crearPlantilla({
-        titulo: titulo.trim(),
+        titulo: nombre,
         enfoque_principal: form.objetivoTipo,
         descripcion: form.objetivoDesc.trim() || null,
         pilar: objetivo.pilar,
@@ -204,12 +224,36 @@ export default function AdminSesiones({ user, atletas = [] }) {
         // La RLS de catalogo_sesiones exige club_id = club del usuario para owner/coach.
         club: user.club,
       });
-      alert(`Plantilla "${titulo.trim()}" guardada. Ya está disponible en el Modo Cancha.`);
+      setModal({
+        variant: 'alert', tone: 'ok', icon: CheckCircle2,
+        eyebrow: 'Listo',
+        title: 'Plantilla guardada',
+        message: `"${nombre}" ya está disponible en el Modo Cancha.`,
+      });
     } catch (e) {
       console.error(e);
-      alert('No se pudo guardar la plantilla: ' + (e.message || 'error desconocido'));
+      setModal({
+        variant: 'alert', tone: 'danger', icon: AlertTriangle,
+        eyebrow: 'Error',
+        title: 'No se pudo guardar la plantilla',
+        message: e.message || 'Error desconocido.',
+      });
     }
     setSaving(false);
+  };
+
+  const pedirNombrePlantilla = () => {
+    if (!form.objetivoDesc.trim()) return;
+    setModal({
+      variant: 'prompt', tone: 'gold', icon: ClipboardList,
+      eyebrow: 'Modo Cancha',
+      title: 'Guardar como plantilla',
+      message: 'La plantilla aparecerá en el paso "Objetivo de la Sesión" del Modo Cancha.',
+      defaultValue: form.objetivoDesc.trim().slice(0, 60),
+      placeholder: 'Nombre de la plantilla',
+      confirmLabel: 'Guardar plantilla',
+      onConfirm: guardarPlantilla,
+    });
   };
 
   const abrirWA = (sesion) => {
@@ -219,265 +263,297 @@ export default function AdminSesiones({ user, atletas = [] }) {
   };
 
   return (
-    <div className="min-h-screen bg-surface-base text-white p-6 md:p-10">
-      <div className="fixed top-[-20%] left-[10%] w-[700px] h-[500px] bg-brand/4 blur-[150px] pointer-events-none rounded-full" />
-
+    <div className="p-6 md:p-10" style={{ color: C.text }}>
       {/* Header */}
-      <header className="mb-6 md:mb-8 border-b border-white/5 pb-4 md:pb-8 relative z-10">
-        <div className="flex items-center space-x-3 mb-2">
-          <ClipboardList className="text-brand" size={28} />
-          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">
-            Control de{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-strong">Sesiones</span>
-          </h2>
+      <header className="mb-6 md:mb-8 pb-4 md:pb-8" style={{ borderBottom: `1px solid ${BORDER.neutral}` }}>
+        <div className="flex items-center gap-3">
+          <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
+            <ClipboardList size={22} strokeWidth={2.5} />
+          </HexAvatar>
+          <div>
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+              Control de <span style={{ color: C.gold }}>Sesiones</span>
+            </h2>
+            <MicroLabel style={{ marginTop: 4 }}>Registro · Evaluación · Seguimiento</MicroLabel>
+          </div>
         </div>
-        <p className="text-2xs text-fg-muted font-bold uppercase tracking-[0.3em] ml-11">
-          Registro · Evaluación · Seguimiento
-        </p>
       </header>
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* PANEL IZQUIERDO: Formulario */}
         <div className="space-y-5">
           {/* Toggle Tipos de Sesión */}
-          <div className="flex flex-wrap items-center bg-white/5 border border-white/10 rounded-panel p-1 w-fit gap-1">
-            {['Grupal (Niveles)', 'Grupal Individualizada', 'Privada 1v1'].map(m => (
-              <button
-                key={m}
-                onClick={() => setModo(m)}
-                className={`flex items-center space-x-2 px-4 py-3 min-h-11 rounded-control text-xs font-black uppercase tracking-widest transition ${
-                  modo === m
-                    ? 'bg-brand text-black shadow-[0_0_15px_rgba(255,215,0,0.3)]'
-                    : 'text-fg-secondary hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {m === 'Privada 1v1' ? <User size={14} /> : <Users size={14} />}
-                <span>{m}</span>
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-1 p-1 w-fit" style={{ clipPath: cut(8), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}` }}>
+            {['Grupal (Niveles)', 'Grupal Individualizada', 'Privada 1v1'].map(m => {
+              const activo = modo === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setModo(m)}
+                  aria-pressed={activo}
+                  className="cut-focus flex items-center gap-2 px-4 min-h-11 text-xs font-black uppercase tracking-widest transition-colors"
+                  style={{
+                    clipPath: cut(6),
+                    background: activo ? GRAD.goldCTA : 'transparent',
+                    color: activo ? C.ink : C.text3,
+                  }}
+                >
+                  {m === 'Privada 1v1' ? <User size={14} /> : <Users size={14} />}
+                  <span>{m}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Selector de Grupo o Atleta */}
           {modo.startsWith('Grupal') ? (
-            <div className="glass-card rounded-panel p-5 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">
-                {modo === 'Grupal Individualizada' ? 'Grupo de Entrenamiento (Max 10)' : 'Grupo de Entrenamiento'}
-              </label>
+            <CutCard cut={12} padding="20px">
+              <MicroLabel style={{ marginBottom: 12 }}>
+                {modo === 'Grupal Individualizada' ? 'Grupo de Entrenamiento (Máx 10)' : 'Grupo de Entrenamiento'}
+              </MicroLabel>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {grupos.map(g => (
-                  <button key={g.id} onClick={() => setForm({ ...form, grupoId: g.id })}
-                    className={`p-3 border rounded-control text-xs font-bold uppercase tracking-widest truncate transition ${
-                      form.grupoId === g.id ? 'border-brand bg-brand/10 text-brand' : 'border-white/10 text-fg-secondary hover:border-white/30 hover:bg-white/5'
-                    }`}>
-                    {g.nombre}
-                  </button>
-                ))}
+                {grupos.map(g => {
+                  const activo = form.grupoId === g.id;
+                  return (
+                    <button key={g.id} onClick={() => setForm({ ...form, grupoId: g.id })}
+                      aria-pressed={activo}
+                      className="cut-focus p-3 min-h-11 text-xs font-bold uppercase tracking-widest truncate transition-colors"
+                      style={{
+                        clipPath: cut(6),
+                        background: activo ? TINT.gold : 'transparent',
+                        border: `1px solid ${activo ? BORDER.goldStrong : BORDER.neutralSoft}`,
+                        color: activo ? C.gold : C.text3,
+                      }}>
+                      {g.nombre}
+                    </button>
+                  );
+                })}
               </div>
-              
+
               {modo === 'Grupal Individualizada' && (
-                <div className="mt-4 pt-4 border-t border-white/5">
-                  <label className="flex items-center space-x-2 cursor-pointer mb-2">
+                <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BORDER.neutralFaint}` }}>
+                  <label className="flex items-center gap-2 cursor-pointer mb-2">
                     <input type="checkbox" checked={form.esPagoExtra} onChange={e => setForm(f => ({ ...f, esPagoExtra: e.target.checked }))}
-                      className="accent-brand" />
-                    <span className="text-2xs font-bold text-fg-secondary uppercase tracking-widest">Suscripción / Costo Adicional</span>
+                      className="cut-focus accent-brand" />
+                    <span className="text-2xs font-bold uppercase tracking-widest" style={{ color: C.text2 }}>Suscripción / Costo Adicional</span>
                   </label>
                   {form.esPagoExtra && (
                     <div className="flex gap-2">
                       <select value={form.tipoPagoExtra} onChange={e => setForm(f => ({ ...f, tipoPagoExtra: e.target.value }))}
-                        className="bg-black/40 border border-white/10 rounded-control px-3 py-2 text-base md:text-sm text-white focus:outline-none focus:border-brand/50">
+                        className="cut-focus arcade-input min-h-11 md:min-h-9 px-3 text-base md:text-sm font-bold focus:outline-none" style={fieldStyle}>
                         <option value="Mensual">Mensual</option>
                         <option value="Por Sesión">Por Sesión</option>
                       </select>
                       <input type="number" inputMode="decimal" placeholder="Monto $" value={form.montoExtra}
                         onChange={e => setForm(f => ({ ...f, montoExtra: parseFloat(e.target.value) || 0 }))}
-                        className="flex-1 bg-black/40 border border-white/10 rounded-control px-3 py-2 text-base md:text-sm text-white focus:outline-none focus:border-brand/50" />
+                        className="cut-focus arcade-input flex-1 min-h-11 md:min-h-9 px-3 text-base md:text-sm font-bold focus:outline-none" style={fieldStyle} />
                     </div>
                   )}
                 </div>
               )}
-            </div>
+            </CutCard>
           ) : (
-            <div className="glass-card rounded-panel p-5 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">Jugador</label>
-              <div className="flex items-center space-x-2 bg-black/40 border border-white/10 rounded-control px-3 py-2 mb-3">
-                <Search size={13} className="text-fg-muted" />
+            <CutCard cut={12} padding="20px">
+              <MicroLabel style={{ marginBottom: 12 }}>Jugador</MicroLabel>
+              <div className="flex items-center gap-2 px-3 mb-3" style={boxStyle}>
+                <Search size={13} style={{ color: C.text3 }} />
                 <input
                   type="text"
                   placeholder="Buscar jugador..."
                   value={busquedaAtleta}
                   onChange={e => setBusquedaAtleta(e.target.value)}
-                  className="bg-transparent text-base md:text-sm text-white placeholder-gray-600 font-bold focus:outline-none w-full"
+                  className="cut-focus arcade-input bg-transparent min-h-11 md:min-h-9 text-base md:text-sm font-bold focus:outline-none w-full"
+                  style={{ color: C.text }}
                 />
               </div>
               {atletaSeleccionado && (
-                <div className="flex items-center space-x-3 bg-brand/10 border border-brand/30 rounded-control px-4 py-2.5 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center font-black text-brand text-sm">
-                    {atletaSeleccionado.nombre?.charAt(0)}
-                  </div>
+                <div className="flex items-center gap-3 px-4 py-2.5 mb-2" style={{ clipPath: cut(7), background: TINT.gold, border: `1px solid ${BORDER.goldMid}` }}>
+                  <HexAvatar size={32} background={GRAD.goldHex} color={C.ink}>{atletaSeleccionado.nombre?.charAt(0)}</HexAvatar>
                   <div>
-                    <p className="text-sm font-black text-brand">{atletaSeleccionado.nombre}</p>
-                    <p className="text-3xs text-fg-muted">{atletaSeleccionado.categoria}</p>
+                    <p className="text-sm font-black" style={{ color: C.gold }}>{atletaSeleccionado.nombre}</p>
+                    <MicroLabel style={{ margin: 0 }}>{atletaSeleccionado.categoria}</MicroLabel>
                   </div>
                   <button onClick={() => setAtletaSeleccionado(null)} aria-label="Quitar jugador"
-                    className="ml-auto p-2 -m-1 text-fg-muted hover:text-white"><XCircle size={14} /></button>
+                    className="cut-focus ml-auto p-2 -m-1 transition-colors" style={{ color: C.text3 }}><XCircle size={14} /></button>
                 </div>
               )}
               {busquedaAtleta && !atletaSeleccionado && (
                 <div className="space-y-1 max-h-40 overflow-y-auto">
                   {atletasFiltrados.map(a => (
                     <button key={a.id} onClick={() => { setAtletaSeleccionado(a); setBusquedaAtleta(''); }}
-                      className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-white/5 text-left transition-colors">
-                      <span className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white/50">{a.nombre?.charAt(0)}</span>
+                      className="cut-focus w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/[0.03]" style={{ clipPath: cut(5) }}>
+                      <HexAvatar size={28}>{a.nombre?.charAt(0)}</HexAvatar>
                       <div>
-                        <p className="text-xs font-bold text-white">{a.nombre}</p>
-                        <p className="text-3xs text-fg-muted">{a.categoria}</p>
+                        <p className="text-xs font-bold" style={{ color: C.text }}>{a.nombre}</p>
+                        <MicroLabel style={{ margin: 0 }}>{a.categoria}</MicroLabel>
                       </div>
                     </button>
                   ))}
                 </div>
               )}
               {/* Sesión individual: pago extra */}
-              <div className="mt-3 pt-3 border-t border-white/5">
-                <label className="flex items-center space-x-2 cursor-pointer">
+              <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${BORDER.neutralFaint}` }}>
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.esPagoExtra} onChange={e => setForm(f => ({ ...f, esPagoExtra: e.target.checked }))}
-                    className="accent-brand" />
-                  <span className="text-2xs font-bold text-fg-secondary uppercase tracking-widest">Sesión con costo adicional</span>
+                    className="cut-focus accent-brand" />
+                  <span className="text-2xs font-bold uppercase tracking-widest" style={{ color: C.text2 }}>Sesión con costo adicional</span>
                 </label>
                 {form.esPagoExtra && (
                   <input type="number" inputMode="decimal" placeholder="Monto $" value={form.montoExtra}
                     onChange={e => setForm(f => ({ ...f, montoExtra: parseFloat(e.target.value) || 0 }))}
-                    className="mt-2 w-full bg-black/40 border border-white/10 rounded-control px-3 py-2 text-base md:text-sm text-white focus:outline-none focus:border-brand/50" />
+                    className="cut-focus arcade-input mt-2 w-full min-h-11 md:min-h-9 px-3 text-base md:text-sm font-bold focus:outline-none" style={fieldStyle} />
                 )}
               </div>
-            </div>
+            </CutCard>
           )}
 
           {/* Fecha */}
-          <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-control px-4 py-3">
-            <Calendar size={14} className="text-brand" />
+          <div className="flex items-center gap-2 px-4" style={boxStyle}>
+            <Calendar size={14} style={{ color: C.gold }} />
             <input type="date" value={form.fecha} onChange={e => setForm(f => ({ ...f, fecha: e.target.value }))}
-              className="bg-transparent text-base md:text-sm text-white font-bold focus:outline-none cursor-pointer" />
+              className="cut-focus arcade-input bg-transparent min-h-11 md:min-h-9 text-base md:text-sm font-bold focus:outline-none cursor-pointer" style={{ color: C.text }} />
           </div>
 
           {/* Tipo de Objetivo */}
-          <div className="glass-card rounded-panel p-5 border border-white/8">
-            <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">Tipo de Objetivo</label>
+          <CutCard cut={12} padding="20px">
+            <MicroLabel style={{ marginBottom: 12 }}>Tipo de Objetivo</MicroLabel>
             <div className="flex flex-wrap gap-2">
               {TIPOS.map(t => {
-                const Icon = TIPO_ICONS[t];
+                const { icon: Icon, c } = TIPO_META[t];
+                const activo = form.objetivoTipo === t;
                 return (
                   <button key={t} onClick={() => setForm(f => ({ ...f, objetivoTipo: t, ejerciciosIds: [] }))}
-                    className={`flex items-center space-x-1.5 min-h-11 md:min-h-9 px-3.5 rounded-lg border text-2xs font-black uppercase tracking-widest transition ${
-                      form.objetivoTipo === t ? TIPO_COLORS[t] : 'border-white/10 text-fg-muted hover:text-white hover:bg-white/5'
-                    }`}>
+                    aria-pressed={activo}
+                    className="cut-focus flex items-center gap-1.5 min-h-11 md:min-h-9 px-3.5 text-2xs font-black uppercase tracking-widest transition-colors"
+                    style={{
+                      clipPath: cut(5),
+                      background: activo ? C.cardAlt1 : 'transparent',
+                      border: `1px solid ${activo ? c : BORDER.neutralSoft}`,
+                      color: activo ? c : C.text3,
+                    }}>
                     <Icon size={12} />
                     <span>{t}</span>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </CutCard>
 
           {/* Selector de Pruebas (tipo Evaluación, P3b): programa la sesión ejecutable */}
           {esEvaluacion && (
-            <div className="glass-card rounded-panel p-5 border border-brand/20">
-              <label className="block text-3xs text-brand font-black uppercase tracking-[0.25em] mb-3">
+            <CutCard cut={12} padding="20px" border={BORDER.goldMid}>
+              <MicroLabel color={C.gold} style={{ marginBottom: 12 }}>
                 Pruebas de evaluación ({form.pruebasIds.length} seleccionadas)
-              </label>
-              <p className="text-2xs text-fg-muted mb-3">
+              </MicroLabel>
+              <p className="text-2xs mb-3" style={{ color: C.text3 }}>
                 El día {form.fecha} esta evaluación aparecerá en el Modo Cancha para pasar lista y capturar los resultados del grupo.
               </p>
               <div className="space-y-1.5 max-h-64 md:max-h-48 overflow-y-auto overscroll-contain pr-1">
                 {pruebasCatalogo.length === 0 && (
-                  <p className="text-xs text-fg-faint italic">No hay pruebas en el catálogo de evaluación.</p>
+                  <p className="text-xs italic" style={{ color: C.text4 }}>No hay pruebas en el catálogo de evaluación.</p>
                 )}
                 {pruebasCatalogo.map(p => {
                   const sel = form.pruebasIds.includes(p.id);
                   return (
                     <button key={p.id} onClick={() => togglePrueba(p.id)}
-                      className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-control border text-left transition ${
-                        sel ? 'text-brand bg-brand/10 border-brand/30 opacity-100' : 'border-white/5 hover:bg-white/5 opacity-70 hover:opacity-100'
-                      }`}>
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${sel ? 'bg-current border-current' : 'border-white/20'}`}>
-                        {sel && <div className="w-2 h-2 rounded-full bg-surface-base" />}
-                      </div>
+                      aria-pressed={sel}
+                      className="cut-focus w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+                      style={{
+                        clipPath: cut(5),
+                        background: sel ? TINT.gold : 'transparent',
+                        border: `1px solid ${sel ? BORDER.goldStrong : BORDER.neutralFaint}`,
+                        opacity: sel ? 1 : 0.8,
+                      }}>
+                      <span className="flex items-center justify-center flex-shrink-0"
+                        style={{ width: 16, height: 16, borderRadius: 9999, border: `1px solid ${sel ? C.gold : BORDER.neutralSoft}`, background: sel ? C.gold : 'transparent' }}>
+                        {sel && <span style={{ width: 8, height: 8, borderRadius: 9999, background: C.ink }} />}
+                      </span>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate">{p.nombre}</p>
-                        <p className="text-3xs text-fg-muted">{labelSubPilar(p.sub_pilar)} · {p.unidad}</p>
+                        <p className="text-xs font-bold" style={{ color: C.text }}>{p.nombre}</p>
+                        <MicroLabel style={{ margin: 0 }}>{labelSubPilar(p.sub_pilar)} · {p.unidad}</MicroLabel>
                       </div>
                     </button>
                   );
                 })}
               </div>
-            </div>
+            </CutCard>
           )}
 
           {/* Selector de Ejercicios (tipos de entrenamiento) */}
           {!esEvaluacion && (
-          <div className="glass-card rounded-panel p-5 border border-white/8">
-            <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">
+          <CutCard cut={12} padding="20px">
+            <MicroLabel style={{ marginBottom: 12 }}>
               Ejercicios ({ejerciciosFiltrados.length} disponibles)
-            </label>
+            </MicroLabel>
             <div className="space-y-1.5 max-h-64 md:max-h-48 overflow-y-auto overscroll-contain pr-1">
               {ejerciciosFiltrados.length === 0 && (
-                <p className="text-xs text-fg-faint italic">No hay ejercicios para este tipo en este grupo.</p>
+                <p className="text-xs italic" style={{ color: C.text4 }}>No hay ejercicios para este tipo en este grupo.</p>
               )}
               {ejerciciosFiltrados.map(ej => {
                 const sel = form.ejerciciosIds.includes(ej.id);
+                const c = TIPO_META[form.objetivoTipo].c;
                 return (
                   <button key={ej.id} onClick={() => toggleEjercicio(ej.id)}
-                    className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-control border text-left transition ${
-                      sel ? `${TIPO_COLORS[form.objetivoTipo]} opacity-100` : 'border-white/5 hover:bg-white/5 opacity-70 hover:opacity-100'
-                    }`}>
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${sel ? 'bg-current border-current' : 'border-white/20'}`}>
-                      {sel && <div className="w-2 h-2 rounded-full bg-surface-base" />}
-                    </div>
+                    aria-pressed={sel}
+                    className="cut-focus w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors"
+                    style={{
+                      clipPath: cut(5),
+                      background: sel ? C.cardAlt1 : 'transparent',
+                      border: `1px solid ${sel ? c : BORDER.neutralFaint}`,
+                      opacity: sel ? 1 : 0.8,
+                    }}>
+                    <span className="flex items-center justify-center flex-shrink-0"
+                      style={{ width: 16, height: 16, borderRadius: 9999, border: `1px solid ${sel ? c : BORDER.neutralSoft}`, background: sel ? c : 'transparent' }}>
+                      {sel && <span style={{ width: 8, height: 8, borderRadius: 9999, background: C.ink }} />}
+                    </span>
                     <div>
-                      <p className="text-xs font-bold text-white">{ej.nombre}</p>
-                      <p className="text-3xs text-fg-muted">{ej.descripcion?.substring(0, 60)}...</p>
+                      <p className="text-xs font-bold" style={{ color: C.text }}>{ej.nombre}</p>
+                      <p className="text-3xs" style={{ color: C.text3 }}>{ej.descripcion?.substring(0, 60)}...</p>
                     </div>
                   </button>
                 );
               })}
             </div>
             {form.ejerciciosIds.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-white/5">
-                <p className="text-3xs text-brand font-bold">{form.ejerciciosIds.length} ejercicio(s) seleccionado(s)</p>
+              <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${BORDER.neutralFaint}` }}>
+                <p className="text-3xs font-bold" style={{ color: C.gold }}>{form.ejerciciosIds.length} ejercicio(s) seleccionado(s)</p>
                 <textarea placeholder="Notas adicionales sobre los ejercicios..."
                   value={form.ejerciciosNotas} onChange={e => setForm(f => ({ ...f, ejerciciosNotas: e.target.value }))}
-                  rows={2} className="mt-2 w-full bg-black/40 border border-white/10 rounded-control px-3 py-2 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/50 resize-none" />
+                  rows={2} className="cut-focus arcade-input mt-2 w-full px-3 py-2 text-base md:text-sm focus:outline-none resize-none" style={fieldStyle} />
               </div>
             )}
-          </div>
+          </CutCard>
           )}
 
           {/* Objetivo (texto libre) */}
           <div>
-            <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-2">Objetivo de la Sesión</label>
+            <MicroLabel style={{ marginBottom: 8 }}>Objetivo de la Sesión</MicroLabel>
             <textarea
               placeholder="Describe el objetivo principal de hoy..."
               value={form.objetivoDesc}
               onChange={e => setForm(f => ({ ...f, objetivoDesc: e.target.value }))}
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-panel px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/50 resize-none transition-colors"
+              className="cut-focus arcade-input w-full px-4 py-3 text-base md:text-sm focus:outline-none resize-none"
+              style={{ clipPath: cut(8), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}`, color: C.text }}
             />
           </div>
 
           {/* Botón Registrar */}
           <button onClick={handleGuardar} disabled={saving || !form.objetivoDesc.trim() || (modo === 'Privada 1v1' && !atletaSeleccionado)}
-            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-panel font-black uppercase tracking-widest text-sm transition ${
-              saved ? 'bg-success/20 border border-success/40 text-success-soft'
-                    : 'bg-brand/10 border border-brand/30 text-brand hover:bg-brand/20 disabled:opacity-40 disabled:cursor-not-allowed'
-            }`}>
+            className={`cut-focus w-full flex items-center justify-center gap-2 min-h-11 py-4 font-black uppercase tracking-widest text-sm transition ${saved ? '' : 'disabled:opacity-40 disabled:cursor-not-allowed'}`}
+            style={saved
+              ? { clipPath: cut(8), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }
+              : { clipPath: cut(8), background: GRAD.goldCTA, border: 'none', color: C.ink }}>
             {saving ? <span className="animate-pulse">Registrando...</span>
               : saved ? <><CheckCircle2 size={16} /><span>¡Sesión Registrada!</span></>
               : <><Plus size={16} /><span>Registrar Sesión</span></>}
           </button>
 
           {/* Guardar como plantilla (biblioteca del Modo Cancha) */}
-          <button onClick={handleGuardarPlantilla} disabled={saving || !form.objetivoDesc.trim()}
-            className="w-full flex items-center justify-center space-x-2 py-3 rounded-2xl font-bold uppercase tracking-widest text-xs border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+          <button onClick={pedirNombrePlantilla} disabled={saving || !form.objetivoDesc.trim()}
+            className="cut-focus w-full flex items-center justify-center gap-2 min-h-11 py-3 font-bold uppercase tracking-widest text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ clipPath: cut(7), background: 'transparent', border: `1px solid ${BORDER.neutralSoft}`, color: C.text2 }}>
             <ClipboardList size={14} />
             <span>Guardar como plantilla del Modo Cancha</span>
           </button>
@@ -486,19 +562,20 @@ export default function AdminSesiones({ user, atletas = [] }) {
         {/* PANEL DERECHO: Historial */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-black text-white uppercase tracking-widest">Historial Reciente</h3>
-            <span className="text-3xs text-fg-muted font-bold">{historial.length} sesiones</span>
+            <MicroLabel as="h3" size={11} color={C.text} tracking=".08em" style={{ margin: 0 }}>Historial Reciente</MicroLabel>
+            <span className="text-3xs font-bold" style={{ color: C.text3 }}>{historial.length} sesiones</span>
           </div>
           {errorCarga && (
-            <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-panel border border-danger/40 bg-danger/10 p-4">
-              <AlertTriangle size={18} className="text-danger-soft shrink-0" />
-              <p className="flex-1 min-w-[180px] text-xs font-bold text-danger-soft">
+            <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 p-4" style={{ clipPath: cut(10), background: TINT.danger, border: `1px solid ${BORDER.danger}` }}>
+              <AlertTriangle size={18} className="shrink-0" style={{ color: C.danger }} />
+              <p className="flex-1 min-w-[180px] text-xs font-bold" style={{ color: C.danger }}>
                 No se pudo cargar el historial. Esto no significa que esté vacío — puede ser un problema de conexión.
               </p>
               <button
                 type="button"
                 onClick={load}
-                className="inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-control bg-danger/20 border border-danger/50 text-danger-soft text-2xs font-black uppercase tracking-widest hover:bg-danger/30 transition"
+                className="cut-focus inline-flex items-center min-h-11 md:min-h-9 px-3.5 text-2xs font-black uppercase tracking-widest transition-colors"
+                style={{ clipPath: cut(7), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}
               >
                 Reintentar
               </button>
@@ -506,87 +583,106 @@ export default function AdminSesiones({ user, atletas = [] }) {
           )}
           <div className="space-y-3">
             {!errorCarga && historial.length === 0 && (
-              <div className="text-center py-16 text-fg-faint">
-                <ClipboardList size={32} className="mx-auto mb-3 opacity-30" />
+              <div className="text-center py-16" style={{ color: C.text4 }}>
+                <ClipboardList size={32} className="mx-auto mb-3" style={{ opacity: 0.3 }} />
                 <p className="text-sm font-bold">No hay sesiones registradas</p>
               </div>
             )}
             {historial.map(s => {
-              const logroCfg = s.se_logro ? LOGRO_CONFIG[s.se_logro] : null;
+              const logroCfg = s.se_logro ? LOGRO_META[s.se_logro] : null;
               const LogroIcon = logroCfg?.icon;
-              const tipoCfg = TIPO_COLORS[s.objetivo_tipo] || 'text-fg-secondary border-white/10';
+              const tipoC = TIPO_META[s.objetivo_tipo]?.c || C.text2;
               return (
-                <motion.div key={s.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="glass-card rounded-panel p-4 border border-white/8 hover:border-white/15 transition-colors">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <span className={`text-3xs font-black px-2 py-0.5 rounded-full border uppercase tracking-widest ${tipoCfg}`}>
-                        {s.tipo} • {s.objetivo_tipo}
-                      </span>
-                      {s.tipo?.startsWith('Grupal') && s.grupos_entrenamiento && (
-                        <span className="text-3xs text-fg-muted">{s.grupos_entrenamiento.nombre}</span>
-                      )}
-                      {s.tipo === 'Privada 1v1' && s.atletas && (
-                        <span className="text-3xs text-fg-muted">{s.atletas?.usuarios?.nombre}</span>
-                      )}
-                    </div>
-                    <span className="text-3xs text-fg-faint font-bold">{s.fecha}</span>
-                  </div>
-                  <p className="text-xs text-gray-300 mb-3 leading-relaxed">{s.objetivo_descripcion}</p>
-
-                  {/* Estado de evaluación */}
-                  {s.se_logro ? (
-                    <div className="flex items-center justify-between">
-                      <div className={`flex items-center space-x-1.5 text-2xs font-bold px-2 py-1 rounded-lg ${logroCfg?.color}`}>
-                        {LogroIcon && <LogroIcon size={12} />}
-                        <span>Se logró: {s.se_logro}</span>
+                <motion.div key={s.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <CutCard cut={12} padding="16px">
+                    <div className="flex items-start justify-between mb-2 gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-3xs font-black px-2 py-0.5 uppercase tracking-widest"
+                          style={{ clipPath: cut(4), border: `1px solid ${tipoC}`, color: tipoC }}>
+                          {s.tipo} • {s.objetivo_tipo}
+                        </span>
+                        {s.tipo?.startsWith('Grupal') && s.grupos_entrenamiento && (
+                          <span className="text-3xs" style={{ color: C.text3 }}>{s.grupos_entrenamiento.nombre}</span>
+                        )}
+                        {s.tipo === 'Privada 1v1' && s.atletas && (
+                          <span className="text-3xs" style={{ color: C.text3 }}>{s.atletas?.usuarios?.nombre}</span>
+                        )}
                       </div>
-                      <button onClick={() => abrirWA(s)}
-                        className="flex items-center gap-1.5 px-3 py-2.5 min-h-11 rounded-lg border border-success/30 text-xs font-bold text-success-soft hover:text-emerald-300 hover:bg-success/10 transition-colors">
-                        <MessageSquare size={13} />
-                        <span>WhatsApp</span>
-                      </button>
+                      <span className="text-3xs font-bold shrink-0" style={{ color: C.text4 }}>{s.fecha}</span>
                     </div>
-                  ) : (
-                    evaluandoId === s.id ? (
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          {['Sí', 'Parcial', 'No'].map(v => (
-                            <button key={v} onClick={() => setEvalData(e => ({ ...e, se_logro: v }))}
-                              className={`flex-1 py-3 min-h-11 rounded-lg text-xs font-black uppercase border transition ${
-                                evalData.se_logro === v ? LOGRO_CONFIG[v].color : 'border-white/10 text-fg-muted hover:bg-white/5'
-                              }`}>{v}</button>
-                          ))}
+                    <p className="text-xs mb-3 leading-relaxed" style={{ color: C.text2 }}>{s.objetivo_descripcion}</p>
+
+                    {/* Estado de evaluación */}
+                    {s.se_logro ? (
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-2xs font-bold px-2 py-1"
+                          style={{ clipPath: cut(4), background: logroCfg?.tint, border: `1px solid ${logroCfg?.c}`, color: logroCfg?.c }}>
+                          {LogroIcon && <LogroIcon size={12} />}
+                          <span>Se logró: {s.se_logro}</span>
                         </div>
-                        <textarea rows={2} placeholder="Notas de evaluación..."
-                          value={evalData.notas} onChange={e => setEvalData(d => ({ ...d, notas: e.target.value }))}
-                          className="w-full bg-black/40 border border-white/10 rounded-control px-3 py-2 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none resize-none" />
-                        <div className="flex gap-2">
-                          <button onClick={() => handleEvaluar(s.id)}
-                            className="flex-1 py-2 bg-brand/10 border border-brand/30 text-brand text-2xs font-black rounded-control uppercase tracking-widest hover:bg-brand/20">
-                            Guardar
-                          </button>
-                          <button onClick={() => setEvaluandoId(null)}
-                            className="px-3 py-2 border border-white/10 text-fg-muted text-2xs font-black rounded-control uppercase hover:text-white">
-                            Cancelar
-                          </button>
-                        </div>
+                        <button onClick={() => abrirWA(s)}
+                          className="cut-focus flex items-center gap-1.5 px-3 min-h-11 py-2.5 text-xs font-bold transition-colors"
+                          style={{ clipPath: cut(6), border: `1px solid ${BORDER.ok}`, color: C.whatsapp }}>
+                          <MessageSquare size={13} />
+                          <span>WhatsApp</span>
+                        </button>
                       </div>
                     ) : (
-                      <button onClick={() => { setEvaluandoId(s.id); setEvalData({ se_logro: 'Sí', notas: '' }); }}
-                        className="flex items-center space-x-1.5 px-3 py-2.5 min-h-11 rounded-lg border border-yellow-500/30 bg-yellow-500/5 text-xs font-bold text-yellow-400/80 hover:text-yellow-400 hover:bg-yellow-500/10 transition-colors">
-                        <Clock size={12} />
-                        <span>Pendiente de evaluación → Evaluar</span>
-                        <ChevronRight size={10} />
-                      </button>
-                    )
-                  )}
+                      evaluandoId === s.id ? (
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            {['Sí', 'Parcial', 'No'].map(v => {
+                              const activo = evalData.se_logro === v;
+                              const vc = LOGRO_META[v].c;
+                              return (
+                                <button key={v} onClick={() => setEvalData(e => ({ ...e, se_logro: v }))}
+                                  aria-pressed={activo}
+                                  className="cut-focus flex-1 py-3 min-h-11 text-xs font-black uppercase transition-colors"
+                                  style={{
+                                    clipPath: cut(5),
+                                    background: activo ? C.cardAlt1 : 'transparent',
+                                    border: `1px solid ${activo ? vc : BORDER.neutralSoft}`,
+                                    color: activo ? vc : C.text3,
+                                  }}>{v}</button>
+                              );
+                            })}
+                          </div>
+                          <textarea rows={2} placeholder="Notas de evaluación..."
+                            value={evalData.notas} onChange={e => setEvalData(d => ({ ...d, notas: e.target.value }))}
+                            className="cut-focus arcade-input w-full px-3 py-2 text-base md:text-sm focus:outline-none resize-none" style={fieldStyle} />
+                          <div className="flex gap-2">
+                            <button onClick={() => handleEvaluar(s.id)}
+                              className="cut-focus flex-1 py-2 min-h-11 text-2xs font-black uppercase tracking-widest transition"
+                              style={{ clipPath: cut(6), background: GRAD.goldCTA, border: 'none', color: C.ink }}>
+                              Guardar
+                            </button>
+                            <button onClick={() => setEvaluandoId(null)}
+                              className="cut-focus px-3 py-2 min-h-11 text-2xs font-black uppercase transition-colors"
+                              style={{ clipPath: cut(6), background: 'transparent', border: `1px solid ${BORDER.neutralSoft}`, color: C.text3 }}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button onClick={() => { setEvaluandoId(s.id); setEvalData({ se_logro: 'Sí', notas: '' }); }}
+                          className="cut-focus flex items-center gap-1.5 px-3 min-h-11 py-2.5 text-xs font-bold transition-colors"
+                          style={{ clipPath: cut(6), background: C.cardAlt1, border: `1px solid ${BORDER.warn}`, color: C.warn }}>
+                          <Clock size={12} />
+                          <span>Pendiente de evaluación → Evaluar</span>
+                          <ChevronRight size={10} />
+                        </button>
+                      )
+                    )}
+                  </CutCard>
                 </motion.div>
               );
             })}
           </div>
         </div>
       </div>
+
+      {/* Diálogo HUD (reemplaza window.prompt/alert): nombre de plantilla, avisos y errores */}
+      <ModalHUD open={!!modal} {...(modal || {})} onClose={() => setModal(null)} />
     </div>
   );
 }
