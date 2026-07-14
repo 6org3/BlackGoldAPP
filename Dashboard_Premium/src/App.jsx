@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppAtletasData, FILTROS_INICIALES } from './hooks/useAppAtletasData';
 import AppHeader from './components/AppHeader';
 import Plantel from './components/Plantel';
+import { C, gridBackgroundDesktop } from './components/arcade/arcadeTokens';
 
 // Vista exclusiva para atletas — layout propio con sidebar + tabs. El switch
 // vive aquí (y no en Plantel) porque tanto /dashboard como su alias /atleta
@@ -54,7 +55,10 @@ function App() {
   if (user.rol === 'atleta') return <VistaAtleta user={user} />;
 
   return (
-    <div className="flex h-dvh bg-surface-base overflow-hidden text-white selection:bg-brand selection:text-black">
+    <div
+      className="flex h-dvh overflow-hidden selection:bg-brand selection:text-black"
+      style={{ ...gridBackgroundDesktop, color: C.text }}
+    >
       <Sidebar
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
@@ -63,13 +67,9 @@ function App() {
       {/* pb móvil reserva espacio para el FAB flotante "Modo Cancha" que
           Sidebar monta en esta superficie (bottom 24px + ~56px de alto) — si
           no, queda flotando sobre la última tarjeta al hacer scroll hasta
-          el final. */}
+          el final. El lienzo lleva la retícula dorada `gridBackgroundDesktop`
+          (design_system_arcade.md §6.1), no blobs de blur. */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-12 pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-12 relative">
-        {/* Blobs decorativos solo en desktop: el blur gigante + mix-blend
-            fuerza composición GPU cara en móviles de gama baja. */}
-        <div className="hidden md:block absolute top-[-20%] left-[10%] w-[800px] h-[600px] bg-brand/5 blur-[150px] pointer-events-none rounded-full mix-blend-screen"></div>
-        <div className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-strong/5 blur-[120px] pointer-events-none rounded-full mix-blend-screen"></div>
-
         <AppHeader
           user={user}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
