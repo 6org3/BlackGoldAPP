@@ -181,6 +181,16 @@
    #6B7280) — los estilos inline no pueden alcanzar el pseudo-elemento. */
 .arcade-input::placeholder { color: var(--color-fg-muted); opacity: 1; }
 
+/* Tabla-HUD (design_system_arcade.md §6.2): hover de fila y foco de teclado —
+   pseudo-clases que los estilos inline de TablaHUD no pueden alcanzar. El hover
+   despierta el fondo (patrón "hover de fila" del DS v1); el foco reutiliza el
+   anillo dorado del HUD para filas accionables (role=button, tabIndex). */
+.tabla-hud-row:hover { background: rgba(255, 255, 255, 0.03); }
+.tabla-hud-row:focus-visible {
+  outline: 2px solid rgb(255 215 0 / 0.9);
+  outline-offset: -2px;
+}
+
 /* --------------------------------------------------------------
    CAPA 3 · COMPONENTE — tokens de dimensión compartidos
    -------------------------------------------------------------- */

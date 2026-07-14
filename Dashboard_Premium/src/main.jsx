@@ -76,6 +76,11 @@ const CoachHomePage = lazy(() => import('./pages/CoachHomePage.jsx'))
 // + cableado real (KPIs/finanzas/asistencia). ClubHomePage.jsx queda como legacy.
 const VistaDuenoArcade = lazy(() => import('./components/arcade/VistaDuenoArcade.jsx'))
 const SistemaHomePage = lazy(() => import('./pages/SistemaHomePage.jsx'))
+// Banco de pruebas de las primitivas densas del Arcade (Ola 0, design_system_arcade.md §6).
+// Solo en dev: nunca se incluye en el bundle de producción ni se enlaza desde la nav.
+const ArcadeDensidadDemo = import.meta.env.DEV
+  ? lazy(() => import('./components/arcade/PantallaArcadeDensidad.jsx'))
+  : null
 
 // La PWA instalada abre en '/': si supabase-js aún tiene sesión válida no hay
 // que volver a pedir credenciales, se entra directo al panel según el rol.
@@ -238,6 +243,9 @@ createRoot(document.getElementById('root')).render(
               </PrivateRoute>
             }
           />
+          {import.meta.env.DEV && ArcadeDensidadDemo && (
+            <Route path="/dev/arcade-densidad" element={<ArcadeDensidadDemo />} />
+          )}
           <Route path="/" element={<RootRedirect />} />
           {/* Cualquier URL desconocida (typo, deep-link viejo) vuelve al
               redirect raíz en vez de renderizar una pantalla negra. */}
