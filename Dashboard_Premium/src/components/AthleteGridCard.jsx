@@ -2,11 +2,22 @@ import { motion } from 'framer-motion';
 import { Droplets } from 'lucide-react';
 import { recoveryPill } from '../lib/recoveryPill';
 import { tieneDatosAntropometricos } from '../api/utilsAtletas';
+import HexAvatar from './arcade/HexAvatar';
+import { cut } from './arcade/arcadeTokens';
+
+// Hue del avatar hexagonal por readiness (misma semántica que AtletaCard):
+// rojo agotamiento, naranja fatiga, verde óptimo, oro por defecto.
+const HUE_READINESS = {
+  'Agotamiento Activo': 'red',
+  'Fatiga Silenciosa': 'orange',
+  'Óptimo': 'green',
+};
 
 export default function AthleteGridCard({ atleta, onClick }) {
   const pillColor = recoveryPill(atleta.estado_recuperacion);
   const deshidratado = atleta.readiness_hoy && atleta.readiness_hoy.color_orina >= 5;
   const conAntropometria = tieneDatosAntropometricos(atleta);
+  const avatarHue = HUE_READINESS[atleta.estado_recuperacion] || 'gold';
 
   return (
     <motion.div
@@ -21,7 +32,8 @@ export default function AthleteGridCard({ atleta, onClick }) {
           onClick();
         }
       }}
-      className="bg-white/[0.03] border border-white/10 rounded-panel p-5 hover:border-brand/30 focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:outline-none transition cursor-pointer relative group"
+      style={{ clipPath: cut(10) }}
+      className="cut-focus bg-surface-card border border-white/10 p-5 hover:border-brand/30 transition cursor-pointer relative group"
     >
       {/* Recovery / Readiness alerts: pills con texto visible (nada de
           significado solo-hover en información médica) */}
@@ -48,11 +60,9 @@ export default function AthleteGridCard({ atleta, onClick }) {
         </div>
       )}
 
-      {/* Top: Avatar + Identity */}
+      {/* Top: Avatar hexagonal (hue por readiness) + Identity */}
       <div className="flex items-center space-x-3 mb-4">
-        <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-          <span className="text-lg font-black text-white/50 uppercase">{atleta.nombre?.charAt(0)}</span>
-        </div>
+        <HexAvatar size={44} hue={avatarHue} initial={atleta.nombre?.charAt(0)?.toUpperCase()} />
         <div className="min-w-0">
           <p className="font-bold text-white truncate text-sm group-hover:text-brand transition-colors">
             {atleta.nombre}
@@ -85,25 +95,25 @@ export default function AthleteGridCard({ atleta, onClick }) {
         </div>
       </div>
 
-      {/* Mini metric pills - Anthropometry */}
+      {/* Mini metric pills - Anthropometry (rounded-lg como el molde AtletaCard; verde tokenizado a success) */}
       <div className="flex items-center gap-2 flex-wrap mt-2 pt-3 border-t border-white/5">
         {conAntropometria ? (
           <>
-            <span title="Estatura" className="text-xs font-bold px-2 py-1 rounded-lg bg-info/10 text-info-soft">
+            <span title="Estatura" className="text-xs font-bold px-2 py-1 rounded-lg bg-info/10 text-info-soft border border-info/20">
               {atleta.talla_cm ? `${atleta.talla_cm} cm` : '—'}
             </span>
-            <span title="Peso" className="text-xs font-bold px-2 py-1 rounded-lg bg-green-500/10 text-green-400">
+            <span title="Peso" className="text-xs font-bold px-2 py-1 rounded-lg bg-success/10 text-success-soft border border-success/20">
               {atleta.peso_kg ? `${atleta.peso_kg} kg` : '—'}
             </span>
-            <span title="Índice de Masa Corporal (IMC)" className="text-xs font-bold px-2 py-1 rounded-lg bg-mental/10 text-mental-soft">
+            <span title="Índice de Masa Corporal (IMC)" className="text-xs font-bold px-2 py-1 rounded-lg bg-mental/10 text-mental-soft border border-mental/20">
               IMC: {atleta.imc || '—'}
             </span>
-            <span title="Brazada Relativa" className="text-xs font-bold px-2 py-1 rounded-lg bg-brand/10 text-brand">
+            <span title="Brazada Relativa" className="text-xs font-bold px-2 py-1 rounded-lg bg-brand/10 text-brand border border-brand/20">
               BR: {atleta.brazada_relativa || '—'}
             </span>
           </>
         ) : (
-          <span className="text-xs font-bold px-2 py-1 rounded-lg bg-white/5 text-fg-faint">
+          <span className="text-xs font-bold px-2 py-1 rounded-lg bg-white/5 text-fg-faint border border-white/10">
             Sin datos antropométricos
           </span>
         )}
