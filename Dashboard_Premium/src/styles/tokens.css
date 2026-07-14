@@ -193,6 +193,39 @@
   outline-offset: -2px;
 }
 
+/* Controles con esquina cortada (clipPath cut(n)): el outline exterior del
+   :focus-visible global queda recortado por el polígono — el anillo interior
+   sobrevive al clip (solo pierde las 2 esquinas de corte; mismo trade-off
+   que .tabla-hud-row). Añadir a todo botón/control clipeado. */
+.cut-focus:focus-visible {
+  outline: 2px solid rgb(255 215 0 / 0.9);
+  outline-offset: -2px;
+}
+
+/* Retícula dorada del lienzo Arcade en los homes (HomeShell): móvil pinta la
+   retícula 36px del marco (design_system_arcade.md §2.6) y md+ la densa de
+   44px a ancho completo (§6.1) — un estilo inline no puede cambiar por
+   breakpoint. Espejo CSS de gridBackground / gridBackgroundDesktop de
+   arcadeTokens.js: mantener sincronizados ambos pares de valores. */
+.bg-arcade-grid {
+  background-color: #050507; /* C.bgPhone */
+  background-image:
+    linear-gradient(rgb(255 215 0 / 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 215 0 / 0.028) 1px, transparent 1px),
+    radial-gradient(900px 480px at 50% -8%, rgb(255 215 0 / 0.07), transparent 60%);
+  background-size: 36px 36px, 36px 36px, 100% 100%;
+}
+@media (min-width: 768px) {
+  .bg-arcade-grid {
+    background-color: #050506; /* C.bgApp */
+    background-image:
+      linear-gradient(rgb(255 215 0 / 0.024) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 215 0 / 0.024) 1px, transparent 1px),
+      radial-gradient(1200px 520px at 50% -10%, rgb(255 215 0 / 0.06), transparent 60%);
+    background-size: 44px 44px, 44px 44px, 100% 100%;
+  }
+}
+
 /* --------------------------------------------------------------
    CAPA 3 · COMPONENTE — tokens de dimensión compartidos
    -------------------------------------------------------------- */

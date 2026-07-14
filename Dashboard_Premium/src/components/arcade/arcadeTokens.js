@@ -87,6 +87,16 @@ export const GRAD = {
   rankConnector: 'linear-gradient(90deg,#22D3EE,#FFD700)', // conector cian→oro entre nodos de rango (PantallaAtletaProgreso)
 };
 
+/* ---- Tintes de superficie por tono ----
+   Fondos teñidos de chips/pills estáticos (ContextChip/SectionEyebrow del
+   shell de homes). Más tenues que hueBg (.2, para avatares/identidad). */
+export const TINT = {
+  gold: 'rgba(255,215,0,.07)',
+  info: 'rgba(96,165,250,.08)',
+  ok:   'rgba(52,211,153,.08)',
+  ai:   'rgba(168,85,247,.1)',
+};
+
 /** Relleno del polígono de datos del RadarChart — oro translúcido (.18). */
 export const RADAR_FILL = 'rgba(255,215,0,.18)';
 
