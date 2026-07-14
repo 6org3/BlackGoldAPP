@@ -8,7 +8,7 @@ export default function CompararPruebasPage() {
   const { user } = useAuth();
 
   return (
-    <AdminShell conGlow>
+    <AdminShell>
       <CompararPruebas user={user} />
     </AdminShell>
   );

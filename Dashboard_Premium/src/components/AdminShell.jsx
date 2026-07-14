@@ -5,6 +5,7 @@ import BottomNav from './BottomNav';
 import { CopilotoProvider } from './CopilotoLauncher';
 import { useAuth } from '../AuthContext';
 import { BOTTOM_NAV_POR_ROL } from '../lib/bottomNavConfig';
+import { C, gridBackgroundDesktop } from './arcade/arcadeTokens';
 
 /**
  * AdminShell — gemelo de HomeShell para las páginas /admin/*: monta el mismo
@@ -20,11 +21,14 @@ import { BOTTOM_NAV_POR_ROL } from '../lib/bottomNavConfig';
  * Props:
  * - padding: clases de padding del <main> (default 'p-6 md:p-10'); usar '' si
  *   el componente interno ya trae su propio padding.
- * - conGlow: pinta el glow ambiental dorado (solo desktop) dentro del main.
  * - fabElevado: sube el FAB del Copiloto en móvil por encima de un footer
  *   sticky del módulo (p.ej. Guardar en Asistencia).
+ *
+ * El lienzo usa la retícula dorada `gridBackgroundDesktop` (design_system_arcade.md
+ * §6.1), no un blob de blur. La antigua prop `conGlow` quedó sin efecto (los
+ * callers que aún la pasan se ignoran sin error).
  */
-export default function AdminShell({ children, padding = 'p-6 md:p-10', conGlow = false, fabElevado = false }) {
+export default function AdminShell({ children, padding = 'p-6 md:p-10', fabElevado = false }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -35,7 +39,7 @@ export default function AdminShell({ children, padding = 'p-6 md:p-10', conGlow 
 
   return (
     <CopilotoProvider fabElevado={fabElevado}>
-    <div className="flex h-dvh bg-surface-base overflow-hidden text-white">
+    <div className="flex h-dvh overflow-hidden" style={{ ...gridBackgroundDesktop, color: C.text }}>
       {/* ocultarFabModoCancha: el FAB amarillo del Sidebar taparía el ítem
           "Misiones" de la BottomNav en móvil; Modo Cancha queda accesible
           desde el drawer y el CTA del Inicio (mismo criterio que HomeShell). */}
@@ -46,10 +50,6 @@ export default function AdminShell({ children, padding = 'p-6 md:p-10', conGlow 
       />
 
       <main className={`flex-1 overflow-y-auto overflow-x-hidden relative z-0 ${padding} ${itemsNav ? 'pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-[calc(env(safe-area-inset-bottom)+24px)]' : 'pb-[calc(env(safe-area-inset-bottom)+24px)]'}`}>
-        {conGlow && (
-          <div className="hidden md:block absolute top-[-20%] left-[10%] w-[800px] h-[600px] bg-brand/5 blur-[150px] pointer-events-none rounded-full mix-blend-screen"></div>
-        )}
-
         <div className="relative z-10">{children}</div>
       </main>
 
