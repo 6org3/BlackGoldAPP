@@ -1,11 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Target, Users, CheckCircle2, Loader2, X, Bookmark, Lightbulb, Plus } from 'lucide-react';
+import { Target, Users, CheckCircle2, Loader2, Bookmark, Lightbulb, Plus } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 import { asignarMisionAAtleta } from '../api/misionesService';
 import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
 import { getSubPilarScores } from '../lib/radarCalc';
+import ModalShell from './arcade/ModalShell';
+import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
+
+const fieldStyle = { clipPath: cut(6), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}`, color: C.text };
+const bancoStyle = { clipPath: cut(6), background: TINT.gold, border: `1px solid ${BORDER.goldStrong}`, color: C.gold };
+const labelCls = 'block text-xs font-bold uppercase tracking-wider mb-2';
 
 export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
   const { user } = useAuth();
@@ -39,13 +45,6 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
   // estar vacío, así que se deriva el valor efectivo en vez de fijarlo una
   // sola vez (el select mostraba la 1ª opción pero el filtro usaba '').
   const categoriaEfectiva = categoriaSeleccionada || categorias[0] || '';
-
-  // Scroll-lock del fondo mientras el modal está abierto (en iOS el body
-  // scrollea por detrás del overlay).
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
 
   useEffect(() => {
     let cancelado = false;
@@ -174,217 +173,150 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/80 backdrop-blur-sm">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-card w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border border-white/10 max-h-[85dvh] overflow-y-auto custom-scrollbar"
-      >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="bg-brand/20 p-2 rounded-lg">
-              <Target className="text-brand w-6 h-6" />
-            </div>
-            <h2 className="text-xl font-bold text-white">Asignar Misión</h2>
-          </div>
-          <button onClick={onClose} aria-label="Cerrar" className="p-2 -m-2 text-fg-secondary hover:text-white">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {/* Tipo de asignación */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Asignar a:</label>
-              <select
-                value={asignacionTipo}
-                onChange={(e) => setAsignacionTipo(e.target.value)}
-                className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-              >
-                <option value="atleta">Un Atleta Específico</option>
-                <option value="categoria">Una Categoría Entera</option>
-                <option value="todos">Todos los Atletas</option>
-              </select>
-            </div>
-
-            {asignacionTipo === 'atleta' && (
-              <div>
-                <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Atleta</label>
-                <select
-                  value={atletaSeleccionado}
-                  onChange={(e) => setAtletaSeleccionado(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-                >
-                  <option value="">Selecciona...</option>
-                  {todosLosAtletas.map(a => (
-                    <option key={a.id} value={a.id}>{a.nombre} — {a.categoria}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {asignacionTipo === 'categoria' && (
-              <div>
-                <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Categoría</label>
-                <select
-                  value={categoriaEfectiva}
-                  onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-                >
-                  {categorias.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {asignacionTipo === 'todos' && (
-              <div className="flex items-end pb-3">
-                <span className="text-xs text-brand font-bold flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  {todosLosAtletas.length} atletas
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Banco de misiones */}
-          <div className="pt-4 border-t border-white/10">
-            <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2 flex items-center gap-1">
-              <Bookmark className="w-3 h-3" /> Banco de Misiones
-            </label>
-            <select
-              value={misionSeleccionadaId}
-              onChange={handleMisionSelect}
-              className="w-full bg-brand/10 border border-brand/30 rounded-xl p-3 text-brand font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-            >
-              <option value="">— Selecciona del Banco —</option>
-              {loadingBanco ? (
-                <option disabled>Cargando...</option>
-              ) : (
-                bancoMisiones.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.titulo} · {PILAR_LABELS[m.pilar] || m.pilar} · {m.xp_recompensa} XP
-                  </option>
-                ))
-              )}
-              <option value="nueva">+ Crear nueva misión</option>
+    <ModalShell onClose={onClose} icon={Target} title="Asignar Misión" align="end">
+      <div className="space-y-4">
+        {/* Tipo de asignación */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls} style={{ color: C.text2 }}>Asignar a:</label>
+            <select value={asignacionTipo} onChange={(e) => setAsignacionTipo(e.target.value)}
+              className="cut-focus arcade-input w-full min-h-11 p-3 font-bold focus:outline-none" style={fieldStyle}>
+              <option value="atleta">Un Atleta Específico</option>
+              <option value="categoria">Una Categoría Entera</option>
+              <option value="todos">Todos los Atletas</option>
             </select>
           </div>
 
-          {/* Detalle / Formulario */}
-          {misionSeleccionadaId && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="space-y-4 mt-2"
-            >
-              <div>
-                <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Título</label>
-                <input
-                  type="text"
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  disabled={!modoCreacion}
-                  placeholder="Ej: Ver video de técnica de tiro"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-                />
-              </div>
-
-              {modoCreacion && (
-                <>
-                  <div>
-                    <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Descripción</label>
-                    <textarea
-                      value={descripcion}
-                      onChange={(e) => setDescripcion(e.target.value)}
-                      placeholder="Instrucciones para el atleta..."
-                      className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white h-20 resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Pilar</label>
-                      <select
-                        value={pilar}
-                        onChange={(e) => setPilar(e.target.value)}
-                        className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-                      >
-                        {PILARES_OPTIONS.map(({ value, label }) => (
-                          <option key={value} value={value}>{label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">URL Video (opcional)</label>
-                      <input
-                        type="url"
-                        value={videoUrl}
-                        onChange={(e) => setVideoUrl(e.target.value)}
-                        placeholder="https://youtube.com/..."
-                        className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* XP */}
-              <div>
-                <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">XP de Recompensa</label>
-                <div className="flex space-x-2">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    value={recompensa}
-                    onChange={(e) => setRecompensa(e.target.value)}
-                    disabled={!modoCreacion}
-                    className="w-32 bg-black/30 border border-white/10 rounded-xl p-3 text-white disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
-                  />
-                  {modoCreacion && sugerenciaXP && (
-                    <button
-                      onClick={() => setRecompensa(sugerenciaXP.xp)}
-                      className="flex-1 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl p-3 text-2xs font-bold hover:bg-emerald-500/20 transition-colors"
-                    >
-                      <Lightbulb className="w-4 h-4 shrink-0" />
-                      <span className="text-left leading-tight">{sugerenciaXP.msg}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </motion.div>
+          {asignacionTipo === 'atleta' && (
+            <div>
+              <label className={labelCls} style={{ color: C.text2 }}>Atleta</label>
+              <select value={atletaSeleccionado} onChange={(e) => setAtletaSeleccionado(e.target.value)}
+                className="cut-focus arcade-input w-full min-h-11 p-3 font-bold focus:outline-none" style={fieldStyle}>
+                <option value="">Selecciona...</option>
+                {todosLosAtletas.map(a => (
+                  <option key={a.id} value={a.id}>{a.nombre} — {a.categoria}</option>
+                ))}
+              </select>
+            </div>
           )}
 
-          {error && <div className="text-red-400 text-sm font-medium pt-1">{error}</div>}
+          {asignacionTipo === 'categoria' && (
+            <div>
+              <label className={labelCls} style={{ color: C.text2 }}>Categoría</label>
+              <select value={categoriaEfectiva} onChange={(e) => setCategoriaSeleccionada(e.target.value)}
+                className="cut-focus arcade-input w-full min-h-11 p-3 font-bold focus:outline-none" style={fieldStyle}>
+                {categorias.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          <button
-            onClick={handleAssign}
-            disabled={loading || success || !misionSeleccionadaId}
-            className={`w-full mt-2 flex items-center justify-center gap-2 p-4 rounded-xl font-bold uppercase tracking-widest transition ${
-              success
-                ? 'bg-emerald-500 text-black'
-                : 'bg-brand hover:bg-brand-hover text-black disabled:opacity-40'
-            }`}
-          >
-            {loading
-              ? <Loader2 className="animate-spin w-5 h-5" />
-              : success
-              ? <CheckCircle2 className="w-5 h-5" />
-              : modoCreacion
-              ? <Plus className="w-5 h-5" />
-              : <Target className="w-5 h-5" />
-            }
-            <span>
-              {success ? 'Misión Asignada' : modoCreacion ? 'Crear y Asignar' : 'Asignar Misión'}
-            </span>
-          </button>
+          {asignacionTipo === 'todos' && (
+            <div className="flex items-end pb-3">
+              <span className="text-xs font-bold flex items-center gap-1" style={{ color: C.gold }}>
+                <Users className="w-4 h-4" />
+                {todosLosAtletas.length} atletas
+              </span>
+            </div>
+          )}
         </div>
-      </motion.div>
-    </div>
+
+        {/* Banco de misiones */}
+        <div className="pt-4" style={{ borderTop: `1px solid ${BORDER.neutral}` }}>
+          <label className={`${labelCls} flex items-center gap-1`} style={{ color: C.text2 }}>
+            <Bookmark className="w-3 h-3" /> Banco de Misiones
+          </label>
+          <select value={misionSeleccionadaId} onChange={handleMisionSelect}
+            className="cut-focus arcade-input w-full min-h-11 p-3 font-bold focus:outline-none" style={bancoStyle}>
+            <option value="">— Selecciona del Banco —</option>
+            {loadingBanco ? (
+              <option disabled>Cargando...</option>
+            ) : (
+              bancoMisiones.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.titulo} · {PILAR_LABELS[m.pilar] || m.pilar} · {m.xp_recompensa} XP
+                </option>
+              ))
+            )}
+            <option value="nueva">+ Crear nueva misión</option>
+          </select>
+        </div>
+
+        {/* Detalle / Formulario */}
+        {misionSeleccionadaId && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 mt-2 overflow-hidden">
+            <div>
+              <label className={labelCls} style={{ color: C.text2 }}>Título</label>
+              <input type="text" value={titulo} onChange={(e) => setTitulo(e.target.value)} disabled={!modoCreacion} placeholder="Ej: Ver video de técnica de tiro"
+                className="cut-focus arcade-input w-full min-h-11 p-3 font-bold disabled:opacity-50 focus:outline-none" style={fieldStyle} />
+            </div>
+
+            {modoCreacion && (
+              <>
+                <div>
+                  <label className={labelCls} style={{ color: C.text2 }}>Descripción</label>
+                  <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Instrucciones para el atleta..."
+                    className="cut-focus arcade-input w-full p-3 h-20 resize-none focus:outline-none" style={fieldStyle} />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls} style={{ color: C.text2 }}>Pilar</label>
+                    <select value={pilar} onChange={(e) => setPilar(e.target.value)}
+                      className="cut-focus arcade-input w-full min-h-11 p-3 font-bold focus:outline-none" style={fieldStyle}>
+                      {PILARES_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={labelCls} style={{ color: C.text2 }}>URL Video (opcional)</label>
+                    <input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..."
+                      className="cut-focus arcade-input w-full min-h-11 p-3 font-bold focus:outline-none" style={fieldStyle} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* XP */}
+            <div>
+              <label className={labelCls} style={{ color: C.text2 }}>XP de Recompensa</label>
+              <div className="flex gap-2">
+                <input type="number" inputMode="numeric" min="0" value={recompensa} onChange={(e) => setRecompensa(e.target.value)} disabled={!modoCreacion}
+                  className="cut-focus arcade-input w-32 min-h-11 p-3 font-bold disabled:opacity-50 focus:outline-none" style={fieldStyle} />
+                {modoCreacion && sugerenciaXP && (
+                  <button type="button" onClick={() => setRecompensa(sugerenciaXP.xp)}
+                    className="cut-focus flex-1 flex items-center gap-2 p-3 min-h-11 text-2xs font-bold transition-colors"
+                    style={{ clipPath: cut(6), background: TINT.ok, border: `1px solid ${BORDER.ok}`, color: C.ok }}>
+                    <Lightbulb className="w-4 h-4 shrink-0" />
+                    <span className="text-left leading-tight">{sugerenciaXP.msg}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {error && <div role="alert" className="text-sm font-medium pt-1" style={{ color: C.danger }}>{error}</div>}
+
+        <button onClick={handleAssign} disabled={loading || success || !misionSeleccionadaId}
+          className={`cut-focus w-full mt-2 flex items-center justify-center gap-2 p-4 min-h-11 font-bold uppercase tracking-widest transition ${success ? '' : 'disabled:opacity-40'}`}
+          style={success
+            ? { clipPath: cut(8), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }
+            : { clipPath: cut(8), background: GRAD.goldCTA, border: 'none', color: C.ink }}>
+          {loading
+            ? <Loader2 className="animate-spin w-5 h-5" />
+            : success
+            ? <CheckCircle2 className="w-5 h-5" />
+            : modoCreacion
+            ? <Plus className="w-5 h-5" />
+            : <Target className="w-5 h-5" />
+          }
+          <span>{success ? 'Misión Asignada' : modoCreacion ? 'Crear y Asignar' : 'Asignar Misión'}</span>
+        </button>
+      </div>
+    </ModalShell>
   );
 }
