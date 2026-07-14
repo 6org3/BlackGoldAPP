@@ -178,17 +178,17 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-card w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border border-zinc-800 max-h-[85dvh] overflow-y-auto custom-scrollbar"
+        className="glass-card w-full max-w-lg rounded-t-2xl sm:rounded-2xl p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border border-white/10 max-h-[85dvh] overflow-y-auto custom-scrollbar"
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center space-x-3">
-            <div className="bg-amber-500/20 p-2 rounded-lg">
-              <Target className="text-amber-500 w-6 h-6" />
+            <div className="bg-brand/20 p-2 rounded-lg">
+              <Target className="text-brand w-6 h-6" />
             </div>
             <h2 className="text-xl font-bold text-white">Asignar Misión</h2>
           </div>
-          <button onClick={onClose} aria-label="Cerrar" className="p-2 -m-2 text-gray-400 hover:text-white">
+          <button onClick={onClose} aria-label="Cerrar" className="p-2 -m-2 text-fg-secondary hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -197,11 +197,11 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
           {/* Tipo de asignación */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Asignar a:</label>
+              <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Asignar a:</label>
               <select
                 value={asignacionTipo}
                 onChange={(e) => setAsignacionTipo(e.target.value)}
-                className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none"
+                className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
               >
                 <option value="atleta">Un Atleta Específico</option>
                 <option value="categoria">Una Categoría Entera</option>
@@ -211,11 +211,11 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
 
             {asignacionTipo === 'atleta' && (
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Atleta</label>
+                <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Atleta</label>
                 <select
                   value={atletaSeleccionado}
                   onChange={(e) => setAtletaSeleccionado(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
                 >
                   <option value="">Selecciona...</option>
                   {todosLosAtletas.map(a => (
@@ -227,11 +227,11 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
 
             {asignacionTipo === 'categoria' && (
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Categoría</label>
+                <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Categoría</label>
                 <select
                   value={categoriaEfectiva}
                   onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
                 >
                   {categorias.map(c => (
                     <option key={c} value={c}>{c}</option>
@@ -242,7 +242,7 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
 
             {asignacionTipo === 'todos' && (
               <div className="flex items-end pb-3">
-                <span className="text-xs text-amber-400 font-bold flex items-center gap-1">
+                <span className="text-xs text-brand font-bold flex items-center gap-1">
                   <Users className="w-4 h-4" />
                   {todosLosAtletas.length} atletas
                 </span>
@@ -252,13 +252,13 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
 
           {/* Banco de misiones */}
           <div className="pt-4 border-t border-white/10">
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+            <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2 flex items-center gap-1">
               <Bookmark className="w-3 h-3" /> Banco de Misiones
             </label>
             <select
               value={misionSeleccionadaId}
               onChange={handleMisionSelect}
-              className="w-full bg-amber-900/20 border border-amber-500/30 rounded-xl p-3 text-amber-400 font-bold outline-none"
+              className="w-full bg-brand/10 border border-brand/30 rounded-xl p-3 text-brand font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
             >
               <option value="">— Selecciona del Banco —</option>
               {loadingBanco ? (
@@ -282,36 +282,36 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
               className="space-y-4 mt-2"
             >
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Título</label>
+                <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Título</label>
                 <input
                   type="text"
                   value={titulo}
                   onChange={(e) => setTitulo(e.target.value)}
                   disabled={!modoCreacion}
                   placeholder="Ej: Ver video de técnica de tiro"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white disabled:opacity-50 outline-none"
+                  className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
                 />
               </div>
 
               {modoCreacion && (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Descripción</label>
+                    <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Descripción</label>
                     <textarea
                       value={descripcion}
                       onChange={(e) => setDescripcion(e.target.value)}
                       placeholder="Instrucciones para el atleta..."
-                      className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white h-20 resize-none outline-none"
+                      className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white h-20 resize-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Pilar</label>
+                      <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">Pilar</label>
                       <select
                         value={pilar}
                         onChange={(e) => setPilar(e.target.value)}
-                        className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none"
+                        className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
                       >
                         {PILARES_OPTIONS.map(({ value, label }) => (
                           <option key={value} value={value}>{label}</option>
@@ -320,13 +320,13 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">URL Video (opcional)</label>
+                      <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">URL Video (opcional)</label>
                       <input
                         type="url"
                         value={videoUrl}
                         onChange={(e) => setVideoUrl(e.target.value)}
                         placeholder="https://youtube.com/..."
-                        className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white outline-none"
+                        className="w-full bg-black/30 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
                       />
                     </div>
                   </div>
@@ -335,7 +335,7 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
 
               {/* XP */}
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">XP de Recompensa</label>
+                <label className="block text-xs font-bold text-fg-secondary uppercase tracking-wider mb-2">XP de Recompensa</label>
                 <div className="flex space-x-2">
                   <input
                     type="number"
@@ -344,12 +344,12 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
                     value={recompensa}
                     onChange={(e) => setRecompensa(e.target.value)}
                     disabled={!modoCreacion}
-                    className="w-32 bg-black/30 border border-white/10 rounded-xl p-3 text-white disabled:opacity-50 outline-none"
+                    className="w-32 bg-black/30 border border-white/10 rounded-xl p-3 text-white disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base"
                   />
                   {modoCreacion && sugerenciaXP && (
                     <button
                       onClick={() => setRecompensa(sugerenciaXP.xp)}
-                      className="flex-1 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl p-3 text-[10px] font-bold hover:bg-emerald-500/20 transition-colors"
+                      className="flex-1 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl p-3 text-2xs font-bold hover:bg-emerald-500/20 transition-colors"
                     >
                       <Lightbulb className="w-4 h-4 shrink-0" />
                       <span className="text-left leading-tight">{sugerenciaXP.msg}</span>
@@ -368,7 +368,7 @@ export default function AsignadorMisiones({ onClose, todosLosAtletas }) {
             className={`w-full mt-2 flex items-center justify-center gap-2 p-4 rounded-xl font-bold uppercase tracking-widest transition ${
               success
                 ? 'bg-emerald-500 text-black'
-                : 'bg-amber-500 hover:bg-amber-400 text-black disabled:opacity-40'
+                : 'bg-brand hover:bg-brand-hover text-black disabled:opacity-40'
             }`}
           >
             {loading
