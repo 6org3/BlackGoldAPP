@@ -36,6 +36,7 @@ export const COLORS = {
     danger:  '#EF4444', dangerSoft:  '#F87171',
     info:    '#3B82F6', infoSoft:    '#60A5FA',
     mental:  '#A855F7', mentalSoft:  '#C084FC',
+    social:  '#EC4899', socialSoft:  '#F472B6',
   },
   whatsapp: { base: '#25D366', deep: '#128C7E' },
 };

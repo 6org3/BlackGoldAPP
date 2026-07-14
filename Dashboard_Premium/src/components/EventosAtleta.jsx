@@ -20,7 +20,7 @@ const TIPO_COLORS = {
   clinica:                'text-info-soft border-info/30 bg-info/5',
   reunion:                'text-fg-secondary border-white/20 bg-white/5',
   evaluacion:             'text-caution-soft border-caution/30 bg-caution/5',
-  social:                 'text-pink-400 border-pink-500/30 bg-pink-500/5',
+  social:                 'text-social-soft border-social/30 bg-social/5',
 };
 
 const RSVP_CONFIG = {
