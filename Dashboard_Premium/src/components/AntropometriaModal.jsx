@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { X, Save, Ruler, Scale } from 'lucide-react';
+import { useState } from 'react';
+import { Save, Ruler, Scale } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
+import ModalShell from './arcade/ModalShell';
+import MicroLabel from './arcade/MicroLabel';
+import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
+
+const fieldStyle = { clipPath: cut(6), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}`, color: C.text };
 
 export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
   const [pesoKg, setPesoKg] = useState(atleta.peso_kg || '');
@@ -42,7 +46,7 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
       // Guardar registro histórico en evaluaciones_pruebas
       const pruebas = [];
       const fechaHoy = new Date().toISOString().split('T')[0];
-      
+
       if (pesoKg) {
         pruebas.push({
           atleta_id: atleta.atleta_id,
@@ -54,7 +58,7 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
           notas: `Actualización antropométrica: ${fechaHoy}`
         });
       }
-      
+
       if (tallaCm) {
         pruebas.push({
           atleta_id: atleta.atleta_id,
@@ -82,105 +86,71 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-card max-w-lg w-full rounded-panel p-6 relative max-h-[90dvh] overflow-y-auto"
-      >
-        <button onClick={onClose} aria-label="Cerrar" className="absolute right-2 top-2 p-3 text-fg-muted hover:text-white">
-          <X size={20} />
-        </button>
+    <ModalShell onClose={onClose} icon={Ruler} eyebrow={atleta.nombre} title="Evaluación Antropométrica">
+      {error && (
+        <div role="alert" className="mb-4 text-xs font-bold p-3" style={{ clipPath: cut(7), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}>
+          {error}
+        </div>
+      )}
 
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand/20 to-brand-strong/5 flex items-center justify-center border border-brand/30">
-            <Ruler className="text-brand" size={20} />
+      <form onSubmit={handleSave} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="antropometria-peso" className="text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: C.text2 }}>
+              <Scale size={12} /> Peso (kg)
+            </label>
+            <input id="antropometria-peso" type="number" step="0.1" inputMode="decimal" value={pesoKg} onChange={e => setPesoKg(e.target.value)}
+              className="cut-focus arcade-input w-full min-h-11 px-4 py-3 text-base md:text-sm font-bold focus:outline-none" style={fieldStyle} placeholder="Ej: 75.5" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tight">Evaluación Antropométrica</h3>
-            <p className="text-2xs text-brand uppercase font-bold tracking-widest">{atleta.nombre}</p>
+            <label htmlFor="antropometria-talla" className="text-xs font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: C.text2 }}>
+              <Ruler size={12} /> Talla / Altura (cm)
+            </label>
+            <input id="antropometria-talla" type="number" step="0.1" inputMode="decimal" value={tallaCm} onChange={e => setTallaCm(e.target.value)}
+              className="cut-focus arcade-input w-full min-h-11 px-4 py-3 text-base md:text-sm font-bold focus:outline-none" style={fieldStyle} placeholder="Ej: 185.0" />
+          </div>
+          <div>
+            <label htmlFor="antropometria-talla-sentado" className="block text-xs font-bold uppercase tracking-widest mb-1" style={{ color: C.text2 }}>
+              Talla Sentado (cm)
+            </label>
+            <input id="antropometria-talla-sentado" type="number" step="0.1" inputMode="decimal" value={tallaSentadoCm} onChange={e => setTallaSentadoCm(e.target.value)}
+              className="cut-focus arcade-input w-full min-h-11 px-4 py-3 text-base md:text-sm font-bold focus:outline-none" style={fieldStyle} placeholder="Ej: 90.0" />
+          </div>
+          <div>
+            <label htmlFor="antropometria-envergadura" className="block text-xs font-bold uppercase tracking-widest mb-1" style={{ color: C.text2 }}>
+              Brazada / Envergadura (cm)
+            </label>
+            <input id="antropometria-envergadura" type="number" step="0.1" inputMode="decimal" value={envergaduraCm} onChange={e => setEnvergaduraCm(e.target.value)}
+              className="cut-focus arcade-input w-full min-h-11 px-4 py-3 text-base md:text-sm font-bold focus:outline-none" style={fieldStyle} placeholder="Ej: 190.0" />
           </div>
         </div>
 
-        {error && <div className="mb-4 text-danger-soft text-xs font-bold bg-danger/10 border border-danger/20 p-2 rounded-lg">{error}</div>}
-
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="antropometria-peso" className="block text-xs text-fg-secondary font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
-                <Scale size={12}/> Peso (kg)
-              </label>
-              <input
-                id="antropometria-peso"
-                type="number" step="0.1" inputMode="decimal" value={pesoKg} onChange={e => setPesoKg(e.target.value)}
-                className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-brand/50"
-                placeholder="Ej: 75.5"
-              />
-            </div>
-            <div>
-              <label htmlFor="antropometria-talla" className="block text-xs text-fg-secondary font-bold uppercase tracking-widest mb-1 flex items-center gap-1">
-                <Ruler size={12}/> Talla / Altura (cm)
-              </label>
-              <input
-                id="antropometria-talla"
-                type="number" step="0.1" inputMode="decimal" value={tallaCm} onChange={e => setTallaCm(e.target.value)}
-                className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-brand/50"
-                placeholder="Ej: 185.0"
-              />
-            </div>
-            <div>
-              <label htmlFor="antropometria-talla-sentado" className="block text-xs text-fg-secondary font-bold uppercase tracking-widest mb-1">
-                Talla Sentado (cm)
-              </label>
-              <input
-                id="antropometria-talla-sentado"
-                type="number" step="0.1" inputMode="decimal" value={tallaSentadoCm} onChange={e => setTallaSentadoCm(e.target.value)}
-                className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-brand/50"
-                placeholder="Ej: 90.0"
-              />
-            </div>
-            <div>
-              <label htmlFor="antropometria-envergadura" className="block text-xs text-fg-secondary font-bold uppercase tracking-widest mb-1">
-                Brazada / Envergadura (cm)
-              </label>
-              <input
-                id="antropometria-envergadura"
-                type="number" step="0.1" inputMode="decimal" value={envergaduraCm} onChange={e => setEnvergaduraCm(e.target.value)}
-                className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white focus:outline-none focus:border-brand/50"
-                placeholder="Ej: 190.0"
-              />
-            </div>
+        <div className="p-4 mt-4 space-y-2" style={{ clipPath: cut(8), background: C.cardAlt1, border: `1px solid ${BORDER.neutral}` }}>
+          <MicroLabel color={C.gold} style={{ borderBottom: `1px solid ${BORDER.neutral}`, paddingBottom: 8, marginBottom: 8 }}>Resultados Calculados</MicroLabel>
+          <div className="flex justify-between items-center text-sm">
+            <span className="font-bold" style={{ color: C.text2 }}>Índice Córmico:</span>
+            <span className="font-black" style={{ color: C.text }}>{indiceCormico || '--'} %</span>
           </div>
-
-          <div className="bg-white/5 border border-white/10 rounded-control p-4 mt-4 space-y-2">
-            <h4 className="text-2xs font-bold text-brand uppercase tracking-widest border-b border-white/10 pb-2 mb-2">Resultados Calculados</h4>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-fg-secondary font-bold">Índice Córmico:</span>
-              <span className="text-white font-black">{indiceCormico || '--'} %</span>
+          {indiceCormico && (
+            <div className="text-right text-2xs font-bold uppercase tracking-widest" style={{ color: C.ok }}>
+              {getCormicoLabel(indiceCormico)}
             </div>
-            {indiceCormico && (
-              <div className="text-right text-2xs text-success-soft font-bold uppercase tracking-widest">
-                {getCormicoLabel(indiceCormico)}
-              </div>
-            )}
-            <div className="flex justify-between items-center text-sm mt-2 border-t border-white/5 pt-2">
-              <span className="text-fg-secondary font-bold">Brazada Relativa:</span>
-              <span className={`font-black ${envergaduraRelativa > 0 ? 'text-success-soft' : envergaduraRelativa < 0 ? 'text-danger-soft' : 'text-white'}`}>
-                {envergaduraRelativa ? (envergaduraRelativa > 0 ? `+${envergaduraRelativa}` : envergaduraRelativa) : '--'} cm
-              </span>
-            </div>
+          )}
+          <div className="flex justify-between items-center text-sm mt-2 pt-2" style={{ borderTop: `1px solid ${BORDER.neutralFaint}` }}>
+            <span className="font-bold" style={{ color: C.text2 }}>Brazada Relativa:</span>
+            <span className="font-black" style={{ color: envergaduraRelativa > 0 ? C.ok : envergaduraRelativa < 0 ? C.danger : C.text }}>
+              {envergaduraRelativa ? (envergaduraRelativa > 0 ? `+${envergaduraRelativa}` : envergaduraRelativa) : '--'} cm
+            </span>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full mt-6 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-3 rounded-control hover:shadow-glow-gold transition flex items-center justify-center gap-2"
-          >
-            <Save size={16} />
-            <span>{saving ? 'Guardando...' : 'Guardar Evaluación'}</span>
-          </button>
-        </form>
-      </motion.div>
-    </div>
+        <button type="submit" disabled={saving}
+          className="cut-focus w-full mt-6 min-h-11 py-3 font-black uppercase tracking-widest flex items-center justify-center gap-2 transition disabled:opacity-50"
+          style={{ clipPath: cut(8), background: GRAD.goldCTA, border: 'none', color: C.ink }}>
+          <Save size={16} />
+          <span>{saving ? 'Guardando...' : 'Guardar Evaluación'}</span>
+        </button>
+      </form>
+    </ModalShell>
   );
 }
