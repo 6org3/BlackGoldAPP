@@ -15,9 +15,21 @@ import { evaluarDeficits } from '../lib/didacticEngine';
 import HistorialFisicoChart from './HistorialFisicoChart';
 import ProgresoNivelModal from './ProgresoNivelModal';
 import { tieneDatosAntropometricos } from '../api/utilsAtletas';
+import HexAvatar from './arcade/HexAvatar';
+import { cut } from './arcade/arcadeTokens';
+
+// Hue del avatar hexagonal por estado de readiness (la luz es información):
+// rojo agotamiento, naranja fatiga silenciosa, verde óptimo, oro por defecto.
+const HUE_READINESS = {
+  'Agotamiento Activo': 'red',
+  'Fatiga Silenciosa': 'orange',
+  'Óptimo': 'green',
+};
+
 export default function AtletaCard({ atleta, index, todosLosAtletas }) {
   const { user } = useAuth();
   const conAntropometria = tieneDatosAntropometricos(atleta);
+  const avatarHue = HUE_READINESS[atleta.estado_recuperacion] || 'gold';
 
   const [showCategoria, setShowCategoria] = useState(true);
   const [showClub, setShowClub] = useState(true);
@@ -42,18 +54,17 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: staggerDelay(index), duration: MOTION.duration.entrance, ease: MOTION.ease.out }}
-      className="glass-card rounded-none md:rounded-card p-6 md:p-8 relative overflow-hidden transition duration-500 glow-border isolate"
+      style={{ clipPath: cut(14) }}
+      className="glass-card rounded-none p-6 md:p-8 relative overflow-hidden transition duration-500 glow-border isolate"
     >
       {/* Background ambient lighting */}
       <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-60 bg-brand"></div>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 relative z-10 gap-4">
         <div className="flex items-start space-x-4">
-          {/* Avatar */}
-          <div className="w-16 h-16 rounded-full bg-white/5 border border-white/20 flex items-center justify-center overflow-hidden shrink-0">
-            <span className="text-2xl font-black text-white/50 uppercase">{atleta.nombre?.charAt(0)}</span>
-          </div>
-          
+          {/* Avatar hexagonal — color por readiness */}
+          <HexAvatar size={64} hue={avatarHue} initial={atleta.nombre?.charAt(0)?.toUpperCase()} />
+
           <div>
             <h3 className="text-2xl font-black text-white tracking-tight leading-none mb-3 drop-shadow-md">{atleta.nombre}</h3>
             <div className="flex items-center space-x-2">
@@ -68,18 +79,18 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
             {/* Profile Badges */}
             <div className="flex flex-wrap gap-1.5 mt-3">
               {atleta.nivel_desarrollo && (
-                <span title="Nivel de Desarrollo para Sesiones Grupales" className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-brand/30 text-brand bg-brand/5 flex items-center gap-1">
+                <span title="Nivel de Desarrollo para Sesiones Grupales" className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-brand/30 text-brand bg-brand/5 flex items-center gap-1">
                   <span className="opacity-70">Grupo de Clase:</span> 
                   <span>{atleta.nivel_desarrollo}</span>
                 </span>
               )}
               {atleta.perfil_mental && (
-                <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-success/30 text-success-soft bg-success/5">
+                <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-success/30 text-success-soft bg-success/5">
                   {atleta.perfil_mental}
                 </span>
               )}
               {atleta.estado_recuperacion && (
-                <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+                <span className={`text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${
                   atleta.estado_recuperacion === 'Óptimo' ? 'border-info/30 text-info-soft bg-info/5' :
                   atleta.estado_recuperacion === 'Fatiga Silenciosa' ? 'border-caution/30 text-caution-soft bg-caution/5' :
                   'border-danger/30 text-danger-soft bg-danger/5'
@@ -88,7 +99,7 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
                 </span>
               )}
               {atleta.prevencion_impacto && (
-                <span title="Sensibilidad al Impacto" className="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-caution/30 text-caution-soft bg-caution/5 flex items-center">
+                <span title="Sensibilidad al Impacto" className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border border-caution/30 text-caution-soft bg-caution/5 flex items-center">
                   ⚠ Impacto
                 </span>
               )}
@@ -129,7 +140,7 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
               className="mt-2 py-2.5 px-2 -mx-2 min-h-[36px] text-2xs text-brand/80 hover:text-brand uppercase tracking-widest font-bold flex items-center gap-1 transition-colors"
             >
               <span>Ver Guía de Progresión</span>
-              <span className="w-3 h-3 rounded-full border border-current flex items-center justify-center text-[7px]">i</span>
+              <span className="w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center text-3xs">i</span>
             </button>
           </div>
           
@@ -177,13 +188,13 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-amber-950/40 border border-warning/40 rounded-panel p-4 backdrop-blur-md"
+            className="bg-warning/10 border border-warning/40 rounded-panel p-4 backdrop-blur-md"
           >
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-warning animate-pulse"></div>
               <span className="font-black uppercase tracking-widest text-2xs text-warning-soft">Agotamiento Activo</span>
             </div>
-            <p className="mt-1 text-xs text-amber-200/80 font-light leading-relaxed">⚠️ Ritmo cardíaco elevado. Priorizar sueño 10-12h y actividades recreativas.</p>
+            <p className="mt-1 text-xs text-fg-secondary font-light leading-relaxed">⚠️ Ritmo cardíaco elevado. Priorizar sueño 10-12h y actividades recreativas.</p>
           </motion.div>
         )}
 
@@ -191,13 +202,13 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-purple-950/40 border border-mental/40 rounded-panel p-4 backdrop-blur-md"
+            className="bg-mental/10 border border-mental/40 rounded-panel p-4 backdrop-blur-md"
           >
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-mental animate-pulse"></div>
               <span className="font-black uppercase tracking-widest text-2xs text-mental-soft">Fatiga Silenciosa</span>
             </div>
-            <p className="mt-1 text-xs text-purple-200/80 font-light leading-relaxed">⚠️ Rendimiento disminuido sin dolor aparente. Reducir volumen de entrenamiento.</p>
+            <p className="mt-1 text-xs text-fg-secondary font-light leading-relaxed">⚠️ Rendimiento disminuido sin dolor aparente. Reducir volumen de entrenamiento.</p>
           </motion.div>
         )}
       </div>
@@ -245,7 +256,8 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
       {atleta._evaluaciones && atleta._evaluaciones.length > 0 && (
         <div className="mt-4 relative z-10">
           <p className="text-3xs text-fg-muted font-bold uppercase tracking-widest">
-            {atleta._evaluaciones.length} pruebas registradas • Overall: {atleta.overall_score || 0}/100
+            {atleta._evaluaciones.length} pruebas registradas • Overall:{' '}
+            <span className="font-pixel text-brand tabular-nums">{atleta.overall_score || 0}/100</span>
           </p>
         </div>
       )}
@@ -267,8 +279,8 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
               <div
                 key={deficit.condicion}
                 className={`p-3 rounded-panel border backdrop-blur-md ${
-                  deficit.prioridad === 'critica' ? 'bg-red-950/40 border-danger/40' :
-                  deficit.prioridad === 'alta' ? 'bg-amber-950/40 border-warning/40' :
+                  deficit.prioridad === 'critica' ? 'bg-danger/10 border-danger/40' :
+                  deficit.prioridad === 'alta' ? 'bg-warning/10 border-warning/40' :
                   'bg-white/5 border-white/10'
                 }`}
               >
@@ -286,7 +298,7 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
                     {deficit.prioridad === 'critica' ? 'Prioridad Crítica' : deficit.prioridad === 'alta' ? 'Prioridad Alta' : 'Sugerencia'}
                   </span>
                 </div>
-                <p className="text-2xs text-gray-300 leading-relaxed">
+                <p className="text-2xs text-fg-secondary leading-relaxed">
                   {deficit.mensaje}
                 </p>
               </div>

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { getXPProgress } from '../lib/xpProgress';
 import { COLORS } from '../lib/designTokens';
+import XPCells from './arcade/XPCells';
 
 export default function RangoProgreso({ xpTotal }) {
   const progress = useMemo(
@@ -27,19 +27,15 @@ export default function RangoProgreso({ xpTotal }) {
         </span>
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full h-2 bg-white/[0.06] rounded-full overflow-hidden border border-white/5 relative">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${progress.percentage}%` }}
-          transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="h-full rounded-full"
-          style={{
-            background: `linear-gradient(90deg, ${barColor}88, ${barColor})`,
-            boxShadow: `0 0 8px ${barColor}66`,
-          }}
-        />
-      </div>
+      {/* Progreso de rango como celdas Arcade (role=progressbar + aria) */}
+      <XPCells
+        pct={progress.percentage}
+        cells={10}
+        height={8}
+        fill={`linear-gradient(90deg, ${barColor}bb, ${barColor})`}
+        fillGlow={`0 0 6px ${barColor}66`}
+        label={`Progreso de rango ${currentRango?.nombre || ''}`}
+      />
 
       {/* Stats text */}
       <div className="flex items-center justify-between mt-1.5">
