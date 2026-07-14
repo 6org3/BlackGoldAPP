@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle, X, Trash2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ScoutingReportTemplate from './ScoutingReportTemplate';
 import AntropometriaModal from './AntropometriaModal';
@@ -11,7 +11,9 @@ import AdminAtletasHeader from './AdminAtletasHeader';
 import AdminAtletasForm from './AdminAtletasForm';
 import AdminAtletasFiltersPanel from './AdminAtletasFiltersPanel';
 import AdminAtletasGrupoNivel from './AdminAtletasGrupoNivel';
+import ModalHUD from './arcade/ModalHUD';
 import { COLORS } from '../lib/designTokens';
+import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
 export default function AdminAtletas({ atletas, onRefresh, user }) {
   const navigate = useNavigate();
@@ -52,15 +54,26 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
   // ─── Modals ───────────────────────────────────────────────
   const [evaluatingAntropometria, setEvaluatingAntropometria] = useState(null);
   const [exportingAtleta, setExportingAtleta] = useState(null);
+  // Diálogo HUD activo (reemplaza confirm/alert nativos): null | { variant, ... }.
+  const [modal, setModal] = useState(null);
   const reportRef = React.useRef(null);
 
   // Handlers estables: las cards/filas están memoizadas (React.memo) y
   // reciben estas referencias directamente.
-  const handleDelete = useCallback(async (atleta) => {
-    if (!confirm(`¿Seguro que deseas eliminar a ${atleta.nombre}? Esta acción no se puede deshacer.`)) return;
-    await supabase.from('atletas').delete().eq('id', atleta.atleta_id);
-    await supabase.from('usuarios').delete().eq('id', atleta.id);
-    if (onRefresh) onRefresh();
+  const handleDelete = useCallback((atleta) => {
+    setModal({
+      variant: 'confirm', tone: 'danger', icon: Trash2,
+      eyebrow: 'Acción irreversible',
+      title: 'Eliminar atleta',
+      message: `¿Seguro que deseas eliminar a ${atleta.nombre}? Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      onConfirm: async () => {
+        setModal(null);
+        await supabase.from('atletas').delete().eq('id', atleta.atleta_id);
+        await supabase.from('usuarios').delete().eq('id', atleta.id);
+        if (onRefresh) onRefresh();
+      },
+    });
   }, [onRefresh]);
 
   const exportPDF = useCallback(async (atleta) => {
@@ -86,7 +99,12 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         pdf.save(`Scouting_Report_${atleta.nombre.replace(/\s+/g, '_')}.pdf`);
       } catch (error) {
         console.error("Error generating PDF:", error);
-        alert("Hubo un error al generar el PDF.");
+        setModal({
+          variant: 'alert', tone: 'danger', icon: AlertTriangle,
+          eyebrow: 'Error',
+          title: 'No se pudo generar el PDF',
+          message: 'Hubo un error al generar el PDF. Intenta de nuevo.',
+        });
       } finally {
         setExportingAtleta(null);
       }
@@ -115,20 +133,24 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="mb-6 p-4 rounded-control bg-danger/10 border border-danger/30 text-danger-soft text-sm font-bold flex items-center space-x-3"
+            role="alert"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="mb-6 p-4 text-sm font-bold flex items-center gap-3"
+            style={{ clipPath: cut(10), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}
           >
-            <AlertCircle size={18} /><span>{error}</span>
-            <button onClick={() => setError('')} aria-label="Cerrar mensaje" className="ml-auto p-2 -m-2 text-danger-soft/60 hover:text-red-300"><X size={16} /></button>
+            <AlertCircle size={18} className="shrink-0" /><span className="flex-1">{error}</span>
+            <button onClick={() => setError('')} aria-label="Cerrar mensaje" className="cut-focus ml-auto p-2 -m-2 min-h-11 min-w-11 flex items-center justify-center" style={{ color: C.danger }}><X size={16} /></button>
           </motion.div>
         )}
         {success && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="mb-6 p-4 rounded-control bg-success/10 border border-success/30 text-success-soft text-sm font-bold"
+            role="status"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="mb-6 p-4 text-sm font-bold flex items-center gap-3"
+            style={{ clipPath: cut(10), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }}
           >
-            {success}
-            <button onClick={() => setSuccess('')} aria-label="Cerrar mensaje" className="ml-4 p-2 -m-2 text-success-soft/60 hover:text-emerald-300"><X size={16} /></button>
+            <span className="flex-1">{success}</span>
+            <button onClick={() => setSuccess('')} aria-label="Cerrar mensaje" className="cut-focus p-2 -m-2 min-h-11 min-w-11 flex items-center justify-center" style={{ color: C.ok }}><X size={16} /></button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -200,6 +222,9 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
           onRefresh={onRefresh}
         />
       )}
+
+      {/* Diálogo HUD (reemplaza confirm/alert): borrado de atleta y error de PDF */}
+      <ModalHUD open={!!modal} {...(modal || {})} onClose={() => setModal(null)} />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter } from 'lucide-react';
 import { CATEGORIAS_FEB, NIVELES_DESARROLLO, POSICIONES } from './AdminAtletasConstants';
 import FilterSelect from './AdminAtletasFilterSelect';
+import CutCard from './arcade/CutCard';
+import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
 export default function AdminAtletasFiltersPanel({
   busqueda,
@@ -19,12 +21,13 @@ export default function AdminAtletasFiltersPanel({
   filtrosActivos,
   clearFilters,
 }) {
+  const filtrosOn = showFilters || filtrosActivos;
   return (
     <div className="mb-6 space-y-3">
       {/* Barra de búsqueda + toggle filtros */}
       <div className="flex items-center gap-3">
-        <div className="flex-1 relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-muted" />
+        <div className="flex-1 flex items-center gap-2 px-3" style={{ clipPath: cut(7), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}` }}>
+          <Search size={16} style={{ color: C.text3 }} />
           <input
             type="search"
             enterKeyHint="search"
@@ -32,22 +35,25 @@ export default function AdminAtletasFiltersPanel({
             placeholder="Buscar por nombre o cédula..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/10 rounded-control pl-11 pr-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/40 focus:shadow-[0_0_15px_rgba(255,215,0,0.08)] transition"
+            className="cut-focus arcade-input w-full bg-transparent min-h-11 text-base md:text-sm font-bold focus:outline-none"
+            style={{ color: C.text }}
           />
         </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center space-x-2 px-4 py-3 rounded-control border text-xs font-bold uppercase tracking-widest transition ${
-            showFilters || filtrosActivos
-              ? 'bg-brand/10 border-brand/30 text-brand'
-              : 'bg-white/[0.03] border-white/10 text-fg-muted hover:text-white hover:border-white/20'
-          }`}
+          aria-expanded={showFilters}
+          aria-label={filtrosActivos ? 'Filtros (activos)' : 'Filtros'}
+          className="cut-focus flex items-center gap-2 min-h-11 px-4 text-xs font-bold uppercase tracking-widest transition-colors"
+          style={{
+            clipPath: cut(7),
+            background: filtrosOn ? TINT.gold : 'transparent',
+            border: `1px solid ${filtrosOn ? BORDER.goldStrong : BORDER.neutralSoft}`,
+            color: filtrosOn ? C.gold : C.text3,
+          }}
         >
           <Filter size={14} />
           <span className="hidden sm:inline">Filtros</span>
-          {filtrosActivos && (
-            <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-          )}
+          {filtrosActivos && <span aria-hidden="true" className="animate-pulse" style={{ width: 8, height: 8, borderRadius: 9999, background: C.gold }} />}
         </button>
       </div>
 
@@ -60,14 +66,16 @@ export default function AdminAtletasFiltersPanel({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="glass-card rounded-control p-5 flex flex-col gap-5">
-              <FilterSelect label="Categoría FEB" value={filtroCat} options={CATEGORIAS_FEB} onChange={setFiltroCat} />
-              <FilterSelect label="Nivel Desarrollo" value={filtroNivel} options={NIVELES_DESARROLLO} onChange={setFiltroNivel} />
-              <FilterSelect label="Posición" value={filtroPosicion} options={['Todas', ...POSICIONES.filter(p => p !== 'N/A')]} onChange={setFiltroPosicion} />
-              <FilterSelect label="Género" value={filtroGenero} options={['Todos', 'Masculino', 'Femenino']} onChange={setFiltroGenero} />
-            </div>
+            <CutCard cut={10} padding="20px">
+              <div className="flex flex-col gap-5">
+                <FilterSelect label="Categoría FEB" value={filtroCat} options={CATEGORIAS_FEB} onChange={setFiltroCat} />
+                <FilterSelect label="Nivel Desarrollo" value={filtroNivel} options={NIVELES_DESARROLLO} onChange={setFiltroNivel} />
+                <FilterSelect label="Posición" value={filtroPosicion} options={['Todas', ...POSICIONES.filter(p => p !== 'N/A')]} onChange={setFiltroPosicion} />
+                <FilterSelect label="Género" value={filtroGenero} options={['Todos', 'Masculino', 'Femenino']} onChange={setFiltroGenero} />
+              </div>
+            </CutCard>
             {filtrosActivos && (
-              <button onClick={clearFilters} className="mt-2 py-2.5 px-1 text-xs text-fg-muted hover:text-brand transition-colors underline inline-block">
+              <button onClick={clearFilters} className="cut-focus mt-2 inline-flex items-center min-h-11 px-1 text-xs underline transition-colors" style={{ color: C.text3 }}>
                 Limpiar todos los filtros
               </button>
             )}
