@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { getXPProgress } from '../lib/xpProgress';
 import { COLORS } from '../lib/designTokens';
@@ -20,7 +20,7 @@ export default function RangoProgreso({ xpTotal }) {
         <span className="flex items-center gap-1">
           <span className="text-sm leading-none">{currentRango?.emoji}</span>
           <span
-            className={`text-[10px] font-black uppercase tracking-widest ${currentRango?.color || 'text-gray-400'}`}
+            className={`text-2xs font-black uppercase tracking-widest ${currentRango?.color || 'text-fg-secondary'}`}
           >
             {currentRango?.nombre}
           </span>
@@ -43,20 +43,20 @@ export default function RangoProgreso({ xpTotal }) {
 
       {/* Stats text */}
       <div className="flex items-center justify-between mt-1.5">
-        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+        <span className="text-3xs font-bold text-fg-muted uppercase tracking-widest">
           XP:{' '}
           <span className="text-white">
             {progress.current.toLocaleString()}
             {progress.nextLevelName !== 'MAX' && (
-              <span className="text-gray-600"> / {progress.required.toLocaleString()}</span>
+              <span className="text-fg-muted"> / {progress.required.toLocaleString()}</span>
             )}
           </span>
         </span>
-        <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">
+        <span className="text-3xs font-bold text-fg-muted uppercase tracking-widest">
           {progress.nextLevelName !== 'MAX' ? (
             <>
               Sig:{' '}
-              <span className="text-gray-400">{progress.nextLevelName}</span>
+              <span className="text-fg-secondary">{progress.nextLevelName}</span>
             </>
           ) : (
             <span className="text-brand">MAX</span>
