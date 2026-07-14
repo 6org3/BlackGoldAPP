@@ -120,6 +120,11 @@ export default function PantallaAtletaInicio({ ctx }) {
               onClick={ctx.evento.onVoy}
               style={{
                 cursor: 'pointer',
+                minHeight: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flex: 'none',
                 fontFamily: PIXEL,
                 fontSize: 9.5,
                 padding: '9px 12px',

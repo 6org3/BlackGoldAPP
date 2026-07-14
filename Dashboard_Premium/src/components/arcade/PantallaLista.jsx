@@ -20,6 +20,10 @@ export default function PantallaLista({ state, actions, roster = [] }) {
             onClick={() => actions.allPresent(listRoster)}
             style={{
               flex: 'none',
+              minHeight: 44,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               padding: '9px 12px',
               background: 'transparent',
               border: `1px solid ${BORDER.okStrong}`,

@@ -62,7 +62,7 @@ export default function PantallaAtletaProgreso({ ctx }) {
             key={p.key}
             type="button"
             onClick={p.onPick}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', cursor: 'pointer', background: C.card, border: `1px solid ${p.isSel ? BORDER.goldStrong : 'rgba(255,255,255,.07)'}`, clipPath: cut(8), padding: '10px 12px' }}
+            style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 10, textAlign: 'left', cursor: 'pointer', background: C.card, border: `1px solid ${p.isSel ? BORDER.goldStrong : 'rgba(255,255,255,.07)'}`, clipPath: cut(8), padding: '10px 12px' }}
           >
             <span style={{ width: 92, flex: 'none', fontFamily: PIXEL, fontSize: 8, letterSpacing: '.04em', color: p.isSel ? C.gold : C.text2 }}>{p.label}</span>
             <div style={{ flex: 1, display: 'flex', gap: 2 }}>

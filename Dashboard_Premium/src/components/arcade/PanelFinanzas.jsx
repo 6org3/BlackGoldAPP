@@ -12,7 +12,7 @@ function MoneRow({ r }) {
         <p style={{ margin: '1px 0 0', fontSize: 9.5, color: C.text3 }}>{r.sub}</p>
       </div>
       <span style={{ flex: 'none', fontFamily: PIXEL, fontSize: 11, color: r.montoColor || C.text }}>{r.monto}</span>
-      <button type="button" onClick={r.onBtn} style={{ flex: 'none', padding: '9px 11px', clipPath: cut(7), background: r.btnBg, border: `1px solid ${r.btnBorder}`, color: r.btnFg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: 'pointer' }}>{r.btnLabel}</button>
+      <button type="button" onClick={r.onBtn} style={{ flex: 'none', minHeight: 44, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '9px 11px', clipPath: cut(7), background: r.btnBg, border: `1px solid ${r.btnBorder}`, color: r.btnFg, fontFamily: PIXEL, fontSize: 8, letterSpacing: '.03em', cursor: 'pointer' }}>{r.btnLabel}</button>
     </div>
   );
 }

@@ -54,7 +54,7 @@ La app se siente como el túnel de vestuarios de un club profesional de noche: *
 |---|---|---|
 | `fg` | `#EDEDED` | Texto principal |
 | `fg-secondary` | `#9CA3AF` | Apoyo, descripciones |
-| `fg-muted` | `#6B7280` | Labels, metadatos |
+| `fg-muted` | `#828997` | Labels, metadatos (muted accesible, AA 4.5:1; subido desde `#6B7280` — ver §contraste) |
 | `fg-faint` | `#4B5563` | Solo decorativo — **nunca** información |
 | `fg-inverse` | `#0A0A0C` | Texto sobre oro |
 
@@ -281,7 +281,7 @@ El rol **no** cambia tokens (mismo dark premium para todos) — cambia jerarquí
 | `text-[9px]` / `text-[10px]` + `tracking-[0.2em]` | `text-3xs` / `text-2xs` + `tracking-eyebrow` |
 | `text-gray-400/500/600` | `text-fg-secondary` / `text-fg-muted` / `text-fg-faint` |
 
-**Nota de contraste pendiente** (auditoría padres 2026-07-09): `fg-muted` (#6B7280 sobre `surface-base` #09090B) mide ≈4.12:1, bajo el umbral AA de 4.5:1 para texto normal — se usa en `text-2xs`/`text-3xs` (9-10px) para fechas, contadores y labels de apoyo en toda la app. `fg-faint` (#4B5563, ≈2.6:1) está documentado arriba como "solo decorativo, nunca información": si un uso muestra información real (no decoración), usar `fg-muted` como mínimo, nunca `fg-faint` — bug real encontrado y corregido en `EstadoCuentaPadre.jsx` ("Cargando…" usaba `fg-faint`). Subir el hex base de `fg-muted` es un cambio de alcance multi-portal (ya usado en coach/atleta/padres) — no se aplica unilateralmente aquí; queda como decisión pendiente del owner del design system.
+**Contraste de `fg-muted` — RESUELTO (2026-07-13, decisión del owner en Ola 0).** El valor anterior `#6B7280` medía ≈4.12:1 sobre `surface-base` y ≈3.4:1 sobre las superficies elevadas — bajo el umbral AA 4.5:1 para texto normal, y se usa en `text-2xs`/`text-3xs` (9-10px) para fechas, contadores y labels de apoyo en toda la app. Se **subió `fg-muted` a `#828997`**, el mínimo que pasa **AA 4.5:1 (4.67:1) sobre toda superficie oscura** de la app (incluida `surface-top` #1F1F23), calculado con la fórmula WCAG 2.1. Sigue siendo claramente el escalón "muted" (más tenue que `fg-secondary` #9CA3AF a 6.47:1). Como la app es toda oscura, aclarar el gris **solo mejora** contraste (cero riesgo de layout). Sincronizado en los tres espejos: `--color-fg-muted` (tokens.css), `C.text3` (arcadeTokens.js), `PALETTE.fg.muted` (designTokens.js). `fg-faint` (#4B5563, ≈2.6:1) sigue siendo "solo decorativo, nunca información": si un uso muestra información real, usar `fg-muted` como mínimo, nunca `fg-faint` (bug corregido en su día en `EstadoCuentaPadre.jsx`).
 | `text-emerald-400`, `bg-emerald-500/10`… | `text-success-soft`, `bg-success/10`… |
 | `rounded-3xl` / `rounded-2xl` / `rounded-xl` (en su rol) | `rounded-card` / `rounded-panel` / `rounded-control` |
 | `shadow-[0_0_20px_rgba(255,215,0,0.4)]` | `shadow-glow-gold` |

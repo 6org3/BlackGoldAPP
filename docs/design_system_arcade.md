@@ -52,7 +52,9 @@ Todos los valores de esta sección son los **reales** de `arcadeTokens.js`. Las 
 | `C.gold` | `#FFD700` | **Oro canónico** — el único que "vende" |
 | `C.goldDeep` | `#D4AF37` | Oro metálico: extremo oscuro de gradientes, micro-labels de fecha/paso |
 
-**Texto** (mismos que `fg*` del DS v1) — `C.text #EDEDED` · `C.text2 #9CA3AF` · `C.text3 #6B7280` · `C.text4 #4B5563` (solo decorativo) · `C.ink #0A0A0C` (texto sobre oro) · `C.inkGreen #04110B` (texto sobre verde sólido).
+**Texto** (mismos que `fg*` del DS v1) — `C.text #EDEDED` · `C.text2 #9CA3AF` · `C.text3 #828997` · `C.text4 #4B5563` (solo decorativo) · `C.ink #0A0A0C` (texto sobre oro) · `C.inkGreen #04110B` (texto sobre verde sólido) · `C.onDanger #FFFFFF` (texto sobre danger sólido).
+
+> **`C.text3` es muted-ACCESIBLE (2026-07-13, Ola 0).** Subido de `#6B7280` a `#828997` para que los micro-labels (que usan `C.text3` por defecto, §2.1) pasen **AA 4.5:1** en toda superficie del HUD — antes medían ~4.0:1. Es el escalón muted del HUD, más tenue que `C.text2`; la jerarquía del "marcador" la marcan el **tamaño** y la **fuente pixel**, no la penumbra ilegible. Sincronizado con `--color-fg-muted` (DS v1). Cualquier micro-label sigue siendo `C.text3` — no volver a `#6B7280`.
 
 **Semánticos** — cada uno con par base (fondos/dots/barras) y "deep" (sólido fuerte):
 
