@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Wallet, RefreshCw, Coins, Layers, AlertTriangle, Download } from 'lucide-react';
 import { fetchPagosMes, fetchArqueoEfectivo, fetchTransaccionesRango, exportarTransaccionesCSV } from '../api/pagosService';
+import ModalHUD from './arcade/ModalHUD';
+import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -17,6 +19,7 @@ export default function CajaResumen({ mes, anio }) {
   const [arqueo, setArqueo] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exportando, setExportando] = useState(false);
+  const [modal, setModal] = useState(null);
 
   // Rango del mes para transacciones (fecha de cobro, no fecha del pago
   // generado) — el mismo criterio para arqueo de efectivo y export contable.
@@ -44,7 +47,10 @@ export default function CajaResumen({ mes, anio }) {
     try {
       const { desde, hasta } = rangoMes();
       const transacciones = await fetchTransaccionesRango(desde, hasta);
-      if (transacciones.length === 0) { alert('No hay transacciones registradas en este mes.'); return; }
+      if (transacciones.length === 0) {
+        setModal({ variant: 'alert', tone: 'info', icon: Download, eyebrow: 'Exportar', title: 'Sin transacciones', message: 'No hay transacciones registradas en este mes.' });
+        return;
+      }
       exportarTransaccionesCSV(transacciones, { mes, anio });
     } finally {
       setExportando(false);
@@ -88,68 +94,73 @@ export default function CajaResumen({ mes, anio }) {
 
   const pct = totales.esperado > 0 ? Math.round((totales.recaudado / totales.esperado) * 100) : 0;
 
+  const rowStyle = { background: C.cardAlt1, border: `1px solid ${BORDER.neutralFaint}`, clipPath: cut(6) };
+
   return (
-    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-      className="glass-card rounded-panel border border-success/20 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-black/40 border-b border-white/10">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      style={{ background: C.card, border: `1px solid ${BORDER.okSoft}`, clipPath: cut(12), overflow: 'hidden' }}>
+      <div className="flex items-center justify-between px-4 py-3" style={{ background: C.cardAlt1, borderBottom: `1px solid ${BORDER.neutral}` }}>
         <div className="flex items-center space-x-2">
-          <Wallet size={16} className="text-success-soft" />
-          <h3 className="text-xs font-black uppercase tracking-widest text-success-soft">
+          <Wallet size={16} style={{ color: C.ok }} />
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: C.ok }}>
             Cierre de caja · {MESES[mes]} {anio}
           </h3>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={handleExportarContador} disabled={exportando}
-            className="flex items-center gap-1.5 px-3 py-2 min-h-10 border border-white/10 rounded-control text-2xs font-black uppercase tracking-widest text-fg-muted hover:text-white transition-colors disabled:opacity-40">
+            className="cut-focus flex items-center gap-1.5 px-3 min-h-11 md:min-h-9 text-2xs font-black uppercase tracking-widest transition-colors disabled:opacity-40"
+            style={{ clipPath: cut(7), border: `1px solid ${BORDER.neutralSoft}`, color: C.text3 }}>
             <Download size={13} />
             <span>{exportando ? 'Exportando…' : 'Exportar para el contador'}</span>
           </button>
-          <button onClick={load} aria-label="Recargar" className="p-2 min-w-10 min-h-10 flex items-center justify-center text-fg-muted hover:text-white transition-colors">
+          <button onClick={load} aria-label="Recargar"
+            className="cut-focus p-2 min-w-11 min-h-11 md:min-w-9 md:min-h-9 flex items-center justify-center transition-colors"
+            style={{ color: C.text3 }}>
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-center py-8 text-sm text-fg-faint font-bold">Cargando…</p>
+        <p className="text-center py-8 text-sm font-bold" style={{ color: C.text3 }}>Cargando…</p>
       ) : (
         <div className="p-4 space-y-6">
           {/* Arqueo de efectivo por registrador */}
           <section>
-            <h4 className="text-2xs font-black uppercase tracking-widest text-fg-secondary mb-2 flex items-center gap-2">
-              <Coins size={13} /> Efectivo recaudado por registrador · total <span className="text-white">${totalEfectivo.toFixed(2)}</span>
+            <h4 className="text-2xs font-black uppercase tracking-widest mb-2 flex items-center gap-2" style={{ color: C.text2 }}>
+              <Coins size={13} /> Efectivo recaudado por registrador · total <span style={{ color: C.text }}>${totalEfectivo.toFixed(2)}</span>
             </h4>
             {arqueo.length === 0 ? (
-              <p className="text-2xs text-fg-faint">Sin transacciones en efectivo este mes.</p>
+              <p className="text-2xs" style={{ color: C.text3 }}>Sin transacciones en efectivo este mes.</p>
             ) : (
               <div className="space-y-1.5">
                 {arqueo.map((r, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 bg-black/20 border border-white/5 rounded-lg">
-                    <span className="text-2xs font-bold text-white">{r.nombre}</span>
-                    <span className="text-2xs text-fg-secondary">{r.transacciones} mov. · <span className="font-black text-white">${r.total.toFixed(2)}</span></span>
+                  <div key={i} className="flex items-center justify-between px-3 py-2" style={rowStyle}>
+                    <span className="text-2xs font-bold" style={{ color: C.text }}>{r.nombre}</span>
+                    <span className="text-2xs" style={{ color: C.text2 }}>{r.transacciones} mov. · <span className="font-black" style={{ color: C.text }}>${r.total.toFixed(2)}</span></span>
                   </div>
                 ))}
-                <p className="text-3xs text-fg-muted mt-1">Concilia este total contra el efectivo entregado físicamente por cada coach.</p>
+                <p className="text-3xs mt-1" style={{ color: C.text3 }}>Concilia este total contra el efectivo entregado físicamente por cada coach.</p>
               </div>
             )}
           </section>
 
           {/* Recaudado vs esperado por grupo */}
           <section>
-            <h4 className="text-2xs font-black uppercase tracking-widest text-fg-secondary mb-2 flex items-center gap-2">
-              <Layers size={13} /> Recaudado vs esperado · <span className="text-white">${totales.recaudado.toFixed(0)}</span> / ${totales.esperado.toFixed(0)} ({pct}%)
+            <h4 className="text-2xs font-black uppercase tracking-widest mb-2 flex items-center gap-2" style={{ color: C.text2 }}>
+              <Layers size={13} /> Recaudado vs esperado · <span style={{ color: C.text }}>${totales.recaudado.toFixed(0)}</span> / ${totales.esperado.toFixed(0)} ({pct}%)
             </h4>
             <div className="space-y-1.5">
               {porGrupo.map(g => {
                 const p = g.esperado > 0 ? Math.round((g.recaudado / g.esperado) * 100) : 0;
                 return (
-                  <div key={g.grupo} className="px-3 py-2 bg-black/20 border border-white/5 rounded-lg">
+                  <div key={g.grupo} className="px-3 py-2" style={rowStyle}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-2xs font-bold text-white">{g.grupo} <span className="text-fg-muted">· {g.atletas}</span></span>
-                      <span className="text-2xs text-fg-secondary">${g.recaudado.toFixed(0)} / ${g.esperado.toFixed(0)}</span>
+                      <span className="text-2xs font-bold" style={{ color: C.text }}>{g.grupo} <span style={{ color: C.text3 }}>· {g.atletas}</span></span>
+                      <span className="text-2xs" style={{ color: C.text2 }}>${g.recaudado.toFixed(0)} / ${g.esperado.toFixed(0)}</span>
                     </div>
-                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-success/60 rounded-full" style={{ width: `${Math.min(p, 100)}%` }} />
+                    <div className="h-1.5 overflow-hidden" style={{ background: TINT.neutral }}>
+                      <div className="h-full" style={{ width: `${Math.min(p, 100)}%`, background: C.okDeep }} />
                     </div>
                   </div>
                 );
@@ -159,17 +170,17 @@ export default function CajaResumen({ mes, anio }) {
 
           {/* Morosidad */}
           <section>
-            <h4 className="text-2xs font-black uppercase tracking-widest text-fg-secondary mb-2 flex items-center gap-2">
+            <h4 className="text-2xs font-black uppercase tracking-widest mb-2 flex items-center gap-2" style={{ color: C.text2 }}>
               <AlertTriangle size={13} /> Morosidad ({morosos.length})
             </h4>
             {morosos.length === 0 ? (
-              <p className="text-2xs text-fg-faint">Sin saldos pendientes 🎉</p>
+              <p className="text-2xs" style={{ color: C.text3 }}>Sin saldos pendientes 🎉</p>
             ) : (
               <div className="space-y-1.5">
                 {morosos.map((m, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2 bg-black/20 border border-white/5 rounded-lg">
-                    <span className="text-2xs font-bold text-white">{m.nombre} <span className="text-fg-muted">· {m.grupo}</span></span>
-                    <span className={`text-2xs font-black ${m.estado === 'Vencido' ? 'text-danger-soft' : 'text-info-soft'}`}>
+                  <div key={i} className="flex items-center justify-between px-3 py-2" style={rowStyle}>
+                    <span className="text-2xs font-bold" style={{ color: C.text }}>{m.nombre} <span style={{ color: C.text3 }}>· {m.grupo}</span></span>
+                    <span className="text-2xs font-black" style={{ color: m.estado === 'Vencido' ? C.danger : C.info }}>
                       {m.estado} · ${m.saldo.toFixed(2)}
                     </span>
                   </div>
@@ -179,6 +190,8 @@ export default function CajaResumen({ mes, anio }) {
           </section>
         </div>
       )}
+
+      <ModalHUD open={!!modal} {...(modal || {})} onClose={() => setModal(null)} />
     </motion.div>
   );
 }

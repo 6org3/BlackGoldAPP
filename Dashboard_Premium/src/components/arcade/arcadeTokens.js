@@ -68,6 +68,7 @@ export const BORDER = {
   info: 'rgba(96,165,250,.35)',
   ai: 'rgba(168,85,247,.3)',
   warn: 'rgba(251,146,60,.35)',
+  whatsapp: 'rgba(37,211,102,.35)',
 };
 
 /* ---- Gradientes ---- */
@@ -98,6 +99,7 @@ export const TINT = {
   warn: 'rgba(251,146,60,.1)',    // fondo tenue de avisos/parcial (espejo de C.warn)
   danger: 'rgba(248,113,113,.1)', // fondo tenue de mensajes de error (espejo de C.danger)
   neutral: 'rgba(255,255,255,.05)', // fondo tenue neutro (chips/badges sin tono, p.ej. nivel "Por Asignar")
+  whatsapp: 'rgba(37,211,102,.1)', // fondo tenue de CTAs wa.me (espejo de C.whatsapp)
 };
 
 /** Relleno del polígono de datos del RadarChart — oro translúcido (.18). */
