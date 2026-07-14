@@ -117,6 +117,36 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
     .in('atleta_id', atletaIds)
     .eq('fecha', hoy);
 
+  // Fallback de pertenencia atleta↔grupo: cuando `atletas.grupo_id` está vacío
+  // (clubes cuya pertenencia vive solo en `atleta_grupo` — la fuente de verdad
+  // de v18, poblada por la importación y la segmentación de comunicaciones) lo
+  // derivamos del vínculo `atleta_grupo` del MISMO club. Sin esto el hero del
+  // coach (nivel de la clase, conteo de atletas) y cualquier consumidor de
+  // `a.grupo_id` quedan en blanco. Validamos el club para no heredar un grupo
+  // ajeno (existe data legacy de importación con vínculos cross-club); la RLS
+  // `grupos_select` scopea por club como segunda barrera. Solo consulta cuando
+  // hace falta (en clubes con la columna ya poblada, `idsSinGrupo` es vacío).
+  const clubPorAtleta = {};
+  atletas.forEach((a) => { clubPorAtleta[a.id] = a.usuarios?.club; });
+  const idsSinGrupo = atletas.filter((a) => !a.grupo_id).map((a) => a.id);
+  const grupoDerivado = {};
+  if (idsSinGrupo.length > 0) {
+    const { data: vinculos } = await supabase
+      .from('atleta_grupo')
+      .select('atleta_id, grupo_id, added_at, grupos_entrenamiento (nombre, club)')
+      .in('atleta_id', idsSinGrupo)
+      .order('added_at', { ascending: false });
+    (vinculos || []).forEach((v) => {
+      const g = v.grupos_entrenamiento;
+      // Nos quedamos con el vínculo mismo-club más reciente (order desc + primer
+      // match gana). Un atleta puede tener varios grupos; para colapsar a la
+      // columna single se elige el más reciente de su propio club.
+      if (g && g.club === clubPorAtleta[v.atleta_id] && !grupoDerivado[v.atleta_id]) {
+        grupoDerivado[v.atleta_id] = { grupo_id: v.grupo_id, grupo_nombre: g.nombre };
+      }
+    });
+  }
+
   const readinessByAtleta = {};
   (readinessData || []).forEach(r => {
     readinessByAtleta[r.atleta_id] = r;
@@ -152,8 +182,8 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
       genero: a.usuarios.genero || 'Masculino',
       edad: a.edad,
       posicion: a.posicion,
-      grupo_id: a.grupo_id,
-      grupo_nombre: a.grupo_nombre,
+      grupo_id: a.grupo_id || grupoDerivado[a.id]?.grupo_id || null,
+      grupo_nombre: a.grupo_nombre || grupoDerivado[a.id]?.grupo_nombre || null,
       es_becado: a.es_becado || false,
       descuento_pct: a.descuento_pct || 0,
       overall_score: a.overall_score || 0,
