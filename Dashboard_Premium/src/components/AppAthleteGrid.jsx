@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react';
 import AthleteGridCard from './AthleteGridCard';
+import { cut } from './arcade/arcadeTokens';
 
 export default function AppAthleteGrid({ loading, atletasPaginados, currentHasMore, atletasFiltradosLength, onSelect, onLoadMore }) {
   if (loading) {
@@ -23,7 +24,8 @@ export default function AppAthleteGrid({ loading, atletasPaginados, currentHasMo
           <div className="mt-8 flex justify-center">
             <button
               onClick={onLoadMore}
-              className="w-full sm:w-auto px-8 py-3.5 min-h-[44px] rounded-control bg-white/5 border border-white/10 hover:bg-brand/10 hover:border-brand/30 hover:text-brand text-fg-secondary font-bold text-xs uppercase tracking-widest transition flex items-center justify-center gap-2"
+              style={{ clipPath: cut(10) }}
+              className="cut-focus w-full sm:w-auto px-8 py-3.5 min-h-[44px] bg-white/5 border border-white/10 hover:bg-brand/10 hover:border-brand/30 hover:text-brand text-fg-secondary font-bold text-xs uppercase tracking-widest transition flex items-center justify-center gap-2"
             >
               Cargar Más
             </button>
@@ -31,7 +33,10 @@ export default function AppAthleteGrid({ loading, atletasPaginados, currentHasMo
         )}
       </div>
       {atletasFiltradosLength === 0 && (
-        <div className="text-center py-20 relative z-10">
+        <div
+          style={{ clipPath: cut(10) }}
+          className="text-center py-16 px-6 relative z-10 bg-surface-card border border-white/10"
+        >
           <p className="text-fg-muted font-bold uppercase tracking-widest text-xs">No hay atletas con esos filtros</p>
         </div>
       )}

@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, CartesianGrid, Cell, LabelList,
 } from 'recharts';
 import { ChevronDown, Users, Loader2 } from 'lucide-react';
+import { cut } from './arcade/arcadeTokens';
 import { fetchEvaluacionesDeAtletas } from '../api/evaluacionesService';
 // Agregados grupales compartidos (fuente única en analytics-core).
 import { agregarDebilidadesGrupo, serieGrupalPorSubPilar } from '../../../packages/analytics-core/tendencias.js';
@@ -80,10 +81,10 @@ export default function GrupoTendencias({ atletas }) {
   if (!atletas || atletas.length === 0) return null;
 
   return (
-    <div className="mt-8 bg-surface-sunken border border-white/10 rounded-panel overflow-hidden">
+    <div style={{ clipPath: cut(10) }} className="mt-8 bg-surface-card border border-white/10 overflow-hidden">
       <button
         onClick={handleToggle}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
+        className="cut-focus w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
       >
         <div className="flex items-center space-x-3">
           <Users size={16} className="text-brand" />
@@ -114,7 +115,8 @@ export default function GrupoTendencias({ atletas }) {
                 <div className="flex flex-col items-center justify-center py-8 space-y-3">
                   <p className="text-fg-faint text-xs font-bold">El grupo visible cambió.</p>
                   <button onClick={cargarGrupo}
-                    className="px-5 py-3 min-h-[44px] bg-brand/10 text-brand border border-brand/30 hover:bg-brand/20 rounded-lg text-2xs font-bold uppercase tracking-widest transition-colors">
+                    style={{ clipPath: cut(7) }}
+                    className="cut-focus px-5 py-3 min-h-[44px] bg-brand/10 text-brand border border-brand/30 hover:bg-brand/20 text-2xs font-bold uppercase tracking-widest transition-colors">
                     Actualizar tendencias
                   </button>
                 </div>
