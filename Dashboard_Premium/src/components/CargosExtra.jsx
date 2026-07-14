@@ -8,14 +8,19 @@ import {
 } from '../api/pagosService';
 import { registrarEnvioWhatsApp } from '../api/comunicacionesService';
 import { renderPlantilla, normalizarTelefonoEC, linkWhatsApp } from '../lib/plantillasWhatsApp';
+import ModalHUD from './arcade/ModalHUD';
+import MicroLabel from './arcade/MicroLabel';
+import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
+// Mapa de estados con su tono Arcade — gemelo del de AdminPagos (sin Becado:
+// los cargos extra no tienen ese estado).
 const ESTADO_CFG = {
-  Pagado:          { color: 'text-success-soft bg-success/10 border-success/30', icon: CheckCircle2 },
-  Pendiente:       { color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30', icon: Clock },
-  Vencido:         { color: 'text-danger-soft bg-danger/10 border-danger/30', icon: AlertTriangle },
-  Abonado:         { color: 'text-info-soft bg-info/10 border-info/30', icon: CircleDollarSign },
-  'Por Verificar': { color: 'text-caution-soft bg-caution/10 border-caution/30', icon: Hourglass },
-  Anulado:         { color: 'text-fg-muted bg-white/5 border-white/10', icon: Ban },
+  Pagado:          { c: C.ok,     bg: TINT.ok,      border: BORDER.okSoft,  icon: CheckCircle2 },
+  Pendiente:       { c: C.gold,   bg: TINT.gold,    border: BORDER.gold16,  icon: Clock },
+  Vencido:         { c: C.danger, bg: TINT.danger,  border: BORDER.danger,  icon: AlertTriangle },
+  Abonado:         { c: C.info,   bg: TINT.info,    border: BORDER.info,    icon: CircleDollarSign },
+  'Por Verificar': { c: C.warn,   bg: TINT.warn,    border: BORDER.warn,    icon: Hourglass },
+  Anulado:         { c: C.text3,  bg: TINT.neutral, border: BORDER.neutral, icon: Ban },
 };
 
 /**
@@ -36,6 +41,9 @@ export default function CargosExtra({ user, atletas = [], grupoId = 'Todos', con
   const [monto, setMonto] = useState('');
   const [vencimiento, setVencimiento] = useState('');
   const [sugiriendo, setSugiriendo] = useState(false);
+
+  // Diálogo HUD activo (reemplaza alert/prompt nativos): null | { variant, ... }.
+  const [modal, setModal] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,9 +94,18 @@ export default function CargosExtra({ user, atletas = [], grupoId = 'Todos', con
   };
 
   const crear = async () => {
-    if (!atletaId) { alert('Elige un atleta.'); return; }
-    if (!concepto.trim()) { alert('Falta el concepto del cargo.'); return; }
-    if (!monto || Number(monto) <= 0) { alert('Monto inválido.'); return; }
+    if (!atletaId) {
+      setModal({ variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Validación', title: 'Falta el atleta', message: 'Elige un atleta.' });
+      return;
+    }
+    if (!concepto.trim()) {
+      setModal({ variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Validación', title: 'Falta el concepto', message: 'Falta el concepto del cargo.' });
+      return;
+    }
+    if (!monto || Number(monto) <= 0) {
+      setModal({ variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Validación', title: 'Monto inválido', message: 'Ingresa un monto mayor a 0.' });
+      return;
+    }
     const svc = servicios.find(s => s.id === servicioId);
     setCreando(true);
     try {
@@ -104,18 +121,33 @@ export default function CargosExtra({ user, atletas = [], grupoId = 'Todos', con
       load();
     } catch (e) {
       console.error(e);
-      alert(`No se pudo crear el cargo: ${e.message}`);
+      setModal({ variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Error', title: 'No se pudo crear el cargo', message: e.message });
     } finally {
       setCreando(false);
     }
   };
 
-  const anular = async (cargo) => {
-    const motivo = window.prompt('Motivo de la anulación:', '');
-    if (motivo === null) return;
-    if (!motivo.trim()) { alert('La anulación necesita un motivo.'); return; }
-    try { await anularCargo(cargo.id, motivo.trim()); load(); }
-    catch (e) { alert(e.message); }
+  const ejecutarAnulacion = async (cargo, motivo) => {
+    try {
+      await anularCargo(cargo.id, motivo.trim());
+      load();
+    } catch (e) {
+      setModal({ variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Error', title: 'No se pudo anular', message: e.message });
+    }
+  };
+
+  const anular = (cargo) => {
+    setModal({
+      variant: 'prompt',
+      tone: 'danger',
+      icon: Ban,
+      eyebrow: 'Anulación',
+      title: 'Anular cargo',
+      message: 'La anulación necesita un motivo; el padre lo verá en su estado de cuenta.',
+      placeholder: 'Motivo de la anulación',
+      confirmLabel: 'Anular cargo',
+      onConfirm: (motivo) => { setModal(null); ejecutarAnulacion(cargo, motivo); },
+    });
   };
 
   const avisarWhatsApp = (cargo) => {
@@ -138,73 +170,81 @@ export default function CargosExtra({ user, atletas = [], grupoId = 'Todos', con
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-      className="glass-card rounded-panel border border-info/20 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-black/40 border-b border-white/10">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      style={{ background: C.card, border: `1px solid ${BORDER.info}`, clipPath: cut(12), overflow: 'hidden' }}>
+      <div className="flex items-center justify-between px-4 py-3" style={{ background: C.cardAlt1, borderBottom: `1px solid ${BORDER.neutral}` }}>
         <div className="flex items-center space-x-2">
-          <PackagePlus size={16} className="text-info-soft" />
-          <h3 className="text-xs font-black uppercase tracking-widest text-info-soft">Servicios y cargos extra</h3>
+          <PackagePlus size={16} style={{ color: C.info }} />
+          <h3 className="text-xs font-black uppercase tracking-widest" style={{ color: C.info }}>Servicios y cargos extra</h3>
         </div>
-        <button onClick={load} aria-label="Recargar" className="p-2 min-w-10 min-h-10 flex items-center justify-center text-fg-muted hover:text-white transition-colors">
+        <button onClick={load} aria-label="Recargar"
+          className="cut-focus p-2 min-w-11 min-h-11 md:min-w-10 md:min-h-10 flex items-center justify-center transition-colors"
+          style={{ color: C.text3 }}>
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
       <div className="p-4 space-y-5">
         {/* Nuevo cargo */}
-        <div className="bg-black/20 border border-white/10 rounded-control p-3">
-          <p className="text-2xs font-black uppercase tracking-widest text-fg-secondary mb-3">Nuevo cargo</p>
+        <div className="p-3" style={{ clipPath: cut(8), background: C.cardAlt1, border: `1px solid ${BORDER.neutral}` }}>
+          <MicroLabel style={{ marginBottom: 12 }}>Nuevo cargo</MicroLabel>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <label className="block">
-              <span className="text-3xs text-fg-muted">Atleta</span>
+              <span className="text-3xs" style={{ color: C.text3 }}>Atleta</span>
               <select value={atletaId} onChange={e => onAtletaChange(e.target.value)}
-                className="mt-0.5 w-full bg-black/60 border border-white/10 rounded-lg px-2 py-2.5 min-h-11 text-2xs text-white focus:outline-none">
-                <option value="" className="bg-surface-card">Elegir atleta…</option>
+                className="cut-focus arcade-input mt-0.5 w-full bg-transparent px-2 min-h-11 text-2xs font-bold focus:outline-none"
+                style={{ clipPath: cut(7), background: C.card, border: `1px solid ${BORDER.neutralSoft}`, color: C.text }}>
+                <option value="">Elegir atleta…</option>
                 {atletasOrdenados.map(a => (
-                  <option key={a.atleta_id} value={a.atleta_id} className="bg-surface-card">
+                  <option key={a.atleta_id} value={a.atleta_id}>
                     {a.nombre}{a.grupo_nombre ? ` · ${a.grupo_nombre}` : ''}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block">
-              <span className="text-3xs text-fg-muted">Servicio (sugiere precio)</span>
+              <span className="text-3xs" style={{ color: C.text3 }}>Servicio (sugiere precio)</span>
               <select value={servicioId} onChange={e => onServicioChange(e.target.value)}
-                className="mt-0.5 w-full bg-black/60 border border-white/10 rounded-lg px-2 py-2.5 min-h-11 text-2xs text-white focus:outline-none">
-                <option value="" className="bg-surface-card">Cargo libre (sin catálogo)</option>
-                {servicios.map(s => <option key={s.id} value={s.id} className="bg-surface-card">{s.nombre}</option>)}
+                className="cut-focus arcade-input mt-0.5 w-full bg-transparent px-2 min-h-11 text-2xs font-bold focus:outline-none"
+                style={{ clipPath: cut(7), background: C.card, border: `1px solid ${BORDER.neutralSoft}`, color: C.text }}>
+                <option value="">Cargo libre (sin catálogo)</option>
+                {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="text-3xs text-fg-muted">Concepto</span>
+              <span className="text-3xs" style={{ color: C.text3 }}>Concepto</span>
               <input type="text" value={concepto} onChange={e => setConcepto(e.target.value)}
                 placeholder="Ej. Camp julio, Uniforme talla M"
-                className="mt-0.5 w-full bg-black/60 border border-white/10 rounded-lg px-2 py-2.5 min-h-11 text-2xs text-white focus:outline-none" />
+                className="cut-focus arcade-input mt-0.5 w-full bg-transparent px-2 min-h-11 text-2xs font-bold focus:outline-none"
+                style={{ clipPath: cut(7), background: C.card, border: `1px solid ${BORDER.neutralSoft}`, color: C.text }} />
             </label>
             <div className="grid grid-cols-2 gap-2">
               <label className="block">
-                <span className="text-3xs text-fg-muted">Monto ${sugiriendo ? ' (sugiriendo…)' : ''}</span>
+                <span className="text-3xs" style={{ color: C.text3 }}>Monto ${sugiriendo ? ' (sugiriendo…)' : ''}</span>
                 <input type="number" min="0.01" step="0.01" value={monto} onChange={e => setMonto(e.target.value)}
-                  className="mt-0.5 w-full bg-black/60 border border-white/10 rounded-lg px-2 py-2.5 min-h-11 text-2xs text-white focus:outline-none" />
+                  className="cut-focus arcade-input mt-0.5 w-full bg-transparent px-2 min-h-11 text-2xs font-bold focus:outline-none"
+                  style={{ clipPath: cut(7), background: C.card, border: `1px solid ${BORDER.neutralSoft}`, color: C.text }} />
               </label>
               <label className="block">
-                <span className="text-3xs text-fg-muted">Vence (opcional)</span>
+                <span className="text-3xs" style={{ color: C.text3 }}>Vence (opcional)</span>
                 <input type="date" value={vencimiento} onChange={e => setVencimiento(e.target.value)}
-                  className="mt-0.5 w-full bg-black/60 border border-white/10 rounded-lg px-2 py-2.5 min-h-11 text-2xs text-white focus:outline-none" />
+                  className="cut-focus arcade-input mt-0.5 w-full bg-transparent px-2 min-h-11 text-2xs font-bold focus:outline-none"
+                  style={{ clipPath: cut(7), background: C.card, border: `1px solid ${BORDER.neutralSoft}`, color: C.text }} />
               </label>
             </div>
           </div>
           <button onClick={crear} disabled={creando}
-            className="mt-3 flex items-center gap-2 px-4 py-2.5 min-h-11 bg-info/10 border border-info/30 text-info-soft text-2xs font-black rounded-control uppercase tracking-widest hover:bg-info/20 disabled:opacity-50 transition">
+            className="cut-focus mt-3 flex items-center gap-2 px-4 min-h-11 text-2xs font-black uppercase tracking-widest disabled:opacity-50 transition"
+            style={{ clipPath: cut(8), background: TINT.info, border: `1px solid ${BORDER.info}`, color: C.info }}>
             <Plus size={13} /> {creando ? 'Creando…' : 'Crear cargo'}
           </button>
         </div>
 
         {/* Lista de cargos existentes */}
         {loading ? (
-          <p className="text-center py-6 text-sm text-fg-faint font-bold">Cargando…</p>
+          <p className="text-center py-6 text-sm font-bold" style={{ color: C.text3 }}>Cargando…</p>
         ) : cargos.length === 0 ? (
-          <p className="text-center py-6 text-sm text-fg-faint font-bold">Sin cargos extra registrados.</p>
+          <p className="text-center py-6 text-sm font-bold" style={{ color: C.text3 }}>Sin cargos extra registrados.</p>
         ) : (
           <div className="space-y-2">
             {cargos.map(c => {
@@ -212,24 +252,28 @@ export default function CargosExtra({ user, atletas = [], grupoId = 'Todos', con
               const Icon = cfg.icon;
               const nombre = c.atletas?.usuarios?.nombre || '—';
               return (
-                <div key={c.id} className="flex flex-col md:flex-row md:items-center gap-2 px-3 py-2.5 border-b border-white/5">
+                <div key={c.id} className="flex flex-col md:flex-row md:items-center gap-2 px-3 py-2.5"
+                  style={{ borderBottom: `1px solid ${BORDER.neutralFaint}` }}>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-white">{nombre}</p>
-                    <p className="text-2xs text-fg-secondary">{c.concepto || c.tipo} · <span className="font-black text-white">${(c.monto_final || 0).toFixed(2)}</span></p>
+                    <p className="text-sm font-bold" style={{ color: C.text }}>{nombre}</p>
+                    <p className="text-2xs" style={{ color: C.text2 }}>{c.concepto || c.tipo} · <span style={{ color: C.text, fontWeight: 900 }}>${(c.monto_final || 0).toFixed(2)}</span></p>
                   </div>
-                  <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-3xs font-black ${cfg.color}`}>
+                  <div className="inline-flex items-center gap-1 px-2 py-1 text-3xs font-black"
+                    style={{ clipPath: cut(5), background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.c }}>
                     <Icon size={10} /><span>{c.estado}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     {c.estado !== 'Anulado' && c.estado !== 'Pagado' && (
                       <button onClick={() => avisarWhatsApp(c)} aria-label="Avisar por WhatsApp"
-                        className="p-2 min-w-10 min-h-10 flex items-center justify-center text-emerald-600 hover:text-success-soft transition-colors">
+                        className="cut-focus p-2 min-w-11 min-h-11 md:min-w-10 md:min-h-10 flex items-center justify-center transition-colors hover:bg-white/[0.06]"
+                        style={{ clipPath: cut(5), color: C.whatsapp }}>
                         <MessageSquare size={15} />
                       </button>
                     )}
                     {c.estado !== 'Anulado' && c.estado !== 'Pagado' && (c.monto_pagado || 0) === 0 && (
                       <button onClick={() => anular(c)} aria-label="Anular cargo"
-                        className="p-2 min-w-10 min-h-10 flex items-center justify-center text-danger-soft/70 hover:text-danger-soft transition-colors">
+                        className="cut-focus p-2 min-w-11 min-h-11 md:min-w-10 md:min-h-10 flex items-center justify-center transition-colors hover:bg-white/[0.06]"
+                        style={{ clipPath: cut(5), color: C.danger }}>
                         <Ban size={15} />
                       </button>
                     )}
@@ -240,6 +284,8 @@ export default function CargosExtra({ user, atletas = [], grupoId = 'Todos', con
           </div>
         )}
       </div>
+
+      <ModalHUD open={!!modal} {...(modal || {})} onClose={() => setModal(null)} />
     </motion.div>
   );
 }
