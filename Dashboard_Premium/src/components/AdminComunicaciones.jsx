@@ -346,7 +346,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
             className={`${FIELD_CLASS} w-full resize-none`} style={fieldStyle} />
 
           <button onClick={handleEnviar} disabled={saving || !puedeEnviar}
-            className="cut-focus w-full flex items-center justify-center gap-2 min-h-11 py-3.5 font-black uppercase tracking-widest text-sm transition disabled:opacity-40 active:scale-[0.99]"
+            className={`cut-focus w-full flex items-center justify-center gap-2 min-h-11 py-3.5 font-black uppercase tracking-widest text-sm transition active:scale-[0.99] ${saved ? '' : 'disabled:opacity-40'}`}
             style={saved
               ? { clipPath: cut(10), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }
               : { clipPath: cut(10), background: GRAD.goldCTA, color: C.ink, border: 'none' }}>
