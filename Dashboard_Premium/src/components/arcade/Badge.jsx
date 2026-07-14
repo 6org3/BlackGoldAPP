@@ -2,10 +2,16 @@ import { HEX, C, GRAD, GLOW, PIXEL } from './arcadeTokens';
 
 /**
  * Insignia hexagonal automática — se desbloquea al poner 5★ en su eje.
- * Bloqueada: gris desaturado. Activa: hex dorado con glow y `bg-pop`.
+ * Bloqueada: gris desaturado. Activa: hex dorado con glow.
  * `name` admite salto de línea (\n) para nombres de dos renglones.
+ *
+ * `pop` (default true): reproduce `bg-pop` al desbloquear — para superficies
+ * donde el unlock ocurre en vivo (PantallaEvaluar). En galerías en reposo
+ * (Progreso del atleta) pasar pop={false} para que no re-anime en cada mount.
+ * `glow` permite bajar la intensidad (p. ej. GLOW.hexGoldMid en reposo) y
+ * `countLabel` añade la línea de conteo bajo el nombre.
  */
-export default function Badge({ icon, name, unlocked = false }) {
+export default function Badge({ icon, name, unlocked = false, pop = true, glow = GLOW.hexGoldStrong, countLabel }) {
   return (
     <div style={{ flex: 1, textAlign: 'center' }}>
       <div
@@ -18,10 +24,11 @@ export default function Badge({ icon, name, unlocked = false }) {
           placeItems: 'center',
           fontSize: 21,
           background: unlocked ? GRAD.goldHex : 'rgba(255,255,255,.04)',
-          boxShadow: unlocked ? GLOW.hexGoldStrong : 'none',
+          boxShadow: unlocked ? glow : 'none',
           filter: unlocked ? 'none' : 'grayscale(1) opacity(.4)',
-          animation: unlocked ? 'bg-pop .4s ease-out' : 'none',
-          transition: 'all .25s',
+          animation: unlocked && pop ? 'bg-pop .4s ease-out' : 'none',
+          // §5: nunca transition-all — solo las props que cambian al desbloquear.
+          transition: 'filter .25s ease, box-shadow .25s ease',
         }}
       >
         <span aria-hidden="true">{icon}</span>
@@ -39,6 +46,11 @@ export default function Badge({ icon, name, unlocked = false }) {
       >
         {name}
       </p>
+      {countLabel != null && (
+        <p style={{ margin: '3px 0 0', fontFamily: PIXEL, fontSize: 8, color: unlocked ? C.text : C.text4 }}>
+          {countLabel}
+        </p>
+      )}
     </div>
   );
 }

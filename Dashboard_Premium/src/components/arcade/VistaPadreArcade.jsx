@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../AuthContext';
-import { C, BORDER, GRAD, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
+import { C, BORDER, GRAD, RADAR_FILL_INFO, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
+import RadarChart from './RadarChart';
 import XPCells from './XPCells';
 import ArcadeBottomNav from './ArcadeBottomNav';
 import {
@@ -23,46 +24,6 @@ import {
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const DIAS_SEM = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
-// ---- Radar dinámico (7 ejes desde 0..100) ----
-const CX = 130;
-const CY = 113;
-const MAXR = 83;
-function radarPuntos(radar, factor = 1) {
-  return radar
-    .map((p, i) => {
-      const ang = ((-90 + i * (360 / 7)) * Math.PI) / 180;
-      const r = MAXR * factor * (p.value / 100);
-      return `${(CX + r * Math.cos(ang)).toFixed(1)},${(CY + r * Math.sin(ang)).toFixed(1)}`;
-    })
-    .join(' ');
-}
-function anilloPuntos(factor) {
-  return Array.from({ length: 7 }, (_, i) => {
-    const ang = ((-90 + i * (360 / 7)) * Math.PI) / 180;
-    const r = MAXR * factor;
-    return `${(CX + r * Math.cos(ang)).toFixed(1)},${(CY + r * Math.sin(ang)).toFixed(1)}`;
-  }).join(' ');
-}
-const ETIQUETAS_XY = [
-  [130, 18], [212, 52], [234, 138], [173, 206], [87, 206], [28, 138], [52, 52],
-];
-
-function RadarPilares({ radar }) {
-  return (
-    <svg viewBox="0 0 260 215" width="82%" style={{ margin: '0 auto' }} role="img" aria-label="Radar de 7 pilares">
-      <polygon points={anilloPuntos(0.4)} fill="none" stroke="rgba(255,255,255,.07)" />
-      <polygon points={anilloPuntos(0.7)} fill="none" stroke="rgba(255,255,255,.07)" />
-      <polygon points={anilloPuntos(1)} fill="none" stroke="rgba(255,215,0,.12)" />
-      <polygon points={radarPuntos(radar)} fill="rgba(96,165,250,.18)" stroke="#60A5FA" strokeWidth="2" />
-      {radar.map((p, i) => (
-        <text key={p.key} x={ETIQUETAS_XY[i][0]} y={ETIQUETAS_XY[i][1]} fill="#9CA3AF" textAnchor="middle" fontFamily="Silkscreen" style={{ fontSize: 7 }}>
-          {p.label}
-        </text>
-      ))}
-    </svg>
-  );
-}
 
 // ---- Demo (preview sin login) ----
 const MOCK = {
@@ -400,7 +361,7 @@ export default function VistaPadreArcade() {
               {/* 7 pilares */}
               <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">SUS 7 PILARES</MicroLabel>
               <div style={{ background: C.card, border: `1px solid ${BORDER.gold}`, clipPath: cut(12), padding: '10px 14px 4px', marginBottom: 14, textAlign: 'center' }}>
-                <RadarPilares radar={vm.radar} />
+                <RadarChart axes={vm.radar} accent={C.info} fill={RADAR_FILL_INFO} rings={[0.4, 0.7]} />
                 {vm.simples && (
                   <div style={{ textAlign: 'left', background: 'rgba(96,165,250,.06)', border: `1px solid rgba(96,165,250,.2)`, clipPath: cut(8), padding: '11px 12px', margin: '2px 0 12px' }}>
                     <MicroLabel color={C.ai} size={8} tracking=".06em" style={{ marginBottom: 5 }}>✦ EN PALABRAS SIMPLES</MicroLabel>

@@ -1,4 +1,5 @@
-import { C, BORDER, GRAD, cut, HEX, PIXEL } from './arcadeTokens';
+import { C, BORDER, GRAD, GLOW, cut, HEX, PIXEL } from './arcadeTokens';
+import Badge from './Badge';
 import MicroLabel from './MicroLabel';
 import RadarChart from './RadarChart';
 
@@ -79,13 +80,7 @@ export default function PantallaAtletaProgreso({ ctx }) {
       <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 10px' }}>MIS INSIGNIAS</MicroLabel>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {ctx.insignias.map((b, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-            <div style={{ width: 54, height: 54, margin: '0 auto', clipPath: HEX, background: b.unlocked ? GRAD.goldHex : 'rgba(255,255,255,.04)', display: 'grid', placeItems: 'center', fontSize: 21, boxShadow: b.unlocked ? '0 0 20px rgba(255,215,0,.45)' : 'none', filter: b.unlocked ? 'none' : 'grayscale(1) opacity(.4)' }}>
-              <span aria-hidden="true">{b.icon}</span>
-            </div>
-            <p style={{ margin: '7px 0 0', fontFamily: PIXEL, fontSize: 7, letterSpacing: '.02em', lineHeight: 1.35, whiteSpace: 'pre-line', color: b.unlocked ? C.gold : C.text4 }}>{b.name}</p>
-            <p style={{ margin: '3px 0 0', fontFamily: PIXEL, fontSize: 8, color: b.unlocked ? C.text : C.text4 }}>{b.countLabel}</p>
-          </div>
+          <Badge key={i} icon={b.icon} name={b.name} unlocked={b.unlocked} pop={false} glow={GLOW.hexGoldMid} countLabel={b.countLabel} />
         ))}
       </div>
 
