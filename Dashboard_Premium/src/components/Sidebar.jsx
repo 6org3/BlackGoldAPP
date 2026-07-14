@@ -3,6 +3,9 @@ import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, Do
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaArcade from './arcade/ModoCanchaArcade';
+import HexAvatar from './arcade/HexAvatar';
+import MicroLabel from './arcade/MicroLabel';
+import { C, BORDER, GRAD, GLOW, TINT, cut, HEX } from './arcade/arcadeTokens';
 import { supabase } from '../api/supabaseClient';
 import { fetchSesionesEnCurso } from '../api/sesionesService';
 import { HOMES_POR_ROL, rutaHomeParaRol } from '../lib/featureFlags';
@@ -51,55 +54,67 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
+  const esStaff = user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin';
+
+  // Modo Cancha: tres estados (clase en curso = verde vivo, panel abierto = oro
+  // fuerte, reposo = oro tenue). Colores/glow desde arcadeTokens, forma cut().
+  const mcTono = activeSessionCount > 0
+    ? { color: C.ok, background: TINT.ok, border: `1px solid ${BORDER.ok}`, boxShadow: GLOW.timer }
+    : showModoCancha
+      ? { color: C.gold, background: TINT.gold, border: `1px solid ${BORDER.goldStrong}`, boxShadow: GLOW.hexGoldMid }
+      : { color: C.gold, background: TINT.gold, border: `1px solid ${BORDER.gold}`, boxShadow: 'none' };
+
   return (
     <>
       {/* Overlay Móvil */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
-      <aside className={`w-72 max-w-[85vw] border-r border-white/5 bg-surface-base/95 backdrop-blur-xl flex-col fixed md:relative z-50 h-dvh md:h-full transition-[transform,visibility] duration-300 ${isMobileMenuOpen ? 'translate-x-0 visible' : '-translate-x-full invisible md:visible md:translate-x-0'} flex`}>
-      <div className="p-8 border-b border-white/5 relative">
-        <div className="flex items-center space-x-3 mb-2">
-          <Sparkles className="text-brand" size={24} />
-          <h1 className="text-3xl font-black text-white tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(255,215,0,0.3)]">Black Gold</h1>
+      <aside
+        className={`w-72 max-w-[85vw] backdrop-blur-xl flex-col fixed md:relative z-50 h-dvh md:h-full transition-[transform,visibility] duration-300 ${isMobileMenuOpen ? 'translate-x-0 visible' : '-translate-x-full invisible md:visible md:translate-x-0'} flex`}
+        style={{ background: C.card, borderRight: `1px solid ${BORDER.neutral}` }}
+      >
+      <div className="p-6 relative" style={{ borderBottom: `1px solid ${BORDER.neutral}` }}>
+        <div className="flex items-center gap-3">
+          <HexAvatar size={40} background={GRAD.goldHex} color={C.ink} glow>
+            <Sparkles size={20} strokeWidth={2.5} />
+          </HexAvatar>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight uppercase leading-none" style={{ color: C.text }}>Black Gold</h1>
+            <MicroLabel style={{ marginTop: 4, color: C.gold }}>Intelligence</MicroLabel>
+          </div>
         </div>
-        <p className="text-2xs text-brand font-bold tracking-[0.3em] uppercase ml-9">Intelligence</p>
-        
-        {/* Close Button Mobile */}
+
+        {/* Cerrar drawer (móvil) */}
         <button
           onClick={() => setIsMobileMenuOpen(false)}
           aria-label="Cerrar menú"
-          className="absolute top-6 right-2 md:hidden text-fg-muted hover:text-white p-3"
+          className="cut-focus absolute top-4 right-2 md:hidden grid place-items-center min-h-11 min-w-11 transition-colors"
+          style={{ color: C.text3 }}
         >
           <Cross size={20} className="rotate-45" />
         </button>
       </div>
 
-      <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+      <nav className="flex-1 p-5 space-y-1.5 overflow-y-auto">
+        {esStaff && (
           <button
             onClick={() => setShowModoCancha(true)}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-control text-xs font-bold uppercase tracking-[0.15em] transition duration-300 mb-2
-              ${activeSessionCount > 0 
-                ? 'bg-success/10 border-success/50 text-success-soft shadow-[0_0_20px_rgba(16,185,129,0.2)] animate-pulse' 
-                : showModoCancha
-                  ? 'bg-gradient-to-r from-brand/15 to-brand-strong/5 text-brand border border-brand/30 shadow-[0_0_20px_rgba(255,215,0,0.15)]'
-                  : 'bg-brand/5 border border-brand/10 text-brand/80 hover:bg-brand/10 hover:border-brand/30 hover:shadow-[0_0_15px_rgba(255,215,0,0.1)]'
-              }
-            `}
+            className={`cut-focus w-full flex items-center justify-between px-5 min-h-11 py-3.5 text-xs font-bold uppercase tracking-[0.15em] transition mb-2 ${activeSessionCount > 0 ? 'animate-pulse' : ''}`}
+            style={{ ...mcTono, clipPath: cut(8) }}
           >
-            <div className="flex items-center space-x-4">
-              <span className={`drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] ${activeSessionCount > 0 ? 'text-success-soft' : ''}`}>
+            <span className="flex items-center gap-3">
+              <span style={{ filter: activeSessionCount > 0 ? undefined : GLOW.hexGold }}>
                 <Zap size={18} />
               </span>
               <span>{activeSessionCount > 0 ? 'Clase en Curso' : 'Modo Cancha'}</span>
-            </div>
+            </span>
             {activeSessionCount > 0 && (
-              <span className="bg-success text-black px-2 py-0.5 rounded-full text-2xs font-black">{activeSessionCount}</span>
+              <span className="grid place-items-center text-2xs font-black" style={{ width: 20, height: 20, clipPath: HEX, background: C.ok, color: C.inkGreen }}>{activeSessionCount}</span>
             )}
           </button>
         )}
@@ -109,7 +124,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
           active={location.pathname === rutaInicio || location.pathname === '/dashboard'}
           onClick={() => navigate(rutaInicio)}
         />
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+        {esStaff && (
           <NavItem
             icon={<Plus size={18} />}
             label="Gestionar Atletas"
@@ -117,7 +132,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             onClick={() => navigate('/admin/atletas')}
           />
         )}
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+        {esStaff && (
           <NavItem
             icon={<Activity size={18} />}
             label="Gestionar Misiones"
@@ -127,7 +142,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
         )}
         {/* El coach entra en modo cobro (registrar efectivo y recordar); la ruta
             ya lo admitía — ocultarle el enlace era una barrera cosmética. */}
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+        {esStaff && (
           <NavItem
             icon={<DollarSign size={18} />}
             label="Control de Pagos"
@@ -135,7 +150,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             onClick={() => navigate('/admin/pagos')}
           />
         )}
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+        {esStaff && (
           <NavItem
             icon={<MessageSquare size={18} />}
             label="Comunicaciones"
@@ -143,7 +158,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             onClick={() => navigate('/admin/comunicaciones')}
           />
         )}
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+        {esStaff && (
           <NavItem
             icon={<CalendarDays size={18} />}
             label="Eventos"
@@ -151,7 +166,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             onClick={() => navigate('/admin/eventos')}
           />
         )}
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+        {esStaff && (
           <NavItem
             icon={<ClipboardList size={18} />}
             label="Asistencia"
@@ -159,7 +174,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             onClick={() => navigate('/admin/asistencia')}
           />
         )}
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+        {esStaff && (
           <NavItem
             icon={<FlaskConical size={18} />}
             label="Sesiones"
@@ -167,7 +182,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             onClick={() => navigate('/admin/sesiones')}
           />
         )}
-        {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+        {esStaff && (
           <NavItem
             icon={<TrendingUp size={18} />}
             label="Comparar"
@@ -186,20 +201,21 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
 
       </nav>
 
-      <div className="p-8 border-t border-white/5 bg-gradient-to-t from-black/50 to-transparent">
+      <div className="p-6" style={{ borderTop: `1px solid ${BORDER.neutral}` }}>
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center space-x-4 min-w-0">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-black font-black shadow-glow-gold shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <HexAvatar size={40} background={GRAD.goldHex} color={C.ink}>
               {user.nombre?.charAt(0) || 'U'}
-            </div>
+            </HexAvatar>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-white tracking-wide truncate">{user.nombre}</p>
-              <p className="text-2xs text-fg-secondary uppercase tracking-eyebrow mt-1">Rol: {user.rol}</p>
+              <p className="text-sm font-bold tracking-wide truncate" style={{ color: C.text }}>{user.nombre}</p>
+              <MicroLabel style={{ marginTop: 2 }}>Rol: {user.rol}</MicroLabel>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="group grid place-items-center min-h-11 min-w-11 rounded-control bg-white/5 hover:bg-danger/10 border border-white/10 hover:border-danger/30 transition duration-300 shrink-0"
+            className="cut-focus group grid place-items-center min-h-11 min-w-11 bg-white/5 hover:bg-danger/10 border border-white/10 hover:border-danger/30 transition duration-300 shrink-0"
+            style={{ clipPath: cut(7) }}
             title="Cerrar sesión"
             aria-label="Cerrar sesión"
             data-testid="btn-logout-sidebar"
@@ -213,11 +229,12 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
     {/* Botón flotante Global Modo Cancha (para móviles) — oculto cuando la
         superficie ya monta su propia BottomNav + FAB Copiloto (PR7), para no
         apilar tres controles flotantes sobre el mismo rincón inferior. */}
-    {!ocultarFabModoCancha && (user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+    {!ocultarFabModoCancha && esStaff && (
       <button
         onClick={() => setShowModoCancha(true)}
         aria-label="Abrir Modo Cancha"
-        className={`fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 bg-brand text-black p-4 rounded-full shadow-glow-gold hover:scale-110 hover:shadow-[0_0_30px_rgba(255,215,0,0.6)] transition flex items-center justify-center md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
+        className={`cut-focus fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-6 z-40 grid place-items-center w-14 h-14 rounded-full hover:scale-110 transition-transform md:hidden ${isMobileMenuOpen ? 'hidden' : ''}`}
+        style={{ background: C.gold, color: C.ink, boxShadow: GLOW.hexGoldStrong }}
       >
         <Zap size={24} fill="currentColor" />
       </button>
@@ -226,7 +243,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
         ocultarFabModoCancha): el botón "Modo Cancha" del drawer —siempre
         visible— debe abrirlo en toda superficie, incluidas /admin/* y los
         homes por rol donde el FAB sí se oculta. */}
-    {(user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin') && (
+    {esStaff && (
       <ModoCanchaArcade isOpen={showModoCancha} onClose={() => setShowModoCancha(false)} />
     )}
     </>
@@ -237,11 +254,11 @@ function NavItem({ icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center space-x-4 px-5 py-4 rounded-control text-xs font-bold uppercase tracking-[0.15em] transition duration-300
-        ${active ? 'bg-gradient-to-r from-brand/10 to-transparent text-brand border-l-2 border-brand' : 'text-fg-muted hover:bg-white/5 hover:text-white border-l-2 border-transparent'}
-      `}
+      aria-current={active ? 'page' : undefined}
+      className={`cut-focus w-full flex items-center gap-4 px-5 min-h-11 py-3 text-xs font-bold uppercase tracking-[0.15em] border-l-2 transition-colors ${active ? '' : 'text-fg-muted hover:bg-white/5 hover:text-white border-transparent'}`}
+      style={active ? { color: C.gold, background: TINT.gold, borderLeftColor: C.gold } : undefined}
     >
-      <span className={`${active ? 'drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]' : ''}`}>
+      <span style={active ? { filter: GLOW.hexGold } : undefined}>
         {icon}
       </span>
       <span>{label}</span>
