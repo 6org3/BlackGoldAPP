@@ -2,15 +2,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, FileText, AlertTriangle, Search, Calendar, Users, Save, ClipboardList, ChevronDown } from 'lucide-react';
 import { fetchAsistenciaPorFecha, upsertAsistencia } from '../api/asistenciaService';
+import CutCard from './arcade/CutCard';
+import HexAvatar from './arcade/HexAvatar';
+import MicroLabel from './arcade/MicroLabel';
+import KpiTile from './arcade/KpiTile';
+import KpiGrid from './arcade/KpiGrid';
+import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
 const CATEGORIAS = ['Todas', 'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)', 'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores'];
 
-const ESTADO_CONFIG = {
-  Presente:    { color: 'text-success-soft border-success/40 bg-success/10', icon: CheckCircle2,    label: 'Presente' },
-  Ausente:     { color: 'text-danger-soft border-danger/40 bg-danger/10',             icon: XCircle,         label: 'Ausente' },
-  Justificada: { color: 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10',    icon: FileText,        label: 'Justificada' },
-  Lesionado:   { color: 'text-caution-soft border-caution/40 bg-caution/10',    icon: AlertTriangle,   label: 'Lesionado' },
+// Estados de asistencia con su color semántico Arcade (C.ok/danger/warn) — antes
+// Justificada usaba yellow crudo. El icono distingue Justificada de Lesionado.
+const ESTADO_META = {
+  Presente:    { c: C.ok,     icon: CheckCircle2,  label: 'Presente' },
+  Ausente:     { c: C.danger, icon: XCircle,       label: 'Ausente' },
+  Justificada: { c: C.warn,   icon: FileText,      label: 'Justificada' },
+  Lesionado:   { c: C.warn,   icon: AlertTriangle, label: 'Lesionado' },
 };
+
+// Caja de control de la toolbar (fecha/categoría/buscador): superficie cut(7).
+const boxStyle = { clipPath: cut(7), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}` };
 
 function getTodayStr() {
   return new Date().toISOString().split('T')[0];
@@ -132,62 +143,61 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   };
 
   return (
-    <div className="min-h-screen bg-surface-base text-white p-6 md:p-12">
-      {/* Ambient bg */}
-      <div className="fixed top-[-20%] left-[10%] w-[700px] h-[500px] bg-brand/5 blur-[150px] pointer-events-none rounded-full" />
-
+    <div className="p-6 md:p-12" style={{ color: C.text }}>
       {/* Header */}
-      <header className="mb-8 relative z-10 border-b border-white/5 pb-8">
-        <div className="flex items-center space-x-3 mb-2">
-          <ClipboardList className="text-brand" size={28} />
-          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
-            Control de{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-strong">
-              Asistencia
-            </span>
-          </h2>
+      <header className="mb-8 pb-8" style={{ borderBottom: `1px solid ${BORDER.neutral}` }}>
+        <div className="flex items-center gap-3">
+          <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
+            <ClipboardList size={22} strokeWidth={2.5} />
+          </HexAvatar>
+          <div>
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+              Control de <span style={{ color: C.gold }}>Asistencia</span>
+            </h2>
+            <MicroLabel style={{ marginTop: 4 }}>Gestión por grupos · {total} atletas</MicroLabel>
+          </div>
         </div>
-        <p className="text-2xs text-fg-muted font-bold uppercase tracking-[0.3em] ml-10">
-          Gestión por Grupos · {total} atletas
-        </p>
       </header>
 
       {/* Toolbar */}
-      <div className="relative z-10 flex flex-wrap gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-6">
         {/* Fecha */}
-        <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-control px-4 py-2.5">
-          <Calendar size={14} className="text-brand" />
+        <div className="flex items-center gap-2 px-4" style={boxStyle}>
+          <Calendar size={14} style={{ color: C.gold }} />
           <input
             type="date"
             value={fecha}
             onChange={e => setFecha(e.target.value)}
-            className="bg-transparent text-sm text-white font-bold focus:outline-none cursor-pointer"
+            className="cut-focus arcade-input bg-transparent min-h-11 md:min-h-9 text-sm font-bold focus:outline-none cursor-pointer"
+            style={{ color: C.text }}
           />
         </div>
 
         {/* Categoría */}
-        <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-control px-4 py-2.5">
-          <Users size={14} className="text-brand" />
+        <div className="flex items-center gap-2 px-4" style={boxStyle}>
+          <Users size={14} style={{ color: C.gold }} />
           <select
             value={filtroCategoria}
             onChange={e => setFiltroCategoria(e.target.value)}
-            className="bg-transparent text-sm text-white font-bold focus:outline-none cursor-pointer appearance-none"
+            className="cut-focus arcade-input bg-transparent min-h-11 md:min-h-9 text-sm font-bold focus:outline-none cursor-pointer appearance-none"
+            style={{ color: C.text }}
           >
-            {CATEGORIAS.map(c => <option key={c} value={c} className="bg-surface-card">{c}</option>)}
+            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <ChevronDown size={12} className="text-fg-muted pointer-events-none" />
+          <ChevronDown size={12} className="pointer-events-none" style={{ color: C.text3 }} />
         </div>
 
         {/* Buscador */}
-        <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-control px-4 py-2.5 flex-1 min-w-[200px]">
-          <Search size={14} className="text-fg-muted" />
+        <div className="flex items-center gap-2 px-4 flex-1 min-w-[200px]" style={boxStyle}>
+          <Search size={14} style={{ color: C.text3 }} />
           <input
             type="search"
             enterKeyHint="search"
             placeholder="Buscar jugador..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            className="bg-transparent text-sm text-white placeholder-gray-600 font-bold focus:outline-none w-full"
+            className="cut-focus arcade-input bg-transparent min-h-11 md:min-h-9 text-sm font-bold focus:outline-none w-full"
+            style={{ color: C.text }}
           />
         </div>
       </div>
@@ -196,16 +206,17 @@ export default function AdminAsistencia({ user, atletas = [] }) {
           parte de "Presente" por defecto y guardar podría pisar un pase de
           lista real — el coach tiene que saberlo antes de tocar Guardar. */}
       {errorCarga && (
-        <div role="alert" className="relative z-10 mb-6 flex flex-wrap items-center gap-3 rounded-panel border border-danger/40 bg-danger/10 p-4 backdrop-blur-md">
-          <AlertTriangle size={18} className="text-danger-soft shrink-0" />
-          <p className="flex-1 min-w-[200px] text-xs font-bold text-danger-soft">
+        <div role="alert" className="mb-6 flex flex-wrap items-center gap-3 p-4" style={{ clipPath: cut(10), background: TINT.danger, border: `1px solid ${BORDER.danger}` }}>
+          <AlertTriangle size={18} className="shrink-0" style={{ color: C.danger }} />
+          <p className="flex-1 min-w-[200px] text-xs font-bold" style={{ color: C.danger }}>
             No se pudo cargar la asistencia guardada de esta fecha. La lista parte de
             "Presente" por defecto — si guardas ahora podrías sobrescribir un pase de lista anterior.
           </p>
           <button
             type="button"
             onClick={loadAsistencias}
-            className="inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-control bg-danger/20 border border-danger/50 text-danger-soft text-2xs font-black uppercase tracking-widest hover:bg-danger/30 transition"
+            className="cut-focus inline-flex items-center min-h-11 md:min-h-9 px-3.5 text-2xs font-black uppercase tracking-widest transition-colors"
+            style={{ clipPath: cut(7), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}
           >
             Reintentar
           </button>
@@ -213,35 +224,22 @@ export default function AdminAsistencia({ user, atletas = [] }) {
       )}
 
       {/* Stats Bar */}
-      <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: 'Total Grupo', value: total, unit: 'atletas', color: 'text-white', border: 'border-white/10' },
-          { label: 'Presentes', value: `${pctPresentes}%`, unit: `${presentes} chicos`, color: 'text-success-soft', border: 'border-success/20' },
-          { label: 'Ausentes', value: `${pctAusentes}%`, unit: `${ausentes} chicos`, color: 'text-danger-soft', border: 'border-danger/20' },
-          { label: 'Justif. + Lesión', value: `${pctOtros}%`, unit: `${otros} chicos`, color: 'text-yellow-400', border: 'border-yellow-500/20' },
-        ].map(stat => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`glass-card rounded-panel p-4 border ${stat.border}`}
-          >
-            <p className="text-2xs font-black uppercase tracking-eyebrow text-fg-muted mb-1">{stat.label}</p>
-            <p className={`text-3xl font-black ${stat.color}`}>{stat.value}</p>
-            <p className="text-[11px] text-fg-muted mt-0.5">{stat.unit}</p>
-          </motion.div>
-        ))}
-      </div>
+      <KpiGrid min={160} gap={12} style={{ marginBottom: 32 }}>
+        <KpiTile label="Total Grupo" val={total} color={C.text} sub="atletas" labelSize={9} />
+        <KpiTile label="Presentes" val={`${pctPresentes}%`} color={C.ok} sub={`${presentes} chicos`} labelSize={9} border={BORDER.ok} />
+        <KpiTile label="Ausentes" val={`${pctAusentes}%`} color={C.danger} sub={`${ausentes} chicos`} labelSize={9} border={BORDER.danger} />
+        <KpiTile label="Justif. + Lesión" val={`${pctOtros}%`} color={C.warn} sub={`${otros} chicos`} labelSize={9} border={BORDER.warn} />
+      </KpiGrid>
 
-      {/* Lista de Atletas */}
-      <div className="relative z-10 bg-white/3 border border-white/8 rounded-panel overflow-hidden mb-6">
-        <div className="bg-black/40 border-b border-white/10 px-4 py-3 grid grid-cols-[1fr_auto] gap-4">
-          <span className="text-3xs font-black uppercase tracking-widest text-fg-muted">Jugador</span>
-          <span className="text-3xs font-black uppercase tracking-widest text-fg-muted text-right">Estado</span>
+      {/* Lista de Atletas (Tabla-HUD) */}
+      <CutCard cut={12} padding="0" style={{ overflow: 'hidden', marginBottom: 24 }}>
+        <div className="px-4 py-3 grid grid-cols-[1fr_auto] gap-4" style={{ background: C.cardAlt1, borderBottom: `1px solid ${BORDER.neutral}` }}>
+          <MicroLabel style={{ margin: 0 }}>Jugador</MicroLabel>
+          <MicroLabel style={{ margin: 0, textAlign: 'right' }}>Estado</MicroLabel>
         </div>
 
         {atletasFiltrados.length === 0 ? (
-          <div className="text-center py-16 text-fg-faint">
+          <div className="text-center py-16" style={{ color: C.text3 }}>
             <p className="text-sm font-bold">No hay atletas en este grupo</p>
           </div>
         ) : (
@@ -254,25 +252,24 @@ export default function AdminAsistencia({ user, atletas = [] }) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: Math.min(idx, 10) * 0.02 }}
-                className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-4 py-3 border-b border-white/5 hover:bg-white/3 transition-colors"
+                className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-4 py-3 transition-colors hover:bg-white/[0.03]"
+                style={{ borderBottom: `1px solid ${BORDER.neutral}` }}
               >
                 {/* Atleta Info */}
-                <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center font-black text-white/50 text-sm">
-                    {atleta.nombre?.charAt(0)}
-                  </div>
+                <div className="flex items-center gap-3">
+                  <HexAvatar size={36}>{atleta.nombre?.charAt(0)}</HexAvatar>
                   <div>
-                    <p className="text-sm font-bold text-white">{atleta.nombre}</p>
-                    <p className="text-3xs text-fg-muted uppercase tracking-widest">
+                    <p className="text-sm font-bold" style={{ color: C.text }}>{atleta.nombre}</p>
+                    <MicroLabel style={{ margin: 0 }}>
                       {atleta.categoria} · {atleta.posicion}
-                      {!confirmado && <span className="text-fg-faint normal-case tracking-normal"> · sin revisar</span>}
-                    </p>
+                      {!confirmado && <span style={{ color: C.text4, textTransform: 'none' }}> · sin revisar</span>}
+                    </MicroLabel>
                   </div>
                 </div>
 
                 {/* Botones de Estado — grandes en móvil para pasar lista con el pulgar */}
                 <div className="grid grid-cols-4 gap-2 md:flex md:items-center">
-                  {Object.entries(ESTADO_CONFIG).map(([estado, cfg]) => {
+                  {Object.entries(ESTADO_META).map(([estado, cfg]) => {
                     const Icon = cfg.icon;
                     const isActive = estadoActual === estado;
                     return (
@@ -282,11 +279,14 @@ export default function AdminAsistencia({ user, atletas = [] }) {
                         aria-label={cfg.label}
                         aria-pressed={isActive}
                         onClick={() => marcarEstado(atleta.id, estado)}
-                        className={`min-h-11 md:min-w-11 p-2 md:p-2.5 rounded-lg border transition font-bold flex flex-col md:flex-row items-center justify-center gap-1 ${
-                          isActive
-                            ? (confirmado ? cfg.color : `${cfg.color} border-dashed opacity-60`)
-                            : 'text-fg-faint border-white/5 hover:bg-white/5 hover:text-fg-secondary'
-                        }`}
+                        className="cut-focus min-h-11 md:min-w-11 p-2 md:p-2.5 font-bold flex flex-col md:flex-row items-center justify-center gap-1 transition-colors"
+                        style={{
+                          clipPath: cut(5),
+                          background: isActive ? C.cardAlt1 : 'transparent',
+                          border: `1px ${isActive && !confirmado ? 'dashed' : 'solid'} ${isActive ? cfg.c : BORDER.neutralFaint}`,
+                          color: isActive ? cfg.c : C.text4,
+                          opacity: isActive && !confirmado ? 0.7 : 1,
+                        }}
                       >
                         <Icon size={18} />
                         <span className="text-3xs md:text-2xs leading-none">{cfg.label}</span>
@@ -298,17 +298,20 @@ export default function AdminAsistencia({ user, atletas = [] }) {
             );
           })
         )}
-      </div>
+      </CutCard>
 
       {/* Botón Guardar — sticky para que la acción principal quede siempre al
           alcance del pulgar. En móvil se apoya sobre la BottomNav (bottom-[74px])
           y suelta la safe-area, que ya la absorbe la barra; en desktop pega al borde. */}
-      <div className="sticky bottom-[74px] md:bottom-0 z-20 -mx-6 md:-mx-12 -mb-6 md:-mb-12 px-6 md:px-12 py-3 md:pb-[calc(env(safe-area-inset-bottom)+12px)] bg-surface-base/90 backdrop-blur border-t border-white/5 flex flex-col items-end gap-2">
+      <div
+        className="sticky bottom-[74px] md:bottom-0 z-20 -mx-6 md:-mx-12 -mb-6 md:-mb-12 px-6 md:px-12 py-3 md:pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur flex flex-col items-end gap-2"
+        style={{ background: C.card, borderTop: `1px solid ${BORDER.neutral}` }}
+      >
         {errorGuardar && (
-          <p className="text-xs text-danger-soft font-bold" role="alert">{errorGuardar}</p>
+          <p className="text-xs font-bold" role="alert" style={{ color: C.danger }}>{errorGuardar}</p>
         )}
         {pidiendoConfirmacion && (
-          <p className="text-xs text-caution-soft font-bold text-right" role="alert">
+          <p className="text-xs font-bold text-right" role="alert" style={{ color: C.warn }}>
             {sinRevisar === total
               ? `No revisaste a ningún atleta — se guardaría a los ${total} como "Presente" por defecto.`
               : `Quedan ${sinRevisar} de ${total} atletas sin revisar — se guardarían como "Presente" por defecto.`}
@@ -317,13 +320,12 @@ export default function AdminAsistencia({ user, atletas = [] }) {
         <button
           onClick={handleGuardar}
           disabled={saving}
-          className={`flex items-center space-x-2 px-6 py-3 rounded-control font-black uppercase tracking-widest text-sm transition ${
-            saved
-              ? 'bg-success/20 border border-success/40 text-success-soft'
-              : pidiendoConfirmacion
-              ? 'bg-caution/10 border border-caution/40 text-caution-soft hover:bg-caution/20'
-              : 'bg-brand/10 border border-brand/30 text-brand hover:bg-brand/20'
-          } disabled:opacity-50`}
+          className={`cut-focus flex items-center gap-2 px-6 min-h-11 py-3 font-black uppercase tracking-widest text-sm transition ${saved || pidiendoConfirmacion ? '' : 'disabled:opacity-50'}`}
+          style={saved
+            ? { clipPath: cut(8), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }
+            : pidiendoConfirmacion
+            ? { clipPath: cut(8), background: C.cardAlt1, border: `1px solid ${BORDER.warn}`, color: C.warn }
+            : { clipPath: cut(8), background: GRAD.goldCTA, border: 'none', color: C.ink }}
         >
           {saving ? (
             <span className="animate-pulse">Guardando...</span>
