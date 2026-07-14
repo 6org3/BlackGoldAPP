@@ -35,7 +35,7 @@
   /* Texto sobre oscuro */
   --color-fg:           #EDEDED; /* texto principal */
   --color-fg-secondary: #9CA3AF; /* texto de apoyo (gray-400) */
-  --color-fg-muted:     #6B7280; /* labels, metadatos (gray-500) */
+  --color-fg-muted:     #828997; /* labels, metadatos — muted accesible (AA 4.5:1 en superficies oscuras; subido desde #6B7280 gray-500, ver design_system.md §contraste) */
   --color-fg-faint:     #4B5563; /* solo decorativo, nunca información (gray-600) */
   --color-fg-inverse:   #0A0A0C; /* texto sobre superficies doradas */
 

@@ -25,7 +25,7 @@ export const COLORS = {
   fg: {
     primary:   '#EDEDED',
     secondary: '#9CA3AF',
-    muted:     '#6B7280',
+    muted:     '#828997', // muted accesible (AA 4.5:1) — espejo de --color-fg-muted
     faint:     '#4B5563',
     inverse:   '#0A0A0C',
   },
