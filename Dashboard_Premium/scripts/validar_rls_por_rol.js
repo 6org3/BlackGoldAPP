@@ -4,8 +4,10 @@
 // ejecuta asserts de permisos POSITIVOS (lo que cada rol debe poder
 // hacer) y NEGATIVOS (lo que debe estar bloqueado) con sesiones de
 // Auth reales, valida el registro público end-to-end (RPC + signUp +
-// trigger de vinculación) y borra todo al terminar (los QA nunca
-// sobreviven a la corrida, pase o falle).
+// trigger de vinculación) — incluido el ciclo de solicitudes v33
+// (club validado, estado pendiente, aprobación/rechazo solo-owner) —
+// y borra todo al terminar (los QA nunca sobreviven a la corrida,
+// pase o falle).
 //
 // Uso: node scripts/validar_rls_por_rol.js   (desde Dashboard_Premium/)
 // Requiere en .env.local: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
@@ -36,7 +38,9 @@ const QA = {
   atleta2: { cedula: 'QA_RLS_ATLETA2', nombre: 'QA Atleta Dos (ajeno)', nac: '2011-08-20' },
   padre1: { cedula: 'QA_RLS_PADRE1', nombre: 'QA Padre Uno' },
   coach1: { cedula: 'QA_RLS_COACH1', nombre: 'QA Coach Uno' },
+  owner1: { cedula: 'QA_RLS_OWNER1', nombre: 'QA Owner Uno' },
   reg: { cedula: 'QA_RLS_REG1', nombre: 'QA Registro Uno', nac: '2013-03-15', telPadre: 'QA_RLS_TEL1' },
+  reg2: { cedula: 'QA_RLS_REG2', nombre: 'QA Registro Dos (rechazo)', nac: '2014-06-25', telPadre: 'QA_RLS_TEL2' },
 };
 
 const resultados = [];
@@ -57,7 +61,7 @@ async function loginComo(cedula, password) {
 async function limpiarQA() {
   const { data: usuariosQA } = await svc.from('usuarios')
     .select('id, auth_user_id, cedula')
-    .or(`cedula.like.QA_RLS_%,cedula.eq.PADRE_${QA.reg.telPadre}`);
+    .or(`cedula.like.QA_RLS_%,cedula.eq.PADRE_${QA.reg.telPadre},cedula.eq.PADRE_${QA.reg2.telPadre}`);
   const ids = (usuariosQA || []).map(u => u.id);
   if (ids.length) {
     const { data: atletasQA } = await svc.from('atletas').select('id').in('usuario_id', ids);
@@ -95,6 +99,7 @@ async function setup() {
   await crearCuenta(QA.atleta2, 'atleta');
   await crearCuenta(QA.padre1, 'padre');
   await crearCuenta(QA.coach1, 'coach');
+  await crearCuenta(QA.owner1, 'owner'); // resuelve solicitudes v33 sin tocar al owner real
   for (const q of [QA.atleta1, QA.atleta2]) {
     const { data, error } = await svc.from('atletas')
       .insert({ usuario_id: q.usuarioId, edad: 13, posicion: 'Base' }).select().single();
@@ -224,7 +229,7 @@ async function suiteRegistroPublico() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
     body: JSON.stringify({
-      atleta: { cedula: QA.reg.cedula, nombre: QA.reg.nombre, fecha_nacimiento: QA.reg.nac, posicion: 'Escolta' },
+      atleta: { cedula: QA.reg.cedula, nombre: QA.reg.nombre, fecha_nacimiento: QA.reg.nac, posicion: 'Escolta', club: 'Black Gold' },
       padre: { nombre: 'QA Rep Registro', telefono: QA.reg.telPadre },
     }),
   });
@@ -233,18 +238,102 @@ async function suiteRegistroPublico() {
     `HTTP ${res.status} ${cuerpo?.error || ''}`);
 
   const { data: vinculado } = await svc.from('usuarios')
-    .select('auth_user_id').eq('cedula', QA.reg.cedula).single();
+    .select('id, auth_user_id, estado').eq('cedula', QA.reg.cedula).single();
+  QA.reg.usuarioId = vinculado?.id;
   check('trigger vinculó auth_user_id del atleta', !!vinculado?.auth_user_id);
+  check('el registro nace pendiente de aprobación (v33)', vinculado?.estado === 'pendiente', `estado=${vinculado?.estado}`);
+  const { data: atlReg } = await svc.from('atletas').select('id').eq('usuario_id', QA.reg.usuarioId).single();
+  QA.reg.atletaId = atlReg?.id;
 
   const { data: padreReg } = await svc.from('usuarios')
-    .select('auth_user_id, rol').eq('cedula', `PADRE_${QA.reg.telPadre}`).single();
-  check('representante creado con cuenta vinculada (rol padre)',
-    padreReg?.rol === 'padre' && !!padreReg?.auth_user_id);
+    .select('auth_user_id, rol, estado').eq('cedula', `PADRE_${QA.reg.telPadre}`).single();
+  check('representante creado con cuenta vinculada (rol padre, pendiente)',
+    padreReg?.rol === 'padre' && !!padreReg?.auth_user_id && padreReg?.estado === 'pendiente');
 
   const cli2 = await loginComo(QA.reg.cedula, QA.reg.cedula);
   const { data: perfil } = await cli2.from('usuarios').select('rol').eq('cedula', QA.reg.cedula).single();
   check('el recién registrado inicia sesión y ve su perfil (rol atleta)', perfil?.rol === 'atleta');
   await cli2.auth.signOut();
+}
+
+async function suiteSolicitudes() {
+  console.log('\n— SOLICITUDES DE REGISTRO (v33: club validado + aprobación solo-owner) —');
+
+  // Lista pública de clubes para el selector del registro (único read de anon).
+  const cli = anon();
+  const { data: clubes, error: eClubes } = await cli.rpc('listar_clubes_publicos');
+  check('anon lista los clubes con owner activo (incluye Black Gold)',
+    !eClubes && (clubes || []).some(c => c.club === 'Black Gold'), eClubes?.message);
+
+  // Club inexistente → la RPC rechaza (ya no hay fallback silencioso a 'Black Gold').
+  const resFalso = await fetch(`${URL_}/functions/v1/registro-publico`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+    body: JSON.stringify({
+      atleta: { cedula: 'QA_RLS_FALSO1', nombre: 'QA Club Falso', fecha_nacimiento: '2012-01-01', club: 'CLUB_FALSO_QA' },
+    }),
+  });
+  const cuerpoFalso = await resFalso.json().catch(() => ({}));
+  check('registro con club inexistente es rechazado (HTTP 400)',
+    resFalso.status === 400 && /no existe/i.test(cuerpoFalso?.error || ''),
+    `HTTP ${resFalso.status} ${cuerpoFalso?.error || ''}`);
+
+  // El pendiente no puede auto-aprobarse (guard de `estado` en el trigger).
+  const cliPend = await loginComo(QA.reg.cedula, QA.reg.cedula);
+  const { error: eAuto } = await cliPend.from('usuarios')
+    .update({ estado: 'activo' }).eq('id', QA.reg.usuarioId).select();
+  const { data: sigue } = await svc.from('usuarios').select('estado').eq('id', QA.reg.usuarioId).single();
+  check('atleta pendiente NO puede auto-aprobarse (trigger)',
+    !!eAuto && sigue?.estado === 'pendiente', eAuto?.code || 'sin error');
+  await cliPend.auth.signOut();
+
+  // Coach: ni aprueba por RPC ni ve pendientes con el filtro del servicio.
+  const cliCoach = await loginComo(QA.coach1.cedula, QA.coach1.cedula);
+  const { error: eCoachRpc } = await cliCoach.rpc('resolver_solicitud_registro',
+    { p_usuario_id: QA.reg.usuarioId, p_accion: 'aprobar' });
+  check('coach NO puede aprobar solicitudes (RPC solo-owner)',
+    !!eCoachRpc && /due/i.test(eCoachRpc.message || ''), eCoachRpc?.message || 'sin error');
+  const { data: visibles } = await cliCoach.from('atletas')
+    .select('id, usuarios!inner!atletas_usuario_id_fkey(estado)')
+    .eq('usuarios.estado', 'activo');
+  check('pendiente NO aparece en el plantel filtrado (query del servicio)',
+    !(visibles || []).some(a => a.id === QA.reg.atletaId));
+  await cliCoach.auth.signOut();
+
+  // Owner aprueba: atleta y representante pasan a activo y se sella fecha_alta.
+  const cliOwner = await loginComo(QA.owner1.cedula, QA.owner1.cedula);
+  const { error: eAprobar } = await cliOwner.rpc('resolver_solicitud_registro',
+    { p_usuario_id: QA.reg.usuarioId, p_accion: 'aprobar' });
+  check('owner SÍ aprueba la solicitud', !eAprobar, eAprobar?.message);
+  const { data: regDespues } = await svc.from('usuarios').select('estado').eq('id', QA.reg.usuarioId).single();
+  const { data: padreDespues } = await svc.from('usuarios').select('estado').eq('cedula', `PADRE_${QA.reg.telPadre}`).single();
+  const { data: atlDespues } = await svc.from('atletas').select('fecha_alta').eq('id', QA.reg.atletaId).single();
+  check('aprobación activa a atleta y representante y sella fecha_alta',
+    regDespues?.estado === 'activo' && padreDespues?.estado === 'activo' && !!atlDespues?.fecha_alta,
+    `atleta=${regDespues?.estado} padre=${padreDespues?.estado} alta=${atlDespues?.fecha_alta}`);
+
+  // Segundo registro → rechazo: atleta y representante quedan 'rechazado'.
+  const res2 = await fetch(`${URL_}/functions/v1/registro-publico`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+    body: JSON.stringify({
+      atleta: { cedula: QA.reg2.cedula, nombre: QA.reg2.nombre, fecha_nacimiento: QA.reg2.nac, club: 'Black Gold' },
+      padre: { nombre: 'QA Rep Rechazo', telefono: QA.reg2.telPadre },
+    }),
+  });
+  const cuerpo2 = await res2.json().catch(() => ({}));
+  check('segundo registro para la prueba de rechazo (HTTP 200)', res2.status === 200 && cuerpo2?.success,
+    `HTTP ${res2.status} ${cuerpo2?.error || ''}`);
+  const { data: u2 } = await svc.from('usuarios').select('id').eq('cedula', QA.reg2.cedula).single();
+  const { error: eRech } = await cliOwner.rpc('resolver_solicitud_registro',
+    { p_usuario_id: u2?.id, p_accion: 'rechazar' });
+  check('owner SÍ rechaza la segunda solicitud', !eRech, eRech?.message);
+  const { data: u2Despues } = await svc.from('usuarios').select('estado').eq('id', u2?.id).single();
+  const { data: p2Despues } = await svc.from('usuarios').select('estado').eq('cedula', `PADRE_${QA.reg2.telPadre}`).single();
+  check('rechazo deja a atleta y representante en rechazado',
+    u2Despues?.estado === 'rechazado' && p2Despues?.estado === 'rechazado',
+    `atleta=${u2Despues?.estado} padre=${p2Despues?.estado}`);
+  await cliOwner.auth.signOut();
 }
 
 // ---------- main ----------
@@ -261,6 +350,7 @@ async function suiteRegistroPublico() {
     await suitePadre();
     await suiteCoach();
     await suiteRegistroPublico();
+    await suiteSolicitudes();
   } catch (err) {
     fallo = err;
     console.error(`\n💥 Error de infraestructura de la suite: ${err.message}`);

@@ -33,9 +33,14 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
         categoria_feb,
         correo,
         fecha_nacimiento,
-        genero
+        genero,
+        estado
       )
     `, { count: 'exact' });
+
+  // Solo cuentas aprobadas: los pendientes/rechazados del registro público
+  // (v33) viven en la bandeja de solicitudes, no en el plantel operativo.
+  query = query.eq('usuarios.estado', 'activo');
 
   if (user && user.rol !== 'superadmin' && user.club) {
     query = query.eq('usuarios.club', user.club);

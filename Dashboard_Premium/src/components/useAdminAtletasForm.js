@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../api/supabaseClient';
 import { calcularEdad } from '../api/utilsAtletas';
+import { crearAccesoUsuario } from '../api/accesosService';
 
 // ─── Hook de estado y lógica del formulario de alta/edición ───
 export default function useAdminAtletasForm({ onRefresh, user }) {
@@ -140,10 +141,11 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
         if (atlErr) throw atlErr;
 
         // Vincular padre si se proporcionó
+        let padreId = null;
+        let padreEsNuevo = false;
         if (showParentForm && form.padre_telefono?.trim()) {
           try {
             const padreCedula = `PADRE_${form.padre_telefono.trim()}`;
-            let padreId = null;
 
             const { data: padreExistente } = await supabase
               .from('usuarios')
@@ -168,6 +170,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
                 .single();
               if (padreErr) throw padreErr;
               padreId = newPadre.id;
+              padreEsNuevo = true;
             }
 
             // Obtener atleta_id del nuevo atleta
@@ -184,10 +187,30 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
             }
           } catch (padreError) {
             console.warn('Error vinculando padre (no crítico):', padreError);
+            padreId = null; // sin vínculo no hay acceso del representante que crear
           }
         }
 
-        setSuccess(`✅ ${form.nombre} registrado exitosamente.`);
+        // Credenciales de acceso (v33, Edge Function crear-acceso-usuario):
+        // sin esto el atleta creado por el panel no podía iniciar sesión.
+        // Best-effort: si falla, el alta queda hecha y se avisa en el mensaje.
+        const avisos = [];
+        try {
+          await crearAccesoUsuario({ usuarioId: newUser.id });
+        } catch (accesoError) {
+          avisos.push(`el atleta quedó sin acceso (${accesoError.message})`);
+        }
+        if (padreId && padreEsNuevo) {
+          try {
+            await crearAccesoUsuario({ usuarioId: padreId, hijoUsuarioId: newUser.id });
+          } catch (accesoError) {
+            avisos.push(`el representante quedó sin acceso (${accesoError.message})`);
+          }
+        }
+
+        setSuccess(avisos.length
+          ? `✅ ${form.nombre} registrado. ⚠️ ${avisos.join(' · ')}`
+          : `✅ ${form.nombre} registrado. Acceso creado: puede entrar con su cédula (contraseña inicial: su cédula).`);
       }
 
       setForm(emptyForm);

@@ -14,6 +14,14 @@ import { supabase } from './supabaseClient';
 // acepta (hallazgo de scripts/validar_rls_por_rol.js). Bonus: el
 // navegador ya no queda logueado como el último registrado.
 
+// Clubes que aceptan inscripción en línea (tienen owner activo que apruebe).
+// Única lectura disponible para anon (v33): RPC SECURITY DEFINER.
+export const fetchClubesPublicos = async () => {
+  const { data, error } = await supabase.rpc('listar_clubes_publicos');
+  if (error) throw new Error('No se pudo cargar la lista de clubes.');
+  return (data || []).map((r) => r.club);
+};
+
 export const registrarDesdeFormularioPublico = async (datosAtleta, datosPadre = null) => {
   const { data, error } = await supabase.functions.invoke('registro-publico', {
     body: {

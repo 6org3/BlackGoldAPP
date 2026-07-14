@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 import { C, GRAD, gridBackground } from './arcadeTokens';
 import useDueno from './useDueno';
@@ -27,8 +29,12 @@ function fechaHoy() {
  */
 export default function VistaDuenoArcade() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { state, data, actions, loading } = useDueno(user);
-  const ctx = data ? buildDuenoCtx(state, data, actions) : null;
+  // goHref: alertas que salen del HUD hacia una ruta de la app (p.ej. la
+  // bandeja de solicitudes de registro en /admin/atletas, v33).
+  const actionsNav = useMemo(() => ({ ...actions, goHref: navigate }), [actions, navigate]);
+  const ctx = data ? buildDuenoCtx(state, data, actionsNav) : null;
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: C.bgApp }}>
