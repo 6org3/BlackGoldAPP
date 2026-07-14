@@ -97,6 +97,7 @@ export const TINT = {
   ai:   'rgba(168,85,247,.1)',
   warn: 'rgba(251,146,60,.1)',    // fondo tenue de avisos/parcial (espejo de C.warn)
   danger: 'rgba(248,113,113,.1)', // fondo tenue de mensajes de error (espejo de C.danger)
+  neutral: 'rgba(255,255,255,.05)', // fondo tenue neutro (chips/badges sin tono, p.ej. nivel "Por Asignar")
 };
 
 /** Relleno del polígono de datos del RadarChart — oro translúcido (.18). */
