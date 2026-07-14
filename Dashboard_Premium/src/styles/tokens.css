@@ -63,6 +63,8 @@
   --color-info-soft:    #60A5FA;
   --color-mental:       #A855F7; /* misiones, perfil mental, lo cognitivo */
   --color-mental-soft:  #C084FC;
+  --color-social:       #EC4899; /* rosa: eventos sociales, comunidad (ya de facto en chart táctica/Mayores) */
+  --color-social-soft:  #F472B6;
 
   /* Gamificación — rangos XP (fuente única; antes vivía triplicada en
      xpProgress.js, RangoProgreso.jsx y LevelUpAnimation.jsx). */
