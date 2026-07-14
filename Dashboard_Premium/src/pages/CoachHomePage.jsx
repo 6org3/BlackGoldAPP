@@ -99,7 +99,7 @@ export default function CoachHomePage() {
   return (
     <>
       <HomeShell
-        eyebrow={<span className="capitalize">{fechaHoy}</span>}
+        eyebrow={fechaHoy}
         titulo={<>Hola, <span className="text-gradient-gold">{primerNombre}</span></>}
         contexto={
           <ContextChip>
