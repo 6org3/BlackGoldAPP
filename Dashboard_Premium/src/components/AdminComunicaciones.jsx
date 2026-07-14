@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Megaphone, Users, User, UserCheck, Layers, Tag, Calendar, Filter,
@@ -9,17 +9,23 @@ import {
   resolverAudienciaLocal, fetchMembresiaGrupos,
 } from '../api/comunicacionesService';
 import { fetchGrupos } from '../api/sesionesService';
+import CutCard from './arcade/CutCard';
+import HexAvatar from './arcade/HexAvatar';
+import MicroLabel from './arcade/MicroLabel';
+import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
-// Catálogo de los 8 criterios de segmentación
+// Catálogo de los 8 criterios de segmentación. En el idioma Arcade el segmento
+// activo se distingue por acento oro único + su icono (§7.4), no por un color
+// por criterio — antes cada uno traía una paleta cruda (pink/teal/cyan).
 const SEGMENTO_CONFIG = {
-  general:          { icon: Megaphone, color: 'text-brand bg-brand/10 border-brand/30',     label: 'General' },
-  individual:       { icon: User,      color: 'text-success-soft bg-success/10 border-success/30', label: 'Individual' },
-  individualizado:  { icon: UserCheck, color: 'text-mental-soft bg-mental/10 border-mental/30',   label: 'Lista a la carta' },
-  grupo:            { icon: Users,     color: 'text-info-soft bg-info/10 border-info/30',          label: 'Un grupo' },
-  grupos_limitados: { icon: Layers,    color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',          label: 'Varios grupos' },
-  categoria:        { icon: Tag,       color: 'text-caution-soft bg-caution/10 border-caution/30',    label: 'Por categoría' },
-  edad:             { icon: Calendar,  color: 'text-pink-400 bg-pink-500/10 border-pink-500/30',          label: 'Por edad' },
-  genero:           { icon: Filter,    color: 'text-teal-400 bg-teal-500/10 border-teal-500/30',          label: 'Por género' },
+  general:          { icon: Megaphone, label: 'General' },
+  individual:       { icon: User,      label: 'Individual' },
+  individualizado:  { icon: UserCheck, label: 'Lista a la carta' },
+  grupo:            { icon: Users,     label: 'Un grupo' },
+  grupos_limitados: { icon: Layers,    label: 'Varios grupos' },
+  categoria:        { icon: Tag,       label: 'Por categoría' },
+  edad:             { icon: Calendar,  label: 'Por edad' },
+  genero:           { icon: Filter,    label: 'Por género' },
 };
 
 // Etiqueta legible para el feed (incluye registros legados que sólo tienen `tipo`)
@@ -30,7 +36,27 @@ const labelSegmento = (c) => {
   return legado[c.tipo] || c.tipo || 'Mensaje';
 };
 const iconSegmento = (c) => SEGMENTO_CONFIG[c.segmento_tipo]?.icon || Megaphone;
-const colorSegmento = (c) => SEGMENTO_CONFIG[c.segmento_tipo]?.color || 'text-fg-secondary bg-white/5 border-white/10';
+
+// Superficie de sub-panel de parámetros (CutCard con eyebrow) — reutilizada por
+// los 8 criterios para mantener una sola gramática.
+const PanelParam = ({ label, children }) => (
+  <CutCard cut={10} padding="16px">
+    <MicroLabel style={{ marginBottom: 12 }}>{label}</MicroLabel>
+    {children}
+  </CutCard>
+);
+
+// Botón de sub-selección (grupo/categoría/género…): activo = oro, inactivo = neutro.
+const subBtnStyle = (on) => ({
+  clipPath: cut(7),
+  background: on ? TINT.gold : C.card,
+  border: `1px solid ${on ? BORDER.goldStrong : BORDER.neutral}`,
+  color: on ? C.gold : C.text2,
+});
+
+// Campo de texto/número/select del Formulario-HUD (§6.3).
+const FIELD_CLASS = 'cut-focus arcade-input min-h-11 md:min-h-9 px-3.5 py-2.5 text-base md:text-sm border border-white/10 focus:outline-none focus:border-brand/60 transition-colors';
+const fieldStyle = { clipPath: cut(7), background: C.cardAlt1, color: C.text };
 
 export default function AdminComunicaciones({ user, atletas = [] }) {
   const club = user?.club;
@@ -142,39 +168,37 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
   };
 
   return (
-    <div className="min-h-screen bg-surface-base text-white p-6 md:p-10">
-      <div className="fixed top-[-20%] left-[20%] w-[600px] h-[500px] bg-mental/3 blur-[150px] pointer-events-none rounded-full" />
-
+    <div className="p-6 md:p-10" style={{ color: C.text }}>
       {/* Header */}
-      <header className="mb-8 border-b border-white/5 pb-8 relative z-10">
-        <div className="flex items-center space-x-3">
-          <MessageSquare className="text-brand" size={28} />
+      <header className="mb-8 pb-8" style={{ borderBottom: `1px solid ${BORDER.neutral}` }}>
+        <div className="flex items-center gap-3">
+          <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
+            <MessageSquare size={22} strokeWidth={2.5} />
+          </HexAvatar>
           <div>
-            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-strong">Comunicaciones</span>
+            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+              Comunica<span style={{ color: C.gold }}>ciones</span>
             </h2>
-            <p className="text-2xs text-fg-muted font-bold uppercase tracking-[0.3em] mt-1">
-              Club · Coach · Familia
-            </p>
+            <MicroLabel style={{ marginTop: 4 }}>Club · Coach · Familia</MicroLabel>
           </div>
         </div>
       </header>
 
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* PANEL IZQUIERDO: Redactar */}
         <div className="space-y-5">
-          <h3 className="text-sm font-black text-white uppercase tracking-widest">Nuevo Mensaje</h3>
+          <MicroLabel as="h3" size={11}>Nuevo mensaje</MicroLabel>
 
           {/* Selector de criterio de audiencia */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {Object.entries(SEGMENTO_CONFIG).map(([tipo, cfg]) => {
               const Icon = cfg.icon;
+              const on = segmentoTipo === tipo;
               return (
                 <button key={tipo} onClick={() => cambiarSegmento(tipo)}
-                  className={`flex flex-col items-center justify-center space-y-1 p-3 rounded-control border text-2xs font-black uppercase tracking-wider transition ${
-                    segmentoTipo === tipo ? cfg.color : 'border-white/10 text-fg-muted hover:text-white hover:bg-white/5'
-                  }`}>
+                  className="cut-focus flex flex-col items-center justify-center gap-1 p-3 min-h-[64px] text-2xs font-black uppercase tracking-wider transition-colors"
+                  style={subBtnStyle(on)}>
                   <Icon size={16} />
                   <span className="text-center leading-tight">{cfg.label}</span>
                 </button>
@@ -184,181 +208,168 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
 
           {/* Panel de parámetros según el criterio */}
           {segmentoTipo === 'individual' && (
-            <div className="glass-card rounded-panel p-4 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">Destinatario</label>
+            <PanelParam label="Destinatario">
               <select value={params.atleta_id || ''} onChange={(e) => setParams({ atleta_id: e.target.value })}
-                className="w-full bg-black/40 border border-white/10 rounded-control px-3 py-2.5 text-base md:text-sm text-white focus:outline-none appearance-none cursor-pointer">
-                <option value="" className="bg-surface-card">Seleccionar jugador...</option>
-                {atletas.map((a) => <option key={a.atleta_id} value={a.atleta_id} className="bg-surface-card">{a.nombre} ({a.categoria})</option>)}
+                className={`${FIELD_CLASS} w-full appearance-none cursor-pointer`} style={fieldStyle}>
+                <option value="">Seleccionar jugador...</option>
+                {atletas.map((a) => <option key={a.atleta_id} value={a.atleta_id}>{a.nombre} ({a.categoria})</option>)}
               </select>
-            </div>
+            </PanelParam>
           )}
 
           {segmentoTipo === 'grupo' && (
-            <div className="glass-card rounded-panel p-4 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">Grupo destino</label>
+            <PanelParam label="Grupo destino">
               <div className="flex flex-wrap gap-2">
                 {grupos.map((g) => (
                   <button key={g.id} onClick={() => setParams({ grupo_id: g.id })}
-                    className={`flex-1 min-w-[100px] p-2.5 rounded-control border text-2xs font-black uppercase transition ${
-                      params.grupo_id === g.id ? 'bg-info/10 border-info/40 text-blue-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
-                    }`}>
-                    {g.nombre}<br /><span className="text-[8px] text-fg-muted normal-case font-normal">{g.horario}</span>
+                    className="cut-focus flex-1 min-w-[100px] min-h-11 md:min-h-9 p-2.5 text-2xs font-black uppercase transition-colors"
+                    style={subBtnStyle(params.grupo_id === g.id)}>
+                    {g.nombre}<br /><span className="text-3xs font-normal normal-case" style={{ color: C.text3 }}>{g.horario}</span>
                   </button>
                 ))}
               </div>
-            </div>
+            </PanelParam>
           )}
 
           {segmentoTipo === 'grupos_limitados' && (
-            <div className="glass-card rounded-panel p-4 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">Grupos incluidos ({(params.grupo_ids || []).length})</label>
+            <PanelParam label={`Grupos incluidos (${(params.grupo_ids || []).length})`}>
               <div className="flex flex-wrap gap-2">
                 {grupos.map((g) => {
                   const on = (params.grupo_ids || []).includes(g.id);
                   return (
                     <button key={g.id} onClick={() => toggleEnArray('grupo_ids', g.id)}
-                      className={`p-2.5 rounded-control border text-2xs font-black uppercase transition ${
-                        on ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
-                      }`}>{g.nombre}</button>
+                      className="cut-focus min-h-11 md:min-h-9 p-2.5 text-2xs font-black uppercase transition-colors"
+                      style={subBtnStyle(on)}>{g.nombre}</button>
                   );
                 })}
               </div>
-            </div>
+            </PanelParam>
           )}
 
           {segmentoTipo === 'categoria' && (
-            <div className="glass-card rounded-panel p-4 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">Categorías ({(params.categorias || []).length})</label>
+            <PanelParam label={`Categorías (${(params.categorias || []).length})`}>
               <div className="flex flex-wrap gap-2">
                 {categorias.map((cat) => {
                   const on = (params.categorias || []).includes(cat);
                   return (
                     <button key={cat} onClick={() => toggleEnArray('categorias', cat)}
-                      className={`p-2.5 rounded-control border text-2xs font-black uppercase transition ${
-                        on ? 'bg-caution/10 border-caution/40 text-orange-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
-                      }`}>{cat}</button>
+                      className="cut-focus min-h-11 md:min-h-9 p-2.5 text-2xs font-black uppercase transition-colors"
+                      style={subBtnStyle(on)}>{cat}</button>
                   );
                 })}
-                {categorias.length === 0 && <span className="text-xs text-fg-muted">No hay categorías cargadas.</span>}
+                {categorias.length === 0 && <span className="text-xs" style={{ color: C.text3 }}>No hay categorías cargadas.</span>}
               </div>
-            </div>
+            </PanelParam>
           )}
 
           {segmentoTipo === 'edad' && (
-            <div className="glass-card rounded-panel p-4 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">Rango de edad</label>
+            <PanelParam label="Rango de edad">
               <div className="flex items-center gap-3">
                 <input type="number" inputMode="numeric" min="0" placeholder="Mín" value={params.edad_min ?? ''}
                   onChange={(e) => setParams((p) => ({ ...p, edad_min: e.target.value === '' ? undefined : Number(e.target.value) }))}
-                  className="w-24 bg-black/40 border border-white/10 rounded-control px-3 py-2.5 text-base md:text-sm text-white focus:outline-none" />
-                <span className="text-fg-muted text-xs font-bold">a</span>
+                  className={`${FIELD_CLASS} w-24`} style={fieldStyle} />
+                <span className="text-xs font-bold" style={{ color: C.text3 }}>a</span>
                 <input type="number" inputMode="numeric" min="0" placeholder="Máx" value={params.edad_max ?? ''}
                   onChange={(e) => setParams((p) => ({ ...p, edad_max: e.target.value === '' ? undefined : Number(e.target.value) }))}
-                  className="w-24 bg-black/40 border border-white/10 rounded-control px-3 py-2.5 text-base md:text-sm text-white focus:outline-none" />
-                <span className="text-fg-muted text-xs">años</span>
+                  className={`${FIELD_CLASS} w-24`} style={fieldStyle} />
+                <span className="text-xs" style={{ color: C.text3 }}>años</span>
               </div>
-            </div>
+            </PanelParam>
           )}
 
           {segmentoTipo === 'genero' && (
-            <div className="glass-card rounded-panel p-4 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">Género</label>
+            <PanelParam label="Género">
               <div className="flex gap-2">
                 {['Masculino', 'Femenino'].map((gen) => (
                   <button key={gen} onClick={() => setParams({ genero: gen })}
-                    className={`flex-1 p-2.5 rounded-control border text-xs font-black uppercase transition ${
-                      params.genero === gen ? 'bg-teal-500/10 border-teal-500/40 text-teal-300' : 'border-white/10 text-fg-secondary hover:bg-white/5'
-                    }`}>{gen}</button>
+                    className="cut-focus flex-1 min-h-11 md:min-h-9 p-2.5 text-xs font-black uppercase transition-colors"
+                    style={subBtnStyle(params.genero === gen)}>{gen}</button>
                 ))}
               </div>
-            </div>
+            </PanelParam>
           )}
 
           {segmentoTipo === 'individualizado' && (
-            <div className="glass-card rounded-panel p-4 border border-white/8">
-              <label className="block text-3xs text-fg-muted font-black uppercase tracking-[0.25em] mb-3">
-                Lista a la carta ({destinatariosCustom.length} seleccionados)
-              </label>
+            <PanelParam label={`Lista a la carta (${destinatariosCustom.length} seleccionados)`}>
               {destinatariosCustom.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {destinatariosCustom.map((d) => (
-                    <span key={d.id} className="flex items-center space-x-1.5 bg-mental/10 border border-mental/30 rounded-full px-2.5 py-1.5 text-2xs text-mental-soft font-bold">
+                    <span key={d.id} className="flex items-center gap-1.5 px-2.5 py-1.5 text-2xs font-bold" style={{ clipPath: cut(6), background: TINT.gold, border: `1px solid ${BORDER.goldMid}`, color: C.gold }}>
                       <span>{d.nombre}</span>
                       <button aria-label={`Quitar ${d.nombre}`}
                         onClick={() => setDestinatariosCustom((p) => p.filter((x) => x.id !== d.id))}
-                        className="p-1.5 -m-1 min-w-[24px] min-h-[24px] flex items-center justify-center hover:text-white">✕</button>
+                        className="cut-focus grid place-items-center min-w-11 min-h-11 -my-2" style={{ color: C.text3 }}>✕</button>
                     </span>
                   ))}
                 </div>
               )}
-              <div className="flex items-center space-x-2 bg-black/40 border border-white/10 rounded-control px-3 py-2">
-                <Search size={13} className="text-fg-muted" />
+              <div className="flex items-center gap-2 px-3" style={{ background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}`, clipPath: cut(7) }}>
+                <Search size={14} style={{ color: C.text3 }} />
                 <input type="text" placeholder="Agregar por nombre..." value={busquedaDest}
                   onChange={(e) => setBusquedaDest(e.target.value)}
-                  className="bg-transparent text-base md:text-sm text-white placeholder-gray-600 focus:outline-none w-full" />
+                  className="cut-focus arcade-input min-h-11 md:min-h-9 bg-transparent text-base md:text-sm focus:outline-none w-full" style={{ color: C.text }} />
               </div>
               {atletasFiltrados.slice(0, 5).map((a) => (
                 <button key={a.id} onClick={() => { setDestinatariosCustom((p) => [...p, a]); setBusquedaDest(''); }}
-                  className="w-full flex items-center space-x-2 px-3 py-2 mt-1 rounded-lg hover:bg-white/5 text-left transition-colors">
-                  <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-black text-white/50">{a.nombre?.charAt(0)}</span>
-                  <span className="text-xs font-bold text-white">{a.nombre}</span>
-                  <span className="text-3xs text-fg-muted">{a.categoria}</span>
+                  className="cut-focus w-full flex items-center gap-2 px-3 min-h-11 mt-1 hover:bg-white/5 text-left transition-colors">
+                  <HexAvatar size={24}>{a.nombre?.charAt(0)}</HexAvatar>
+                  <span className="text-xs font-bold" style={{ color: C.text }}>{a.nombre}</span>
+                  <MicroLabel style={{ margin: 0 }}>{a.categoria}</MicroLabel>
                 </button>
               ))}
-            </div>
+            </PanelParam>
           )}
 
           {/* Toggle representantes + contador de alcance en vivo */}
-          <div className="glass-card rounded-panel p-4 border border-white/8 flex items-center justify-between">
-            <button onClick={() => setIncluirReps((v) => !v)}
-              className="flex items-center space-x-2 text-xs font-bold text-gray-300 hover:text-white transition-colors">
-              <span className={`w-9 h-5 rounded-full p-0.5 transition-colors ${incluirReps ? 'bg-success/40' : 'bg-white/10'}`}>
-                <span className={`block w-4 h-4 rounded-full bg-white transition-transform ${incluirReps ? 'translate-x-4' : ''}`} />
-              </span>
-              <span className="flex items-center space-x-1"><UsersRound size={13} /><span>Incluir representantes</span></span>
-            </button>
-            <div className="text-right">
-              <p className="text-2xl font-black text-brand leading-none">{alcance.atletas}</p>
-              <p className="text-3xs text-fg-muted font-bold uppercase tracking-wider">
-                atletas{incluirReps ? ' + repres.' : ''}
-              </p>
+          <CutCard cut={10} padding="16px">
+            <div className="flex items-center justify-between">
+              <button onClick={() => setIncluirReps((v) => !v)} aria-pressed={incluirReps}
+                className="cut-focus flex items-center gap-2 min-h-11 text-xs font-bold transition-colors" style={{ color: C.text2 }}>
+                <span className="p-0.5 transition-colors" style={{ width: 36, height: 20, borderRadius: 999, background: incluirReps ? BORDER.okStrong : BORDER.neutralSoft }}>
+                  <span className="block transition-transform" style={{ width: 16, height: 16, borderRadius: 999, background: C.text, transform: incluirReps ? 'translateX(16px)' : 'none' }} />
+                </span>
+                <span className="flex items-center gap-1"><UsersRound size={13} /><span>Incluir representantes</span></span>
+              </button>
+              <div className="text-right">
+                <p className="leading-none" style={{ fontSize: 24, fontWeight: 900, color: C.gold }}>{alcance.atletas}</p>
+                <MicroLabel style={{ marginTop: 2 }}>atletas{incluirReps ? ' + repres.' : ''}</MicroLabel>
+              </div>
             </div>
-          </div>
+          </CutCard>
 
           {/* Título y Mensaje */}
           <input type="text" placeholder="Título del mensaje (opcional)"
             value={titulo} onChange={(e) => setTitulo(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/50 transition-colors" />
+            className={`${FIELD_CLASS} w-full`} style={fieldStyle} />
           <textarea rows={4} placeholder="Escribe el mensaje..."
             value={mensaje} onChange={(e) => setMensaje(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-control px-4 py-3 text-base md:text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/50 resize-none transition-colors" />
+            className={`${FIELD_CLASS} w-full resize-none`} style={fieldStyle} />
 
           <button onClick={handleEnviar} disabled={saving || !puedeEnviar}
-            className={`w-full flex items-center justify-center space-x-2 py-4 rounded-panel font-black uppercase tracking-widest text-sm transition ${
-              saved
-                ? 'bg-success/20 border border-success/40 text-success-soft'
-                : 'bg-brand/10 border border-brand/30 text-brand hover:bg-brand/20 disabled:opacity-40'
-            }`}>
+            className={`cut-focus w-full flex items-center justify-center gap-2 min-h-11 py-3.5 font-black uppercase tracking-widest text-sm transition active:scale-[0.99] ${saved ? '' : 'disabled:opacity-40'}`}
+            style={saved
+              ? { clipPath: cut(10), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }
+              : { clipPath: cut(10), background: GRAD.goldCTA, color: C.ink, border: 'none' }}>
             {saving ? <span className="animate-pulse">Enviando...</span>
-              : saved ? <><CheckCircle2 size={16} /><span>¡Mensaje Enviado!</span></>
-              : <><Send size={16} /><span>Registrar Mensaje</span></>}
+              : saved ? <><CheckCircle2 size={16} /><span>¡Mensaje enviado!</span></>
+              : <><Send size={16} /><span>Registrar mensaje</span></>}
           </button>
         </div>
 
         {/* PANEL DERECHO: Feed de mensajes */}
         <div>
-          <h3 className="text-sm font-black text-white uppercase tracking-widest mb-4">Feed Reciente</h3>
+          <MicroLabel as="h3" size={11} style={{ marginBottom: 16 }}>Feed reciente</MicroLabel>
           {errorCarga && (
-            <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-panel border border-danger/40 bg-danger/10 p-4">
-              <AlertTriangle size={18} className="text-danger-soft shrink-0" />
-              <p className="flex-1 min-w-[180px] text-xs font-bold text-danger-soft">
+            <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 p-4" style={{ clipPath: cut(10), background: TINT.danger, border: `1px solid ${BORDER.danger}` }}>
+              <AlertTriangle size={18} className="shrink-0" style={{ color: C.danger }} />
+              <p className="flex-1 min-w-[180px] text-xs font-bold" style={{ color: C.danger }}>
                 No se pudo cargar el feed. Esto no significa que esté vacío — puede ser un problema de conexión.
               </p>
               <button
                 type="button"
                 onClick={load}
-                className="inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-control bg-danger/20 border border-danger/50 text-danger-soft text-2xs font-black uppercase tracking-widest hover:bg-danger/30 transition"
+                className="cut-focus inline-flex items-center min-h-11 md:min-h-9 px-3.5 text-2xs font-black uppercase tracking-widest transition-colors"
+                style={{ clipPath: cut(7), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}
               >
                 Reintentar
               </button>
@@ -366,7 +377,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
           )}
           <div className="space-y-3 lg:max-h-[70vh] lg:overflow-y-auto overscroll-contain lg:pr-1">
             {!errorCarga && comunicaciones.length === 0 && (
-              <div className="text-center py-16 text-fg-faint">
+              <div className="text-center py-16" style={{ color: C.text3 }}>
                 <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
                 <p className="text-sm font-bold">No hay mensajes aún</p>
               </div>
@@ -374,25 +385,27 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
             {comunicaciones.map((c) => {
               const Icon = iconSegmento(c);
               return (
-                <motion.div key={c.id} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
-                  className="glass-card rounded-panel p-4 border border-white/8 hover:border-white/15 transition-colors">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-full border text-3xs font-black uppercase ${colorSegmento(c)}`}>
-                      <Icon size={10} />
-                      <span>{labelSegmento(c)}</span>
-                      {c.grupos_entrenamiento && <span>· {c.grupos_entrenamiento.nombre}</span>}
+                <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <CutCard cut={10} padding="16px">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5 px-2 py-1 text-3xs font-black uppercase" style={{ clipPath: cut(5), background: C.cardAlt1, border: `1px solid ${BORDER.neutral}`, color: C.text2 }}>
+                        <Icon size={10} />
+                        <span>{labelSegmento(c)}</span>
+                        {c.grupos_entrenamiento && <span>· {c.grupos_entrenamiento.nombre}</span>}
+                      </div>
+                      <MicroLabel style={{ margin: 0 }}>{new Date(c.created_at).toLocaleDateString('es', { day: '2-digit', month: 'short' })}</MicroLabel>
                     </div>
-                    <span className="text-3xs text-fg-faint">{new Date(c.created_at).toLocaleDateString('es', { day: '2-digit', month: 'short' })}</span>
-                  </div>
-                  {c.titulo && <p className="text-sm font-black text-white mb-1">{c.titulo}</p>}
-                  <p className="text-xs text-fg-secondary leading-relaxed">{c.mensaje}</p>
-                  <div className="mt-3 pt-3 border-t border-white/5 flex justify-end">
-                    <button onClick={() => abrirWA(c)}
-                      className="flex items-center gap-1.5 px-3 py-2.5 min-h-11 rounded-lg border border-success/30 text-xs font-bold text-success-soft hover:text-emerald-300 hover:bg-success/10 transition-colors">
-                      <MessageSquare size={13} />
-                      <span>Abrir en WhatsApp</span>
-                    </button>
-                  </div>
+                    {c.titulo && <p className="text-sm font-black mb-1" style={{ color: C.text }}>{c.titulo}</p>}
+                    <p className="text-xs leading-relaxed" style={{ color: C.text2 }}>{c.mensaje}</p>
+                    <div className="mt-3 pt-3 flex justify-end" style={{ borderTop: `1px solid ${BORDER.neutral}` }}>
+                      <button onClick={() => abrirWA(c)}
+                        className="cut-focus flex items-center gap-1.5 px-3 min-h-11 text-xs font-bold transition-colors"
+                        style={{ clipPath: cut(7), border: `1px solid ${BORDER.ok}`, color: C.whatsapp }}>
+                        <MessageSquare size={13} />
+                        <span>Abrir en WhatsApp</span>
+                      </button>
+                    </div>
+                  </CutCard>
                 </motion.div>
               );
             })}
