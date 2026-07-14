@@ -22,7 +22,7 @@ export const fetchPadreData = async (padreId) => {
     .from('atletas')
     .select(`
       *,
-      usuarios!atletas_usuario_id_fkey (id, nombre, categoria)
+      usuarios!atletas_usuario_id_fkey (id, nombre, categoria, estado)
     `)
     .in('id', idsHijos);
 
@@ -41,7 +41,9 @@ export const fetchPadreData = async (padreId) => {
     }
   });
 
-  const hijosFormat = (atletas || []).map(a => {
+  // Un padre activo con un segundo hijo aún pendiente/rechazado (v33) no debe
+  // ver la ficha vacía de ese hijo: solo se listan cuentas aprobadas.
+  const hijosFormat = (atletas || []).filter(a => (a.usuarios?.estado ?? 'activo') === 'activo').map(a => {
     const atletaEvals = evalByAtleta[a.id] || {};
     const evalsArray = Object.values(atletaEvals);
 

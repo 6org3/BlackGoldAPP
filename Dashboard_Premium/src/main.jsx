@@ -70,6 +70,9 @@ const VistaPadreArcade = lazy(() => import('./components/arcade/VistaPadreArcade
 // mock-first + cableado real (misiones/eventos/pilares/XP).
 const VistaAtletaArcade = lazy(() => import('./components/arcade/VistaAtletaArcade.jsx'))
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
+// Pantalla de cuenta pendiente/rechazada (v33): PrivateRoute la muestra en vez
+// de cualquier ruta privada hasta que el owner apruebe la solicitud.
+const CuentaEnRevision = lazy(() => import('./components/CuentaEnRevision.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
 const CoachHomePage = lazy(() => import('./pages/CoachHomePage.jsx'))
 // Panel Dueño en estilo "Arcade HUD" (rediseño del handoff): 5 paneles mock-first
@@ -97,6 +100,12 @@ const PrivateRoute = ({ children, roles }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
+
+  // Cuenta aún no aprobada por el club (v33): atleta o padre solo ven la
+  // pantalla de revisión/rechazo, en cualquier ruta privada.
+  if (user.estado === 'pendiente' || user.estado === 'rechazado') {
+    return <CuentaEnRevision estado={user.estado} />;
+  }
 
   if (roles && !roles.includes(user.rol)) {
     // Redirigir al dashboard correspondiente

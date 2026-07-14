@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, User, Phone, Loader2, CheckCircle2 } from 'lucide-react';
-import { registrarDesdeFormularioPublico } from '../api/registroPublicoService';
+import { registrarDesdeFormularioPublico, fetchClubesPublicos } from '../api/registroPublicoService';
 import { calcularEdad } from '../api/utilsAtletas';
 import CutCard from '../components/arcade/CutCard';
 import HexAvatar from '../components/arcade/HexAvatar';
@@ -52,7 +52,15 @@ export default function RegistroPage() {
   const esMenorEdad = edadAtleta !== null && edadAtleta < 18;
 
   const posiciones = ['N/A', 'Generador', 'Alero Físico', 'Ancla Fuerte', 'Escolta', 'Ala-Pívot'];
-  const clubes = ['Black Gold', 'Club Leones', 'Club Montoya', 'Club Federación'];
+
+  // Clubes reales que aceptan inscripción (v33): la RPC pública reemplaza a la
+  // lista hardcodeada de antes, que ofrecía clubes inexistentes.
+  const [clubes, setClubes] = useState([]);
+  useEffect(() => {
+    fetchClubesPublicos()
+      .then(setClubes)
+      .catch(() => setError('No se pudo cargar la lista de clubes. Recarga la página.'));
+  }, []);
 
   const handleAtletaChange = (e) => setDatosAtleta({ ...datosAtleta, [e.target.name]: e.target.value });
   const handlePadreChange = (e) => setDatosPadre({ ...datosPadre, [e.target.name]: e.target.value });
@@ -81,16 +89,18 @@ export default function RegistroPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-md relative z-10">
           <CutCard cut={14} background={C.card} border={BORDER.okSoft} padding="40px 28px" style={{ boxShadow: GLOW.phone, textAlign: 'center' }}>
             <CheckCircle2 className="w-16 h-16 mx-auto mb-6" style={{ color: C.ok }} />
-            <h2 className="text-2xl font-black uppercase tracking-tight mb-3" style={{ color: C.ok }}>¡Inscripción exitosa!</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tight mb-3" style={{ color: C.ok }}>¡Solicitud enviada!</h2>
             <p className="text-sm mb-8" style={{ color: C.text2 }}>
-              El perfil se creó correctamente. Ya puedes iniciar sesión con tus credenciales.
+              Tu inscripción quedó pendiente de aprobación por el club. Puedes iniciar
+              sesión con tu cédula (contraseña inicial: tu misma cédula) para consultar
+              el estado de tu solicitud.
             </p>
             <button
               onClick={() => navigate('/login')}
               className="cut-focus w-full flex items-center justify-center min-h-11 active:scale-[0.99] transition"
               style={{ clipPath: cut(12), background: GRAD.greenCTA, color: C.inkGreen, fontWeight: 900, fontSize: 14, letterSpacing: '.08em', textTransform: 'uppercase', border: 'none', padding: '13px' }}
             >
-              Ir al portal
+              Ir a iniciar sesión
             </button>
           </CutCard>
         </motion.div>
@@ -184,11 +194,14 @@ export default function RegistroPage() {
               </div>
 
               <div>
-                <LabelHUD htmlFor="reg-club" required>Club (selecciona o escribe)</LabelHUD>
-                <input id="reg-club" type="text" name="club" list="clubesList" value={datosAtleta.club} onChange={handleAtletaChange} required className={FIELD_CLASS} style={FIELD_STYLE} placeholder="Ej. Black Gold" />
-                <datalist id="clubesList">
-                  {clubes.map(c => <option key={c} value={c} />)}
-                </datalist>
+                <LabelHUD htmlFor="reg-club" required>Club al que deseas inscribirte</LabelHUD>
+                <select id="reg-club" name="club" value={datosAtleta.club} onChange={handleAtletaChange} required className={FIELD_CLASS} style={FIELD_STYLE}>
+                  <option value="">{clubes.length ? 'Selecciona tu club' : 'Cargando clubes…'}</option>
+                  {clubes.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <p className="mt-1.5" style={{ color: C.text3, fontSize: 11 }}>
+                  El club revisará tu solicitud antes de aprobar tu ingreso.
+                </p>
               </div>
             </div>
           </CutCard>

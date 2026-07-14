@@ -20,7 +20,12 @@ const DN = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
 function ctxResumen(data, actions) {
   return {
     kpis: data.kpis,
-    alertas: (data.alertas || []).map((a) => ({ ...a, onGo: () => actions.goTab(a.goTab) })),
+    // Una alerta con `href` navega fuera del HUD (goHref, v33 — p.ej. la bandeja
+    // de solicitudes en /admin/atletas); con `goTab` cambia de panel interno.
+    alertas: (data.alertas || []).map((a) => ({
+      ...a,
+      onGo: () => (a.href && actions.goHref ? actions.goHref(a.href) : actions.goTab(a.goTab)),
+    })),
     hoy: data.hoy || [],
   };
 }

@@ -85,6 +85,7 @@ export default function AdminMisiones() {
     let atletasQuery = supabase
       .from('atletas')
       .select('id, usuarios!inner!atletas_usuario_id_fkey (nombre, categoria, categoria_feb, club, fecha_nacimiento)')
+      .eq('usuarios.estado', 'activo')
       .order('id');
     if (user && user.rol !== 'superadmin' && user.club) {
       atletasQuery = atletasQuery.eq('usuarios.club', user.club);

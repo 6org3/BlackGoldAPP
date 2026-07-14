@@ -21,6 +21,7 @@ import { fetchPagosMes, fetchClubConfig } from '../../api/pagosService';
 import { fetchCoachStats } from '../../api/coachesService';
 import { fetchRetencionClub } from '../../api/retencionService';
 import { fetchOcupacionCancha } from '../../api/ocupacionService';
+import { contarSolicitudesPendientes } from '../../api/solicitudesService';
 import { tieneSenal } from '../../lib/senalesAtleta';
 import { C } from './arcadeTokens';
 import { DUENO_MOCK } from './duenoMock';
@@ -117,7 +118,7 @@ export async function fetchDuenoPanel(user) {
     const p1 = mesAtras(1);
     const p2 = mesAtras(2);
 
-    const [asisAll, asis14, asis16, asis18, pJul, pJun, pMay, clubConfig, coachRows, retClub, realHeat] = await Promise.all([
+    const [asisAll, asis14, asis16, asis18, pJul, pJun, pMay, clubConfig, coachRows, retClub, realHeat, nSolicitudes] = await Promise.all([
       fetchAsistenciaPct(allIds, 30),
       fetchAsistenciaPct(idsCat(list, '14'), 30),
       fetchAsistenciaPct(idsCat(list, '16'), 30),
@@ -129,6 +130,7 @@ export async function fetchDuenoPanel(user) {
       fetchCoachStats(30).catch(() => []),
       fetchRetencionClub(5).catch(() => null),
       fetchOcupacionCancha(60).catch(() => null),
+      contarSolicitudesPendientes().catch(() => 0),
     ]);
 
     // Meta real del donut de Finanzas (club_config.meta_recaudacion_mensual, v31);
@@ -176,7 +178,21 @@ export async function fetchDuenoPanel(user) {
     // conserva DUENO_MOCK.heat, que ya viene por el spread de arriba.
     const heat = realHeat || DUENO_MOCK.heat;
 
-    return { ...DUENO_MOCK, demo: false, kpis, finanzas, asistencia, catRows, coaches, retencion, heat };
+    // Alerta REAL de solicitudes de registro pendientes (v33): navega a la
+    // bandeja de /admin/atletas (href → goHref). El resto de alertas sigue
+    // mock (TODO declarado arriba).
+    const alertas = nSolicitudes > 0
+      ? [{
+          icon: '📥',
+          text: `${nSolicitudes} ${nSolicitudes === 1 ? 'solicitud de registro pendiente' : 'solicitudes de registro pendientes'}`,
+          cta: 'REVISAR ►',
+          color: C.info,
+          border: 'rgba(96,165,250,.3)',
+          href: '/admin/atletas',
+        }, ...DUENO_MOCK.alertas]
+      : DUENO_MOCK.alertas;
+
+    return { ...DUENO_MOCK, demo: false, kpis, finanzas, asistencia, catRows, coaches, retencion, heat, alertas };
   } catch {
     return DUENO_MOCK; // degradación defensiva
   }

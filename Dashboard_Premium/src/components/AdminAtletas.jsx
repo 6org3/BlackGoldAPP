@@ -11,6 +11,7 @@ import AdminAtletasHeader from './AdminAtletasHeader';
 import AdminAtletasForm from './AdminAtletasForm';
 import AdminAtletasFiltersPanel from './AdminAtletasFiltersPanel';
 import AdminAtletasGrupoNivel from './AdminAtletasGrupoNivel';
+import SolicitudesPanel from './SolicitudesPanel';
 import ModalHUD from './arcade/ModalHUD';
 import { COLORS } from '../lib/designTokens';
 import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
@@ -154,6 +155,15 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ═══════════════════════ SOLICITUDES DE REGISTRO (v33) ═══════════════════════ */}
+      {/* Bandeja del registro público: aprobar/rechazar es decisión del dueño
+          del club (el coach ni la ve; la RPC lo re-valida server-side). */}
+      {(user?.rol === 'owner' || user?.rol === 'superadmin') && (
+        <div className="mb-6">
+          <SolicitudesPanel onResuelto={onRefresh} />
+        </div>
+      )}
 
       {/* ═══════════════════════ FORMULARIO ═══════════════════════ */}
       <AnimatePresence>
