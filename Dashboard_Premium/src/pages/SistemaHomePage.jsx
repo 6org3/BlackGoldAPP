@@ -6,9 +6,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import HomeShell, { ContextChip, SectionEyebrow, StatCard } from '../components/HomeShell';
-import Gauge from '../components/Gauge';
 import Plantel from '../components/Plantel';
-import { COLORS } from '../lib/designTokens';
+import CutCard from '../components/arcade/CutCard';
+import KpiGrid from '../components/arcade/KpiGrid';
+import TablaHUD from '../components/arcade/TablaHUD';
+import Donut from '../components/arcade/Donut';
+import HexAvatar from '../components/arcade/HexAvatar';
+import MicroLabel from '../components/arcade/MicroLabel';
+import { C, BORDER, TINT, cut, PIXEL } from '../components/arcade/arcadeTokens';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchAsistenciaPct } from '../api/asistenciaService';
 import { contarUsuarios } from '../api/authService';
@@ -27,7 +32,14 @@ const MODULOS = [
   { ruta: '/admin/kpis', label: 'KPIs del club', Icono: BarChart3 },
 ];
 
+const MCP_TOOLS = ['analyze_athlete_pillars', 'analyze_athlete_readiness', 'consultar_rack'];
+
 const TREINTA_DIAS_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Color de salud de una métrica 0–100 (meter de clubs y borde de fila).
+ *  El rojo se reserva a cobertura crítica (<50%); 50–79% es naranja de
+ *  precaución (C.warn = mismo hue que el caution del DS v1), no fallo. */
+const saludColor = (pct) => (pct >= 80 ? C.ok : pct >= 50 ? C.warn : C.danger);
 
 /** % de un grupo de atletas con al menos una evaluación en los últimos 30 días. */
 function coberturaEvaluacion30d(atletas) {
@@ -39,12 +51,48 @@ function coberturaEvaluacion30d(atletas) {
   return Math.round((conEvaluacionReciente / atletas.length) * 100);
 }
 
+// Columnas de la Tabla-HUD de clubs (§6.2): nombre con hex de identidad,
+// conteo numérico en pixel, y meter de cobertura con % semántico.
+const CLUB_COLUMNS = [
+  {
+    key: 'club',
+    label: 'Club',
+    render: (row) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HexAvatar size={30} initial={row.club.charAt(0).toUpperCase()} style={{ fontSize: 12 }} />
+        <span style={{ fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
+          {row.club}
+        </span>
+      </div>
+    ),
+  },
+  { key: 'total', label: 'Atletas', numeric: true, width: 84 },
+  {
+    key: 'cobertura',
+    label: 'Cob. eval 30d',
+    align: 'right',
+    width: 156,
+    render: (row) => {
+      const col = saludColor(row.cobertura);
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+          <div style={{ width: 60, height: 5, borderRadius: 3, background: C.cardAlt1, overflow: 'hidden' }} aria-hidden="true">
+            <div style={{ height: '100%', width: `${row.cobertura}%`, background: col }} />
+          </div>
+          <span style={{ fontFamily: PIXEL, fontSize: 11, color: col, minWidth: 30, textAlign: 'right' }}>{row.cobertura}%</span>
+        </div>
+      );
+    },
+  },
+];
+
 /**
  * SistemaHomePage (/sistema) — home nativo del superadmin: "que el sistema
- * esté sano". Retrofit visual al mockup v6 (superHome): gauges de cobertura
- * de evaluación 30d y asistencia global 7d, lista de clubs con meter de
- * salud (métrica declarada en la UI: cobertura eval. 30d POR club). Se
- * mantienen los contadores, la card del cerebro y el grid de módulos.
+ * esté sano". Ola 2 · PR 2.2 (convergencia Arcade): las superficies data-densas
+ * pasan a las primitivas del HUD (design_system_arcade.md §6.2/§6.4) — donuts de
+ * cobertura eval. 30d y asistencia global 7d en CutCard, contadores en KpiGrid,
+ * clubs como Tabla-HUD (meter de salud por club + borde-estado de fila), card
+ * del cerebro y grid de módulos con esquina cortada. Datos y rutas intactos.
  */
 export default function SistemaHomePage() {
   const { user } = useAuth();
@@ -99,97 +147,101 @@ export default function SistemaHomePage() {
       titulo={<>El <span className="text-gradient-gold">sistema</span></>}
       contexto={<ContextChip tono="info">🛠️ Ves todos los clubs · gestión y mantenimiento</ContextChip>}
     >
-      {/* Contadores de plataforma */}
+      {/* Estado de plataforma: salud (donuts) + contadores */}
       <SectionEyebrow pill="plataforma">Estado</SectionEyebrow>
       {loading ? (
         <div className="skeleton h-24" aria-hidden="true"></div>
       ) : (
         <>
-          <div className="glass-card rounded-card p-4 flex items-center justify-around">
-            <Gauge pct={coberturaGlobal} label="cobertura eval. 30d" color={COLORS.gold[500]} />
-            <Gauge pct={asistenciaPct ?? 0} label="asistencia global 7d" color={COLORS.feedback.success} />
-          </div>
-          <div className="grid grid-cols-3 gap-3 mt-3">
+          <CutCard cut={10} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: 12, padding: '16px 14px' }}>
+            <div style={{ textAlign: 'center' }}>
+              <Donut pct={coberturaGlobal} color={C.gold} centerTop={`${coberturaGlobal}%`} size={104} ariaLabel={`Cobertura eval 30d: ${coberturaGlobal}%`} />
+              <MicroLabel color={C.text3} size={9} tracking=".08em" style={{ marginTop: 8 }}>Cobertura eval 30d</MicroLabel>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <Donut pct={asistenciaPct ?? 0} color={C.ok} centerTop={`${asistenciaPct ?? 0}%`} size={104} ariaLabel={`Asistencia global 7d: ${asistenciaPct ?? 0}%`} />
+              <MicroLabel color={C.text3} size={9} tracking=".08em" style={{ marginTop: 8 }}>Asistencia global 7d</MicroLabel>
+            </div>
+          </CutCard>
+          <KpiGrid min={110} style={{ marginTop: 10 }}>
             <StatCard valor={atletas.length} label="Atletas" tonoTexto="text-brand" />
             <StatCard valor={totalUsuarios ?? '—'} label="Usuarios" />
             <StatCard valor={clubsList.length} label="Clubs" />
-          </div>
+          </KpiGrid>
         </>
       )}
 
-      {/* Clubs en la plataforma */}
+      {/* Clubs en la plataforma — Tabla-HUD con meter de salud por club */}
       <SectionEyebrow>Clubs en la plataforma</SectionEyebrow>
-      <div className="glass-card rounded-card p-2">
-        {clubsList.length === 0 ? (
-          <p className="text-xs text-fg-muted p-2">Aún no hay atletas registrados.</p>
-        ) : (
-          clubsList.map(({ club, total, cobertura }) => (
-            <div key={club} className="flex items-center gap-3 p-2.5">
-              <span className="w-9 h-9 rounded-control bg-gradient-to-br from-brand to-brand-strong text-on-brand font-black text-sm flex items-center justify-center shrink-0">
-                {club.charAt(0).toUpperCase()}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold truncate">{club}</p>
-                <p className="text-2xs text-fg-muted">{total} {total === 1 ? 'atleta' : 'atletas'}</p>
-              </div>
-              <div className="w-16 shrink-0">
-                <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${cobertura >= 80 ? 'bg-success' : cobertura >= 70 ? 'bg-warning' : 'bg-caution'}`}
-                    style={{ width: `${cobertura}%` }}
-                  />
-                </div>
-                <p className="text-3xs text-fg-muted text-right mt-1">cobertura eval. 30d</p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      <TablaHUD
+        ariaLabel="Clubs en la plataforma"
+        columns={CLUB_COLUMNS}
+        rows={clubsList}
+        rowKey={(r) => r.club}
+        rowStatus={(r) => saludColor(r.cobertura)}
+        emptyLabel="Aún no hay atletas registrados."
+      />
 
-      {/* Card informativa del cerebro — solo lectura/estado, sin acciones */}
+      {/* Card informativa del cerebro — solo lectura/estado, sin acciones.
+          Acento por borde ai + accesorios teñidos (§6.2: estado por borde, no
+          por teñir toda la superficie). */}
       <SectionEyebrow pill="✦ estado" pillTono="mental">Cerebro del club</SectionEyebrow>
-      <div className="rounded-card border border-mental/25 bg-mental/5 shadow-card p-4">
-        <div className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-control bg-mental/10 text-mental-soft flex items-center justify-center shrink-0">
+      <CutCard cut={10} border={BORDER.ai} padding="16px">
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <span style={{ width: 38, height: 38, flex: 'none', clipPath: cut(6), background: TINT.ai, color: C.ai, display: 'grid', placeItems: 'center' }}>
             <BrainCircuit size={18} />
           </span>
-          <div className="min-w-0">
-            <p className="text-sm font-bold">blackgold-mcp · 18 tools</p>
-            <p className="text-xs text-fg-secondary leading-relaxed mt-1">
+          <div style={{ minWidth: 0 }}>
+            <p style={{ margin: 0, fontWeight: 700, color: C.text, fontSize: 14 }}>blackgold-mcp · 18 tools</p>
+            <p style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.5, color: C.text2 }}>
               Servidor MCP del proyecto: analítica de atleta (diagnóstico por pilares,
               readiness, misiones sugeridas, siguiente prueba), rack documental deportivo
               (búsqueda BM25 sobre la metodología del club) y curación de catálogos de
               pruebas y misiones. Hoy lo opera el staff vía Claude; el rediseño lo trae a
               la app por el brain gateway (Fase 2).
             </p>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {['analyze_athlete_pillars', 'analyze_athlete_readiness', 'consultar_rack'].map((t) => (
-                <span key={t} className="inline-flex items-center gap-1 text-3xs font-mono font-bold px-2 py-0.5 rounded-full border text-mental-soft bg-mental/10 border-mental/25">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+              {MCP_TOOLS.map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontFamily: 'ui-monospace, monospace', fontSize: 9.5, fontWeight: 700,
+                    padding: '3px 8px', clipPath: cut(5),
+                    color: C.ai, background: TINT.ai, border: `1px solid ${BORDER.ai}`,
+                  }}
+                >
                   ✦ {t}
                 </span>
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </CutCard>
 
       {/* Accesos a todos los módulos admin */}
       <SectionEyebrow>Módulos</SectionEyebrow>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+      <KpiGrid min={158}>
         {MODULOS.map(({ ruta, label, Icono }) => (
-          <button
+          <CutCard
             key={ruta}
+            cut={8}
+            className="cut-focus"
             onClick={() => navigate(ruta)}
-            className="flex items-center gap-2.5 p-3 rounded-panel bg-surface-sunken border border-white/5 hover:border-brand/30 transition text-left"
+            ariaLabel={label}
+            padding="12px 13px"
+            style={{ display: 'flex', alignItems: 'center', gap: 10 }}
           >
-            <span className="w-8 h-8 rounded-control bg-brand/10 text-brand flex items-center justify-center shrink-0">
+            <span style={{ width: 30, height: 30, flex: 'none', clipPath: cut(5), background: TINT.gold, color: C.gold, display: 'grid', placeItems: 'center' }}>
               <Icono size={15} />
             </span>
-            <span className="flex-1 text-xs font-bold truncate">{label}</span>
-            <ChevronRight size={14} className="text-fg-muted shrink-0" />
-          </button>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {label}
+            </span>
+            <ChevronRight size={14} style={{ color: C.text3, flex: 'none' }} />
+          </CutCard>
         ))}
-      </div>
+      </KpiGrid>
 
       {/* Plantel embebido (módulo reutilizable extraído de /dashboard) */}
       <SectionEyebrow>Plantel</SectionEyebrow>
