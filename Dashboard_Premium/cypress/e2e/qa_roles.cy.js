@@ -4,10 +4,13 @@ describe('QA Flow - 3 Roles', () => {
   // dashboardText: texto REAL y estable de cada layout (verificado contra la UI
   // actual — los textos anteriores 'Dashboard Premium'/'Nivel de Desarrollo'/
   // 'Centro de Control' no existían en ningún componente y hacían fallar la suite).
+  // El de Padre se elige de la cabecera de VistaPadreArcade, que se pinta antes
+  // que los datos del hijo: los rótulos de las secciones ('PRÓXIMO EVENTO',
+  // 'PAGOS · MENSUALIDAD') solo aparecen una vez cargado el detalle.
   const ROLES = [
     { key: 'coach', name: 'Coach', expectedUrl: '/dashboard', dashboardText: 'Tripulación' },
     { key: 'atleta', name: 'Atleta', expectedUrl: '/dashboard', dashboardText: 'Radar de Pilares' },
-    { key: 'padre', name: 'Padre', expectedUrl: '/padre', dashboardText: 'Portal de Padres' },
+    { key: 'padre', name: 'Padre', expectedUrl: '/padre', dashboardText: 'MI REPRESENTADO', logoutEnMenuPerfil: true },
   ];
 
   before(function () {
@@ -40,9 +43,12 @@ describe('QA Flow - 3 Roles', () => {
       // Tomamos screenshot como evidencia de que cargó correctamente
       cy.screenshot(`Acceso_Exitoso_${rol.name}`);
 
-      // Cerrar sesión. El texto del botón difiere por rol ("Cerrar sesión" sin texto
-      // visible en coach, "Cerrar Sesión" en atleta, "Desconectar" en padre), así que
-      // se usa data-testid="btn-logout" (presente en los 3 layouts) en vez de texto.
+      // Cerrar sesión. El texto del botón difiere por rol, así que se usa
+      // data-testid="btn-logout" en vez de texto. En coach y atleta el botón está
+      // en el propio shell; en padre vive dentro del menú de perfil de Arcade HUD
+      // (ArcadePerfilMenu), que solo monta su panel al abrirlo — de ahí el click
+      // previo en el avatar.
+      if (rol.logoutEnMenuPerfil) cy.get('[data-testid="btn-perfil"]').click();
       cy.get('[data-testid="btn-logout"]').click({ force: true });
       cy.url({ timeout: 10000 }).should('include', '/login');
     });

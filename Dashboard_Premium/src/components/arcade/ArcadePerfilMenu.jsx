@@ -126,6 +126,7 @@ export default function ArcadePerfilMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={ariaLabel}
+        data-testid="btn-perfil"
         className="cut-focus"
         style={{ appearance: 'none', background: 'none', border: 'none', padding: 0, cursor: 'pointer', flex: 'none', lineHeight: 0 }}
       >
