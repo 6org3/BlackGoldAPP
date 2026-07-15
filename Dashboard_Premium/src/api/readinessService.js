@@ -7,6 +7,13 @@ import { invalidarReadiness } from './brainService';
 // READINESS ENGINE (FIBA/NBA)
 // ============================
 
+/** Hora a partir de la cual se ofrece el check-in del día: mide la primera
+ *  orina de la mañana (escala de Armstrong), así que de madrugada no aplica. */
+export const HORA_MINIMA_CHECKIN = 6;
+
+/** ¿El check-in de hoy ya está disponible? (gate horario del engine) */
+export const checkinDisponible = (fecha = new Date()) => fecha.getHours() >= HORA_MINIMA_CHECKIN;
+
 export const guardarReadinessDiario = async (readinessData) => {
   const { data, error } = await supabase
     .from('atleta_readiness')

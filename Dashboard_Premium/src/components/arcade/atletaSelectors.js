@@ -47,6 +47,42 @@ function fechaHoyLine(categoria) {
   return categoria ? `${base} · ${categoria}` : base;
 }
 
+/** Tarjeta del check-in de readiness en la Base. Devuelve null mientras la
+    consulta del día está en vuelo (state.aReadiness === undefined) para no
+    parpadear "pendiente" antes de saber si ya lo hizo. */
+function ctxCheckin(state, actions) {
+  const r = state.aReadiness;
+  if (r === undefined) return null;
+
+  if (r) {
+    const score = Number(r.readiness_score);
+    return {
+      hecho: true,
+      titulo: 'CHECK-IN HECHO',
+      scoreLabel: Number.isFinite(score) ? `READINESS ${score.toFixed(1)}` : null,
+      resumen: `SUEÑO ${r.sueno_calidad} · FATIGA ${r.fatiga_fisica} · HIDRATACIÓN ${r.color_orina}/8`,
+    };
+  }
+
+  if (!state.aReadinessDisponible) {
+    return {
+      hecho: false,
+      bloqueado: true,
+      titulo: 'CHECK-IN DIARIO',
+      texto: 'Se habilita a las 06:00 — mide tu primera orina de la mañana.',
+    };
+  }
+
+  return {
+    hecho: false,
+    bloqueado: false,
+    titulo: 'CHECK-IN DIARIO',
+    texto: 'Antes de entrenar, cuéntanos cómo llegas hoy.',
+    ctaLabel: 'HACER CHECK-IN ►',
+    onOpen: () => actions.abrirReadiness(),
+  };
+}
+
 // ---------- Pantalla INICIO / BASE ----------
 function ctxInicio(state, data, actions) {
   const p = data.profile;
@@ -66,6 +102,7 @@ function ctxInicio(state, data, actions) {
     nivelLine: `${(p.nivelDesarrollo || '').toUpperCase()} ${nivel.emoji}`,
     pwr: p.pwr,
     xp: p.xp,
+    checkin: ctxCheckin(state, actions),
     hoyEntrenas: data.hoyEntrenas,
     alertaIA: data.alertaIA,
     misionDestacada: destacada
@@ -277,6 +314,13 @@ export function buildAtletaCtx(state, data, actions) {
     navActive: state.aTab || 'inicio',
     onBack: () => actions.back(),
     demo: !!data.demo,
+    // Modal del check-in: lo monta el shell (VistaAtletaArcade) para que siga
+    // abierto sobre cualquier pestaña, no solo sobre la Base.
+    readiness: {
+      open: !!state.aReadinessOpen,
+      onClose: () => actions.cerrarReadiness(),
+      onComplete: (registro) => actions.readinessCompletado(registro),
+    },
   };
   if (ctx.isInicio) Object.assign(ctx, ctxInicio(state, data, actions));
   if (ctx.isMisiones) Object.assign(ctx, ctxMisiones(state, data, actions));

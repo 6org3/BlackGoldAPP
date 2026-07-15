@@ -66,7 +66,7 @@ function mapMision(m) {
 
 /** Alerta IA "readiness" ligera derivada del propio `user` (sin gateway).
     TODO: enriquecer con brainService.fetchReadinessAtleta (alertas priorizadas). */
-function alertaReadiness(user) {
+export function alertaReadiness(user) {
   const est = (user?.estado_recuperacion || '').toLowerCase();
   if (est.includes('sobre') || est.includes('agot'))
     return { tone: 'danger', text: 'Tu carga viene alta. Prioriza descanso y cuéntale al coach cómo te sientes.' };
