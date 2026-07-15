@@ -77,7 +77,7 @@ const CuentaEnRevision = lazy(() => import('./components/CuentaEnRevision.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
 const CoachHomePage = lazy(() => import('./pages/CoachHomePage.jsx'))
 // Panel Dueño en estilo "Arcade HUD" (rediseño del handoff): 5 paneles mock-first
-// + cableado real (KPIs/finanzas/asistencia). ClubHomePage.jsx queda como legacy.
+// + cableado real (KPIs/finanzas/asistencia).
 const VistaDuenoArcade = lazy(() => import('./components/arcade/VistaDuenoArcade.jsx'))
 const SistemaHomePage = lazy(() => import('./pages/SistemaHomePage.jsx'))
 // Banco de pruebas de las primitivas densas del Arcade (Ola 0, design_system_arcade.md §6).

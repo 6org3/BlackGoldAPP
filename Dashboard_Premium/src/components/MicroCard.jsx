@@ -1,7 +1,7 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Ruler, TrendingUp, Star, Heart, Droplets } from 'lucide-react';
 import { getSubPilarScores } from '../lib/radarCalc';
+import { C, cut } from './arcade/arcadeTokens';
 
 // MicroCard solo se renderiza para Premini/Mini (ver App.jsx), así que solo esas dos
 // categorías FEB reales necesitan color; el resto usa el fallback gris de abajo.
@@ -51,7 +51,8 @@ export default function MicroCard({ atleta }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="glass-card rounded-none md:rounded-card p-5 sm:p-8 relative overflow-hidden border border-white/5"
+      style={{ clipPath: cut(14), background: C.card }}
+      className="p-5 sm:p-8 relative overflow-hidden border border-white/5"
     >
       {/* Ambient glow */}
       <div className="absolute -top-24 -right-24 w-48 h-48 rounded-full blur-[80px] pointer-events-none opacity-40 bg-brand" />

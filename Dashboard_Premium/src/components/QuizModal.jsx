@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, XCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CONFETTI_GOLD } from '../lib/designTokens';
+import { C, BORDER, cut } from './arcade/arcadeTokens';
 
 export default function QuizModal({ quiz, xpRecompensa, onPass, onClose }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -83,7 +84,8 @@ export default function QuizModal({ quiz, xpRecompensa, onPass, onClose }) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ type: "spring", damping: 25 }}
-          className="glass-card w-full max-w-lg rounded-card p-5 sm:p-8 relative max-h-[90dvh] overflow-y-auto"
+          style={{ clipPath: cut(14), background: C.card, border: `1px solid ${BORDER.neutral}` }}
+          className="w-full max-w-lg p-5 sm:p-8 relative max-h-[90dvh] overflow-y-auto"
           onClick={e => e.stopPropagation()}
         >
           <button onClick={onClose} aria-label="Cerrar cuestionario" className="absolute top-3 right-3 p-3 text-fg-muted hover:text-white transition-colors">

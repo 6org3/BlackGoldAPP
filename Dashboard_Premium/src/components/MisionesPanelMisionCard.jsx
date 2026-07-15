@@ -4,6 +4,7 @@ import VideoPlayer from './VideoPlayer';
 import { CheckCircle2, Play, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { PILAR_LABELS } from '../constants/pilares';
 import { MOTION, staggerDelay } from '../lib/designTokens';
+import { C, cut } from './arcade/arcadeTokens';
 
 // ──────────────────────────────────────────
 // Tarjeta de misión pendiente
@@ -16,7 +17,8 @@ function MisionCard({ mision, index, expanded, onToggle, onComplete, onQuiz }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: staggerDelay(index), duration: MOTION.duration.base, ease: MOTION.ease.out }}
-      className="glass-card rounded-panel overflow-hidden border border-white/5 glow-border"
+      style={{ clipPath: cut(10), background: C.card }}
+      className="overflow-hidden border border-white/5 glow-border"
     >
       <button
         onClick={() => onToggle(mision.id)}
