@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { rutaHomeParaRol } from '../lib/featureFlags';
 import { Sparkles, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
@@ -27,9 +28,15 @@ export default function Login() {
   // Si ya hay sesión activa (p. ej. la PWA abrió /login con la sesión de
   // supabase-js aún vigente), entrar directo al panel según el rol en vez
   // de volver a pedir credenciales.
+  //
+  // El destino sale de rutaHomeParaRol —la misma fuente que RootRedirect
+  // (main.jsx) y el ítem "Inicio" del Sidebar—: hardcodearlo aquí hacía que
+  // un mismo usuario aterrizara en portales distintos según cómo entrara
+  // (el atleta caía en el shell legacy /dashboard por el formulario y en el
+  // portal Arcade /atleta por la raíz).
   useEffect(() => {
     if (user) {
-      navigate(user.rol === 'padre' ? '/padre' : '/dashboard', { replace: true });
+      navigate(rutaHomeParaRol(user.rol), { replace: true });
     }
   }, [user, navigate]);
 
@@ -42,11 +49,7 @@ export default function Login() {
     setLoading(false);
 
     if (result.success) {
-      if (result.user && result.user.rol === 'padre') {
-        navigate('/padre');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate(rutaHomeParaRol(result.user?.rol));
     } else {
       setError(result.error);
     }

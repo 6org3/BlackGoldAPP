@@ -1,13 +1,22 @@
 describe('QA Flow - 3 Roles', () => {
   const ROLES_CONFIG = Cypress.env('QA_ROLES');
 
-  // dashboardText: texto REAL y estable de cada layout (verificado contra la UI
-  // actual — los textos anteriores 'Dashboard Premium'/'Nivel de Desarrollo'/
-  // 'Centro de Control' no existían en ningún componente y hacían fallar la suite).
+  // expectedUrl: el destino del login sale de rutaHomeParaRol() (featureFlags.js),
+  // la misma fuente que usan RootRedirect (main.jsx) y el ítem "Inicio" del
+  // Sidebar. Con los homes Arcade activos, coach y atleta ya no aterrizan en el
+  // shell legacy /dashboard: el formulario lleva al mismo portal que la raíz.
+  //
+  // dashboardText: texto hardcodeado y siempre presente del portal — no derivado
+  // de datos (nombre, KPIs, próxima sesión), que una cuenta de prueba vacía haría
+  // desaparecer, ni tapado por el estado de carga.
+  //
+  // logout: los portales Arcade (atleta, padre) montan la salida dentro del menú
+  // de perfil del avatar, que no existe en el DOM hasta abrirlo; el home del coach
+  // la tiene en el Sidebar de HomeShell (data-testid propio).
   const ROLES = [
-    { key: 'coach', name: 'Coach', expectedUrl: '/dashboard', dashboardText: 'Tripulación' },
-    { key: 'atleta', name: 'Atleta', expectedUrl: '/dashboard', dashboardText: 'Radar de Pilares' },
-    { key: 'padre', name: 'Padre', expectedUrl: '/padre', dashboardText: 'Portal de Padres' },
+    { key: 'coach', name: 'Coach', expectedUrl: '/coach', dashboardText: 'Atletas a mirar hoy', logout: 'sidebar' },
+    { key: 'atleta', name: 'Atleta', expectedUrl: '/atleta', dashboardText: 'Mi Base', logout: 'menu' },
+    { key: 'padre', name: 'Padre', expectedUrl: '/padre', dashboardText: 'MI REPRESENTADO', logout: 'menu' },
   ];
 
   before(function () {
@@ -40,10 +49,13 @@ describe('QA Flow - 3 Roles', () => {
       // Tomamos screenshot como evidencia de que cargó correctamente
       cy.screenshot(`Acceso_Exitoso_${rol.name}`);
 
-      // Cerrar sesión. El texto del botón difiere por rol ("Cerrar sesión" sin texto
-      // visible en coach, "Cerrar Sesión" en atleta, "Desconectar" en padre), así que
-      // se usa data-testid="btn-logout" (presente en los 3 layouts) en vez de texto.
-      cy.get('[data-testid="btn-logout"]').click({ force: true });
+      // Cerrar sesión.
+      if (rol.logout === 'menu') {
+        cy.get('[aria-label="Menú de perfil"]', { timeout: 15000 }).click();
+        cy.get('[data-testid="btn-logout"]').click();
+      } else {
+        cy.get('[data-testid="btn-logout-sidebar"]').click({ force: true });
+      }
       cy.url({ timeout: 10000 }).should('include', '/login');
     });
   });
