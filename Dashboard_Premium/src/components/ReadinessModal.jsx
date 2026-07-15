@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Activity, Moon, Droplets, Loader2, X } from 'lucide-react';
+import { Activity, Moon, Droplets, Loader2 } from 'lucide-react';
 import { guardarReadinessDiario } from '../api/readinessService';
+import ModalShell from './arcade/ModalShell';
+import MicroLabel from './arcade/MicroLabel';
+import { C, BORDER, GRAD, TINT, cut, PIXEL } from './arcade/arcadeTokens';
 
+// Escala de Armstrong: hex CLÍNICOS de referencia, no tokens de marca. El atleta
+// compara su orina contra estos colores reales, así que no se re-expresan en la
+// paleta Arcade (decisión de la Ola 1 de convergencia).
 const URINE_COLORS = [
   { value: 1, color: '#FDFBE3', label: 'Excelente' },
   { value: 2, color: '#FDF1AB', label: 'Muy Bien' },
@@ -14,10 +19,45 @@ const URINE_COLORS = [
   { value: 8, color: '#975F00', label: 'Peligro' },
 ];
 
+/** Slider 1-10 del HUD: label con icono, valor en pixel y pista de 44px. */
+function EscalaSlider({ icon: Icon, label, accent, value, onChange, minLabel, maxLabel }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+        <label htmlFor={`readiness-${label}`} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 800, color: C.text }}>
+          <Icon size={15} strokeWidth={2.4} style={{ color: accent, flex: 'none' }} aria-hidden="true" />
+          <span>{label}</span>
+        </label>
+        <span style={{ flex: 'none', fontFamily: PIXEL, fontSize: 15, color: accent }}>{value}/10</span>
+      </div>
+      <input
+        id={`readiness-${label}`}
+        type="range"
+        min="1"
+        max="10"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{ width: '100%', height: 44, accentColor: accent, cursor: 'pointer' }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <MicroLabel color={C.text3} size={8.5} tracking=".06em">{minLabel}</MicroLabel>
+        <MicroLabel color={C.text3} size={8.5} tracking=".06em">{maxLabel}</MicroLabel>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Check-in diario de readiness (sueño · fatiga · hidratación). Escribe en
+ * atleta_readiness vía readinessService; la tabla tiene UNIQUE (atleta_id,
+ * fecha), así que un segundo envío del día lo rechaza el servicio con mensaje
+ * propio. Lo montan el portal Arcade del atleta (VistaAtletaArcade) y el shell
+ * legacy /dashboard (App.jsx / AppSecondaryModals).
+ */
 export default function ReadinessModal({ atletaId, onClose, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [sueno, setSueno] = useState(5);
   const [fatiga, setFatiga] = useState(5);
   const [colorOrina, setColorOrina] = useState(1);
@@ -27,13 +67,13 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
     setLoading(true);
     setError('');
     try {
-      await guardarReadinessDiario({
+      const registro = await guardarReadinessDiario({
         atleta_id: atletaId,
         sueno_calidad: parseInt(sueno),
         fatiga_fisica: parseInt(fatiga),
-        color_orina: parseInt(colorOrina)
+        color_orina: parseInt(colorOrina),
       });
-      if(onComplete) onComplete();
+      if (onComplete) onComplete(registro);
       onClose();
     } catch (err) {
       setError(err.message || 'Error al guardar el check-in.');
@@ -43,132 +83,114 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-surface-base border border-white/10 rounded-panel p-6 md:p-8 shadow-2xl max-h-[90dvh] overflow-y-auto"
-      >
-        <button
-          onClick={onClose}
-          aria-label="Cerrar check-in"
-          className="absolute top-3 right-3 text-fg-muted hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-3 transition-colors"
-        >
-          <X size={18} />
-        </button>
+    <ModalShell
+      onClose={onClose}
+      title="Check-in Diario"
+      eyebrow="ATHLETE READINESS ENGINE"
+      icon={Activity}
+      align="end"
+    >
+      {error && (
+        <div style={{ background: TINT.danger, border: `1px solid ${BORDER.danger}`, clipPath: cut(8), padding: '10px 12px', marginBottom: 16 }}>
+          <MicroLabel color={C.danger} size={9} tracking=".06em" style={{ textAlign: 'center' }}>{error}</MicroLabel>
+        </div>
+      )}
 
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="p-3 bg-info/10 rounded-control border border-info/20">
-            <Activity className="text-info-soft" size={24} />
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <EscalaSlider
+          icon={Moon}
+          label="¿Cómo dormiste anoche?"
+          accent={C.info}
+          value={sueno}
+          onChange={setSueno}
+          minLabel="PÉSIMO (1)"
+          maxLabel="INCREÍBLE (10)"
+        />
+
+        <EscalaSlider
+          icon={Activity}
+          label="Nivel de Fatiga Física"
+          accent={C.danger}
+          value={fatiga}
+          onChange={setFatiga}
+          minLabel="AGOTADO (1)"
+          maxLabel="AL 100% (10)"
+        />
+
+        {/* Hidratación · Escala de Armstrong */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+            <Droplets size={15} strokeWidth={2.4} style={{ color: C.cyan, flex: 'none' }} aria-hidden="true" />
+            <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>Color de tu primera orina hoy</span>
           </div>
-          <div>
-            <h2 className="text-2xl font-black text-white uppercase tracking-tight">Check-in Diario</h2>
-            <p className="text-xs text-info-soft/80 uppercase tracking-widest font-bold">Athlete Readiness Engine</p>
+          <p style={{ margin: '0 0 12px', fontSize: 11.5, lineHeight: 1.5, color: C.text2 }}>
+            La Escala de Armstrong nos ayuda a medir objetivamente tu hidratación antes de entrenar. Selecciona el color que más se parezca.
+          </p>
+
+          <div role="radiogroup" aria-label="Color de orina" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            {URINE_COLORS.map((c) => (
+              <button
+                key={c.value}
+                type="button"
+                role="radio"
+                onClick={() => setColorOrina(c.value)}
+                aria-label={`Nivel ${c.value}: ${c.label}`}
+                aria-checked={colorOrina === c.value}
+                title={c.label}
+                className="cut-focus"
+                // Sin atenuar los no seleccionados: son la referencia clínica
+                // contra la que el atleta compara y bajarles la opacidad sobre
+                // el fondo oscuro del HUD falsea la escala. La selección se
+                // marca con un marco dorado hacia adentro (offset negativo):
+                // el clip-path recorta todo lo que se pinte fuera del borde,
+                // por eso .cut-focus hace lo mismo con el foco.
+                style={{
+                  height: 44,
+                  clipPath: cut(6),
+                  cursor: 'pointer',
+                  background: c.color,
+                  border: 'none',
+                  outline: colorOrina === c.value ? `3px solid ${C.gold}` : 'none',
+                  outlineOffset: -3,
+                }}
+              />
+            ))}
           </div>
+          <MicroLabel color={C.gold} size={9} tracking=".06em" style={{ marginTop: 10, textAlign: 'center' }}>
+            {URINE_COLORS.find((c) => c.value === colorOrina)?.label}
+          </MicroLabel>
         </div>
 
-        {error && (
-          <div className="mb-6 p-3 bg-danger/10 border border-danger/20 rounded-control">
-            <p className="text-danger-soft text-xs font-bold uppercase tracking-widest text-center">{error}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* SUEÑO */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-end">
-              <label className="flex items-center space-x-2 text-sm font-bold text-white uppercase tracking-wider">
-                <Moon size={16} className="text-info-soft" />
-                <span>¿Cómo dormiste anoche?</span>
-              </label>
-              <span className="text-xl font-black text-info-soft">{sueno}/10</span>
-            </div>
-            <input 
-              type="range" min="1" max="10" 
-              value={sueno} onChange={(e) => setSueno(e.target.value)}
-              className="w-full h-11 accent-info cursor-pointer"
-            />
-            <div className="flex justify-between text-2xs text-fg-muted font-bold uppercase tracking-widest">
-              <span>Pésimo (1)</span>
-              <span>Increíble (10)</span>
-            </div>
-          </div>
-
-          {/* FATIGA */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-end">
-              <label className="flex items-center space-x-2 text-sm font-bold text-white uppercase tracking-wider">
-                <Activity size={16} className="text-danger-soft" />
-                <span>Nivel de Fatiga Física</span>
-              </label>
-              <span className="text-xl font-black text-danger-soft">{fatiga}/10</span>
-            </div>
-            <input 
-              type="range" min="1" max="10" 
-              value={fatiga} onChange={(e) => setFatiga(e.target.value)}
-              className="w-full h-11 accent-danger cursor-pointer"
-            />
-            <div className="flex justify-between text-2xs text-fg-muted font-bold uppercase tracking-widest">
-              <span>Agotado (1)</span>
-              <span>Al 100% (10)</span>
-            </div>
-          </div>
-
-          {/* COLOR DE ORINA */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-end mb-2">
-              <label className="flex items-center space-x-2 text-sm font-bold text-white uppercase tracking-wider">
-                <Droplets size={16} className="text-brand" />
-                <span>Color de tu primera orina hoy</span>
-              </label>
-            </div>
-            <p className="text-xs text-fg-secondary leading-relaxed mb-4">
-              La Escala de Armstrong nos ayuda a medir objetivamente tu hidratación antes de entrenar. Selecciona el color que más se parezca.
-            </p>
-            
-            <div className="grid grid-cols-4 gap-2">
-              {URINE_COLORS.map(c => (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() => setColorOrina(c.value)}
-                  aria-label={`Nivel ${c.value}: ${c.label}`}
-                  aria-pressed={colorOrina === c.value}
-                  className={`h-12 rounded-lg border-2 transition ${
-                    colorOrina === c.value ? 'border-white scale-105 shadow-lg' : 'border-transparent opacity-70 hover:opacity-100'
-                  }`}
-                  style={{ backgroundColor: c.color }}
-                  title={c.label}
-                />
-              ))}
-            </div>
-            <div className="text-center mt-2">
-              <span className="text-2xs font-bold uppercase tracking-widest text-brand">
-                {URINE_COLORS.find(c => c.value === colorOrina)?.label}
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full relative group overflow-hidden bg-white/5 border border-white/10 hover:border-info/50 rounded-control p-4 transition"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-info/20 to-mental/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="relative flex items-center justify-center space-x-2 text-white font-bold tracking-eyebrow uppercase text-sm">
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin text-info-soft" />
-                  <span>Guardando...</span>
-                </>
-              ) : (
-                <span>Completar Check-in</span>
-              )}
-            </div>
-          </button>
-        </form>
-      </motion.div>
-    </div>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 9,
+            padding: 16,
+            clipPath: cut(12),
+            border: '1px solid transparent',
+            fontFamily: PIXEL,
+            fontSize: 11,
+            letterSpacing: '.04em',
+            cursor: loading ? 'default' : 'pointer',
+            background: loading ? 'rgba(255,255,255,.04)' : GRAD.goldCTA,
+            color: loading ? C.text4 : C.ink,
+          }}
+        >
+          {loading ? (
+            <>
+              <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+              GUARDANDO…
+            </>
+          ) : (
+            'COMPLETAR CHECK-IN ►'
+          )}
+        </button>
+      </form>
+    </ModalShell>
   );
 }

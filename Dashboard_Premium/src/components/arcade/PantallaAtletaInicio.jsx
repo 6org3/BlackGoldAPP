@@ -1,12 +1,65 @@
 import { useState } from 'react';
-import { C, BORDER, GRAD, cut, HEX, PIXEL } from './arcadeTokens';
+import { Activity } from 'lucide-react';
+import { C, BORDER, GRAD, TINT, cut, HEX, PIXEL } from './arcadeTokens';
 import ArcadePerfilMenu from './ArcadePerfilMenu';
 import MicroLabel from './MicroLabel';
 import XPCells from './XPCells';
 import EditarPerfilModal from '../EditarPerfilModal';
 
-/** A1 · Inicio / Base — hero de nivel/XP, hoy entrenas, alerta IA, misión
- *  destacada y próximo evento. Dirigida por ctx (buildAtletaCtx.ctxInicio).
+/** Check-in diario (readiness). Tres estados, dirigidos por ctx.checkin:
+ *  hecho (resumen del día, verde), pendiente (CTA oro — es la acción #1 de la
+ *  mañana) y bloqueado antes de las 06:00. El modal lo abre el shell. */
+function TarjetaCheckin({ checkin }) {
+  const { hecho, bloqueado } = checkin;
+  const accent = hecho ? C.ok : bloqueado ? C.text3 : C.gold;
+  const border = hecho ? BORDER.okSoft : bloqueado ? BORDER.neutral : BORDER.goldStrong;
+
+  return (
+    <div
+      data-testid="card-checkin"
+      data-estado={hecho ? 'hecho' : bloqueado ? 'bloqueado' : 'pendiente'}
+      style={{ background: hecho ? GRAD.activeGreenSoft : C.card, border: `1px solid ${border}`, clipPath: cut(12), padding: 14, marginBottom: 14 }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div
+          style={{ width: 40, height: 40, flex: 'none', clipPath: HEX, display: 'grid', placeItems: 'center', background: hecho ? TINT.ok : bloqueado ? TINT.neutral : TINT.gold }}
+          aria-hidden="true"
+        >
+          <Activity size={18} strokeWidth={2.5} style={{ color: accent }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <MicroLabel color={accent} size={9} tracking=".06em">
+            {hecho ? `${checkin.titulo} ✓` : checkin.titulo}
+          </MicroLabel>
+          {hecho ? (
+            <>
+              {checkin.scoreLabel && (
+                <p style={{ margin: '5px 0 0', fontFamily: PIXEL, fontSize: 13, color: C.text }}>{checkin.scoreLabel}</p>
+              )}
+              <MicroLabel color={C.text3} size={8.5} tracking=".04em" style={{ marginTop: 4 }}>{checkin.resumen}</MicroLabel>
+            </>
+          ) : (
+            <p style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.45, color: bloqueado ? C.text3 : C.text2 }}>{checkin.texto}</p>
+          )}
+        </div>
+      </div>
+
+      {!hecho && !bloqueado && (
+        <button
+          type="button"
+          data-testid="btn-abrir-checkin"
+          onClick={checkin.onOpen}
+          style={{ width: '100%', marginTop: 12, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9, letterSpacing: '.04em' }}
+        >
+          {checkin.ctaLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** A1 · Inicio / Base — hero de nivel/XP, check-in diario, hoy entrenas, alerta
+ *  IA, misión destacada y próximo evento. Dirigida por ctx (buildAtletaCtx.ctxInicio).
  *  El avatar del hero abre el menú de perfil (editar perfil / cerrar sesión):
  *  es la única salida de sesión del portal, que el shell Arcade no heredó. */
 export default function PantallaAtletaInicio({ ctx }) {
@@ -63,6 +116,9 @@ export default function PantallaAtletaInicio({ ctx }) {
           </MicroLabel>
         </div>
       </div>
+
+      {/* Check-in diario de readiness */}
+      {ctx.checkin && <TarjetaCheckin checkin={ctx.checkin} />}
 
       {/* Hoy entrenas */}
       {ctx.hoyEntrenas && (

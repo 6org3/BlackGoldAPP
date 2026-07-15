@@ -1,6 +1,7 @@
 import { useReducer, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchReadinessHoy, checkinDisponible } from '../../api/readinessService';
 import { ATLETA_MOCK, MINI_QUIZ } from './atletaMock';
-import { fetchAtletaPanel, completarMision, responderRSVP } from './atletaData';
+import { fetchAtletaPanel, completarMision, responderRSVP, alertaReadiness } from './atletaData';
 
 /**
  * Máquina de estado del portal Atleta (port del reducer del prototipo).
@@ -18,6 +19,11 @@ const initialState = {
   aFiltro: 'todas', // 'todas'|'cancha'|'casa'|'lugar'
   aVoy: {}, // overrides de RSVP: { [convocadoId]: boolean }
   aPilar: 'explosividad',
+  // Check-in de readiness del día. `aReadiness`: undefined = aún sin consultar
+  // (la tarjeta no se pinta), null = sin registro hoy, objeto = ya lo hizo.
+  aReadiness: undefined,
+  aReadinessDisponible: false, // gate horario resuelto al consultar (>= 6:00)
+  aReadinessOpen: false,
 };
 
 function reducer(state, action) {
@@ -40,6 +46,19 @@ function reducer(state, action) {
       return { ...state, aVoy: { ...state.aVoy, [action.id]: action.val } };
     case 'PILAR_PICK':
       return { ...state, aPilar: action.k };
+    case 'READINESS_HOY':
+      // `abrir` solo llega true desde la consulta inicial (sin registro + gate
+      // horario abierto); al completar el check-in llega sin él → deja cerrado.
+      return {
+        ...state,
+        aReadiness: action.data,
+        aReadinessDisponible: action.disponible ?? state.aReadinessDisponible,
+        aReadinessOpen: !!action.abrir,
+      };
+    case 'READINESS_OPEN':
+      return { ...state, aReadinessOpen: true };
+    case 'READINESS_CLOSE':
+      return { ...state, aReadinessOpen: false };
     default:
       return state;
   }
@@ -86,6 +105,30 @@ export default function useAtleta(user) {
     };
   }, [isReal, user]);
 
+  // Check-in de readiness del día. Se consulta fresco (no se usa
+  // user.readiness_hoy, que se resolvió al hacer login y quedaría de ayer en una
+  // sesión que cruza la medianoche). Sin registro y pasadas las 6:00 el modal se
+  // auto-abre, como hacía el shell legacy: mientras no haya check-in, cada
+  // entrada al portal lo vuelve a pedir.
+  useEffect(() => {
+    if (!isReal || !user.atleta_id) return undefined;
+    let alive = true;
+    const disponible = checkinDisponible();
+    fetchReadinessHoy(user.atleta_id)
+      .then((r) => {
+        if (alive) dispatch({ type: 'READINESS_HOY', data: r || null, disponible, abrir: !r && disponible });
+      })
+      .catch(() => {
+        // Sin lectura no se interrumpe al atleta con el modal, pero la tarjeta
+        // sigue ofreciendo el check-in: si ya existe, el UNIQUE (atleta_id,
+        // fecha) lo rechaza con "Ya realizaste tu Check-in de Readiness hoy".
+        if (alive) dispatch({ type: 'READINESS_HOY', data: null, disponible });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [isReal, user?.atleta_id]);
+
   const goingDe = (id) => (dataRef.current?.eventos || []).find((e) => e.id === id)?.going || false;
 
   const actions = useMemo(
@@ -97,6 +140,17 @@ export default function useAtleta(user) {
       aceptar: (id) => dispatch({ type: 'ACEPTAR', id }),
       filtrar: (f) => dispatch({ type: 'FILTRAR', f }),
       pilarPick: (k) => dispatch({ type: 'PILAR_PICK', k }),
+      abrirReadiness: () => dispatch({ type: 'READINESS_OPEN' }),
+      cerrarReadiness: () => dispatch({ type: 'READINESS_CLOSE' }),
+      readinessCompletado: (registro) => {
+        dispatch({ type: 'READINESS_HOY', data: registro || null });
+        // La alerta IA de la Base se deriva del readiness del día: recalcularla
+        // aquí la actualiza al instante (p.ej. orina >= 5 → "toma 2L"), sin
+        // esperar al próximo login, que es de donde sale user.readiness_hoy.
+        if (isReal) {
+          setData((d) => (d ? { ...d, alertaIA: alertaReadiness({ ...user, readiness_hoy: registro }) } : d));
+        }
+      },
       enviar: async (id) => {
         const s = stateRef.current;
         if (!id) return;
