@@ -47,6 +47,17 @@ const BLOQUES = [
       { label: 'KPIS', Icon: BarChart3, href: '/admin/kpis' },
     ],
   },
+  // CLUB va antes que OPERACIÓN (4 tiles, la más del día a día del coach) para
+  // que COMUNICACIONES —de uso frecuente del dueño— entre sin scroll en el marco
+  // móvil; y dentro del bloque va primero por la misma razón frente a EQUIPO,
+  // que se toca al dar de alta a un coach y poco más.
+  {
+    eyebrow: 'CLUB',
+    tiles: [
+      { label: 'COMUNICACIONES', Icon: MessageSquare, href: '/admin/comunicaciones' },
+      { label: 'EQUIPO', Icon: UserCog, href: '/admin/equipo' },
+    ],
+  },
   {
     eyebrow: 'OPERACIÓN',
     tiles: [
@@ -54,13 +65,6 @@ const BLOQUES = [
       { label: 'ASISTENCIA', Icon: Activity, href: '/admin/asistencia' },
       { label: 'EVENTOS', Icon: CalendarDays, href: '/admin/eventos' },
       { label: 'COMPARAR', Icon: TrendingUp, href: '/admin/comparar' },
-    ],
-  },
-  {
-    eyebrow: 'CLUB',
-    tiles: [
-      { label: 'EQUIPO', Icon: UserCog, href: '/admin/equipo' },
-      { label: 'COMUNICACIONES', Icon: MessageSquare, href: '/admin/comunicaciones' },
     ],
   },
 ];
