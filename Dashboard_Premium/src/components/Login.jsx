@@ -25,15 +25,22 @@ export default function Login() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  // Si ya hay sesión activa (p. ej. la PWA abrió /login con la sesión de
-  // supabase-js aún vigente), entrar directo al panel según el rol en vez
-  // de volver a pedir credenciales.
+  // ÚNICA salida de esta pantalla hacia dentro de la app, y cubre los dos
+  // caminos: la sesión que ya venía viva (la PWA abre /login con la de
+  // supabase-js aún vigente) y el login recién hecho — AuthContext.login() hace
+  // setUser antes de resolver y loginUsuario lanza en todo camino de fallo, así
+  // que éxito ⇒ hay user ⇒ este efecto dispara. No devolver un navigate al
+  // submit: sería inalcanzable (este efecto gana igual) y reabriría la puerta a
+  // que los dos destinos se desincronicen, que es el bug que se arregló aquí.
   //
   // El destino sale de rutaHomeParaRol —la misma fuente que RootRedirect
   // (main.jsx) y el ítem "Inicio" del Sidebar—: hardcodearlo aquí hacía que
   // un mismo usuario aterrizara en portales distintos según cómo entrara
   // (el atleta caía en el shell legacy /dashboard por el formulario y en el
   // portal Arcade /atleta por la raíz).
+  //
+  // replace: /login no queda en el historial, así que el botón atrás no vuelve
+  // a un formulario que rebotaría hacia adelante otra vez.
   useEffect(() => {
     if (user) {
       navigate(rutaHomeParaRol(user.rol), { replace: true });
@@ -48,11 +55,7 @@ export default function Login() {
     const result = await login(identificador, password);
     setLoading(false);
 
-    if (result.success) {
-      navigate(rutaHomeParaRol(result.user?.rol));
-    } else {
-      setError(result.error);
-    }
+    if (!result.success) setError(result.error);
   };
 
   return (
