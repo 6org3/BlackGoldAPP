@@ -16,6 +16,7 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
     posicion = '',
     nivelDesarrollo = '',
     genero = '',
+    estadoMembresia = '',
     orderBy = null,
   } = options;
 
@@ -68,6 +69,12 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   }
   if (posicion && posicion !== 'Todas') {
     query = query.eq('posicion', posicion);
+  }
+  // Membresía deportiva (v31): activo/inactivo/baja. Sin filtro se listan
+  // todas, con badge en la card — el staff necesita ver a los dados de baja
+  // para poder reactivarlos (v34).
+  if (estadoMembresia && estadoMembresia !== 'Todos') {
+    query = query.eq('estado_membresia', estadoMembresia);
   }
   if (nivelDesarrollo && nivelDesarrollo !== 'Todos') {
     if (nivelDesarrollo === 'Por Asignar') {

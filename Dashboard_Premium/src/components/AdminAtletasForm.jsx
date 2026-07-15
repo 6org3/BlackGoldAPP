@@ -20,7 +20,13 @@ export default function AdminAtletasForm({
   setShowForm,
   handleSubmit,
   user,
+  clubes = [],
 }) {
+  // Club del superadmin: se elige de la lista real (v34), nunca se teclea. El
+  // club actual del atleta va primero aunque el catálogo no lo traiga (RPC
+  // caída): así editar a alguien de un club histórico no le borra el club.
+  const opcionesClub = form.club && !clubes.includes(form.club) ? [form.club, ...clubes] : clubes;
+
   return (
     // Entrada sin transform (solo opacity + height): bajo prefers-reduced-motion
     // un translate se congelaría en su initial y dejaría el formulario desplazado.
@@ -81,8 +87,14 @@ export default function AdminAtletasForm({
           optionLabels={['— Por Asignar —', 'Micro', 'Desarrollo', 'Elite']}
           onChange={v => handleChange('nivel_desarrollo', v)}
         />
-        {user?.rol === "superadmin" && (
-          <InputField label="Club (Admin)" value={form.club} onChange={v => handleChange("club", v)} placeholder="Ej. Black Gold" />
+        {user?.rol === 'superadmin' && (
+          <SelectField
+            label="Club (Admin)"
+            value={form.club}
+            options={['', ...opcionesClub]}
+            optionLabels={[opcionesClub.length ? '— Selecciona club —' : 'Cargando clubes…', ...opcionesClub]}
+            onChange={v => handleChange('club', v)}
+          />
         )}
       </div>
 

@@ -15,6 +15,7 @@ export default function AdminAtletasGrupoNivel({
   onDelete,
   onExport,
   onAntropometria,
+  onToggleMembresia,
 }) {
   return (
     <div className="space-y-8">
@@ -69,6 +70,7 @@ export default function AdminAtletasGrupoNivel({
                     onDelete={onDelete}
                     onExport={onExport}
                     onAntropometria={onAntropometria}
+                    onToggleMembresia={onToggleMembresia}
                     isExporting={exportingAtleta?.id === atleta.id}
                   />
                 ))}
@@ -84,6 +86,7 @@ export default function AdminAtletasGrupoNivel({
                     onDelete={onDelete}
                     onExport={onExport}
                     onAntropometria={onAntropometria}
+                    onToggleMembresia={onToggleMembresia}
                     isExporting={exportingAtleta?.id === atleta.id}
                   />
                 ))}
