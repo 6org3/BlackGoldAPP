@@ -11,16 +11,16 @@
 // staff (brainAuth.autenticar). Reglas:
 //   - Solo staff; owner/coach solo sobre usuarios de SU club.
 //   - Roles 'atleta' y 'padre': los crea cualquier staff.
-//   - Rol 'coach' (v35): SOLO owner/superadmin. Sin este gate, un coach podría
-//     darle acceso real a un usuario privilegiado de su club — la RLS
-//     `usuarios_insert` de v35 ya le impide crear esa fila, y esto cierra la
-//     otra mitad por si alguna vez la fila llega por otra vía.
-//   - Nunca 'owner' ni 'superadmin': los accesos de dueño no nacen del panel.
+//   - Roles 'coach' (v35) y 'owner' (v36, co-dueño): SOLO owner/superadmin. Sin
+//     este gate, un coach podría darle acceso real a un usuario privilegiado de
+//     su club — la RLS `usuarios_insert` ya le impide crear esa fila, y esto
+//     cierra la otra mitad por si alguna vez la fila llega por otra vía.
+//   - Nunca 'superadmin': ese acceso no nace del panel.
 //   - Idempotente: si el usuario ya tiene auth_user_id responde ya_existia.
-//   - Password inicial: la cédula del propio usuario (atleta o coach); para un
-//     padre, la cédula del hijo indicado en hijo_usuario_id (mismo esquema que
-//     registro-publico), validando el vínculo real en padres_atletas — el
-//     cliente nunca envía contraseñas.
+//   - Password inicial: la cédula del propio usuario (atleta, coach o dueño);
+//     para un padre, la cédula del hijo indicado en hijo_usuario_id (mismo
+//     esquema que registro-publico), validando el vínculo real en
+//     padres_atletas — el cliente nunca envía contraseñas.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { autenticar, jsonResponse, ROLES_STAFF } from "../_shared/brainAuth.ts";
@@ -59,17 +59,29 @@ serve(async (req) => {
   if (target.auth_user_id) {
     return jsonResponse({ success: true, ya_existia: true }, 200);
   }
-  if (!['atleta', 'padre', 'coach'].includes(target.rol as string)) {
-    return jsonResponse({ error: 'Por esta vía solo se crean accesos de atletas, representantes y coaches.' }, 400);
+  if (!['atleta', 'padre', 'coach', 'owner'].includes(target.rol as string)) {
+    return jsonResponse({ error: 'Por esta vía solo se crean accesos de atletas, representantes, coaches y dueños.' }, 400);
   }
-  // El acceso de un coach lo habilita el dueño del club, nunca otro coach (v35).
-  if (target.rol === 'coach' && caller!.rol !== 'owner' && caller!.rol !== 'superadmin') {
-    return jsonResponse({ error: 'Solo el dueño del club puede crear el acceso de un coach.' }, 403);
+  // El acceso de un coach (v35) lo habilita el dueño del club, nunca otro coach.
+  if ((target.rol === 'coach' || target.rol === 'owner')
+      && caller!.rol !== 'owner' && caller!.rol !== 'superadmin') {
+    return jsonResponse({ error: 'Solo el dueño del club puede crear el acceso de un coach o de un co-dueño.' }, 403);
+  }
+  // El de un DUEÑO, solo el dueño ORIGINAL (o el superadmin): el mismo gate que
+  // `usuarios_insert` pone a la fila (es_owner_principal, v36). Sin esto un
+  // co-dueño no podría crear la fila de otro dueño… pero sí emitirle el acceso
+  // a una que llegara por otra vía, que es la mitad que de verdad da entrada.
+  if (target.rol === 'owner' && caller!.rol !== 'superadmin') {
+    const { data: yo } = await admin!
+      .from('usuarios').select('creado_por').eq('id', caller!.id).single();
+    if (yo?.creado_por) {
+      return jsonResponse({ error: 'Solo el dueño original del club puede dar acceso a un co-dueño.' }, 403);
+    }
   }
 
   // Password inicial según el rol del target.
   let password: string;
-  if (target.rol === 'atleta' || target.rol === 'coach') {
+  if (target.rol === 'atleta' || target.rol === 'coach' || target.rol === 'owner') {
     if (!target.cedula) return jsonResponse({ error: 'El usuario no tiene cédula registrada.' }, 400);
     password = target.cedula as string;
   } else {
