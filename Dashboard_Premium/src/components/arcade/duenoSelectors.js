@@ -143,6 +143,9 @@ function ctxEquipo(state, data, actions) {
 
   return {
     sorts: SL.map((o) => ({ label: o.label, active: sort === o.k, onPick: () => actions.sortBy(o.k) })),
+    // El HUD es superficie de lectura: gestionar el equipo sale a /admin/equipo
+    // (v35) por el mismo escape hatch `goHref` que usan las alertas del resumen.
+    onGestionar: actions.goHref ? () => actions.goHref('/admin/equipo') : null,
     coaches: sorted.map((c, i) => ({
       rank: '0' + (i + 1),
       rankColor: i === 0 ? C.gold : i === 1 ? C.text2 : C.text3,

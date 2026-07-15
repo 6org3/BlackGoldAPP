@@ -36,3 +36,88 @@ export async function fetchCoachStats(dias = 30) {
     xp: Number(r.xp) || 0,
   }));
 }
+
+// ============================
+// EQUIPO TÉCNICO (v35) — el dueño da de alta a los coaches de su club
+// ============================
+// Un coach NO tiene tabla propia: es una fila de `usuarios` con rol='coach' +
+// una cuenta de Auth. La RLS scopea la lectura al club del staff que consulta
+// (usuarios_select, v24) y la escritura la limita a owner/superadmin
+// (usuarios_insert, v35) — aquí no se re-implementa ese gate, solo se evita
+// ofrecer lo que el servidor rechazaría.
+
+// Alcance del coach: `usuarios.categoria` se compara contra `categoria_feb` del
+// atleta (atletasService, brainAuth). 'Todas' (o vacío) = el club entero. Es
+// texto sin CHECK: un valor fuera de esta lista dejaría al coach sin ver a
+// nadie, por eso la UI lo ofrece como select cerrado.
+export const CATEGORIAS_COACH = [
+  'Todas',
+  'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)',
+  'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores',
+];
+
+export async function fetchCoachesDelClub() {
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('id, cedula, nombre, correo, telefono, categoria, club, estado, auth_user_id, created_at')
+    .eq('rol', 'coach')
+    .order('nombre');
+  if (error) throw new Error('No se pudo cargar el equipo técnico: ' + error.message);
+  return (data || []).map((c) => ({
+    ...c,
+    // Sin cuenta de Auth no puede iniciar sesión: la UI lo señala y ofrece
+    // reintentar la creación del acceso.
+    tieneAcceso: !!c.auth_user_id,
+  }));
+}
+
+// El club NUNCA viaja desde el cliente: lo pone el club del owner que crea (y
+// la RLS exige que coincida con current_user_club()). Cambiarlo después es
+// imposible salvo superadmin (trigger v34), así que hay que acertar aquí.
+export async function crearCoach({ cedula, nombre, correo, telefono, categoria }, user) {
+  const club = user?.club || '';
+  if (!club) throw new Error('Tu usuario no tiene un club asignado. Contacta al superadmin.');
+  const { data, error } = await supabase
+    .from('usuarios')
+    .insert({
+      cedula: cedula?.trim() || null,
+      nombre: nombre?.trim(),
+      correo: correo?.trim() || null,
+      telefono: telefono?.trim() || null,
+      rol: 'coach',
+      club,
+      categoria: categoria || 'Todas',
+    })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Solo datos de perfil: rol/club/estado no se tocan por aquí (el trigger v34 y
+// cambiarEstadoCoach los gobiernan).
+export async function actualizarCoach(usuarioId, { nombre, correo, telefono, categoria }) {
+  const { error } = await supabase
+    .from('usuarios')
+    .update({
+      nombre: nombre?.trim(),
+      correo: correo?.trim() || null,
+      telefono: telefono?.trim() || null,
+      categoria: categoria || 'Todas',
+    })
+    .eq('id', usuarioId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// Retirar/reincorporar a un coach. No se borra: sus FKs (asistencia,
+// sesiones_control) son RESTRICT y su historial debe sobrevivir. 'inactivo'
+// (v35) le corta el acceso — PrivateRoute solo deja pasar 'activo'.
+export async function cambiarEstadoCoach(usuarioId, activo) {
+  const { error } = await supabase
+    .from('usuarios')
+    .update({ estado: activo ? 'activo' : 'inactivo' })
+    .eq('id', usuarioId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}

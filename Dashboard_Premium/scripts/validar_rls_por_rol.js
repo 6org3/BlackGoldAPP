@@ -40,6 +40,8 @@ const QA = {
   coach1: { cedula: 'QA_RLS_COACH1', nombre: 'QA Coach Uno' },
   owner1: { cedula: 'QA_RLS_OWNER1', nombre: 'QA Owner Uno' },
   super1: { cedula: 'QA_RLS_SUPER1', nombre: 'QA Superadmin Uno' },
+  // Se crea DESDE la app (por el owner), no en el setup: es el sujeto de v35.
+  coachNuevo: { cedula: 'QA_RLS_COACHNEW', nombre: 'QA Coach Nuevo' },
   reg: { cedula: 'QA_RLS_REG1', nombre: 'QA Registro Uno', nac: '2013-03-15', telPadre: 'QA_RLS_TEL1' },
   reg2: { cedula: 'QA_RLS_REG2', nombre: 'QA Registro Dos (rechazo)', nac: '2014-06-25', telPadre: 'QA_RLS_TEL2' },
 };
@@ -220,6 +222,27 @@ async function suiteCoach() {
   });
   check('coach NO puede crear superadmins (42501)', eSup?.code === '42501', eSup?.code || 'sin error');
 
+  // Escalada por INSERT (abierta desde v24, cerrada en v35): `usuarios_insert`
+  // admitía a cualquier staff con tal de que el rol nuevo no fuera superadmin,
+  // así que un coach podía fabricarse un OWNER —o más coaches— de su club. Es
+  // la puerta paralela a la del UPDATE que cerró v34.
+  const { error: eOwnerIns } = await cli.from('usuarios').insert({
+    cedula: 'QA_RLS_HACK_OWNER', nombre: 'QA Hack Owner', rol: 'owner', club: 'Black Gold',
+  });
+  check('coach NO puede crear owners (RLS v35)', eOwnerIns?.code === '42501', eOwnerIns?.code || 'sin error');
+
+  const { error: eCoachIns } = await cli.from('usuarios').insert({
+    cedula: 'QA_RLS_HACK_COACH', nombre: 'QA Hack Coach', rol: 'coach', club: 'Black Gold',
+  });
+  check('coach NO puede crear otros coaches (RLS v35)', eCoachIns?.code === '42501', eCoachIns?.code || 'sin error');
+
+  // Lo que el coach SÍ debe poder: dar de alta atletas por el panel (v33).
+  const { data: atlOk, error: eAtlIns } = await cli.from('usuarios').insert({
+    cedula: 'QA_RLS_ALTA1', nombre: 'QA Alta Coach', rol: 'atleta', club: 'Black Gold',
+  }).select().single();
+  check('coach SÍ puede dar de alta atletas (v33 intacto)', !eAtlIns, eAtlIns?.message);
+  if (atlOk) await svc.from('usuarios').delete().eq('id', atlOk.id);
+
   // Escalada de privilegios (agujero vivo desde v24, cerrado en v34): el coach
   // editaba SU PROPIA fila — que usuarios_update admite sin mirar `rol` — y el
   // trigger le dejaba pasar por el early-return de es_staff() antes del guard.
@@ -330,6 +353,89 @@ async function suiteMembresiaYClubes() {
   check('superadmin SÍ mueve a un atleta de club', !eMover && movido?.club === 'QA Demo Club', eMover?.message);
   await svc.from('usuarios').update({ club: 'Black Gold' }).eq('id', QA.atleta2.usuarioId);
   await cliSuper.auth.signOut();
+}
+
+async function suiteEquipoTecnico() {
+  console.log('\n— EQUIPO TÉCNICO (v35: el dueño da de alta a sus coaches) —');
+  const cliOwner = await loginComo(QA.owner1.cedula, QA.owner1.cedula);
+
+  // El alta que dispara /admin/equipo: fila de usuarios con rol='coach'.
+  const { data: nuevo, error: eIns } = await cliOwner.from('usuarios').insert({
+    cedula: QA.coachNuevo.cedula, nombre: QA.coachNuevo.nombre,
+    rol: 'coach', club: 'Black Gold', categoria: 'Menores (Sub-14)',
+  }).select().single();
+  check('owner SÍ crea un coach de su club (RLS v35)', !eIns && !!nuevo, eIns?.message);
+  QA.coachNuevo.usuarioId = nuevo?.id;
+
+  // El club lo pone el owner y es inmutable después (trigger v34): si se
+  // pudiera insertar en otro club, el coach nacería fuera de su alcance.
+  const { error: eOtroClub } = await cliOwner.from('usuarios').insert({
+    cedula: 'QA_RLS_COACH_AJENO', nombre: 'QA Coach Ajeno', rol: 'coach', club: 'QA Demo Club',
+  });
+  check('owner NO puede crear un coach en OTRO club', !!eOtroClub, eOtroClub?.code || 'sin error');
+
+  // Un owner tampoco fabrica owners: eso es del superadmin.
+  const { error: eOwnerOwner } = await cliOwner.from('usuarios').insert({
+    cedula: 'QA_RLS_OWNER_HACK', nombre: 'QA Owner Hack', rol: 'owner', club: 'Black Gold',
+  });
+  check('owner NO puede crear otros owners (RLS v35)', !!eOwnerOwner, eOwnerOwner?.code || 'sin error');
+
+  if (QA.coachNuevo.usuarioId) {
+    // El acceso: sin cuenta de Auth el coach existe pero no puede entrar.
+    const { data: sesion } = await cliOwner.auth.getSession();
+    const resAcceso = await fetch(`${URL_}/functions/v1/crear-acceso-usuario`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json', apikey: ANON,
+        Authorization: `Bearer ${sesion.session.access_token}`,
+      },
+      body: JSON.stringify({ usuario_id: QA.coachNuevo.usuarioId }),
+    });
+    const cuerpoAcceso = await resAcceso.json().catch(() => ({}));
+    check('owner SÍ crea el acceso del coach (Edge Function v35)',
+      resAcceso.status === 200 && cuerpoAcceso?.success, `HTTP ${resAcceso.status} ${cuerpoAcceso?.error || ''}`);
+
+    const { data: conAuth } = await svc.from('usuarios')
+      .select('auth_user_id, estado, categoria').eq('id', QA.coachNuevo.usuarioId).single();
+    check('el coach nuevo queda vinculado, activo y con su categoría',
+      !!conAuth?.auth_user_id && conAuth?.estado === 'activo' && conAuth?.categoria === 'Menores (Sub-14)',
+      JSON.stringify(conAuth));
+
+    // El coach recién creado entra y ve su club.
+    const cliNuevo = await loginComo(QA.coachNuevo.cedula, QA.coachNuevo.cedula);
+    const { data: perfil } = await cliNuevo.from('usuarios')
+      .select('rol, club').eq('id', QA.coachNuevo.usuarioId).single();
+    check('el coach nuevo inicia sesión y es coach de su club',
+      perfil?.rol === 'coach' && perfil?.club === 'Black Gold');
+    await cliNuevo.auth.signOut();
+
+    // Aparece en el ranking del dueño (fn_coach_stats) sin sembrar nada más.
+    const { data: ranking } = await cliOwner.rpc('fn_coach_stats', { p_dias: 30 });
+    check('el coach nuevo aparece en el ranking del dueño',
+      (ranking || []).some((r) => r.coach_id === QA.coachNuevo.usuarioId), `${(ranking || []).length} coaches`);
+
+    // Retirarlo: 'inactivo' (v35), no borrar — sus FKs son RESTRICT.
+    const { error: eRetiro } = await cliOwner.from('usuarios')
+      .update({ estado: 'inactivo' }).eq('id', QA.coachNuevo.usuarioId).select();
+    const { data: trasRetiro } = await svc.from('usuarios').select('estado').eq('id', QA.coachNuevo.usuarioId).single();
+    check('owner SÍ retira a un coach (estado inactivo)',
+      !eRetiro && trasRetiro?.estado === 'inactivo', eRetiro?.message || `estado=${trasRetiro?.estado}`);
+
+    const { data: rankingTrasRetiro } = await cliOwner.rpc('fn_coach_stats', { p_dias: 30 });
+    check('un coach retirado sale del ranking (fn_coach_stats v35)',
+      !(rankingTrasRetiro || []).some((r) => r.coach_id === QA.coachNuevo.usuarioId));
+
+    // Y deja de poder operar: su perfil sale como inactivo, que es lo que
+    // PrivateRoute mira para mandarlo a la pantalla de cuenta desactivada.
+    const cliRetirado = await loginComo(QA.coachNuevo.cedula, QA.coachNuevo.cedula);
+    const { data: perfilRetirado } = await cliRetirado.from('usuarios')
+      .select('estado').eq('id', QA.coachNuevo.usuarioId).single();
+    check('el coach retirado ve su cuenta como inactiva (gate de PrivateRoute)',
+      perfilRetirado?.estado === 'inactivo', `estado=${perfilRetirado?.estado}`);
+    await cliRetirado.auth.signOut();
+  }
+
+  await cliOwner.auth.signOut();
 }
 
 async function suiteRegistroPublico() {
@@ -464,6 +570,7 @@ async function suiteSolicitudes() {
     await suiteRegistroPublico();
     await suiteSolicitudes();
     await suiteMembresiaYClubes();
+    await suiteEquipoTecnico();
   } catch (err) {
     fallo = err;
     console.error(`\n💥 Error de infraestructura de la suite: ${err.message}`);

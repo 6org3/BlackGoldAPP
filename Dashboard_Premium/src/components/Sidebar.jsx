@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp, LogOut } from 'lucide-react';
+import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp, UserCog, LogOut } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaArcade from './arcade/ModoCanchaArcade';
@@ -196,6 +196,14 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             label="KPIs del Club"
             active={location.pathname === '/admin/kpis'}
             onClick={() => navigate('/admin/kpis')}
+          />
+        )}
+        {(user.rol === 'owner' || user.rol === 'superadmin') && (
+          <NavItem
+            icon={<UserCog size={18} />}
+            label="Equipo Técnico"
+            active={location.pathname === '/admin/equipo'}
+            onClick={() => navigate('/admin/equipo')}
           />
         )}
 

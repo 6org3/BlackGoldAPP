@@ -8,9 +8,11 @@ import MicroLabel from './arcade/MicroLabel';
 import { C, BORDER, GRAD, GLOW, TINT, cut, gridBackground } from './arcade/arcadeTokens';
 
 /**
- * Pantalla completa para cuentas aún no aprobadas (v33). PrivateRoute la monta
- * en lugar de cualquier ruta privada cuando usuarios.estado es 'pendiente' o
- * 'rechazado' — aplica igual al atleta y a su representante.
+ * Pantalla completa para cuentas que no pueden operar. PrivateRoute la monta en
+ * lugar de cualquier ruta privada cuando usuarios.estado no es 'activo':
+ * - 'pendiente'  → solicitud de registro en revisión (v33, atleta/padre).
+ * - 'rechazado'  → el club denegó la solicitud (v33).
+ * - 'inactivo'   → staff retirado del club (v35, coach).
  *
  * "Actualizar estado" recarga la página: el AuthProvider re-resuelve el perfil
  * al montar, así que si el owner ya aprobó, el usuario entra directo a su portal.
@@ -18,7 +20,11 @@ import { C, BORDER, GRAD, GLOW, TINT, cut, gridBackground } from './arcade/arcad
 export default function CuentaEnRevision({ estado }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const rechazado = estado === 'rechazado';
+  const inactivo = estado === 'inactivo';
+  // Rechazado e inactivo comparten el tratamiento visual (vía cerrada, tono
+  // danger, sin botón de refrescar); solo cambia el texto, porque a un coach
+  // retirado no se le dice "tu solicitud no fue aprobada".
+  const rechazado = estado === 'rechazado' || inactivo;
 
   const cerrarSesion = async () => {
     await logout();
@@ -49,15 +55,17 @@ export default function CuentaEnRevision({ estado }) {
           </div>
 
           <MicroLabel style={{ marginBottom: 10, color: rechazado ? C.danger : C.gold }}>
-            {rechazado ? 'Solicitud no aprobada' : 'Solicitud en revisión'}
+            {inactivo ? 'Cuenta desactivada' : rechazado ? 'Solicitud no aprobada' : 'Solicitud en revisión'}
           </MicroLabel>
           <h1 className="text-2xl font-black uppercase tracking-tight mb-3" style={{ color: C.text }}>
-            {rechazado ? 'Tu solicitud no fue aprobada' : 'Tu solicitud está en revisión'}
+            {inactivo ? 'Tu cuenta está desactivada' : rechazado ? 'Tu solicitud no fue aprobada' : 'Tu solicitud está en revisión'}
           </h1>
           <p className="text-sm mb-8" style={{ color: C.text2 }}>
-            {rechazado
-              ? 'El club no aprobó tu inscripción. Si crees que se trata de un error, comunícate directamente con el club.'
-              : 'El club está revisando tu inscripción. En cuanto sea aprobada podrás entrar a tu portal con estas mismas credenciales.'}
+            {inactivo
+              ? 'Tu cuenta ya no está activa en el club. Si crees que se trata de un error, comunícate directamente con el club.'
+              : rechazado
+                ? 'El club no aprobó tu inscripción. Si crees que se trata de un error, comunícate directamente con el club.'
+                : 'El club está revisando tu inscripción. En cuanto sea aprobada podrás entrar a tu portal con estas mismas credenciales.'}
           </p>
 
           <div className="space-y-3">
