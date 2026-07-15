@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
+import { C, cut } from './arcade/arcadeTokens';
 
 // ──────────────────────────────────────────
 // Sesión del Día
@@ -17,7 +18,7 @@ export default function SesionDelDia({
   return (
     <div className="mb-8">
       <p className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mb-4">Mi Sesión del Día</p>
-      <div className="glass-card rounded-panel p-6 border border-brand/20 shadow-[0_0_15px_rgba(255,215,0,0.05)]">
+      <div className="p-6 border border-brand/20" style={{ clipPath: cut(10), background: C.card }}>
         <div className="grid grid-cols-2 gap-4 mb-5">
           <div>
             <p className="text-3xs text-fg-muted font-bold uppercase tracking-widest mb-1">Meta</p>

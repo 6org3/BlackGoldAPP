@@ -10,6 +10,7 @@ import PantallaAtletaMisiones from './PantallaAtletaMisiones';
 import PantallaAtletaDetalle from './PantallaAtletaDetalle';
 import PantallaAtletaProgreso from './PantallaAtletaProgreso';
 import PantallaAtletaEventos from './PantallaAtletaEventos';
+import ReadinessModal from '../ReadinessModal';
 
 function footerStyle(footer) {
   if (footer.tone === 'ai') return { background: 'rgba(168,85,247,.12)', color: C.ai, border: '1px solid rgba(168,85,247,.4)' };
@@ -90,6 +91,17 @@ export default function VistaAtletaArcade() {
 
         {/* Nav inferior del atleta */}
         {showNav && <ArcadeBottomNav variant="atleta" active={ctx ? ctx.navActive : 'inicio'} onNavigate={actions.goTab} />}
+
+        {/* Check-in diario: se auto-abre al entrar mientras no haya registro de
+            hoy, y la tarjeta de la Base lo vuelve a abrir. Solo con atleta real
+            (el modo demo no tiene atleta_id contra el que escribir). */}
+        {ctx?.readiness?.open && user?.atleta_id && (
+          <ReadinessModal
+            atletaId={user.atleta_id}
+            onClose={ctx.readiness.onClose}
+            onComplete={ctx.readiness.onComplete}
+          />
+        )}
       </div>
     </div>
   );

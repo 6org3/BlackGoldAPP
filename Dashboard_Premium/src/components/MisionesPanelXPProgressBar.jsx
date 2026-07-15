@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2 } from 'lucide-react';
 import { getXPProgress } from '../lib/xpProgress';
+import { C, cut } from './arcade/arcadeTokens';
 
 // ──────────────────────────────────────────
 // XP Progress Bar (nueva sección)
@@ -14,7 +15,8 @@ export default function XPProgressBar({ xpTotal, misionesAprobadas }) {
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-8 glass-card rounded-panel p-5 border border-brand/20 shadow-[0_0_20px_rgba(255,215,0,0.05)]"
+      style={{ clipPath: cut(10), background: C.card }}
+      className="mb-8 p-5 border border-brand/20"
     >
       {/* Rank header */}
       <div className="flex items-center justify-between mb-4">

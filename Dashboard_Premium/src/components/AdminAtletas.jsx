@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
 import { AlertCircle, X, Trash2, AlertTriangle, UserMinus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { marcarBaja } from '../api/retencionService';
 import { esBaja } from './adminAtletasMembresia';
 import ScoutingReportTemplate from './ScoutingReportTemplate';
@@ -20,8 +19,6 @@ import { COLORS } from '../lib/designTokens';
 import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
 export default function AdminAtletas({ atletas, onRefresh, user }) {
-  const navigate = useNavigate();
-
   const {
     showForm, setShowForm,
     editingId, setEditingId,
@@ -171,7 +168,6 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     <div className="max-w-7xl mx-auto">
       {/* ═══════════════════════ HEADER ═══════════════════════ */}
       <AdminAtletasHeader
-        navigate={navigate}
         atletasFiltrados={atletasFiltrados}
         atletas={atletas}
         filtrosActivos={filtrosActivos}

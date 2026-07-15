@@ -38,13 +38,19 @@ export async function fetchCoachStats(dias = 30) {
 }
 
 // ============================
-// EQUIPO TÉCNICO (v35) — el dueño da de alta a los coaches de su club
+// EQUIPO DEL CLUB (v35 coaches, v36 co-dueños)
 // ============================
-// Un coach NO tiene tabla propia: es una fila de `usuarios` con rol='coach' +
+// Ni coach ni owner tienen tabla propia: son filas de `usuarios` con su rol +
 // una cuenta de Auth. La RLS scopea la lectura al club del staff que consulta
-// (usuarios_select, v24) y la escritura la limita a owner/superadmin
-// (usuarios_insert, v35) — aquí no se re-implementa ese gate, solo se evita
-// ofrecer lo que el servidor rechazaría.
+// (usuarios_select, v24) y la escritura la limita por rol (usuarios_insert,
+// v35/v36) — aquí no se re-implementa ese gate, solo se evita ofrecer lo que el
+// servidor rechazaría.
+
+// Roles que se dan de alta desde /admin/equipo. 'owner' solo lo ofrece la UI al
+// dueño ORIGINAL del club (es_owner_principal, v36); el resto de reglas
+// (retirar dueños, linaje) viven en el trigger.
+export const ROLES_EQUIPO = ['coach', 'owner'];
+export const ROLES_EQUIPO_LABELS = ['Coach', 'Co-dueño'];
 
 // Alcance del coach: `usuarios.categoria` se compara contra `categoria_feb` del
 // atleta (atletasService, brainAuth). 'Todas' (o vacío) = el club entero. Es
@@ -63,26 +69,37 @@ export const CATEGORIAS_COACH = [
 export async function fetchCoachesDelClub(club) {
   let query = supabase
     .from('usuarios')
-    .select('id, cedula, nombre, correo, telefono, categoria, club, estado, auth_user_id, created_at')
-    .eq('rol', 'coach')
+    .select('id, cedula, nombre, correo, telefono, categoria, club, rol, estado, auth_user_id, creado_por, created_at')
+    .in('rol', ROLES_EQUIPO)
+    .order('rol') // los dueños primero: 'coach' < 'owner' no vale, se ordena abajo
     .order('nombre');
   if (club) query = query.eq('club', club);
   const { data, error } = await query;
-  if (error) throw new Error('No se pudo cargar el equipo técnico: ' + error.message);
-  return (data || []).map((c) => ({
-    ...c,
-    // Sin cuenta de Auth no puede iniciar sesión: la UI lo señala y ofrece
-    // reintentar la creación del acceso.
-    tieneAcceso: !!c.auth_user_id,
-  }));
+  if (error) throw new Error('No se pudo cargar el equipo: ' + error.message);
+  return (data || [])
+    .map((c) => ({
+      ...c,
+      // Sin cuenta de Auth no puede iniciar sesión: la UI lo señala y ofrece
+      // reintentar la creación del acceso.
+      tieneAcceso: !!c.auth_user_id,
+      // Dueño original = nadie lo creó desde la app (v36). Solo él invita.
+      esPrincipal: c.rol === 'owner' && !c.creado_por,
+    }))
+    // Dueños arriba (primero el original), coaches después.
+    .sort((a, b) => {
+      if (a.rol !== b.rol) return a.rol === 'owner' ? -1 : 1;
+      if (a.rol === 'owner' && a.esPrincipal !== b.esPrincipal) return a.esPrincipal ? -1 : 1;
+      return (a.nombre || '').localeCompare(b.nombre || '');
+    });
 }
 
 // `club` es el club de trabajo de la pantalla: el del propio owner (la RLS
 // exige que coincida con current_user_club()) o el que el superadmin eligió en
 // el select. Cambiarlo después es imposible salvo superadmin (trigger v34), así
 // que hay que acertar aquí.
-export async function crearCoach({ cedula, nombre, correo, telefono, categoria }, club) {
+export async function crearCoach({ cedula, nombre, correo, telefono, categoria, rol = 'coach' }, club) {
   if (!club) throw new Error('Selecciona el club del coach.');
+  if (!ROLES_EQUIPO.includes(rol)) throw new Error('Rol no válido para el equipo del club.');
   const { data, error } = await supabase
     .from('usuarios')
     .insert({
@@ -90,9 +107,10 @@ export async function crearCoach({ cedula, nombre, correo, telefono, categoria }
       nombre: nombre?.trim(),
       correo: correo?.trim() || null,
       telefono: telefono?.trim() || null,
-      rol: 'coach',
+      rol,
       club,
-      categoria: categoria || 'Todas',
+      // Un dueño administra el club entero: la categoría solo acota a un coach.
+      categoria: rol === 'owner' ? 'Todas' : (categoria || 'Todas'),
     })
     .select()
     .single();

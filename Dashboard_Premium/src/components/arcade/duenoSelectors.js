@@ -16,6 +16,14 @@ const cellsOf = (val, max, color) =>
 const TITLES = { resumen: 'Black Gold', finanzas: 'Finanzas', asistencia: 'Asistencia', equipo: 'Equipo técnico', retencion: 'Retención' };
 const DN = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
 
+// Salida del panel hacia el módulo /admin/* de su tema (primitiva SalidaAdmin):
+// el HUD lee, la herramienta actúa. Atajo, no acceso único — la Consola de
+// gestión del header lista los 10 módulos, incluidos los que no tienen panel.
+// `goHref` solo existe dentro del router (VistaDuenoArcade); en preview aislada
+// no hay a dónde navegar y el botón no se monta.
+const salida = (actions, label, href) =>
+  (actions.goHref ? { gestionarLabel: label, onGestionar: () => actions.goHref(href) } : {});
+
 // ---------- D1 · Resumen ----------
 function ctxResumen(data, actions) {
   return {
@@ -41,6 +49,7 @@ function ctxFinanzas(state, data, actions) {
   const recordados = state.dRecordados || {};
 
   return {
+    ...salida(actions, 'CONTROL DE PAGOS', '/admin/pagos'),
     meses: MESES.map((m) => ({ label: m.label, active: mes === m.k, onPick: () => actions.pickMes(m.k) })),
     donutDash: `${((CIRC * pct) / 100).toFixed(0)} ${Math.ceil(CIRC)}`,
     donutPct: `${pct}%`,
@@ -114,6 +123,7 @@ function ctxAsistencia(state, data, actions) {
   const sc = (HD[sfi] || [])[sdi];
 
   return {
+    ...salida(actions, 'PASAR ASISTENCIA', '/admin/asistencia'),
     cats: CATS.map((c) => ({ label: c.label, active: cat === c.k, onPick: () => actions.pickCat(c.k) })),
     mediaLabel: `${cd.pct}%`,
     mediaTrend: cd.trend,
@@ -143,9 +153,8 @@ function ctxEquipo(state, data, actions) {
 
   return {
     sorts: SL.map((o) => ({ label: o.label, active: sort === o.k, onPick: () => actions.sortBy(o.k) })),
-    // El HUD es superficie de lectura: gestionar el equipo sale a /admin/equipo
-    // (v35) por el mismo escape hatch `goHref` que usan las alertas del resumen.
-    onGestionar: actions.goHref ? () => actions.goHref('/admin/equipo') : null,
+    // El alta de coaches vive en /admin/equipo (v35).
+    ...salida(actions, 'GESTIONAR EQUIPO', '/admin/equipo'),
     coaches: sorted.map((c, i) => ({
       rank: '0' + (i + 1),
       rankColor: i === 0 ? C.gold : i === 1 ? C.text2 : C.text3,
@@ -166,6 +175,9 @@ function ctxRetencion(state, data, actions) {
   const bajas = state.dBajas || {};
   const armar = state.dBajaArmar || null;
   return {
+    // Contactar en masa a los de riesgo es trabajo de /admin/comunicaciones; el
+    // CONTACTAR de cada fila sigue siendo el gesto uno-a-uno.
+    ...salida(actions, 'ABRIR COMUNICACIONES', '/admin/comunicaciones'),
     retDash: `${((CIRC * r.retPct) / 100).toFixed(0)} ${Math.ceil(CIRC)}`,
     retPct: `${r.retPct}%`,
     activosLine: r.activosLine,

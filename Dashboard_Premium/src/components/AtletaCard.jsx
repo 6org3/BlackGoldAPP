@@ -16,7 +16,7 @@ import HistorialFisicoChart from './HistorialFisicoChart';
 import ProgresoNivelModal from './ProgresoNivelModal';
 import { tieneDatosAntropometricos } from '../api/utilsAtletas';
 import HexAvatar from './arcade/HexAvatar';
-import { cut } from './arcade/arcadeTokens';
+import { C, cut } from './arcade/arcadeTokens';
 
 // Hue del avatar hexagonal por estado de readiness (la luz es información):
 // rojo agotamiento, naranja fatiga silenciosa, verde óptimo, oro por defecto.
@@ -54,8 +54,8 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: staggerDelay(index), duration: MOTION.duration.entrance, ease: MOTION.ease.out }}
-      style={{ clipPath: cut(14) }}
-      className="glass-card rounded-none p-6 md:p-8 relative overflow-hidden transition duration-500 glow-border isolate"
+      style={{ clipPath: cut(14), background: C.card }}
+      className="p-6 md:p-8 relative overflow-hidden transition duration-500 border border-white/5 glow-border isolate"
     >
       {/* Background ambient lighting */}
       <div className="absolute -top-32 -right-32 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-60 bg-brand"></div>

@@ -2,6 +2,7 @@ import { C, cut, PIXEL } from './arcadeTokens';
 import MicroLabel from './MicroLabel';
 import Pill from './Pill';
 import Heatmap from './Heatmap';
+import SalidaAdmin from './SalidaAdmin';
 
 /** D3 · Asistencia & Ocupación — filtro por categoría, media 30 días, por
  *  categoría y heatmap táctil de ocupación de la cancha. */
@@ -60,6 +61,11 @@ export default function PanelAsistencia({ ctx }) {
           <p style={{ margin: '4px 0 0', fontSize: 12, color: C.text2 }}>{ctx.heatSub}</p>
         </div>
         <span style={{ flex: 'none', fontFamily: PIXEL, fontSize: 17, color: C.gold }}>{ctx.heatPct}</span>
+      </div>
+
+      {/* Pasar lista y corregir registros es trabajo de /admin/asistencia. */}
+      <div style={{ marginTop: 12 }}>
+        <SalidaAdmin label={ctx.gestionarLabel} onClick={ctx.onGestionar} />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import { UserCog, UserPlus, ArrowLeft, AlertCircle, X, Pencil, Power, KeyRound, AlertTriangle } from 'lucide-react';
+import useVolverAlHome from '../hooks/useVolverAlHome';
 import useAdminEquipoForm from './useAdminEquipoForm';
 import AdminEquipoForm from './AdminEquipoForm';
 import ActionButton from './AdminAtletasActionButton';
@@ -26,13 +26,13 @@ import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
  * panel del dueño (fn_coach_stats, v35).
  */
 export default function AdminEquipo({ user }) {
-  const navigate = useNavigate();
+  const volver = useVolverAlHome();
   const [modal, setModal] = useState(null);
   const [procesandoId, setProcesandoId] = useState(null);
 
   const {
     coaches, loading, load,
-    clubTrabajo, setClubTrabajo, clubes, esSuperadmin,
+    clubTrabajo, setClubTrabajo, clubes, esSuperadmin, puedeInvitarCoDuenos,
     showForm, setShowForm,
     editingId, setEditingId,
     saving,
@@ -46,6 +46,14 @@ export default function AdminEquipo({ user }) {
   } = useAdminEquipoForm({ user });
 
   const activos = coaches.filter((c) => c.estado === 'activo');
+  const duenos = activos.filter((c) => c.rol === 'owner');
+
+  // Retirar a un DUEÑO es del superadmin (v36): entre co-dueños, el primero que
+  // pulsara el botón se quedaría con el club. Y nadie se retira a sí mismo.
+  const puedeRetirar = (miembro) => {
+    if (miembro.id === user?.id) return false;
+    return miembro.rol === 'owner' ? esSuperadmin : true;
+  };
 
   const toggleEstado = useCallback((coach) => {
     const activar = coach.estado !== 'activo';
@@ -69,7 +77,9 @@ export default function AdminEquipo({ user }) {
       variant: 'confirm', tone: 'warn', icon: Power,
       eyebrow: 'Retirar del equipo',
       title: `¿Retirar a ${coach.nombre}?`,
-      message: 'Pierde el acceso a la app y sale del ranking del club. Su historial de sesiones y asistencia se conserva, y puedes reincorporarlo cuando vuelva.',
+      message: coach.rol === 'owner'
+        ? 'Deja de administrar el club y pierde el acceso a la app. Su historial se conserva y puedes reincorporarlo.'
+        : 'Pierde el acceso a la app y sale del ranking del club. Su historial de sesiones y asistencia se conserva, y puedes reincorporarlo cuando vuelva.',
       confirmLabel: 'Retirar',
       onConfirm: ejecutar,
     });
@@ -98,7 +108,7 @@ export default function AdminEquipo({ user }) {
       {/* ═══════════════════════ HEADER ═══════════════════════ */}
       <div className="flex items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard"
+          <button onClick={volver} aria-label="Volver al inicio"
             className="cut-focus p-2.5 -ml-2.5 min-h-11 min-w-11 flex items-center justify-center transition-colors"
             style={{ color: C.text3, clipPath: cut(5) }}>
             <ArrowLeft size={20} />
@@ -111,7 +121,8 @@ export default function AdminEquipo({ user }) {
               Equipo <span style={{ color: C.gold }}>Técnico</span>
             </h2>
             <MicroLabel style={{ marginTop: 3 }}>
-              {activos.length} coach{activos.length === 1 ? '' : 'es'} en activo
+              {activos.length - duenos.length} coach{activos.length - duenos.length === 1 ? '' : 'es'}
+              {duenos.length > 0 && ` · ${duenos.length} dueño${duenos.length === 1 ? '' : 's'}`}
               {coaches.length !== activos.length && ` · ${coaches.length - activos.length} retirado${coaches.length - activos.length === 1 ? '' : 's'}`}
               {clubTrabajo && ` · ${clubTrabajo}`}
             </MicroLabel>
@@ -175,6 +186,7 @@ export default function AdminEquipo({ user }) {
             setShowForm={setShowForm}
             handleSubmit={handleSubmit}
             clubNombre={clubTrabajo}
+            puedeInvitarCoDuenos={puedeInvitarCoDuenos}
           />
         )}
       </AnimatePresence>
@@ -186,13 +198,15 @@ export default function AdminEquipo({ user }) {
         <div className="text-center py-16">
           <div className="text-4xl mb-4">🧢</div>
           <p className="text-sm font-bold" style={{ color: C.text3 }}>
-            Aún no hay coaches en {clubTrabajo || 'el club'}. Crea el primero con “Nuevo Coach”.
+            Aún no hay nadie en el equipo de {clubTrabajo || 'el club'}. Crea el primero con “Nuevo Coach”.
           </p>
         </div>
       ) : (
         <div className="space-y-2">
           {coaches.map((coach, i) => {
             const retirado = coach.estado !== 'activo';
+            const esDueno = coach.rol === 'owner';
+            const soyYo = coach.id === user?.id;
             return (
               <motion.div key={coach.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 10) * 0.03 }}>
                 <CutCard cut={10} padding="14px 20px" style={retirado ? { opacity: 0.72 } : undefined}>
@@ -208,10 +222,23 @@ export default function AdminEquipo({ user }) {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="hidden sm:inline text-3xs font-bold uppercase tracking-widest px-2 py-0.5"
-                          style={{ clipPath: cut(4), border: `1px solid ${BORDER.info}`, background: TINT.info, color: C.info }}>
-                          {coach.categoria || 'Todas'}
-                        </span>
+                        {esDueno ? (
+                          <span className="text-3xs font-black uppercase tracking-widest px-2 py-0.5"
+                            style={{ clipPath: cut(4), border: `1px solid ${C.gold}`, background: TINT.gold, color: C.gold }}>
+                            {coach.esPrincipal ? 'Dueño' : 'Co-dueño'}
+                          </span>
+                        ) : (
+                          <span className="hidden sm:inline text-3xs font-bold uppercase tracking-widest px-2 py-0.5"
+                            style={{ clipPath: cut(4), border: `1px solid ${BORDER.info}`, background: TINT.info, color: C.info }}>
+                            {coach.categoria || 'Todas'}
+                          </span>
+                        )}
+                        {soyYo && (
+                          <span className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5"
+                            style={{ clipPath: cut(4), border: `1px solid ${BORDER.neutralSoft}`, color: C.text3 }}>
+                            Tú
+                          </span>
+                        )}
                         {retirado && (
                           <span className="text-3xs font-black uppercase tracking-widest px-2 py-0.5"
                             style={{ clipPath: cut(4), border: `1px solid ${C.danger}`, background: TINT.danger, color: C.danger }}>
@@ -238,14 +265,18 @@ export default function AdminEquipo({ user }) {
                       <ActionButton onClick={() => handleEdit(coach)} title={`Editar a ${coach.nombre}`} className="hover:text-brand">
                         <Pencil size={14} />
                       </ActionButton>
-                      <ActionButton
-                        onClick={() => toggleEstado(coach)}
-                        title={retirado ? `Reincorporar a ${coach.nombre}` : `Retirar a ${coach.nombre}`}
-                        className={retirado ? 'hover:text-success-soft' : 'hover:text-danger'}
-                        isActive={procesandoId === coach.id}
-                      >
-                        <Power size={14} />
-                      </ActionButton>
+                      {/* A un dueño solo lo retira el superadmin, y nadie se
+                          retira a sí mismo (v36): el botón ni se ofrece. */}
+                      {puedeRetirar(coach) && (
+                        <ActionButton
+                          onClick={() => toggleEstado(coach)}
+                          title={retirado ? `Reincorporar a ${coach.nombre}` : `Retirar a ${coach.nombre}`}
+                          className={retirado ? 'hover:text-success-soft' : 'hover:text-danger'}
+                          isActive={procesandoId === coach.id}
+                        >
+                          <Power size={14} />
+                        </ActionButton>
+                      )}
                     </div>
                   </div>
                 </CutCard>

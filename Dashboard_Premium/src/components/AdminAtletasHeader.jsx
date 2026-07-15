@@ -2,9 +2,9 @@ import { UserPlus, ArrowLeft, LayoutGrid, List } from 'lucide-react';
 import HexAvatar from './arcade/HexAvatar';
 import MicroLabel from './arcade/MicroLabel';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
+import useVolverAlHome from '../hooks/useVolverAlHome';
 
 export default function AdminAtletasHeader({
-  navigate,
   atletasFiltrados,
   atletas,
   filtrosActivos,
@@ -17,10 +17,11 @@ export default function AdminAtletasHeader({
   emptyForm,
   setShowParentForm,
 }) {
+  const volver = useVolverAlHome();
   return (
     <div className="flex items-center justify-between mb-8 gap-4">
       <div className="flex items-center gap-3 min-w-0">
-        <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard"
+        <button onClick={volver} aria-label="Volver al inicio"
           className="cut-focus p-2.5 -ml-2.5 min-h-11 min-w-11 flex items-center justify-center transition-colors"
           style={{ color: C.text3, clipPath: cut(5) }}>
           <ArrowLeft size={20} />
