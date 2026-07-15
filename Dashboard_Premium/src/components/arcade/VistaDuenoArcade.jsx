@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LayoutGrid } from 'lucide-react';
 import { useAuth } from '../../AuthContext';
-import { C, GRAD, gridBackground } from './arcadeTokens';
+import { C, BORDER, GRAD, cut, gridBackground } from './arcadeTokens';
 import useDueno from './useDueno';
 import { buildDuenoCtx } from './duenoSelectors';
 import ArcadePerfilMenu from './ArcadePerfilMenu';
+import ConsolaGestion from './ConsolaGestion';
 import MicroLabel from './MicroLabel';
 import ArcadeBottomNav from './ArcadeBottomNav';
 import PanelResumen from './PanelResumen';
@@ -30,6 +32,7 @@ function fechaHoy() {
 export default function VistaDuenoArcade() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [consolaAbierta, setConsolaAbierta] = useState(false);
   const { state, data, actions, loading } = useDueno(user);
   // goHref: alertas que salen del HUD hacia una ruta de la app (p.ej. la
   // bandeja de solicitudes de registro en /admin/atletas, v33).
@@ -46,7 +49,23 @@ export default function VistaDuenoArcade() {
               <MicroLabel color={C.goldDeep} size={9} tracking=".1em" style={{ marginBottom: 6 }}>{fechaHoy()}</MicroLabel>
               <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.05 }}>{ctx ? ctx.panelTitle : 'Black Gold'}</h1>
             </div>
-            <ArcadePerfilMenu size={48} initial="BG" background={GRAD.goldHex} color={C.ink} glow style={{ fontSize: 14, filter: 'drop-shadow(0 0 12px rgba(255,215,0,.4))' }} />
+            <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Única puerta del HUD hacia /admin/*: el marco no monta Sidebar y
+                  la bottom-nav son tabs internas. Corte + oro tenue, no hexágono
+                  relleno: el oro sólido es del avatar y del hex de Finanzas. */}
+              <button
+                type="button"
+                onClick={() => setConsolaAbierta(true)}
+                aria-haspopup="dialog"
+                aria-expanded={consolaAbierta}
+                aria-label="Consola de gestión"
+                className="cut-focus"
+                style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', background: C.card, border: `1px solid ${BORDER.goldStrong}`, clipPath: cut(9), color: C.gold, cursor: 'pointer' }}
+              >
+                <LayoutGrid size={19} strokeWidth={2} />
+              </button>
+              <ArcadePerfilMenu size={48} initial="BG" background={GRAD.goldHex} color={C.ink} glow style={{ fontSize: 14, filter: 'drop-shadow(0 0 12px rgba(255,215,0,.4))' }} />
+            </div>
           </div>
 
           {!ctx || loading ? (
@@ -68,6 +87,8 @@ export default function VistaDuenoArcade() {
 
         <ArcadeBottomNav variant="dueno" active={ctx ? ctx.navActive : 'resumen'} onNavigate={actions.goTab} />
       </div>
+
+      {consolaAbierta && <ConsolaGestion onClose={() => setConsolaAbierta(false)} />}
     </div>
   );
 }

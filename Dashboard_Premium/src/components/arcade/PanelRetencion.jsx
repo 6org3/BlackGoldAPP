@@ -2,6 +2,7 @@ import { C, cut, HEX, PIXEL } from './arcadeTokens';
 import MicroLabel from './MicroLabel';
 import Donut from './Donut';
 import AltasBajasTable from './AltasBajasTable';
+import SalidaAdmin from './SalidaAdmin';
 
 /** D5 · Retención — gauge 90 días, altas/bajas por mes y atletas en riesgo de baja. */
 export default function PanelRetencion({ ctx }) {
@@ -43,6 +44,11 @@ export default function PanelRetencion({ ctx }) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Escribir a los de riesgo en tanda es trabajo de /admin/comunicaciones. */}
+      <div style={{ marginTop: 12 }}>
+        <SalidaAdmin label={ctx.gestionarLabel} onClick={ctx.onGestionar} />
       </div>
     </div>
   );
