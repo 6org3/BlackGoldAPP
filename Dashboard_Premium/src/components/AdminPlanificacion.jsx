@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchSesionesAtleta, crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
 import { evaluateSessionRules } from '../lib/trainingRules';
-import { ArrowLeft, Save, FlaskConical, ShieldAlert, AlertTriangle, Info, Activity, Clock, Zap, Dumbbell, Search } from 'lucide-react';
+import { Save, FlaskConical, ShieldAlert, AlertTriangle, Info, Activity, Clock, Zap, Dumbbell, Search } from 'lucide-react';
 import { useAuth } from '../AuthContext';
-import useVolverAlHome from '../hooks/useVolverAlHome';
+import BotonVolver from './arcade/BotonVolver';
 
 const METAS = ['Fuerza', 'Velocidad', 'Resistencia', 'Coordinación', 'Flexibilidad', 'Recuperación Activa'];
 const PAUSAS = ['Densidad Baja', 'Densidad Alta'];
@@ -15,7 +15,6 @@ const TEMPOS = ['Regular', '3-1-3 Isométrico'];
 
 export default function AdminPlanificacion() {
   const { user } = useAuth();
-  const volver = useVolverAlHome();
   const [atletas, setAtletas] = useState([]);
   const [selectedAtleta, setSelectedAtleta] = useState(null);
   const [recentSessions, setRecentSessions] = useState([]);
@@ -136,10 +135,7 @@ export default function AdminPlanificacion() {
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center space-x-4 mb-10">
-        <button onClick={volver} aria-label="Volver al inicio"
-          className="p-2 -m-2 text-fg-muted hover:text-white transition-colors">
-          <ArrowLeft size={20} />
-        </button>
+        <BotonVolver />
         <div>
           <h2 className="text-3xl font-black uppercase tracking-tight">
             Planificación <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-strong">Científica</span>

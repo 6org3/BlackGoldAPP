@@ -56,6 +56,24 @@ describe('Dueño · acceso a /admin desde el HUD', () => {
     cy.get('[role="dialog"]').should('not.exist'); // la consola se cierra al salir
   });
 
+  // Los 10 módulos a los que la consola deja entrar tienen que dejar salir
+  // igual: antes solo 4 traían botón de vuelta, así que el dueño llegaba a
+  // Pagos desde su consola y salía distinto que desde Equipo.
+  const MODULOS = [
+    '/admin/atletas', '/admin/misiones', '/admin/pagos', '/admin/kpis',
+    '/admin/sesiones', '/admin/asistencia', '/admin/eventos',
+    '/admin/comparar', '/admin/equipo', '/admin/comunicaciones',
+  ];
+
+  MODULOS.forEach((ruta) => {
+    it(`${ruta} ofrece la vuelta al HUD del dueño`, () => {
+      cy.visit(ruta);
+      cy.get('button[aria-label="Volver al inicio"]', { timeout: 20000 }).first().click();
+      cy.url({ timeout: 15000 }).should('include', '/club');
+      cy.url().should('not.include', '/dashboard');
+    });
+  });
+
   it('el volver de un módulo admin devuelve al HUD del dueño, no al shell legacy', () => {
     cy.get('button[aria-label="Consola de gestión"]').click();
     cy.get('[role="dialog"]').contains('button', 'EQUIPO').click();

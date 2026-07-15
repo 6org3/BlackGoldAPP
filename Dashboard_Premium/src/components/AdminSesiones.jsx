@@ -15,6 +15,7 @@ import { labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { generarMensajeSesion, generarLinkWhatsApp } from '../api/comunicacionesService';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
+import BotonVolver from './arcade/BotonVolver';
 import MicroLabel from './arcade/MicroLabel';
 import ModalHUD from './arcade/ModalHUD';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
@@ -267,6 +268,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
       {/* Header */}
       <header className="mb-6 md:mb-8 pb-4 md:pb-8" style={{ borderBottom: `1px solid ${BORDER.neutral}` }}>
         <div className="flex items-center gap-3">
+          <BotonVolver />
           <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
             <ClipboardList size={22} strokeWidth={2.5} />
           </HexAvatar>

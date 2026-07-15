@@ -11,6 +11,7 @@ import {
 import { fetchGrupos } from '../api/sesionesService';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
+import BotonVolver from './arcade/BotonVolver';
 import MicroLabel from './arcade/MicroLabel';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
@@ -172,6 +173,7 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
       {/* Header */}
       <header className="mb-8 pb-8" style={{ borderBottom: `1px solid ${BORDER.neutral}` }}>
         <div className="flex items-center gap-3">
+          <BotonVolver />
           <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
             <MessageSquare size={22} strokeWidth={2.5} />
           </HexAvatar>

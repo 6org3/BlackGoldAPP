@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { UserCog, UserPlus, ArrowLeft, AlertCircle, X, Pencil, Power, KeyRound, AlertTriangle } from 'lucide-react';
-import useVolverAlHome from '../hooks/useVolverAlHome';
+import { UserCog, UserPlus, AlertCircle, X, Pencil, Power, KeyRound, AlertTriangle } from 'lucide-react';
+import BotonVolver from './arcade/BotonVolver';
 import useAdminEquipoForm from './useAdminEquipoForm';
 import AdminEquipoForm from './AdminEquipoForm';
 import ActionButton from './AdminAtletasActionButton';
@@ -26,7 +26,6 @@ import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
  * panel del dueño (fn_coach_stats, v35).
  */
 export default function AdminEquipo({ user }) {
-  const volver = useVolverAlHome();
   const [modal, setModal] = useState(null);
   const [procesandoId, setProcesandoId] = useState(null);
 
@@ -108,11 +107,7 @@ export default function AdminEquipo({ user }) {
       {/* ═══════════════════════ HEADER ═══════════════════════ */}
       <div className="flex items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <button onClick={volver} aria-label="Volver al inicio"
-            className="cut-focus p-2.5 -ml-2.5 min-h-11 min-w-11 flex items-center justify-center transition-colors"
-            style={{ color: C.text3, clipPath: cut(5) }}>
-            <ArrowLeft size={20} />
-          </button>
+          <BotonVolver />
           <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
             <UserCog size={20} strokeWidth={2.5} />
           </HexAvatar>
