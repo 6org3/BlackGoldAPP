@@ -33,7 +33,59 @@
 -- 3. `fn_coach_stats` deja de rankear a los coaches no activos: hoy no filtra
 --    por `estado`, así que un coach desactivado seguiría en el ranking del
 --    panel del dueño compitiendo con los que sí entrenan.
+--
+-- 4. DESACTIVAR DE VERDAD (encontrado en la revisión adversarial de v35).
+--    `usuarios.estado` existe desde v33, pero NINGUNA comprobación server-side
+--    lo miraba: `es_staff()`/`es_superadmin()` (v24 §1) resuelven solo por
+--    `rol`. El único gate era `PrivateRoute` — JavaScript en el navegador del
+--    propio usuario. Un coach retirado volvía a entrar con su cédula (sigue
+--    siendo su contraseña), obtenía un JWT válido y por API conservaba TODO:
+--    el padrón del club (usuarios_select), pasar lista, crear atletas, XP.
+--    El retiro solo lo borraba del ranking. Ahora `estado='activo'` es
+--    condición para ser staff, así que la RLS y todas las Edge Functions que
+--    derivan de estos helpers cierran a la vez. No hace falta invalidar el JWT
+--    vivo: identifica, pero los permisos se re-evalúan en cada consulta.
+--
+--    Deliberadamente NO se filtra `current_usuario_id()`: `atletas_select` lo
+--    usa para "mi propia fila", y un atleta pendiente (v33) necesita cargarla
+--    para que fetchUsuarioCompleto arme su perfil… y así poder mostrarle la
+--    pantalla de "solicitud en revisión". Filtrarlo lo dejaría sin perfil y sin
+--    pantalla. Tampoco `current_user_rol()`/`current_user_club()`: varios
+--    guards hacen `current_user_rol() NOT IN (...)`, y un NULL ahí evalúa a
+--    NULL y NO dispara el RAISE — filtrarlos los volvería más permisivos, no
+--    menos. Con `es_staff()` cerrado, a un coach inactivo no le queda ninguna
+--    vía: las RPC de owner (resolver_comprobante, resolver_solicitud_registro)
+--    ya lo rechazan por rol.
 -- ============================================================================
+
+
+-- ------------------------------------------------------------
+-- 0. Ser staff exige estar activo (ver §4 de la cabecera).
+--    Cuerpo base: v24 §1. COALESCE por si `estado` llegara NULL en una fila
+--    anterior al DEFAULT de v33 — un dato viejo no debe dejar a nadie fuera.
+-- ------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.es_staff()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    (SELECT rol IN ('superadmin', 'owner', 'coach') AND COALESCE(estado, 'activo') = 'activo'
+     FROM usuarios WHERE auth_user_id = auth.uid() LIMIT 1),
+    false);
+$$;
+
+CREATE OR REPLACE FUNCTION public.es_superadmin()
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    (SELECT rol = 'superadmin' AND COALESCE(estado, 'activo') = 'activo'
+     FROM usuarios WHERE auth_user_id = auth.uid() LIMIT 1),
+    false);
+$$;
 
 
 -- ------------------------------------------------------------

@@ -425,13 +425,32 @@ async function suiteEquipoTecnico() {
     check('un coach retirado sale del ranking (fn_coach_stats v35)',
       !(rankingTrasRetiro || []).some((r) => r.coach_id === QA.coachNuevo.usuarioId));
 
-    // Y deja de poder operar: su perfil sale como inactivo, que es lo que
-    // PrivateRoute mira para mandarlo a la pantalla de cuenta desactivada.
+    // Y pierde los permisos DE VERDAD, no solo en el navegador. Este bloque es
+    // el que faltaba: 'inactivo' solo lo miraba PrivateRoute (JavaScript del
+    // propio ex-coach), así que volvía a entrar con su cédula y por API
+    // conservaba el padrón del club, pasar lista y crear atletas. v35 mete el
+    // filtro de estado en es_staff(), que es de quien cuelga toda la RLS.
     const cliRetirado = await loginComo(QA.coachNuevo.cedula, QA.coachNuevo.cedula);
+    check('el coach retirado TODAVÍA puede hacer login (la cuenta de Auth vive)', true);
+
     const { data: perfilRetirado } = await cliRetirado.from('usuarios')
       .select('estado').eq('id', QA.coachNuevo.usuarioId).single();
     check('el coach retirado ve su cuenta como inactiva (gate de PrivateRoute)',
       perfilRetirado?.estado === 'inactivo', `estado=${perfilRetirado?.estado}`);
+
+    const { data: padron } = await cliRetirado.from('usuarios').select('id');
+    check('el coach retirado NO ve el padrón del club (es_staff con estado, v35)',
+      (padron || []).length <= 1, `ve ${(padron || []).length} usuarios`);
+
+    const { error: eAsis } = await cliRetirado.from('asistencia')
+      .insert({ atleta_id: QA.atleta1.atletaId, coach_id: QA.coachNuevo.usuarioId, estado: 'Presente' });
+    check('el coach retirado NO puede pasar asistencia (42501)',
+      eAsis?.code === '42501', eAsis?.code || 'sin error');
+
+    const { error: eAltaRetirado } = await cliRetirado.from('usuarios')
+      .insert({ cedula: 'QA_RLS_ALTA_RET', nombre: 'QA Alta Retirado', rol: 'atleta', club: 'Black Gold' });
+    check('el coach retirado NO puede dar de alta atletas (42501)',
+      eAltaRetirado?.code === '42501', eAltaRetirado?.code || 'sin error');
     await cliRetirado.auth.signOut();
   }
 

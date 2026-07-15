@@ -5,6 +5,7 @@ import { UserCog, UserPlus, ArrowLeft, AlertCircle, X, Pencil, Power, KeyRound, 
 import useAdminEquipoForm from './useAdminEquipoForm';
 import AdminEquipoForm from './AdminEquipoForm';
 import ActionButton from './AdminAtletasActionButton';
+import SelectField from './AdminAtletasSelectField';
 import ModalHUD from './arcade/ModalHUD';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
@@ -31,6 +32,7 @@ export default function AdminEquipo({ user }) {
 
   const {
     coaches, loading, load,
+    clubTrabajo, setClubTrabajo, clubes, esSuperadmin,
     showForm, setShowForm,
     editingId, setEditingId,
     saving,
@@ -111,7 +113,7 @@ export default function AdminEquipo({ user }) {
             <MicroLabel style={{ marginTop: 3 }}>
               {activos.length} coach{activos.length === 1 ? '' : 'es'} en activo
               {coaches.length !== activos.length && ` · ${coaches.length - activos.length} retirado${coaches.length - activos.length === 1 ? '' : 's'}`}
-              {user?.club && ` · ${user.club}`}
+              {clubTrabajo && ` · ${clubTrabajo}`}
             </MicroLabel>
           </div>
         </div>
@@ -125,6 +127,21 @@ export default function AdminEquipo({ user }) {
           <span className="hidden sm:inline">Nuevo Coach</span>
         </button>
       </div>
+
+      {/* Club de trabajo: el superadmin ve todos los clubes, así que sin elegir
+          uno estaría mirando el equipo de la plataforma entera mezclado — y
+          creando coaches en el club de su propia ficha sin saberlo. */}
+      {esSuperadmin && (
+        <div className="mb-6 max-w-xs">
+          <SelectField
+            label="Club (Admin)"
+            value={clubTrabajo}
+            options={clubes.length ? clubes : (clubTrabajo ? [clubTrabajo] : [''])}
+            optionLabels={clubes.length ? clubes : (clubTrabajo ? [clubTrabajo] : ['Cargando clubes…'])}
+            onChange={setClubTrabajo}
+          />
+        </div>
+      )}
 
       {/* ═══════════════════════ MENSAJES ═══════════════════════ */}
       <AnimatePresence>
@@ -157,7 +174,7 @@ export default function AdminEquipo({ user }) {
             setEditingId={setEditingId}
             setShowForm={setShowForm}
             handleSubmit={handleSubmit}
-            clubNombre={user?.club}
+            clubNombre={clubTrabajo}
           />
         )}
       </AnimatePresence>
@@ -169,7 +186,7 @@ export default function AdminEquipo({ user }) {
         <div className="text-center py-16">
           <div className="text-4xl mb-4">🧢</div>
           <p className="text-sm font-bold" style={{ color: C.text3 }}>
-            Aún no hay coaches en {user?.club || 'el club'}. Crea el primero con “Nuevo Coach”.
+            Aún no hay coaches en {clubTrabajo || 'el club'}. Crea el primero con “Nuevo Coach”.
           </p>
         </div>
       ) : (
@@ -210,7 +227,10 @@ export default function AdminEquipo({ user }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {!coach.tieneAcceso && (
+                      {/* Mismo criterio que el badge "Sin acceso": a un coach
+                          retirado no se le ofrece un acceso que no podría usar
+                          (primero se le reincorpora, que es el clic de al lado). */}
+                      {!coach.tieneAcceso && !retirado && (
                         <ActionButton onClick={() => reintentarAcceso(coach)} title={`Crear acceso de ${coach.nombre}`} className="hover:text-warning-soft">
                           <KeyRound size={14} />
                         </ActionButton>

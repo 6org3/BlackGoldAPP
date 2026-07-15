@@ -56,12 +56,18 @@ export const CATEGORIAS_COACH = [
   'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores',
 ];
 
-export async function fetchCoachesDelClub() {
-  const { data, error } = await supabase
+// El club va explícito y no se hereda de la RLS: para un owner el resultado es
+// el mismo (usuarios_select ya lo scopea), pero un SUPERADMIN lee la tabla
+// entera — sin este filtro vería los coaches de todos los clubes mezclados
+// bajo el rótulo de uno solo.
+export async function fetchCoachesDelClub(club) {
+  let query = supabase
     .from('usuarios')
     .select('id, cedula, nombre, correo, telefono, categoria, club, estado, auth_user_id, created_at')
     .eq('rol', 'coach')
     .order('nombre');
+  if (club) query = query.eq('club', club);
+  const { data, error } = await query;
   if (error) throw new Error('No se pudo cargar el equipo técnico: ' + error.message);
   return (data || []).map((c) => ({
     ...c,
@@ -71,12 +77,12 @@ export async function fetchCoachesDelClub() {
   }));
 }
 
-// El club NUNCA viaja desde el cliente: lo pone el club del owner que crea (y
-// la RLS exige que coincida con current_user_club()). Cambiarlo después es
-// imposible salvo superadmin (trigger v34), así que hay que acertar aquí.
-export async function crearCoach({ cedula, nombre, correo, telefono, categoria }, user) {
-  const club = user?.club || '';
-  if (!club) throw new Error('Tu usuario no tiene un club asignado. Contacta al superadmin.');
+// `club` es el club de trabajo de la pantalla: el del propio owner (la RLS
+// exige que coincida con current_user_club()) o el que el superadmin eligió en
+// el select. Cambiarlo después es imposible salvo superadmin (trigger v34), así
+// que hay que acertar aquí.
+export async function crearCoach({ cedula, nombre, correo, telefono, categoria }, club) {
+  if (!club) throw new Error('Selecciona el club del coach.');
   const { data, error } = await supabase
     .from('usuarios')
     .insert({

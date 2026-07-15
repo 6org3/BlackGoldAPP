@@ -43,8 +43,10 @@ export default function AdminEquipoForm({
 
       <MicroLabel style={{ marginBottom: 12 }}>Datos del coach</MicroLabel>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <InputField label="Cédula" value={form.cedula} onChange={v => handleChange('cedula', v)} disabled={!!editingId} placeholder="Ej. 1234567890" inputMode="numeric" autoComplete="off" maxLength={10} />
-        <InputField label="Nombre Completo" value={form.nombre} onChange={v => handleChange('nombre', v)} placeholder="Ej. Andrés Andrade" autoComplete="name" />
+        {/* La cédula es su usuario y su contraseña inicial: sin ella no hay
+            acceso posible (resolver_email_login + crear-acceso-usuario). */}
+        <InputField label="Cédula *" value={form.cedula} onChange={v => handleChange('cedula', v)} disabled={!!editingId} placeholder="Ej. 1234567890" inputMode="numeric" autoComplete="off" maxLength={10} />
+        <InputField label="Nombre Completo *" value={form.nombre} onChange={v => handleChange('nombre', v)} placeholder="Ej. Andrés Andrade" autoComplete="name" />
         <InputField label="Correo Electrónico" type="email" value={form.correo} onChange={v => handleChange('correo', v)} placeholder="coach@correo.com" autoComplete="email" />
         <InputField label="Teléfono" type="tel" value={form.telefono} onChange={v => handleChange('telefono', v)} placeholder="0999999999" inputMode="tel" autoComplete="tel" />
       </div>
