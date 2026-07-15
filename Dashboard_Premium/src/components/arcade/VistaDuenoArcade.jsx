@@ -4,7 +4,7 @@ import { useAuth } from '../../AuthContext';
 import { C, GRAD, gridBackground } from './arcadeTokens';
 import useDueno from './useDueno';
 import { buildDuenoCtx } from './duenoSelectors';
-import HexAvatar from './HexAvatar';
+import ArcadePerfilMenu from './ArcadePerfilMenu';
 import MicroLabel from './MicroLabel';
 import ArcadeBottomNav from './ArcadeBottomNav';
 import PanelResumen from './PanelResumen';
@@ -46,7 +46,7 @@ export default function VistaDuenoArcade() {
               <MicroLabel color={C.goldDeep} size={9} tracking=".1em" style={{ marginBottom: 6 }}>{fechaHoy()}</MicroLabel>
               <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.05 }}>{ctx ? ctx.panelTitle : 'Black Gold'}</h1>
             </div>
-            <HexAvatar size={48} initial="BG" background={GRAD.goldHex} color={C.ink} glow style={{ fontSize: 14, filter: 'drop-shadow(0 0 12px rgba(255,215,0,.4))' }} />
+            <ArcadePerfilMenu size={48} initial="BG" background={GRAD.goldHex} color={C.ink} glow style={{ fontSize: 14, filter: 'drop-shadow(0 0 12px rgba(255,215,0,.4))' }} />
           </div>
 
           {!ctx || loading ? (

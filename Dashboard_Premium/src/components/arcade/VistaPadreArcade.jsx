@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../AuthContext';
 import { C, BORDER, GRAD, RADAR_FILL_INFO, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
+import ArcadePerfilMenu from './ArcadePerfilMenu';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
 import RadarChart from './RadarChart';
@@ -209,9 +210,10 @@ export default function VistaPadreArcade() {
               <MicroLabel color={C.text3} size={8.5} tracking=".08em" style={{ marginBottom: 4 }}>MI REPRESENTADO</MicroLabel>
               <p style={{ margin: 0, fontSize: 12, color: C.text2 }}>{vm?.parentLine || (user?.nombre ?? '…')}</p>
             </div>
-            <div style={{ width: 34, height: 34, clipPath: HEX, background: 'rgba(255,255,255,.06)', display: 'grid', placeItems: 'center', fontSize: 15, flex: 'none' }} aria-hidden="true">
-              🔔
-            </div>
+            {/* Avatar del representante = menú de perfil (la salida de sesión del
+                portal). Ocupa el hueco del hex decorativo de campana, que no
+                enrutaba a ninguna bandeja de notificaciones. */}
+            <ArcadePerfilMenu size={34} initial={(user?.nombre || '?').charAt(0).toUpperCase()} />
           </div>
 
           {/* Selector de hijos (si hay varios) */}
