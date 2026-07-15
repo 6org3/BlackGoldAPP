@@ -290,6 +290,12 @@ async function suiteCoach() {
     .update({ correo: 'qa-corregido@sinacceso.blackgoldapp.internal', fecha_nacimiento: '2012-05-11' })
     .eq('id', QA.atleta1.usuarioId).select();
   check('coach SÍ puede corregir correo y fecha de nacimiento de su atleta', !eFicha, eFicha?.message);
+  // Devolver la ficha a su estado: `resolver_email_login` (v19) resuelve por
+  // COALESCE(correo, cedula||@sinacceso...), así que un correo dejado a medias
+  // manda los logins posteriores de este atleta a un email que Auth no tiene.
+  await svc.from('usuarios')
+    .update({ correo: null, fecha_nacimiento: QA.atleta1.nac })
+    .eq('id', QA.atleta1.usuarioId);
 
   const { data: clubesCoach } = await cli.rpc('listar_clubes_todos');
   check('coach NO enumera los clubes de la plataforma (RPC solo-superadmin)',
