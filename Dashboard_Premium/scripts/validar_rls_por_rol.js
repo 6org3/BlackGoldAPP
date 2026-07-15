@@ -266,6 +266,31 @@ async function suiteCoach() {
   const { data: sigueVivo } = await svc.from('atletas').select('id').eq('id', QA.atleta1.atletaId).maybeSingle();
   check('coach NO puede borrar atletas (RLS v34)', !!sigueVivo, eDel?.message || 'la fila desapareció');
 
+  // SECUESTRO DE CUENTA (v36b). El ataque no cambia atributos: apunta tu sesión
+  // a otra fila. Un coach reescribía el auth_user_id del owner de su club y, al
+  // volver a entrar, ERA el owner — sin tocar rol, estado ni creado_por, así que
+  // los guards de v33/v34/v36 ni se enteraban.
+  const { error: eSecuestro } = await cli.from('usuarios')
+    .update({ auth_user_id: QA.coach1.authId }).eq('id', QA.owner1.usuarioId).select();
+  const { data: ownerTrasSecuestro } = await svc.from('usuarios')
+    .select('auth_user_id').eq('id', QA.owner1.usuarioId).single();
+  check('coach NO puede apoderarse de la cuenta del owner (auth_user_id, v36b)',
+    !!eSecuestro && ownerTrasSecuestro?.auth_user_id === QA.owner1.authId,
+    eSecuestro?.message || 'el auth_user_id del owner cambió');
+
+  const { error: eCedula } = await cli.from('usuarios')
+    .update({ cedula: 'QA_RLS_ROBADA' }).eq('id', QA.owner1.usuarioId).select();
+  const { data: cedulaOwner } = await svc.from('usuarios')
+    .select('cedula').eq('id', QA.owner1.usuarioId).single();
+  check('coach NO puede cambiar la cédula de otra cuenta (identidad, v36b)',
+    !!eCedula && cedulaOwner?.cedula === QA.owner1.cedula, eCedula?.message || 'sin error');
+
+  // Lo que el staff SÍ debe poder: corregir la ficha de un atleta suyo.
+  const { error: eFicha } = await cli.from('usuarios')
+    .update({ correo: 'qa-corregido@sinacceso.blackgoldapp.internal', fecha_nacimiento: '2012-05-11' })
+    .eq('id', QA.atleta1.usuarioId).select();
+  check('coach SÍ puede corregir correo y fecha de nacimiento de su atleta', !eFicha, eFicha?.message);
+
   const { data: clubesCoach } = await cli.rpc('listar_clubes_todos');
   check('coach NO enumera los clubes de la plataforma (RPC solo-superadmin)',
     (clubesCoach || []).length === 0, `ve ${(clubesCoach || []).length} clubes`);
