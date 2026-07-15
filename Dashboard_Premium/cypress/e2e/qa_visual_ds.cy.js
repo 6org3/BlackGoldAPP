@@ -41,7 +41,9 @@ describe('DS · Owner', () => {
   it('dashboard y KPIs del club (móvil + desktop)', () => {
     cy.viewport(MOVIL.width, MOVIL.height);
     login(Cypress.env('SMOKE_TEST_USER'));
-    cy.url({ timeout: 15000 }).should('include', '/dashboard');
+    // El login lleva al home nativo del rol (rutaHomeParaRol); esta captura es del
+    // shell legacy, así que se entra a /dashboard explícitamente.
+    cy.visit('/dashboard');
     esperarCarga();
     captura('owner-01-dashboard-movil');
 
@@ -60,6 +62,9 @@ describe('DS · Coach', () => {
   it('dashboard con tarjetas de atleta (móvil + desktop)', () => {
     cy.viewport(MOVIL.width, MOVIL.height);
     login(Cypress.env('QA_ROLES').coach);
+    // El login lleva al home nativo del rol (/coach); estas capturas son del
+    // shell legacy, así que se entra a /dashboard explícitamente.
+    cy.visit('/dashboard');
     esperarCarga();
     captura('coach-01-dashboard-movil');
 
@@ -89,6 +94,9 @@ describe('DS · Atleta', () => {
   it('inicio, misiones y KPIs (móvil) + misiones desktop', () => {
     cy.viewport(MOVIL.width, MOVIL.height);
     login(Cypress.env('QA_ROLES').atleta);
+    // El login lleva al portal Arcade (/atleta); esta pasada recorre las tabs del
+    // shell legacy (Inicio/Misiones/KPIs), así que se entra a /dashboard.
+    cy.visit('/dashboard');
     esperarCarga();
     cerrarReadinessSiAparece();
     // Espera a que el shell del atleta esté montado (bottom nav visible) y

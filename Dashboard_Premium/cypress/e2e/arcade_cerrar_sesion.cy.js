@@ -37,10 +37,10 @@ describe('Arcade HUD - cerrar sesión', () => {
       cy.get('form button[type="submit"]').click();
       cy.url({ timeout: 15000 }).should('not.include', '/login');
 
-      // Se entra por la raíz, no por el destino del formulario: Login.jsx manda
-      // todo rol ≠ padre a /dashboard, mientras que RootRedirect respeta los
-      // feature flags y lleva al home Arcade. Este es el camino real del usuario
-      // (PWA instalada / raíz con sesión viva) y el que dejaba sin salida.
+      // Se entra por la raíz además del formulario: es el camino de la PWA
+      // instalada / la sesión viva, y el que dejaba al portal sin salida. Desde
+      // que Login.jsx también resuelve el destino con rutaHomeParaRol, ambos
+      // caminos llegan al mismo home Arcade — esta visita lo fija.
       cy.visit('/');
       cy.url({ timeout: 15000 }).should('include', rol.home);
 

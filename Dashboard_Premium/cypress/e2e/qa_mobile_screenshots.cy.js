@@ -41,7 +41,9 @@ describe('Recorrido visual móvil', () => {
   it('02..09 - Vistas de coach/owner', () => {
     const CREDS = Cypress.env('SMOKE_TEST_USER');
     login(CREDS);
-    cy.url({ timeout: 15000 }).should('include', '/dashboard');
+    // El login lleva al home nativo del rol (rutaHomeParaRol); estas capturas son
+    // del shell legacy, así que se entra a /dashboard explícitamente.
+    cy.visit('/dashboard');
     esperarCarga();
     captura('02-dashboard-tripulacion');
 
@@ -76,6 +78,10 @@ describe('Recorrido visual móvil', () => {
   it('11 - Vista del atleta', () => {
     const CREDS = Cypress.env('QA_ROLES').atleta;
     login(CREDS);
+    // El login lleva al portal Arcade (/atleta); esta captura retrata el shell
+    // legacy (y su check-in diario, que el portal Arcade no monta), así que se
+    // entra a /dashboard explícitamente.
+    cy.visit('/dashboard');
     esperarCarga();
     captura('11-atleta-panel');
     // Si el modal de readiness diario está abierto, capturarlo y cerrarlo.
