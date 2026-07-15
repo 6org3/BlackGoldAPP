@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, Save, User } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
+import { C, BORDER, cut } from './arcade/arcadeTokens';
 
 export default function EditarPerfilModal({ onClose, onRefresh }) {
   const { user } = useAuth();
@@ -85,7 +86,8 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="glass-card max-w-lg w-full rounded-panel p-6 relative max-h-[90dvh] overflow-y-auto"
+        style={{ clipPath: cut(14), background: C.card, border: `1px solid ${BORDER.neutral}` }}
+        className="max-w-lg w-full p-6 relative max-h-[90dvh] overflow-y-auto"
       >
         <button ref={closeBtnRef} onClick={onClose} aria-label="Cerrar" className="absolute right-2 top-2 p-3 text-fg-muted hover:text-white">
           <X size={20} />
