@@ -27,8 +27,18 @@
 
 -- ------------------------------------------------------------
 -- 1. Linaje: quién dio de alta a quién.
---    ON DELETE SET NULL: borrar al padrino no debe arrastrar al ahijado (el
---    borrado físico ya es solo-superadmin desde v34).
+--    ON DELETE SET NULL en vez de RESTRICT: el padrino de la mayoría de filas
+--    es un coach (dio de alta atletas), y RESTRICT haría imborrable a
+--    cualquiera que haya registrado a alguien.
+--
+--    Efecto buscado — SUCESIÓN: si el superadmin borra al dueño original, sus
+--    co-dueños se quedan sin padrino y pasan a contar como originales, con lo
+--    que recuperan la capacidad de invitar. Es lo que conviene al club (sin
+--    original, nadie podría ampliar el equipo de dueños nunca más) y solo
+--    ocurre por un borrado físico, que es deliberado y solo-superadmin (v34).
+--    Está fijado con un assert en validar_rls_por_rol.js: si algún día se
+--    prefiere que el club se quede sin quien invite, hay que cambiarlo a
+--    conciencia y no por accidente de la FK.
 -- ------------------------------------------------------------
 
 ALTER TABLE public.usuarios
