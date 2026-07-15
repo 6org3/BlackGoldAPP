@@ -48,7 +48,12 @@ export async function marcarBaja(atletaId, dar = true) {
   let query = supabase.from('atletas');
   query = dar
     ? query.update({ estado_membresia: 'baja', fecha_baja: hoyLocal() }).eq('id', atletaId).neq('estado_membresia', 'baja')
-    : query.update({ estado_membresia: 'activo', fecha_baja: null }).eq('id', atletaId);
+    // Reactivar registra el retorno como un alta del mes en curso y CONSERVA
+    // fecha_baja: el gráfico de altas/bajas del dueño cuenta eventos por mes,
+    // así que borrarla (como se hacía) reescribía el pasado — la baja de julio
+    // desaparecía del histórico al reactivar en agosto. El gauge de retención
+    // mira estado_membresia, no fecha_baja, así que sigue contándolo activo.
+    : query.update({ estado_membresia: 'activo', fecha_alta: hoyLocal() }).eq('id', atletaId);
   const { error } = await query;
   if (error) throw error;
   return { success: true };

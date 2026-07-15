@@ -35,6 +35,8 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     handleSubmit,
     esMenor,
     clubes,
+    clubesError,
+    recargarClubes,
   } = useAdminAtletasForm({ onRefresh, user });
 
   const {
@@ -231,6 +233,8 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
             handleSubmit={handleSubmit}
             user={user}
             clubes={clubes}
+            clubesError={clubesError}
+            recargarClubes={recargarClubes}
           />
         )}
       </AnimatePresence>

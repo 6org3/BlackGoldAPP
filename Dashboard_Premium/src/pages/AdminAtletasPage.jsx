@@ -9,7 +9,9 @@ export default function AdminAtletasPage() {
   const [atletas, setAtletas] = useState([]);
 
   const loadAtletas = useCallback(async () => {
-    const data = await fetchTodosLosAtletas(user);
+    // 'Todos': esta es la pantalla de GESTIÓN — cuenta y compara también a los
+    // dados de baja (el resto de la app ve solo el plantel activo, v34).
+    const data = await fetchTodosLosAtletas(user, { estadoMembresia: 'Todos' });
     setAtletas(data);
   }, [user]);
 

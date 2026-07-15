@@ -16,13 +16,19 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
   // Catálogo de clubes para el select del superadmin (v34): el resto del staff
   // no elige club — el atleta hereda el suyo y el campo ni se renderiza.
   const [clubes, setClubes] = useState([]);
+  const [clubesError, setClubesError] = useState('');
+  const [clubesIntento, setClubesIntento] = useState(0);
   const esSuperadmin = user?.rol === 'superadmin';
+  // El fallo se muestra y se puede reintentar: si se tragara, el select se
+  // quedaría en "Cargando clubes…" para siempre y el superadmin no podría dar
+  // de alta a nadie (sin club elegible no hay alta posible).
+  const recargarClubes = useCallback(() => setClubesIntento((n) => n + 1), []);
   useEffect(() => {
     if (!esSuperadmin) return;
     fetchClubesTodos()
-      .then(setClubes)
-      .catch(() => setClubes([])); // el form degrada al club actual del atleta
-  }, [esSuperadmin]);
+      .then((lista) => { setClubes(lista); setClubesError(''); })
+      .catch((e) => { setClubes([]); setClubesError(e.message || 'No se pudo cargar la lista de clubes.'); });
+  }, [esSuperadmin, clubesIntento]);
 
   // ─── Parent sub-form ──────────────────────────────────────
   const [showParentForm, setShowParentForm] = useState(false);
@@ -263,5 +269,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     handleSubmit,
     esMenor,
     clubes,
+    clubesError,
+    recargarClubes,
   };
 }

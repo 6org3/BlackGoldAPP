@@ -220,6 +220,16 @@ async function suiteCoach() {
   });
   check('coach NO puede crear superadmins (42501)', eSup?.code === '42501', eSup?.code || 'sin error');
 
+  // Escalada de privilegios (agujero vivo desde v24, cerrado en v34): el coach
+  // editaba SU PROPIA fila — que usuarios_update admite sin mirar `rol` — y el
+  // trigger le dejaba pasar por el early-return de es_staff() antes del guard.
+  // Con eso se volvía superadmin y caía todo el reparto de permisos.
+  const { error: eEscal } = await cli.from('usuarios')
+    .update({ rol: 'superadmin' }).eq('id', QA.coach1.usuarioId).select();
+  const { data: rolCoach } = await svc.from('usuarios').select('rol').eq('id', QA.coach1.usuarioId).single();
+  check('coach NO puede auto-promoverse a superadmin (trigger v34)',
+    !!eEscal && rolCoach?.rol === 'coach', eEscal?.message || `rol quedó en ${rolCoach?.rol}`);
+
   // v34: dar de baja es decisión del dueño; borrar, del superadmin.
   const { error: eBaja } = await cli.from('atletas')
     .update({ estado_membresia: 'baja' }).eq('id', QA.atleta1.atletaId).select();
@@ -254,10 +264,29 @@ async function suiteMembresiaYClubes() {
   check('owner SÍ reactiva (estado activo y sin fecha_baja)',
     !eReact && trasReact?.estado_membresia === 'activo' && trasReact?.fecha_baja === null, eReact?.message);
 
+  // La baja corta la facturación: es lo que el panel promete al dar de baja.
+  await svc.from('atletas').update({ estado_membresia: 'baja', fecha_baja: '2026-07-15' }).eq('id', QA.atleta1.atletaId);
+  await svc.from('pagos').delete().eq('atleta_id', QA.atleta1.atletaId).eq('mes', 12).eq('anio', 2099);
+  const { error: eGen } = await cliOwner.rpc('generar_pagos_mes',
+    { p_mes: 12, p_anio: 2099, p_club: 'Black Gold', p_registrado_por: null });
+  const { count: nPagosBaja } = await svc.from('pagos')
+    .select('id', { count: 'exact', head: true })
+    .eq('atleta_id', QA.atleta1.atletaId).eq('mes', 12).eq('anio', 2099);
+  check('un atleta de baja NO recibe mensualidad (generar_pagos_mes v34)',
+    !eGen && (nPagosBaja || 0) === 0, eGen?.message || `se le crearon ${nPagosBaja} pagos`);
+  await svc.from('atletas').update({ estado_membresia: 'activo', fecha_baja: null }).eq('id', QA.atleta1.atletaId);
+  await svc.from('pagos').delete().eq('mes', 12).eq('anio', 2099); // limpia el mes ficticio
+
   // El catálogo de clubes es solo del superadmin (el owner usa el suyo).
   const { data: clubesOwner } = await cliOwner.rpc('listar_clubes_todos');
   check('owner NO enumera los clubes de la plataforma',
     (clubesOwner || []).length === 0, `ve ${(clubesOwner || []).length} clubes`);
+
+  const { error: eEscalOwner } = await cliOwner.from('usuarios')
+    .update({ rol: 'superadmin' }).eq('id', QA.owner1.usuarioId).select();
+  const { data: rolOwner } = await svc.from('usuarios').select('rol').eq('id', QA.owner1.usuarioId).single();
+  check('owner NO puede auto-promoverse a superadmin (trigger v34)',
+    !!eEscalOwner && rolOwner?.rol === 'owner', eEscalOwner?.message || `rol quedó en ${rolOwner?.rol}`);
 
   // Cambiar de club es cross-club: ni el owner de ese club puede.
   const { error: eClubOwner } = await cliOwner.from('usuarios')
