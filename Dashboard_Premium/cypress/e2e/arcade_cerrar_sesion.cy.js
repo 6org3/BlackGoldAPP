@@ -92,7 +92,9 @@ describe('Arcade HUD - cerrar sesión', () => {
 
   // El portal del dueño monta el mismo menú en el hex "BG" de su cabecera. Solo
   // corre si SMOKE_TEST_USER tiene rol owner/superadmin; con cualquier otro rol
-  // PrivateRoute rebota a /dashboard y la prueba se salta.
+  // PrivateRoute lo rebota al home nativo de ese rol (rutaHomeParaRol: /coach,
+  // /atleta o /padre) y la prueba se salta. El skip solo mira que la url no sea
+  // /club, así que da igual en cuál de ellos caiga.
   it('Dueño: el avatar del HUD cierra la sesión en /club', function () {
     const creds = Cypress.env('SMOKE_TEST_USER');
     if (!creds) this.skip();
