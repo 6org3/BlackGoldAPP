@@ -112,9 +112,11 @@ const PrivateRoute = ({ children, roles }) => {
   }
 
   if (roles && !roles.includes(user.rol)) {
-    // Redirigir al dashboard correspondiente
-    if (user.rol === 'padre') return <Navigate to="/padre" />;
-    return <Navigate to="/dashboard" />;
+    // Mismo destino que RootRedirect, el Sidebar y el login: el home nativo del
+    // rol, no el shell legacy. No cicla: con el flag activo el destino es el
+    // home del propio rol, que lo admite; con el flag apagado es /dashboard,
+    // donde solo caen roles que /dashboard sí admite (padre se queda en /padre).
+    return <Navigate to={rutaHomeParaRol(user.rol)} replace />;
   }
   return children;
 };
