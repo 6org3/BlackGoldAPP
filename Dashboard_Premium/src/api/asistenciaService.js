@@ -5,15 +5,22 @@ import { supabase } from './supabaseClient';
 
 /**
  * Obtiene las asistencias de una fecha dada, enriquecidas con datos del atleta.
- * Opcionalmente filtra por categoría.
+ * Opcionalmente filtra por grupo de entrenamiento.
+ *
+ * El pase de lista se acota por GRUPO, no por categoría FEB: quien está en la
+ * cancha a una hora concreta es el grupo (que tiene horario), no la cohorte de
+ * edad — un grupo mezcla atletas de distintas categorías a propósito. De paso
+ * deja de depender de `usuarios.categoria`, una columna legacy que nadie
+ * mantiene y que ni siquiera es la que usa el resto de la app (`categoria_feb`).
+ *
  * Lanza si la consulta falla: devolver [] aquí haría indistinguible "sin
  * registros" de "falló la carga", y el pase de lista partiría de "100%
  * presente" pudiendo pisar asistencia real sin ninguna señal (auditoría
  * UX coach 2026-07-09).
  * @param {string} fecha - Fecha en formato 'YYYY-MM-DD'
- * @param {string|null} categoria - Categoría a filtrar (null = todas)
+ * @param {string|null} grupoId - id del grupo a filtrar (null = todos)
  */
-export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
+export async function fetchAsistenciaPorFecha(fecha, grupoId = null) {
   const { data, error } = await supabase
     .from('asistencia')
     .select(`
@@ -23,7 +30,7 @@ export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
       fecha,
       estado,
       notas,
-      atletas (id, posicion, usuarios!inner!atletas_usuario_id_fkey (nombre, categoria, club))
+      atletas (id, posicion, grupo_id, usuarios!inner!atletas_usuario_id_fkey (nombre, club))
     `)
     .eq('fecha', fecha);
 
@@ -32,9 +39,8 @@ export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
     throw error;
   }
 
-  // Filtrar por categoría si se especifica
-  if (categoria && categoria !== 'Todas') {
-    return (data || []).filter(r => r.atletas?.usuarios?.categoria === categoria);
+  if (grupoId) {
+    return (data || []).filter(r => r.atletas?.grupo_id === grupoId);
   }
   return data || [];
 }
