@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle, FileText, AlertTriangle, Search, Calendar, Users
 import { fetchAsistenciaPorFecha, upsertAsistencia } from '../api/asistenciaService';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
+import BotonVolver from './arcade/BotonVolver';
 import MicroLabel from './arcade/MicroLabel';
 import KpiTile from './arcade/KpiTile';
 import KpiGrid from './arcade/KpiGrid';
@@ -147,6 +148,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
       {/* Header */}
       <header className="mb-8 pb-8" style={{ borderBottom: `1px solid ${BORDER.neutral}` }}>
         <div className="flex items-center gap-3">
+          <BotonVolver />
           <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
             <ClipboardList size={22} strokeWidth={2.5} />
           </HexAvatar>
