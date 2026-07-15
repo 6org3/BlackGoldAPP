@@ -20,13 +20,23 @@ describe('Dueño · acceso a /admin desde el HUD', () => {
   });
 
   beforeEach(() => {
-    cy.visit('/login');
+    // Limpiar ANTES de visitar: estos tests terminan con la sesión abierta, y
+    // visitar /login con la sesión viva hace que el efecto de sesión-vigente de
+    // Login.jsx redirija a /club (#84) en vez de mostrar el formulario.
     cy.clearLocalStorage();
     cy.clearCookies();
+    cy.visit('/login');
     cy.get('input[type="text"], input[type="email"], input[placeholder*="ejemplo"]').first().type(OWNER.identificador);
     cy.get('input[type="password"]').first().type(OWNER.password);
     cy.get('form button[type="submit"]').click();
-    cy.url({ timeout: 15000 }).should('include', '/club');
+    cy.url({ timeout: 20000 }).should('include', '/club');
+    // Esperar a que el HUD se ASIENTE, no solo a que la URL sea /club: es lo que
+    // hace determinista al spec. Si se interactúa mientras el panel hidrata, una
+    // redirección post-login aún en vuelo pisa la navegación del test — el modal
+    // se cierra, la URL se queda en /club y el click se pierde sin ningún error.
+    // Solo se reproducía contra producción (latencia real) y a partir del 2º test.
+    cy.contains('CARGANDO', { timeout: 20000 }).should('not.exist');
+    cy.get('button[aria-label="Consola de gestión"]').should('be.visible');
   });
 
   it('la consola del header lista los 10 módulos y navega a cada uno', () => {
