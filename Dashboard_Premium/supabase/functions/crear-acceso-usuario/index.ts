@@ -62,13 +62,21 @@ serve(async (req) => {
   if (!['atleta', 'padre', 'coach', 'owner'].includes(target.rol as string)) {
     return jsonResponse({ error: 'Por esta vía solo se crean accesos de atletas, representantes, coaches y dueños.' }, 400);
   }
-  // El acceso de un coach (v35) o de un co-dueño (v36) lo habilita el dueño del
-  // club, nunca otro coach. Quién pudo crear la FILA ya lo decidió
-  // `usuarios_insert` (a un owner solo lo crea el dueño original); esto impide
-  // que un tercero le dé acceso a una fila que él no habría podido crear.
+  // El acceso de un coach (v35) lo habilita el dueño del club, nunca otro coach.
   if ((target.rol === 'coach' || target.rol === 'owner')
       && caller!.rol !== 'owner' && caller!.rol !== 'superadmin') {
     return jsonResponse({ error: 'Solo el dueño del club puede crear el acceso de un coach o de un co-dueño.' }, 403);
+  }
+  // El de un DUEÑO, solo el dueño ORIGINAL (o el superadmin): el mismo gate que
+  // `usuarios_insert` pone a la fila (es_owner_principal, v36). Sin esto un
+  // co-dueño no podría crear la fila de otro dueño… pero sí emitirle el acceso
+  // a una que llegara por otra vía, que es la mitad que de verdad da entrada.
+  if (target.rol === 'owner' && caller!.rol !== 'superadmin') {
+    const { data: yo } = await admin!
+      .from('usuarios').select('creado_por').eq('id', caller!.id).single();
+    if (yo?.creado_por) {
+      return jsonResponse({ error: 'Solo el dueño original del club puede dar acceso a un co-dueño.' }, 403);
+    }
   }
 
   // Password inicial según el rol del target.
