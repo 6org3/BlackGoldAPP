@@ -46,6 +46,8 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     filtroPosicion, setFiltroPosicion,
     filtroGenero, setFiltroGenero,
     filtroMembresia, setFiltroMembresia,
+    filtroEdadMin, setFiltroEdadMin,
+    filtroEdadMax, setFiltroEdadMax,
     showFilters, setShowFilters,
     atletasFiltrados,
     atletasAgrupados,
@@ -255,6 +257,10 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         setFiltroGenero={setFiltroGenero}
         filtroMembresia={filtroMembresia}
         setFiltroMembresia={setFiltroMembresia}
+        filtroEdadMin={filtroEdadMin}
+        setFiltroEdadMin={setFiltroEdadMin}
+        filtroEdadMax={filtroEdadMax}
+        setFiltroEdadMax={setFiltroEdadMax}
         filtrosActivos={filtrosActivos}
         clearFilters={clearFilters}
       />

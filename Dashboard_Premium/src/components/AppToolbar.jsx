@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, ListFilter, SlidersHorizontal, Target, ChevronDown } from 'lucide-react';
 import { cut } from './arcade/arcadeTokens';
+import { parseEdad } from '../lib/edad';
 
 const categorias = ['Todas', 'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)', 'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores'];
 const posiciones = ['Todas', 'Generador', 'Escolta', 'Alero Físico', 'Ala-Pívot', 'Ancla Fuerte'];
@@ -15,6 +16,8 @@ const SelectChevron = () => (
 // Corte de esquina compartido de los selects del panel (§6.3 Formulario-HUD → cut(7)).
 const CUT_FIELD = { clipPath: cut(7) };
 
+const EDAD_INPUT_CLASS = 'cut-focus arcade-input w-full min-w-0 min-h-11 md:min-h-9 bg-surface-sunken border border-white/10 text-white text-base md:text-2xs font-bold tracking-widest px-2.5 focus:outline-none focus:border-brand/60 hover:border-white/30 transition';
+
 export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltroChange, ordenarPor, setOrdenarPor, setShowAsignador }) {
   // Patrón "barra de filtros colapsable" (design_system_arcade.md §6.4): en móvil
   // los combos cuestan más pantalla que los atletas, así que arrancan
@@ -25,6 +28,8 @@ export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltr
     filtros.categoria !== 'Todas',
     filtros.posicion !== 'Todas',
     filtros.nivelDesarrollo !== 'Todos',
+    // El rango de edad cuenta como un solo filtro aunque tenga dos extremos.
+    filtros.edadMin !== undefined || filtros.edadMax !== undefined,
   ].filter(Boolean).length;
 
   return (
@@ -102,6 +107,33 @@ export default function AppToolbar({ busqueda, setBusqueda, filtros, handleFiltr
               {categorias.map(c => <option key={c} value={c}>{c === 'Todas' ? 'Todas' : c}</option>)}
             </select>
             <SelectChevron />
+          </div>
+        </div>
+
+        <div className="flex flex-col flex-1 min-w-[160px] lg:flex-none">
+          <label htmlFor="filtro-edad-min" className="font-pixel text-2xs text-fg-muted uppercase tracking-widest mb-1.5 ml-1">Edad</label>
+          <div className="flex items-center gap-2">
+            <input
+              id="filtro-edad-min"
+              type="number" inputMode="numeric" min="0" max="99"
+              placeholder="Mín"
+              aria-label="Edad mínima"
+              value={filtros.edadMin ?? ''}
+              onChange={e => handleFiltroChange('edadMin', parseEdad(e.target.value))}
+              style={CUT_FIELD}
+              className={EDAD_INPUT_CLASS}
+            />
+            <span aria-hidden="true" className="text-2xs font-bold text-fg-muted shrink-0">a</span>
+            <input
+              id="filtro-edad-max"
+              type="number" inputMode="numeric" min="0" max="99"
+              placeholder="Máx"
+              aria-label="Edad máxima"
+              value={filtros.edadMax ?? ''}
+              onChange={e => handleFiltroChange('edadMax', parseEdad(e.target.value))}
+              style={CUT_FIELD}
+              className={EDAD_INPUT_CLASS}
+            />
           </div>
         </div>
 

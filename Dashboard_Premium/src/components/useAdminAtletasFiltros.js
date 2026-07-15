@@ -14,6 +14,9 @@ export default function useAdminAtletasFiltros(user) {
   const [filtroPosicion, setFiltroPosicion] = useState('Todas');
   const [filtroGenero, setFiltroGenero] = useState('Todos');
   const [filtroMembresia, setFiltroMembresia] = useState('Todos');
+  // Extremos del rango de edad: `undefined` = sin acotar (0 sí acotaría).
+  const [filtroEdadMin, setFiltroEdadMin] = useState(undefined);
+  const [filtroEdadMax, setFiltroEdadMax] = useState(undefined);
   const [showFilters, setShowFilters] = useState(false);
   const [busquedaDebounced, setBusquedaDebounced] = useState('');
   const [atletasFiltrados, setAtletasFiltrados] = useState([]);
@@ -35,7 +38,9 @@ export default function useAdminAtletasFiltros(user) {
                      filtroNivel !== 'Todos' ||
                      filtroPosicion !== 'Todas' ||
                      filtroGenero !== 'Todos' ||
-                     filtroMembresia !== 'Todos';
+                     filtroMembresia !== 'Todos' ||
+                     filtroEdadMin !== undefined ||
+                     filtroEdadMax !== undefined;
 
   useEffect(() => {
     if (!hasFilters || !user) {
@@ -52,6 +57,8 @@ export default function useAdminAtletasFiltros(user) {
       posicion: filtroPosicion,
       genero: filtroGenero,
       estadoMembresia: filtroMembresia,
+      edadMin: filtroEdadMin,
+      edadMax: filtroEdadMax,
     }).then(data => {
       if (requestId !== requestIdRef.current) return; // filtro cambió mientras cargaba
       setAtletasFiltrados(data || []);
@@ -61,7 +68,7 @@ export default function useAdminAtletasFiltros(user) {
     }).finally(() => {
       if (requestId === requestIdRef.current) setLoadingFiltrados(false);
     });
-  }, [user, busquedaDebounced, filtroCat, filtroNivel, filtroPosicion, filtroGenero, filtroMembresia, hasFilters, version]);
+  }, [user, busquedaDebounced, filtroCat, filtroNivel, filtroPosicion, filtroGenero, filtroMembresia, filtroEdadMin, filtroEdadMax, hasFilters, version]);
 
   const atletasAgrupados = useMemo(() => {
     const groups = {};
@@ -80,7 +87,7 @@ export default function useAdminAtletasFiltros(user) {
     return ordered;
   }, [atletasFiltrados]);
 
-  const filtrosActivos = filtroCat !== 'Todas' || filtroNivel !== 'Todos' || filtroPosicion !== 'Todas' || filtroGenero !== 'Todos' || filtroMembresia !== 'Todos';
+  const filtrosActivos = filtroCat !== 'Todas' || filtroNivel !== 'Todos' || filtroPosicion !== 'Todas' || filtroGenero !== 'Todos' || filtroMembresia !== 'Todos' || filtroEdadMin !== undefined || filtroEdadMax !== undefined;
 
   const clearFilters = () => {
     setFiltroCat('Todas');
@@ -88,6 +95,8 @@ export default function useAdminAtletasFiltros(user) {
     setFiltroPosicion('Todas');
     setFiltroGenero('Todos');
     setFiltroMembresia('Todos');
+    setFiltroEdadMin(undefined);
+    setFiltroEdadMax(undefined);
     setBusqueda('');
   };
 
@@ -98,6 +107,8 @@ export default function useAdminAtletasFiltros(user) {
     filtroPosicion, setFiltroPosicion,
     filtroGenero, setFiltroGenero,
     filtroMembresia, setFiltroMembresia,
+    filtroEdadMin, setFiltroEdadMin,
+    filtroEdadMax, setFiltroEdadMax,
     showFilters, setShowFilters,
     atletasFiltrados,
     atletasAgrupados,
