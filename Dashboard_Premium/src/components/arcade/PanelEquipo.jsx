@@ -1,7 +1,8 @@
-import { C, PIXEL, cut } from './arcadeTokens';
+import { C } from './arcadeTokens';
 import MicroLabel from './MicroLabel';
 import Pill from './Pill';
 import RankRow from './RankRow';
+import SalidaAdmin from './SalidaAdmin';
 
 /** D4 · Equipo (coaches) — ranking reordenable por asistencia / sesiones / XP. */
 export default function PanelEquipo({ ctx }) {
@@ -23,16 +24,7 @@ export default function PanelEquipo({ ctx }) {
       )}
       <p style={{ margin: '0 0 12px', fontSize: 11, color: C.text3, lineHeight: 1.5 }}>Ranking según la métrica elegida · datos últimos 30 días.</p>
       {/* El alta vive fuera del HUD (/admin/equipo): este panel es de lectura. */}
-      {ctx.onGestionar && (
-        <button
-          type="button"
-          onClick={ctx.onGestionar}
-          className="cut-focus"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 44, background: C.card, border: `1px solid rgba(255,215,0,.3)`, clipPath: cut(10), color: C.gold, fontFamily: PIXEL, fontSize: 8, cursor: 'pointer' }}
-        >
-          GESTIONAR EQUIPO ►
-        </button>
-      )}
+      <SalidaAdmin label={ctx.gestionarLabel} onClick={ctx.onGestionar} />
     </div>
   );
 }

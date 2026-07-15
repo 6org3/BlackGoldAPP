@@ -4,8 +4,8 @@ import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchSesionesAtleta, crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
 import { evaluateSessionRules } from '../lib/trainingRules';
 import { ArrowLeft, Save, FlaskConical, ShieldAlert, AlertTriangle, Info, Activity, Clock, Zap, Dumbbell, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import useVolverAlHome from '../hooks/useVolverAlHome';
 
 const METAS = ['Fuerza', 'Velocidad', 'Resistencia', 'Coordinación', 'Flexibilidad', 'Recuperación Activa'];
 const PAUSAS = ['Densidad Baja', 'Densidad Alta'];
@@ -15,7 +15,7 @@ const TEMPOS = ['Regular', '3-1-3 Isométrico'];
 
 export default function AdminPlanificacion() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const volver = useVolverAlHome();
   const [atletas, setAtletas] = useState([]);
   const [selectedAtleta, setSelectedAtleta] = useState(null);
   const [recentSessions, setRecentSessions] = useState([]);
@@ -136,7 +136,7 @@ export default function AdminPlanificacion() {
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center space-x-4 mb-10">
-        <button onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard"
+        <button onClick={volver} aria-label="Volver al inicio"
           className="p-2 -m-2 text-fg-muted hover:text-white transition-colors">
           <ArrowLeft size={20} />
         </button>

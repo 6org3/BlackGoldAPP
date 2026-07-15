@@ -2,6 +2,7 @@ import { C, BORDER, cut, HEX, PIXEL } from './arcadeTokens';
 import MicroLabel from './MicroLabel';
 import Pill from './Pill';
 import Donut from './Donut';
+import SalidaAdmin from './SalidaAdmin';
 
 function MoneRow({ r }) {
   return (
@@ -79,9 +80,12 @@ export default function PanelFinanzas({ ctx }) {
 
       {/* Vencidos / mora */}
       <MicroLabel color={C.danger} size={9.5} style={{ margin: '0 0 8px' }}>VENCIDOS · MORA</MicroLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
         {ctx.vencidos.map((r, i) => <MoneRow key={i} r={{ ...r, montoColor: C.danger }} />)}
       </div>
+
+      {/* Cobrar, facturar y conciliar es trabajo de /admin/pagos: aquí solo se lee. */}
+      <SalidaAdmin label={ctx.gestionarLabel} onClick={ctx.onGestionar} />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ArrowLeft, BarChart3, Crown, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import useVolverAlHome from '../hooks/useVolverAlHome';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { supabase } from '../api/supabaseClient';
 import { getSubPilarScores } from '../lib/radarCalc';
@@ -56,7 +56,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function OwnerKPIsPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const volver = useVolverAlHome();
   const esMovil = useEsMovil();
 
   const [atletas, setAtletas] = useState([]);
@@ -204,8 +204,8 @@ export default function OwnerKPIsPage() {
           {/* Header (Panel-denso §6.4: HexAvatar de identidad + título + MicroLabel) */}
           <div className="flex items-center gap-4 mb-10">
             <button
-              onClick={() => navigate('/dashboard')}
-              aria-label="Volver al dashboard"
+              onClick={volver}
+              aria-label="Volver al inicio"
               className="cut-focus grid place-items-center min-h-11 min-w-11 bg-white/5 hover:bg-white/10 transition-colors"
               style={{ clipPath: cut(7), color: C.text3 }}
             >

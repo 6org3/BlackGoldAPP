@@ -5,14 +5,14 @@ import { calcularCategoriaFEB } from '../api/utilsAtletas';
 import { aprobarMision, rechazarMision, aprobarAsignacion, rechazarAsignacion, setMisionActiva, actualizarMision } from '../api/misionesService';
 import { ArrowLeft, Plus, Save, X, Play, Trash2, CheckCircle, XCircle, Power, ChevronDown, Pencil } from 'lucide-react';
 import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import useVolverAlHome from '../hooks/useVolverAlHome';
 
 const PAGE_SIZE = 50;
 
 export default function AdminMisiones() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const volver = useVolverAlHome();
   const [misiones, setMisiones] = useState([]);
   const [totalMisiones, setTotalMisiones] = useState(0);
   const [cargandoMas, setCargandoMas] = useState(false);
@@ -351,7 +351,7 @@ export default function AdminMisiones() {
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
         <div className="flex items-center space-x-4">
-          <button onClick={() => navigate('/dashboard')} aria-label="Volver" className="p-2 -m-2 text-fg-muted hover:text-white transition-colors">
+          <button onClick={volver} aria-label="Volver al inicio" className="p-2 -m-2 text-fg-muted hover:text-white transition-colors">
             <ArrowLeft size={20} />
           </button>
           <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
