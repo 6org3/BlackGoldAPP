@@ -1,25 +1,30 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Dumbbell, Pencil, Trash2 } from 'lucide-react';
+import { Download, Dumbbell, Pencil, Trash2, UserMinus, UserCheck } from 'lucide-react';
 import { NIVEL_BADGE } from './AdminAtletasConstants';
+import { esBaja, etiquetaBaja } from './adminAtletasMembresia';
 import ActionButton from './AdminAtletasActionButton';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
-import { C, BORDER, cut } from './arcade/arcadeTokens';
+import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
 // ═══════════════════════════════════════════════════════════════
 // TARJETA GRID — Vista cuadrícula (Arcade HUD)
 // ═══════════════════════════════════════════════════════════════
 
-function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropometria, isExporting }) {
+// `onDelete` y `onToggleMembresia` llegan en null cuando el rol no puede
+// hacerlo (v34: borrar = superadmin; dar de baja = owner/superadmin), y el
+// botón simplemente no se renderiza.
+function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropometria, onToggleMembresia, isExporting }) {
   const nivelKey = atleta.nivel_desarrollo || 'Por Asignar';
   const badge = NIVEL_BADGE[nivelKey] || NIVEL_BADGE['Por Asignar'];
+  const deBaja = esBaja(atleta);
 
   return (
     // Entrada solo-opacity: bajo prefers-reduced-motion los transforms se congelan
     // en su valor initial (MotionConfig global) y dejarían la card desplazada.
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(index, 10) * 0.04 }}>
-      <CutCard cut={12} padding="20px">
+      <CutCard cut={12} padding="20px" style={deBaja ? { opacity: 0.72 } : undefined}>
         {/* Top: Avatar + Identidad */}
         <div className="flex items-center gap-3 mb-4">
           <HexAvatar size={44}>{atleta.nombre?.charAt(0)}</HexAvatar>
@@ -45,6 +50,14 @@ function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropome
           >
             {badge.icon} {nivelKey}
           </span>
+          {deBaja && (
+            <span
+              className="text-3xs font-black uppercase tracking-widest px-2 py-0.5"
+              style={{ clipPath: cut(4), border: `1px solid ${C.danger}`, background: TINT.danger, color: C.danger }}
+            >
+              {etiquetaBaja(atleta)}
+            </span>
+          )}
         </div>
 
         {/* Edad / medidas */}
@@ -68,9 +81,20 @@ function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropome
             <ActionButton onClick={() => onEdit(atleta)} title="Editar" className="hover:text-brand">
               <Pencil size={14} />
             </ActionButton>
-            <ActionButton onClick={() => onDelete(atleta)} title="Eliminar" className="hover:text-danger">
-              <Trash2 size={14} />
-            </ActionButton>
+            {onToggleMembresia && (
+              <ActionButton
+                onClick={() => onToggleMembresia(atleta)}
+                title={deBaja ? `Reactivar a ${atleta.nombre}` : `Dar de baja a ${atleta.nombre}`}
+                className={deBaja ? 'hover:text-success-soft' : 'hover:text-warning-soft'}
+              >
+                {deBaja ? <UserCheck size={14} /> : <UserMinus size={14} />}
+              </ActionButton>
+            )}
+            {onDelete && (
+              <ActionButton onClick={() => onDelete(atleta)} title="Eliminar" className="hover:text-danger">
+                <Trash2 size={14} />
+              </ActionButton>
+            )}
           </div>
         </div>
       </CutCard>

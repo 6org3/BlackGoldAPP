@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
-import { AlertCircle, X, Trash2, AlertTriangle } from 'lucide-react';
+import { AlertCircle, X, Trash2, AlertTriangle, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { marcarBaja } from '../api/retencionService';
+import { esBaja } from './adminAtletasMembresia';
 import ScoutingReportTemplate from './ScoutingReportTemplate';
 import AntropometriaModal from './AntropometriaModal';
 import useAdminAtletasFiltros from './useAdminAtletasFiltros';
@@ -32,6 +34,9 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     handleEdit,
     handleSubmit,
     esMenor,
+    clubes,
+    clubesError,
+    recargarClubes,
   } = useAdminAtletasForm({ onRefresh, user });
 
   const {
@@ -40,6 +45,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     filtroNivel, setFiltroNivel,
     filtroPosicion, setFiltroPosicion,
     filtroGenero, setFiltroGenero,
+    filtroMembresia, setFiltroMembresia,
     showFilters, setShowFilters,
     atletasFiltrados,
     atletasAgrupados,
@@ -47,6 +53,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     hasFilters,
     loadingFiltrados,
     clearFilters,
+    refetch,
   } = useAdminAtletasFiltros(user);
 
   // ─── View State ───────────────────────────────────────────
@@ -59,6 +66,12 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
   const [modal, setModal] = useState(null);
   const reportRef = React.useRef(null);
 
+  // Quién puede qué (v34, en simetría con la aprobación de solicitudes: quien
+  // decide quién entra decide quién sale). Los triggers y la RLS lo repiten
+  // server-side — esto solo evita ofrecer un botón que iba a fallar.
+  const puedeMembresia = user?.rol === 'owner' || user?.rol === 'superadmin';
+  const puedeEliminar = user?.rol === 'superadmin';
+
   // Handlers estables: las cards/filas están memoizadas (React.memo) y
   // reciben estas referencias directamente.
   const handleDelete = useCallback((atleta) => {
@@ -66,16 +79,55 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
       variant: 'confirm', tone: 'danger', icon: Trash2,
       eyebrow: 'Acción irreversible',
       title: 'Eliminar atleta',
-      message: `¿Seguro que deseas eliminar a ${atleta.nombre}? Esta acción no se puede deshacer.`,
+      message: `¿Seguro que deseas eliminar a ${atleta.nombre}? Se borra también todo su historial (asistencia, evaluaciones, pagos, XP) y no se puede deshacer. Para una salida reversible, usa "Dar de baja".`,
       confirmLabel: 'Eliminar',
       onConfirm: async () => {
         setModal(null);
-        await supabase.from('atletas').delete().eq('id', atleta.atleta_id);
-        await supabase.from('usuarios').delete().eq('id', atleta.id);
+        // Los dos deletes se comprueban: antes se ignoraba el resultado, así que
+        // un fallo de RLS en el segundo dejaba el usuario huérfano en silencio.
+        const { error: eAtleta } = await supabase.from('atletas').delete().eq('id', atleta.atleta_id);
+        const { error: eUsuario } = eAtleta
+          ? { error: null }
+          : await supabase.from('usuarios').delete().eq('id', atleta.id);
+        if (eAtleta || eUsuario) {
+          setModal({
+            variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Error',
+            title: 'No se pudo eliminar', message: (eAtleta || eUsuario).message,
+          });
+        }
         if (onRefresh) onRefresh();
+        refetch();
       },
     });
-  }, [onRefresh]);
+  }, [onRefresh, refetch]);
+
+  // Dar de baja / reactivar (v31: atletas.estado_membresia). Reversible y
+  // conserva el histórico — es la salida por defecto frente a Eliminar.
+  const handleToggleMembresia = useCallback((atleta) => {
+    const dar = !esBaja(atleta);
+    const ejecutar = async () => {
+      setModal(null);
+      try {
+        await marcarBaja(atleta.atleta_id, dar);
+        if (onRefresh) onRefresh();
+        refetch(); // la lista visible la sirve useAdminAtletasFiltros, no `atletas`
+      } catch (e) {
+        setModal({
+          variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Error',
+          title: dar ? 'No se pudo dar de baja' : 'No se pudo reactivar', message: e.message,
+        });
+      }
+    };
+    if (!dar) { ejecutar(); return; } // reactivar no necesita confirmación: no destruye nada
+    setModal({
+      variant: 'confirm', tone: 'warn', icon: UserMinus,
+      eyebrow: 'Baja del club',
+      title: `¿Dar de baja a ${atleta.nombre}?`,
+      message: 'Sale del plantel activo y deja de generar mensualidades. Conserva su historial y puedes reactivarlo cuando vuelva.',
+      confirmLabel: 'Dar de baja',
+      onConfirm: ejecutar,
+    });
+  }, [onRefresh, refetch]);
 
   const exportPDF = useCallback(async (atleta) => {
     setExportingAtleta(atleta);
@@ -180,6 +232,9 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
             setShowForm={setShowForm}
             handleSubmit={handleSubmit}
             user={user}
+            clubes={clubes}
+            clubesError={clubesError}
+            recargarClubes={recargarClubes}
           />
         )}
       </AnimatePresence>
@@ -198,6 +253,8 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         setFiltroPosicion={setFiltroPosicion}
         filtroGenero={filtroGenero}
         setFiltroGenero={setFiltroGenero}
+        filtroMembresia={filtroMembresia}
+        setFiltroMembresia={setFiltroMembresia}
         filtrosActivos={filtrosActivos}
         clearFilters={clearFilters}
       />
@@ -212,9 +269,10 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         clearFilters={clearFilters}
         exportingAtleta={exportingAtleta}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={puedeEliminar ? handleDelete : null}
         onExport={exportPDF}
         onAntropometria={setEvaluatingAntropometria}
+        onToggleMembresia={puedeMembresia ? handleToggleMembresia : null}
       />
 
       {/* Componente oculto para exportación PDF */}

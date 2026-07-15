@@ -20,7 +20,18 @@ export default function AdminAtletasForm({
   setShowForm,
   handleSubmit,
   user,
+  clubes = [],
+  clubesError = '',
+  recargarClubes,
 }) {
+  // Club del superadmin: se elige de la lista real (v34), nunca se teclea. El
+  // club actual del atleta va primero aunque el catálogo no lo traiga (RPC
+  // caída): así editar a alguien de un club histórico no le borra el club.
+  const opcionesClub = form.club && !clubes.includes(form.club) ? [form.club, ...clubes] : clubes;
+  const etiquetaVacia = opcionesClub.length
+    ? '— Selecciona club —'
+    : (clubesError ? '— Sin catálogo —' : 'Cargando clubes…');
+
   return (
     // Entrada sin transform (solo opacity + height): bajo prefers-reduced-motion
     // un translate se congelaría en su initial y dejaría el formulario desplazado.
@@ -81,8 +92,24 @@ export default function AdminAtletasForm({
           optionLabels={['— Por Asignar —', 'Micro', 'Desarrollo', 'Elite']}
           onChange={v => handleChange('nivel_desarrollo', v)}
         />
-        {user?.rol === "superadmin" && (
-          <InputField label="Club (Admin)" value={form.club} onChange={v => handleChange("club", v)} placeholder="Ej. Black Gold" />
+        {user?.rol === 'superadmin' && (
+          <div>
+            <SelectField
+              label="Club (Admin)"
+              value={form.club}
+              options={['', ...opcionesClub]}
+              optionLabels={[etiquetaVacia, ...opcionesClub]}
+              onChange={v => handleChange('club', v)}
+            />
+            {clubesError && (
+              <p role="alert" className="mt-1.5 text-3xs" style={{ color: C.danger }}>
+                {clubesError}{' '}
+                <button type="button" onClick={recargarClubes} className="cut-focus underline font-bold" style={{ color: C.gold }}>
+                  Reintentar
+                </button>
+              </p>
+            )}
+          </div>
         )}
       </div>
 

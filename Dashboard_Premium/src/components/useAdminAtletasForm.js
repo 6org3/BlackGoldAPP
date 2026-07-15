@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../api/supabaseClient';
 import { calcularEdad } from '../api/utilsAtletas';
 import { crearAccesoUsuario } from '../api/accesosService';
+import { fetchClubesTodos } from '../api/clubesService';
 
 // ─── Hook de estado y lógica del formulario de alta/edición ───
 export default function useAdminAtletasForm({ onRefresh, user }) {
@@ -11,6 +12,23 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Catálogo de clubes para el select del superadmin (v34): el resto del staff
+  // no elige club — el atleta hereda el suyo y el campo ni se renderiza.
+  const [clubes, setClubes] = useState([]);
+  const [clubesError, setClubesError] = useState('');
+  const [clubesIntento, setClubesIntento] = useState(0);
+  const esSuperadmin = user?.rol === 'superadmin';
+  // El fallo se muestra y se puede reintentar: si se tragara, el select se
+  // quedaría en "Cargando clubes…" para siempre y el superadmin no podría dar
+  // de alta a nadie (sin club elegible no hay alta posible).
+  const recargarClubes = useCallback(() => setClubesIntento((n) => n + 1), []);
+  useEffect(() => {
+    if (!esSuperadmin) return;
+    fetchClubesTodos()
+      .then((lista) => { setClubes(lista); setClubesError(''); })
+      .catch((e) => { setClubes([]); setClubesError(e.message || 'No se pudo cargar la lista de clubes.'); });
+  }, [esSuperadmin, clubesIntento]);
 
   // ─── Parent sub-form ──────────────────────────────────────
   const [showParentForm, setShowParentForm] = useState(false);
@@ -68,7 +86,9 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
       if (editingId) {
         // EDITAR existente
         const updateData = { nombre: form.nombre, categoria: form.categoria, correo: safeCorreo, fecha_nacimiento: safeFecha, genero: form.genero };
-        if (user?.rol === 'superadmin' && form.club) {
+        // Cambiar de club es cross-club: solo el superadmin (el trigger
+        // proteger_columnas_usuarios lo vuelve a exigir server-side, v34).
+        if (esSuperadmin && form.club) {
           updateData.club = form.club;
         }
         const { error: userErr } = await supabase
@@ -106,8 +126,16 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
         if (atlErr) throw atlErr;
         setSuccess(`✅ ${form.nombre} actualizado correctamente.`);
       } else {
-        // CREAR nuevo
-        const resolvedClub = user?.rol === 'superadmin' ? (form.club || 'Black Gold') : (user?.club || 'Black Gold');
+        // CREAR nuevo. El club se elige de la lista real (superadmin) o se
+        // hereda del staff que registra; sin fallback silencioso a 'Black Gold'
+        // — el mismo pecado que v33 quitó del registro público (mandaba atletas
+        // a un club que nadie había elegido).
+        const resolvedClub = esSuperadmin ? (form.club?.trim() || '') : (user?.club || '');
+        if (!resolvedClub) {
+          throw new Error(esSuperadmin
+            ? 'Selecciona el club del atleta.'
+            : 'Tu usuario no tiene un club asignado. Contacta al superadmin.');
+        }
 
         const { data: newUser, error: userErr } = await supabase
           .from('usuarios')
@@ -240,5 +268,8 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     handleEdit,
     handleSubmit,
     esMenor,
+    clubes,
+    clubesError,
+    recargarClubes,
   };
 }

@@ -39,6 +39,7 @@ const QA = {
   padre1: { cedula: 'QA_RLS_PADRE1', nombre: 'QA Padre Uno' },
   coach1: { cedula: 'QA_RLS_COACH1', nombre: 'QA Coach Uno' },
   owner1: { cedula: 'QA_RLS_OWNER1', nombre: 'QA Owner Uno' },
+  super1: { cedula: 'QA_RLS_SUPER1', nombre: 'QA Superadmin Uno' },
   reg: { cedula: 'QA_RLS_REG1', nombre: 'QA Registro Uno', nac: '2013-03-15', telPadre: 'QA_RLS_TEL1' },
   reg2: { cedula: 'QA_RLS_REG2', nombre: 'QA Registro Dos (rechazo)', nac: '2014-06-25', telPadre: 'QA_RLS_TEL2' },
 };
@@ -100,6 +101,7 @@ async function setup() {
   await crearCuenta(QA.padre1, 'padre');
   await crearCuenta(QA.coach1, 'coach');
   await crearCuenta(QA.owner1, 'owner'); // resuelve solicitudes v33 sin tocar al owner real
+  await crearCuenta(QA.super1, 'superadmin'); // catálogo de clubes v34 (se borra al terminar)
   for (const q of [QA.atleta1, QA.atleta2]) {
     const { data, error } = await svc.from('atletas')
       .insert({ usuario_id: q.usuarioId, edad: 13, posicion: 'Base' }).select().single();
@@ -217,7 +219,117 @@ async function suiteCoach() {
     cedula: 'QA_RLS_HACK', nombre: 'QA Hack', rol: 'superadmin', club: 'Black Gold',
   });
   check('coach NO puede crear superadmins (42501)', eSup?.code === '42501', eSup?.code || 'sin error');
+
+  // Escalada de privilegios (agujero vivo desde v24, cerrado en v34): el coach
+  // editaba SU PROPIA fila — que usuarios_update admite sin mirar `rol` — y el
+  // trigger le dejaba pasar por el early-return de es_staff() antes del guard.
+  // Con eso se volvía superadmin y caía todo el reparto de permisos.
+  const { error: eEscal } = await cli.from('usuarios')
+    .update({ rol: 'superadmin' }).eq('id', QA.coach1.usuarioId).select();
+  const { data: rolCoach } = await svc.from('usuarios').select('rol').eq('id', QA.coach1.usuarioId).single();
+  check('coach NO puede auto-promoverse a superadmin (trigger v34)',
+    !!eEscal && rolCoach?.rol === 'coach', eEscal?.message || `rol quedó en ${rolCoach?.rol}`);
+
+  // v34: dar de baja es decisión del dueño; borrar, del superadmin.
+  const { error: eBaja } = await cli.from('atletas')
+    .update({ estado_membresia: 'baja' }).eq('id', QA.atleta1.atletaId).select();
+  const { data: membReal } = await svc.from('atletas').select('estado_membresia').eq('id', QA.atleta1.atletaId).single();
+  check('coach NO puede dar de baja a un atleta (trigger v34)',
+    !!eBaja && membReal?.estado_membresia === 'activo', eBaja?.message || 'sin error');
+
+  const { error: eDel } = await cli.from('atletas').delete().eq('id', QA.atleta1.atletaId).select();
+  const { data: sigueVivo } = await svc.from('atletas').select('id').eq('id', QA.atleta1.atletaId).maybeSingle();
+  check('coach NO puede borrar atletas (RLS v34)', !!sigueVivo, eDel?.message || 'la fila desapareció');
+
+  const { data: clubesCoach } = await cli.rpc('listar_clubes_todos');
+  check('coach NO enumera los clubes de la plataforma (RPC solo-superadmin)',
+    (clubesCoach || []).length === 0, `ve ${(clubesCoach || []).length} clubes`);
   await cli.auth.signOut();
+}
+
+async function suiteMembresiaYClubes() {
+  console.log('\n— MEMBRESÍA + CATÁLOGO DE CLUBES (v34) —');
+
+  // El owner da de baja y reactiva a un atleta de SU club.
+  const cliOwner = await loginComo(QA.owner1.cedula, QA.owner1.cedula);
+  const { error: eBaja } = await cliOwner.from('atletas')
+    .update({ estado_membresia: 'baja', fecha_baja: '2026-07-15' }).eq('id', QA.atleta1.atletaId).select();
+  const { data: trasBaja } = await svc.from('atletas').select('estado_membresia, fecha_baja').eq('id', QA.atleta1.atletaId).single();
+  check('owner SÍ da de baja a un atleta de su club',
+    !eBaja && trasBaja?.estado_membresia === 'baja' && !!trasBaja?.fecha_baja, eBaja?.message);
+
+  const { error: eReact } = await cliOwner.from('atletas')
+    .update({ estado_membresia: 'activo', fecha_baja: null }).eq('id', QA.atleta1.atletaId).select();
+  const { data: trasReact } = await svc.from('atletas').select('estado_membresia, fecha_baja').eq('id', QA.atleta1.atletaId).single();
+  check('owner SÍ reactiva (estado activo y sin fecha_baja)',
+    !eReact && trasReact?.estado_membresia === 'activo' && trasReact?.fecha_baja === null, eReact?.message);
+
+  // La baja corta la facturación: es lo que el panel promete al dar de baja.
+  await svc.from('atletas').update({ estado_membresia: 'baja', fecha_baja: '2026-07-15' }).eq('id', QA.atleta1.atletaId);
+  await svc.from('pagos').delete().eq('atleta_id', QA.atleta1.atletaId).eq('mes', 12).eq('anio', 2099);
+  const { error: eGen } = await cliOwner.rpc('generar_pagos_mes',
+    { p_mes: 12, p_anio: 2099, p_club: 'Black Gold', p_registrado_por: null });
+  const { count: nPagosBaja } = await svc.from('pagos')
+    .select('id', { count: 'exact', head: true })
+    .eq('atleta_id', QA.atleta1.atletaId).eq('mes', 12).eq('anio', 2099);
+  check('un atleta de baja NO recibe mensualidad (generar_pagos_mes v34)',
+    !eGen && (nPagosBaja || 0) === 0, eGen?.message || `se le crearon ${nPagosBaja} pagos`);
+  await svc.from('atletas').update({ estado_membresia: 'activo', fecha_baja: null }).eq('id', QA.atleta1.atletaId);
+  await svc.from('pagos').delete().eq('mes', 12).eq('anio', 2099); // limpia el mes ficticio
+
+  // El catálogo de clubes es solo del superadmin (el owner usa el suyo).
+  const { data: clubesOwner } = await cliOwner.rpc('listar_clubes_todos');
+  check('owner NO enumera los clubes de la plataforma',
+    (clubesOwner || []).length === 0, `ve ${(clubesOwner || []).length} clubes`);
+
+  const { error: eEscalOwner } = await cliOwner.from('usuarios')
+    .update({ rol: 'superadmin' }).eq('id', QA.owner1.usuarioId).select();
+  const { data: rolOwner } = await svc.from('usuarios').select('rol').eq('id', QA.owner1.usuarioId).single();
+  check('owner NO puede auto-promoverse a superadmin (trigger v34)',
+    !!eEscalOwner && rolOwner?.rol === 'owner', eEscalOwner?.message || `rol quedó en ${rolOwner?.rol}`);
+
+  // Cambiar de club es cross-club: ni el owner de ese club puede.
+  const { error: eClubOwner } = await cliOwner.from('usuarios')
+    .update({ club: 'Club Leones' }).eq('id', QA.atleta1.usuarioId).select();
+  const { data: clubReal } = await svc.from('usuarios').select('club').eq('id', QA.atleta1.usuarioId).single();
+  check('owner NO puede mover a un atleta a otro club (trigger v34)',
+    !!eClubOwner && clubReal?.club === 'Black Gold', eClubOwner?.message || 'sin error');
+  await cliOwner.auth.signOut();
+
+  // El atleta tampoco enumera clubes (la RPC es SECURITY DEFINER: sin el gate
+  // interno saltaría RLS y los devolvería todos).
+  const cliAtleta = await loginComo(QA.atleta1.cedula, QA.atleta1.cedula);
+  const { data: clubesAtleta } = await cliAtleta.rpc('listar_clubes_todos');
+  check('atleta NO enumera los clubes de la plataforma',
+    (clubesAtleta || []).length === 0, `ve ${(clubesAtleta || []).length} clubes`);
+  await cliAtleta.auth.signOut();
+
+  // anon no tiene ni permiso de ejecución.
+  const { error: eAnon } = await anon().rpc('listar_clubes_todos');
+  check('anon NO puede ejecutar listar_clubes_todos', !!eAnon, eAnon?.code || 'sin error');
+
+  // El superadmin sí: es quien alimenta el select de club del panel. Y el
+  // catálogo incluye clubes SIN owner, que listar_clubes_publicos (v33) omite
+  // — justo los que hay que poder elegir para sacar a un atleta de ahí.
+  const cliSuper = await loginComo(QA.super1.cedula, QA.super1.cedula);
+  const { data: todos, error: eTodos } = await cliSuper.rpc('listar_clubes_todos');
+  const nombresTodos = (todos || []).map((r) => r.club);
+  check('superadmin SÍ enumera los clubes (incluye Black Gold)',
+    !eTodos && nombresTodos.includes('Black Gold'), eTodos?.message || `ve ${nombresTodos.length}`);
+
+  const { data: publicos } = await cliSuper.rpc('listar_clubes_publicos');
+  const nombresPublicos = (publicos || []).map((r) => r.club);
+  check('el catálogo del superadmin es un superconjunto del público',
+    nombresPublicos.every((c) => nombresTodos.includes(c)) && nombresTodos.length >= nombresPublicos.length,
+    `todos=${nombresTodos.length} publicos=${nombresPublicos.length}`);
+
+  // Mover de club: la operación que el select del panel dispara.
+  const { error: eMover } = await cliSuper.from('usuarios')
+    .update({ club: 'QA Demo Club' }).eq('id', QA.atleta2.usuarioId).select();
+  const { data: movido } = await svc.from('usuarios').select('club').eq('id', QA.atleta2.usuarioId).single();
+  check('superadmin SÍ mueve a un atleta de club', !eMover && movido?.club === 'QA Demo Club', eMover?.message);
+  await svc.from('usuarios').update({ club: 'Black Gold' }).eq('id', QA.atleta2.usuarioId);
+  await cliSuper.auth.signOut();
 }
 
 async function suiteRegistroPublico() {
@@ -351,6 +463,7 @@ async function suiteSolicitudes() {
     await suiteCoach();
     await suiteRegistroPublico();
     await suiteSolicitudes();
+    await suiteMembresiaYClubes();
   } catch (err) {
     fallo = err;
     console.error(`\n💥 Error de infraestructura de la suite: ${err.message}`);
