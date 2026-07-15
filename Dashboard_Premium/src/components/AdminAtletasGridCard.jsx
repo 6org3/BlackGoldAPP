@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Dumbbell, Pencil, Trash2, UserMinus, UserCheck } from 'lucide-react';
+import { Download, Dumbbell, Pencil, Trash2, UserMinus, UserCheck, Boxes } from 'lucide-react';
 import { NIVEL_BADGE } from './AdminAtletasConstants';
 import { esBaja, etiquetaBaja } from './adminAtletasMembresia';
 import ActionButton from './AdminAtletasActionButton';
@@ -15,7 +15,7 @@ import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 // `onDelete` y `onToggleMembresia` llegan en null cuando el rol no puede
 // hacerlo (v34: borrar = superadmin; dar de baja = owner/superadmin), y el
 // botón simplemente no se renderiza.
-function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropometria, onToggleMembresia, isExporting }) {
+function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropometria, onToggleMembresia, onMembresia, isExporting }) {
   const nivelKey = atleta.nivel_desarrollo || 'Por Asignar';
   const badge = NIVEL_BADGE[nivelKey] || NIVEL_BADGE['Por Asignar'];
   const deBaja = esBaja(atleta);
@@ -76,6 +76,11 @@ function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropome
             <ActionButton onClick={() => onAntropometria(atleta)} title="Antropometría" className="hover:text-success-soft">
               <Dumbbell size={14} />
             </ActionButton>
+            {onMembresia && (
+              <ActionButton onClick={() => onMembresia(atleta)} title={`Membresía de ${atleta.nombre}`} className="hover:text-brand">
+                <Boxes size={14} />
+              </ActionButton>
+            )}
           </div>
           <div className="flex items-center gap-1.5">
             <ActionButton onClick={() => onEdit(atleta)} title="Editar" className="hover:text-brand">

@@ -126,6 +126,57 @@ export async function eliminarGrupo(id) {
   return true;
 }
 
+// ─── Membresía del atleta (v38) ─────────────────────────────────────────────
+// `atleta_grupo.rol_membresia` dice qué es cada grupo PARA EL ATLETA: la
+// `basica` (una sola, la que factura su mensualidad) y N `adicional` (add-ons
+// que se cobran aparte). `atletas.grupo_id` es una caché derivada de la básica:
+// NO se escribe desde aquí — la mantiene el trigger espejo.
+
+/** Los grupos de un atleta, separados por rol. */
+export async function fetchMembresiaAtleta(atletaId) {
+  const { data, error } = await supabase
+    .from('atleta_grupo')
+    .select('grupo_id, rol_membresia, facturable, grupos_entrenamiento (id, nombre, nivel, es_principal, activo, horario, precio_mensual)')
+    .eq('atleta_id', atletaId);
+  if (error) {
+    console.error('[gruposService] fetchMembresiaAtleta:', error);
+    throw error;
+  }
+  const filas = (data || [])
+    .filter((v) => v.grupos_entrenamiento)
+    .map((v) => ({ ...v.grupos_entrenamiento, rol_membresia: v.rol_membresia, facturable: v.facturable }));
+  return {
+    basica: filas.find((f) => f.rol_membresia === 'basica') || null,
+    adicionales: filas.filter((f) => f.rol_membresia === 'adicional'),
+  };
+}
+
+/**
+ * Asigna el grupo básico. Pasa por la RPC y no por un INSERT directo: valida lo
+ * que la RLS no sabe expresar (que sea un principal activo, y el cupo) y
+ * sustituye la básica anterior en una sola operación.
+ */
+export async function asignarGrupoBasico(atletaId, grupoId) {
+  const { error } = await supabase.rpc('asignar_grupo_basico', {
+    p_atleta_id: atletaId,
+    p_grupo_id: grupoId,
+  });
+  if (error) throw new Error(traducirError(error));
+  return true;
+}
+
+/** Alta/baja de un grupo extra (add-on). */
+export async function setGrupoAdicional(atletaId, grupoId, activo, facturable = true) {
+  const { error } = await supabase.rpc('set_grupo_adicional', {
+    p_atleta_id: atletaId,
+    p_grupo_id: grupoId,
+    p_activo: activo,
+    p_facturable: facturable,
+  });
+  if (error) throw new Error(traducirError(error));
+  return true;
+}
+
 // Los códigos de Postgres no se le enseñan al dueño de un club.
 function traducirError(error, nombre = '') {
   const msg = error?.message || '';
