@@ -177,8 +177,15 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
           <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
             <MessageSquare size={22} strokeWidth={2.5} />
           </HexAvatar>
-          <div>
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+          {/* "COMUNICACIONES" es una palabra indivisible: no envuelve entre
+              espacios como "Control de Pagos", así que con el botón de volver
+              delante no entra en 375px y el <main> de AdminShell la recortaría en
+              silencio (overflow-x-hidden: sin scroll ni error). El escalón móvil
+              baja hasta que cabe ENTERA en una línea — a text-2xl seguía partiendo
+              en "COMUNICACIONE/S". Desktop se queda en text-4xl. break-words es la
+              red por debajo de 375px; min-w-0 deja al flex encoger este bloque. */}
+          <div className="min-w-0">
+            <h2 className="text-xl md:text-4xl font-black uppercase tracking-tight break-words" style={{ color: C.text }}>
               Comunica<span style={{ color: C.gold }}>ciones</span>
             </h2>
             <MicroLabel style={{ marginTop: 4 }}>Club · Coach · Familia</MicroLabel>
