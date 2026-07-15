@@ -34,8 +34,14 @@ export default function useAdminEquipoForm({ user }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const emptyForm = { cedula: '', nombre: '', correo: '', telefono: '', categoria: 'Todas' };
+  const emptyForm = { cedula: '', nombre: '', correo: '', telefono: '', categoria: 'Todas', rol: 'coach' };
   const [form, setForm] = useState(emptyForm);
+
+  // Solo el dueño ORIGINAL invita co-dueños (v36): el que nadie creó desde la
+  // app. El superadmin también, porque él instala a los dueños de cada club.
+  // El servidor lo repite (es_owner_principal en usuarios_insert); esto solo
+  // evita ofrecer una opción que iba a fallar.
+  const puedeInvitarCoDuenos = esSuperadmin || (user?.rol === 'owner' && !user?.creado_por);
 
   const handleChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -59,6 +65,9 @@ export default function useAdminEquipoForm({ user }) {
       correo: coach.correo || '',
       telefono: coach.telefono || '',
       categoria: coach.categoria || 'Todas',
+      // El rol no se edita (solo superadmin puede cambiarlo, trigger v34); va
+      // en el form para que la ficha muestre los campos que le corresponden.
+      rol: coach.rol || 'coach',
     });
     setEditingId(coach.id);
     setShowForm(true);
@@ -71,26 +80,31 @@ export default function useAdminEquipoForm({ user }) {
     setSuccess('');
 
     try {
-      if (!form.nombre?.trim()) throw new Error('El nombre del coach es obligatorio.');
+      if (!form.nombre?.trim()) throw new Error('El nombre es obligatorio.');
+      const esCoDueno = form.rol === 'owner';
 
       if (editingId) {
         await actualizarCoach(editingId, form);
         setSuccess(`✅ ${form.nombre} actualizado.`);
       } else {
+        if (esCoDueno && !puedeInvitarCoDuenos) {
+          throw new Error('Solo el dueño original del club puede invitar co-dueños.');
+        }
         // La cédula es obligatoria aunque el esquema no la exija para
         // no-atletas: es su usuario (resolver_email_login traduce cédula →
         // email) y su contraseña inicial (crear-acceso-usuario deriva el
-        // password de ella). Sin cédula, el coach nace sin acceso posible.
+        // password de ella). Sin cédula nace sin acceso posible.
         if (!form.cedula?.trim()) {
           throw new Error('La cédula es obligatoria: es su usuario y su contraseña inicial.');
         }
         const nuevo = await crearCoach(form, clubTrabajo);
+        const queEs = esCoDueno ? 'co-dueño del club, con tus mismos permisos' : 'coach del club';
         try {
           await crearAccesoUsuario({ usuarioId: nuevo.id });
-          setSuccess(`✅ ${form.nombre} ya es coach del club. Puede entrar con su cédula (contraseña inicial: su cédula).`);
+          setSuccess(`✅ ${form.nombre} ya es ${queEs}. Puede entrar con su cédula (contraseña inicial: su cédula).`);
         } catch (accesoError) {
-          // El coach existe y sale en el panel del dueño, pero no puede entrar:
-          // se dice explícitamente en vez de fingir que el alta fue completa.
+          // La fila existe y sale en la lista, pero no puede entrar: se dice
+          // explícitamente en vez de fingir que el alta fue completa.
           setSuccess(`✅ ${form.nombre} registrado. ⚠️ Quedó sin acceso (${accesoError.message}) — vuelve a intentarlo desde la lista.`);
         }
       }
@@ -107,7 +121,7 @@ export default function useAdminEquipoForm({ user }) {
 
   return {
     coaches, loading, load,
-    clubTrabajo, setClubTrabajo, clubes, esSuperadmin,
+    clubTrabajo, setClubTrabajo, clubes, esSuperadmin, puedeInvitarCoDuenos,
     showForm, setShowForm,
     editingId, setEditingId,
     saving,
