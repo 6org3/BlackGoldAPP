@@ -134,8 +134,10 @@ async function run() {
       if (error) throw new Error(`atletas ${a.cedula}: ${error.message}`); atletaId = data.id;
     }
     atletaIdPorCedula[a.cedula] = atletaId;
+    // rol_membresia explícito (v38): el DEFAULT es 'adicional', así que sin esto
+    // el atleta quedaría sin grupo básico — el que factura su mensualidad.
     const { data: exVinc } = await supabase.from('atleta_grupo').select('atleta_id').eq('atleta_id', atletaId).eq('grupo_id', gruposIds[a.grupo]).maybeSingle();
-    if (!exVinc) await supabase.from('atleta_grupo').insert({ atleta_id: atletaId, grupo_id: gruposIds[a.grupo] });
+    if (!exVinc) await supabase.from('atleta_grupo').insert({ atleta_id: atletaId, grupo_id: gruposIds[a.grupo], rol_membresia: 'basica' });
   }
   console.log(`Atletas: ${atletas.length} (cuenta logueable: QAC-ATLETA)`);
 
