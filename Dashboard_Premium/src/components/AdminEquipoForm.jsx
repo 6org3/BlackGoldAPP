@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { UserCog, Save, X } from 'lucide-react';
-import { CATEGORIAS_COACH } from '../api/coachesService';
+import { CATEGORIAS_COACH, ROLES_EQUIPO, ROLES_EQUIPO_LABELS } from '../api/coachesService';
 import InputField from './AdminAtletasInputField';
 import SelectField from './AdminAtletasSelectField';
 import HexAvatar from './arcade/HexAvatar';
@@ -16,7 +16,9 @@ export default function AdminEquipoForm({
   setShowForm,
   handleSubmit,
   clubNombre,
+  puedeInvitarCoDuenos,
 }) {
+  const esCoDueno = form.rol === 'owner';
   return (
     // Entrada sin transform (solo opacity + height): ver nota en AdminAtletasForm.
     <motion.form
@@ -32,7 +34,7 @@ export default function AdminEquipoForm({
           <HexAvatar size={32} background={GRAD.goldHex} color={C.ink}>
             <UserCog size={16} strokeWidth={2.5} />
           </HexAvatar>
-          <span>{editingId ? 'Editar Coach' : 'Nuevo Coach'}</span>
+          <span>{editingId ? `Editar ${esCoDueno ? 'Co-dueño' : 'Coach'}` : 'Nuevo Miembro del Equipo'}</span>
         </h3>
         <button type="button" aria-label="Cerrar formulario" onClick={() => { setShowForm(false); setEditingId(null); }}
           className="cut-focus p-2.5 -m-2.5 min-h-11 min-w-11 flex items-center justify-center transition-colors"
@@ -41,7 +43,31 @@ export default function AdminEquipoForm({
         </button>
       </div>
 
-      <MicroLabel style={{ marginBottom: 12 }}>Datos del coach</MicroLabel>
+      {/* El rol solo se elige al crear: cambiarlo después es del superadmin
+          (trigger v34). Y solo el dueño original puede ofrecer "co-dueño" (v36). */}
+      {!editingId && puedeInvitarCoDuenos && (
+        <>
+          <MicroLabel style={{ marginBottom: 12 }}>Qué será en el club</MicroLabel>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <SelectField
+              label="Rol"
+              value={form.rol}
+              options={ROLES_EQUIPO}
+              optionLabels={ROLES_EQUIPO_LABELS}
+              onChange={v => handleChange('rol', v)}
+            />
+            <div className="flex items-center">
+              <p className="text-2xs" style={{ color: esCoDueno ? C.warn : C.text3 }}>
+                {esCoDueno
+                  ? 'Tendrá tus mismos permisos sobre el club: cobros, plantel y equipo. Solo el superadmin puede retirar a un dueño.'
+                  : 'Entrena y evalúa a los atletas de la categoría que le asignes.'}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+
+      <MicroLabel style={{ marginBottom: 12 }}>{esCoDueno ? 'Datos del co-dueño' : 'Datos del coach'}</MicroLabel>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* La cédula es su usuario y su contraseña inicial: sin ella no hay
             acceso posible (resolver_email_login + crear-acceso-usuario). */}
@@ -53,12 +79,22 @@ export default function AdminEquipoForm({
 
       <MicroLabel style={{ marginBottom: 12 }}>Alcance en el club</MicroLabel>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <SelectField
-          label="Categoría que dirige"
-          value={form.categoria}
-          options={CATEGORIAS_COACH}
-          onChange={v => handleChange('categoria', v)}
-        />
+        {/* Un dueño administra el club entero: la categoría solo acota a un coach. */}
+        {esCoDueno ? (
+          <div className="flex flex-col gap-2">
+            <label className="text-2xs font-bold uppercase tracking-widest" style={{ color: C.text2 }}>Categoría</label>
+            <input type="text" value="Todo el club" disabled
+              className="w-full min-h-11 py-3 px-4 text-sm cursor-not-allowed"
+              style={{ clipPath: cut(6), background: C.cardAlt1, border: `1px solid ${BORDER.neutralFaint}`, color: C.text3 }} />
+          </div>
+        ) : (
+          <SelectField
+            label="Categoría que dirige"
+            value={form.categoria}
+            options={CATEGORIAS_COACH}
+            onChange={v => handleChange('categoria', v)}
+          />
+        )}
         <div className="flex flex-col gap-2">
           <label className="text-2xs font-bold uppercase tracking-widest" style={{ color: C.text2 }}>Club</label>
           {/* El club no se elige: es el del dueño que da el alta, y después solo
@@ -70,9 +106,11 @@ export default function AdminEquipoForm({
       </div>
 
       <p className="mb-6 text-2xs" style={{ color: C.text3 }}>
-        {form.categoria === 'Todas'
-          ? 'Verá y evaluará a todos los atletas del club.'
-          : `Solo verá y evaluará a los atletas de ${form.categoria}.`}
+        {esCoDueno
+          ? 'Administrará el club entero contigo: plantel, cobros, solicitudes y equipo.'
+          : form.categoria === 'Todas'
+            ? 'Verá y evaluará a todos los atletas del club.'
+            : `Solo verá y evaluará a los atletas de ${form.categoria}.`}
         {!editingId && ' Al guardar se crea su acceso: entra con su cédula (contraseña inicial: su cédula).'}
       </p>
 
@@ -82,7 +120,7 @@ export default function AdminEquipoForm({
         style={{ clipPath: cut(8), background: GRAD.goldCTA, border: 'none', color: C.ink }}
       >
         <Save size={16} />
-        <span>{saving ? 'Guardando en Supabase...' : editingId ? 'Actualizar Coach' : 'Registrar Coach'}</span>
+        <span>{saving ? 'Guardando en Supabase...' : editingId ? 'Actualizar' : (esCoDueno ? 'Registrar Co-dueño' : 'Registrar Coach')}</span>
       </button>
     </motion.form>
   );

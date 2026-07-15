@@ -42,6 +42,8 @@ const QA = {
   super1: { cedula: 'QA_RLS_SUPER1', nombre: 'QA Superadmin Uno' },
   // Se crea DESDE la app (por el owner), no en el setup: es el sujeto de v35.
   coachNuevo: { cedula: 'QA_RLS_COACHNEW', nombre: 'QA Coach Nuevo' },
+  // Co-dueño invitado por el dueño original desde la app (v36).
+  coDueno: { cedula: 'QA_RLS_CODUENO', nombre: 'QA Co-dueño' },
   reg: { cedula: 'QA_RLS_REG1', nombre: 'QA Registro Uno', nac: '2013-03-15', telPadre: 'QA_RLS_TEL1' },
   reg2: { cedula: 'QA_RLS_REG2', nombre: 'QA Registro Dos (rechazo)', nac: '2014-06-25', telPadre: 'QA_RLS_TEL2' },
 };
@@ -374,11 +376,13 @@ async function suiteEquipoTecnico() {
   });
   check('owner NO puede crear un coach en OTRO club', !!eOtroClub, eOtroClub?.code || 'sin error');
 
-  // Un owner tampoco fabrica owners: eso es del superadmin.
-  const { error: eOwnerOwner } = await cliOwner.from('usuarios').insert({
-    cedula: 'QA_RLS_OWNER_HACK', nombre: 'QA Owner Hack', rol: 'owner', club: 'Black Gold',
+  // v36 invierte esto: el dueño ORIGINAL sí puede invitar co-dueños de su club
+  // (QA.owner1 nace por script → creado_por NULL → es original). Lo cubre
+  // suiteCoDuenos; aquí solo se comprueba que no puede crear superadmins.
+  const { error: eOwnerSuper } = await cliOwner.from('usuarios').insert({
+    cedula: 'QA_RLS_SUPER_HACK', nombre: 'QA Super Hack', rol: 'superadmin', club: 'Black Gold',
   });
-  check('owner NO puede crear otros owners (RLS v35)', !!eOwnerOwner, eOwnerOwner?.code || 'sin error');
+  check('owner NO puede crear superadmins', !!eOwnerSuper, eOwnerSuper?.code || 'sin error');
 
   if (QA.coachNuevo.usuarioId) {
     // El acceso: sin cuenta de Auth el coach existe pero no puede entrar.
@@ -455,6 +459,134 @@ async function suiteEquipoTecnico() {
   }
 
   await cliOwner.auth.signOut();
+}
+
+async function suiteCoDuenos() {
+  console.log('\n— CO-DUEÑOS (v36: el dueño original invita, solo el superadmin retira) —');
+  const cliOwner = await loginComo(QA.owner1.cedula, QA.owner1.cedula);
+
+  // QA.owner1 nace por script (service_role) → creado_por NULL → es original.
+  const { data: fundador } = await svc.from('usuarios')
+    .select('creado_por').eq('id', QA.owner1.usuarioId).single();
+  check('un owner sembrado por script es dueño ORIGINAL (creado_por NULL)',
+    fundador?.creado_por === null, `creado_por=${fundador?.creado_por}`);
+
+  // El alta que dispara /admin/equipo con rol 'Co-dueño'.
+  const { data: nuevo, error: eIns } = await cliOwner.from('usuarios').insert({
+    cedula: QA.coDueno.cedula, nombre: QA.coDueno.nombre, rol: 'owner', club: 'Black Gold',
+  }).select().single();
+  check('el dueño original SÍ crea un co-dueño de su club (RLS v36)', !eIns && !!nuevo, eIns?.message);
+  QA.coDueno.usuarioId = nuevo?.id;
+
+  // El linaje lo sella el servidor: el cliente mandó creado_por a su antojo y
+  // no cuenta — si contara, cualquiera se declararía original mandando NULL.
+  const { data: sellado } = await svc.from('usuarios')
+    .select('creado_por, categoria').eq('id', QA.coDueno.usuarioId).single();
+  check('el co-dueño queda sellado con su padrino (creado_por = owner original)',
+    sellado?.creado_por === QA.owner1.usuarioId, `creado_por=${sellado?.creado_por}`);
+
+  const { error: eMentira } = await cliOwner.from('usuarios')
+    .update({ creado_por: null }).eq('id', QA.coDueno.usuarioId).select();
+  const { data: trasMentira } = await svc.from('usuarios')
+    .select('creado_por').eq('id', QA.coDueno.usuarioId).single();
+  check('nadie puede borrarse el padrino para ascender a original (trigger v36)',
+    !!eMentira && trasMentira?.creado_por === QA.owner1.usuarioId, eMentira?.message || 'sin error');
+
+  if (QA.coDueno.usuarioId) {
+    const { data: sesion } = await cliOwner.auth.getSession();
+    const resAcceso = await fetch(`${URL_}/functions/v1/crear-acceso-usuario`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json', apikey: ANON,
+        Authorization: `Bearer ${sesion.session.access_token}`,
+      },
+      body: JSON.stringify({ usuario_id: QA.coDueno.usuarioId }),
+    });
+    const cuerpo = await resAcceso.json().catch(() => ({}));
+    check('el dueño original SÍ crea el acceso del co-dueño (Edge Function v36)',
+      resAcceso.status === 200 && cuerpo?.success, `HTTP ${resAcceso.status} ${cuerpo?.error || ''}`);
+
+    // El co-dueño entra y administra el club: mismos poderes.
+    const cliCo = await loginComo(QA.coDueno.cedula, QA.coDueno.cedula);
+    const { data: perfilCo } = await cliCo.from('usuarios')
+      .select('rol, club').eq('id', QA.coDueno.usuarioId).single();
+    check('el co-dueño inicia sesión y es owner de su club',
+      perfilCo?.rol === 'owner' && perfilCo?.club === 'Black Gold');
+
+    const { data: atlCo } = await cliCo.from('atletas').select('id');
+    check('el co-dueño administra el plantel (ve atletas del club)', (atlCo || []).length >= 2,
+      `ve ${(atlCo || []).length}`);
+
+    // LA REGLA QUE PROTEGE EL CLUB: el co-dueño no echa al fundador.
+    const { error: eGolpe } = await cliCo.from('usuarios')
+      .update({ estado: 'inactivo' }).eq('id', QA.owner1.usuarioId).select();
+    const { data: fundadorTrasGolpe } = await svc.from('usuarios')
+      .select('estado').eq('id', QA.owner1.usuarioId).single();
+    check('un co-dueño NO puede retirar al dueño original (trigger v36)',
+      !!eGolpe && fundadorTrasGolpe?.estado === 'activo', eGolpe?.message || 'sin error');
+
+    // Ni el original al co-dueño: retirar dueños es del superadmin.
+    const { error: eEcharCo } = await cliOwner.from('usuarios')
+      .update({ estado: 'inactivo' }).eq('id', QA.coDueno.usuarioId).select();
+    const { data: coTrasIntento } = await svc.from('usuarios')
+      .select('estado').eq('id', QA.coDueno.usuarioId).single();
+    check('el dueño original TAMPOCO retira a un co-dueño (solo el superadmin)',
+      !!eEcharCo && coTrasIntento?.estado === 'activo', eEcharCo?.message || 'sin error');
+
+    // Un co-dueño no encadena más co-dueños: tiene padrino, no es original.
+    const { error: eCadena } = await cliCo.from('usuarios').insert({
+      cedula: 'QA_RLS_CODUENO2', nombre: 'QA Co-dueño 2', rol: 'owner', club: 'Black Gold',
+    });
+    check('un co-dueño NO puede invitar a más co-dueños (es_owner_principal, v36)',
+      !!eCadena, eCadena?.code || 'sin error');
+
+    // Pero sí es dueño para todo lo demás: crea coaches.
+    const { data: coachDelCo, error: eCoachCo } = await cliCo.from('usuarios').insert({
+      cedula: 'QA_RLS_COACH_DELCO', nombre: 'QA Coach del Co', rol: 'coach', club: 'Black Gold',
+    }).select().single();
+    check('un co-dueño SÍ puede crear coaches (es un dueño más)', !eCoachCo, eCoachCo?.message);
+    if (coachDelCo) await svc.from('usuarios').delete().eq('id', coachDelCo.id);
+    await cliCo.auth.signOut();
+
+    // El superadmin sí retira dueños... pero no al último que queda.
+    const cliSuper = await loginComo(QA.super1.cedula, QA.super1.cedula);
+    const { error: eSuperRetira } = await cliSuper.from('usuarios')
+      .update({ estado: 'inactivo' }).eq('id', QA.coDueno.usuarioId).select();
+    const { data: coTrasSuper } = await svc.from('usuarios')
+      .select('estado').eq('id', QA.coDueno.usuarioId).single();
+    check('el superadmin SÍ retira a un co-dueño', !eSuperRetira && coTrasSuper?.estado === 'inactivo',
+      eSuperRetira?.message || `estado=${coTrasSuper?.estado}`);
+    await cliSuper.auth.signOut();
+  }
+  await cliOwner.auth.signOut();
+
+  // El último dueño activo de un club no se puede desactivar: sin él, el club
+  // no aprueba solicitudes, no da de alta staff y desaparece del registro
+  // público. Se prueba en un club QA propio, con exactamente un owner (Black
+  // Gold tiene varios y no serviría de escenario).
+  const { data: solo } = await svc.from('usuarios').insert({
+    cedula: 'QA_RLS_OWNER_SOLO', nombre: 'QA Owner Solo', rol: 'owner',
+    club: 'QA_RLS_CLUB_SOLO', estado: 'activo',
+  }).select().single();
+  const cliSuper2 = await loginComo(QA.super1.cedula, QA.super1.cedula);
+  const { error: eUltimo } = await cliSuper2.from('usuarios')
+    .update({ estado: 'inactivo' }).eq('id', solo.id).select();
+  const { data: sigueActivo } = await svc.from('usuarios').select('estado').eq('id', solo.id).single();
+  check('NADIE puede desactivar al último dueño activo de un club (trigger v36)',
+    !!eUltimo && sigueActivo?.estado === 'activo', eUltimo?.message || `estado=${sigueActivo?.estado}`);
+
+  // Con un segundo dueño en ese club, el primero ya se puede retirar.
+  const { data: acompanante } = await svc.from('usuarios').insert({
+    cedula: 'QA_RLS_OWNER_SOLO2', nombre: 'QA Owner Solo 2', rol: 'owner',
+    club: 'QA_RLS_CLUB_SOLO', estado: 'activo',
+  }).select().single();
+  const { error: eConRelevo } = await cliSuper2.from('usuarios')
+    .update({ estado: 'inactivo' }).eq('id', solo.id).select();
+  const { data: trasRelevo } = await svc.from('usuarios').select('estado').eq('id', solo.id).single();
+  check('con un relevo activo, el superadmin SÍ retira a un dueño',
+    !eConRelevo && trasRelevo?.estado === 'inactivo', eConRelevo?.message || `estado=${trasRelevo?.estado}`);
+  await cliSuper2.auth.signOut();
+  await svc.from('usuarios').delete().in('id', [solo.id, acompanante.id]);
 }
 
 async function suiteRegistroPublico() {
@@ -590,6 +722,7 @@ async function suiteSolicitudes() {
     await suiteSolicitudes();
     await suiteMembresiaYClubes();
     await suiteEquipoTecnico();
+    await suiteCoDuenos();
   } catch (err) {
     fallo = err;
     console.error(`\n💥 Error de infraestructura de la suite: ${err.message}`);
