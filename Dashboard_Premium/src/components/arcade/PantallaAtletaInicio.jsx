@@ -1,11 +1,17 @@
+import { useState } from 'react';
 import { C, BORDER, GRAD, cut, HEX, PIXEL } from './arcadeTokens';
-import HexAvatar from './HexAvatar';
+import ArcadePerfilMenu from './ArcadePerfilMenu';
 import MicroLabel from './MicroLabel';
 import XPCells from './XPCells';
+import EditarPerfilModal from '../EditarPerfilModal';
 
 /** A1 · Inicio / Base — hero de nivel/XP, hoy entrenas, alerta IA, misión
- *  destacada y próximo evento. Dirigida por ctx (buildAtletaCtx.ctxInicio). */
+ *  destacada y próximo evento. Dirigida por ctx (buildAtletaCtx.ctxInicio).
+ *  El avatar del hero abre el menú de perfil (editar perfil / cerrar sesión):
+ *  es la única salida de sesión del portal, que el shell Arcade no heredó. */
 export default function PantallaAtletaInicio({ ctx }) {
+  const [editarPerfil, setEditarPerfil] = useState(false);
+
   return (
     <div>
       {/* Header */}
@@ -28,7 +34,15 @@ export default function PantallaAtletaInicio({ ctx }) {
       {/* Hero */}
       <div style={{ background: GRAD.heroGoldSoft, border: `1px solid ${BORDER.goldStrong}`, clipPath: cut(14), padding: 16, marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <HexAvatar size={64} initial={ctx.heroInicial} background={GRAD.infoAvatar} color={C.ink} glow style={{ fontSize: 22, filter: 'drop-shadow(0 0 14px rgba(96,165,250,.5))' }} />
+          <ArcadePerfilMenu
+            size={64}
+            initial={ctx.heroInicial}
+            background={GRAD.infoAvatar}
+            color={C.ink}
+            glow
+            style={{ fontSize: 22, filter: 'drop-shadow(0 0 14px rgba(96,165,250,.5))' }}
+            onEditarPerfil={() => setEditarPerfil(true)}
+          />
           <div style={{ minWidth: 0, flex: 1 }}>
             <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 15, color: C.text }}>{(ctx.heroNombre || '').toUpperCase()}</p>
             <MicroLabel color={ctx.heroAccent} size={9.5} tracking="normal" style={{ marginTop: 4 }}>{ctx.nivelLine}</MicroLabel>
@@ -137,6 +151,13 @@ export default function PantallaAtletaInicio({ ctx }) {
             </button>
           </div>
         </>
+      )}
+
+      {editarPerfil && (
+        <EditarPerfilModal
+          onClose={() => setEditarPerfil(false)}
+          onRefresh={() => window.location.reload()}
+        />
       )}
     </div>
   );
