@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp, UserCog, LogOut } from 'lucide-react';
+import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp, UserCog, Boxes, LogOut } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaArcade from './arcade/ModoCanchaArcade';
@@ -180,6 +180,14 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             label="Sesiones"
             active={location.pathname === '/admin/sesiones'}
             onClick={() => navigate('/admin/sesiones')}
+          />
+        )}
+        {esStaff && (
+          <NavItem
+            icon={<Boxes size={18} />}
+            label="Grupos"
+            active={location.pathname === '/admin/grupos'}
+            onClick={() => navigate('/admin/grupos')}
           />
         )}
         {esStaff && (

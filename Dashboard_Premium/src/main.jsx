@@ -58,6 +58,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 const App = lazy(() => import('./App.jsx'))
 const AdminAtletasPage = lazy(() => import('./pages/AdminAtletasPage.jsx'))
 const AdminEquipoPage = lazy(() => import('./pages/AdminEquipoPage.jsx'))
+const AdminGruposPage = lazy(() => import('./pages/AdminGruposPage.jsx'))
 const AdminMisionesPage = lazy(() => import('./pages/AdminMisionesPage.jsx'))
 const AdminPagosPage = lazy(() => import('./pages/AdminPagosPage.jsx'))
 const AdminComunicacionesPage = lazy(() => import('./pages/AdminComunicacionesPage.jsx'))
@@ -265,6 +266,17 @@ createRoot(document.getElementById('root')).render(
             element={
               <PrivateRoute roles={['superadmin', 'owner']}>
                 <AdminEquipoPage />
+              </PrivateRoute>
+            }
+          />
+          {/* Grupos de entrenamiento (v37): el coach también entra, a diferencia
+              de /admin/equipo — la RLS grupos_write es es_staff(), y quien arma
+              los horarios del club es el cuerpo técnico, no solo el dueño. */}
+          <Route
+            path="/admin/grupos"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
+                <AdminGruposPage />
               </PrivateRoute>
             }
           />

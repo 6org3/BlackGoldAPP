@@ -35,10 +35,14 @@ export async function fetchPagosMes(mes, anio, grupoId = null) {
 }
 
 // Grupos reales del club para el filtro de AdminPagos (reemplaza la lista hardcodeada).
+// Excluye los archivados (v37: `activo`): un grupo retirado no debe seguir
+// ofreciéndose como filtro. Sus cobros históricos no se tocan — el filtro acota
+// la vista, no borra pagos.
 export async function fetchGruposClub() {
   const { data, error } = await supabase
     .from('grupos_entrenamiento')
     .select('id, nombre, club, precio_mensual')
+    .eq('activo', true)
     .order('nombre');
   if (error) { console.error(error); return []; }
   return data || [];
