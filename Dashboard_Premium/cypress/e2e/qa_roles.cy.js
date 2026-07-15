@@ -1,4 +1,4 @@
-describe('QA Flow - 3 Roles', () => {
+describe('QA Flow - 5 Roles', () => {
   const ROLES_CONFIG = Cypress.env('QA_ROLES');
 
   // expectedUrl: el destino del login sale de rutaHomeParaRol() (featureFlags.js),
@@ -8,12 +8,16 @@ describe('QA Flow - 3 Roles', () => {
   //
   // dashboardText: texto hardcodeado y siempre presente del portal — no derivado
   // de datos (nombre, KPIs, próxima sesión), que una cuenta de prueba vacía haría
-  // desaparecer, ni tapado por el estado de carga.
+  // desaparecer, ni tapado por el estado de carga. Además debe ser EXCLUSIVO de
+  // ese portal: 'Black Gold' aparecería igual en el shell legacy, así que no
+  // detectaría un aterrizaje en /dashboard.
   //
-  // logout: los portales Arcade (atleta, padre) montan la salida dentro del menú
-  // de perfil del avatar, que no existe en el DOM hasta abrirlo; el home del coach
-  // la tiene en el Sidebar de HomeShell (data-testid propio).
+  // logout: los portales Arcade (atleta, padre, dueño) montan la salida dentro del
+  // menú de perfil del avatar, que no existe en el DOM hasta abrirlo; los homes
+  // sobre HomeShell (coach, sistema) la tienen en el Sidebar (data-testid propio).
   const ROLES = [
+    { key: 'superadmin', name: 'Superadmin', expectedUrl: '/sistema', dashboardText: 'Cerebro del club', logout: 'sidebar' },
+    { key: 'owner', name: 'Owner', expectedUrl: '/club', dashboardText: 'RETENCIÓN', logout: 'menu' },
     { key: 'coach', name: 'Coach', expectedUrl: '/coach', dashboardText: 'Atletas a mirar hoy', logout: 'sidebar' },
     { key: 'atleta', name: 'Atleta', expectedUrl: '/atleta', dashboardText: 'Mi Base', logout: 'menu' },
     { key: 'padre', name: 'Padre', expectedUrl: '/padre', dashboardText: 'MI REPRESENTADO', logout: 'menu' },
@@ -30,8 +34,15 @@ describe('QA Flow - 3 Roles', () => {
   });
 
   ROLES.forEach(rol => {
-    it(`Prueba el flujo de acceso para el rol: ${rol.name}`, () => {
+    it(`Prueba el flujo de acceso para el rol: ${rol.name}`, function () {
       const creds = ROLES_CONFIG[rol.key];
+      // Un cypress.env.json anterior a la cobertura de owner/superadmin no trae su
+      // entrada. Se salta en vez de romper con un TypeError opaco: queda como
+      // pending en el resumen, visible, no como un falso verde.
+      if (!creds) {
+        cy.log(`Sin credenciales para el rol ${rol.key} en QA_ROLES — prueba omitida (ver cypress.env.json.example)`);
+        this.skip();
+      }
 
       cy.visit('/login');
       cy.clearLocalStorage();
