@@ -575,6 +575,24 @@ async function suiteCoDuenos() {
   check('NADIE puede desactivar al último dueño activo de un club (trigger v36)',
     !!eUltimo && sigueActivo?.estado === 'activo', eUltimo?.message || `estado=${sigueActivo?.estado}`);
 
+  // SUCESIÓN (contrato deliberado, v36 §1): borrar al dueño original deja a sus
+  // co-dueños sin padrino (ON DELETE SET NULL) y por tanto como originales, con
+  // lo que recuperan la capacidad de invitar. Sin esto, un club cuyo fundador se
+  // borra no podría ampliar nunca más su equipo de dueños. Se fija aquí para que
+  // cambiarlo sea una decisión y no un accidente de la FK.
+  const { data: padrino } = await svc.from('usuarios').insert({
+    cedula: 'QA_RLS_SUC_PADRINO', nombre: 'QA Sucesión Padrino', rol: 'owner', club: 'QA_RLS_CLUB_SUC',
+  }).select().single();
+  const { data: ahijado } = await svc.from('usuarios').insert({
+    cedula: 'QA_RLS_SUC_AHIJADO', nombre: 'QA Sucesión Ahijado', rol: 'owner', club: 'QA_RLS_CLUB_SUC',
+  }).select().single();
+  await svc.from('usuarios').update({ creado_por: padrino.id }).eq('id', ahijado.id);
+  await svc.from('usuarios').delete().eq('id', padrino.id);
+  const { data: heredero } = await svc.from('usuarios').select('creado_por').eq('id', ahijado.id).single();
+  check('al borrar al dueño original, su co-dueño hereda la condición de original (sucesión v36)',
+    heredero?.creado_por === null, `creado_por=${heredero?.creado_por}`);
+  await svc.from('usuarios').delete().eq('id', ahijado.id);
+
   // Con un segundo dueño en ese club, el primero ya se puede retirar.
   const { data: acompanante } = await svc.from('usuarios').insert({
     cedula: 'QA_RLS_OWNER_SOLO2', nombre: 'QA Owner Solo 2', rol: 'owner',
