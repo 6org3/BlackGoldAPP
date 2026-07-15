@@ -10,12 +10,17 @@
 // Contrato: POST { usuario_id, hijo_usuario_id? }, autenticado con el JWT del
 // staff (brainAuth.autenticar). Reglas:
 //   - Solo staff; owner/coach solo sobre usuarios de SU club.
-//   - Solo roles 'atleta' y 'padre' (los accesos de staff no se crean aquí).
+//   - Roles 'atleta' y 'padre': los crea cualquier staff.
+//   - Rol 'coach' (v35): SOLO owner/superadmin. Sin este gate, un coach podría
+//     darle acceso real a un usuario privilegiado de su club — la RLS
+//     `usuarios_insert` de v35 ya le impide crear esa fila, y esto cierra la
+//     otra mitad por si alguna vez la fila llega por otra vía.
+//   - Nunca 'owner' ni 'superadmin': los accesos de dueño no nacen del panel.
 //   - Idempotente: si el usuario ya tiene auth_user_id responde ya_existia.
-//   - Password inicial: la cédula del atleta; para un padre, la cédula del
-//     hijo indicado en hijo_usuario_id (mismo esquema que registro-publico),
-//     validando el vínculo real en padres_atletas — el cliente nunca envía
-//     contraseñas.
+//   - Password inicial: la cédula del propio usuario (atleta o coach); para un
+//     padre, la cédula del hijo indicado en hijo_usuario_id (mismo esquema que
+//     registro-publico), validando el vínculo real en padres_atletas — el
+//     cliente nunca envía contraseñas.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { autenticar, jsonResponse, ROLES_STAFF } from "../_shared/brainAuth.ts";
@@ -54,14 +59,18 @@ serve(async (req) => {
   if (target.auth_user_id) {
     return jsonResponse({ success: true, ya_existia: true }, 200);
   }
-  if (target.rol !== 'atleta' && target.rol !== 'padre') {
-    return jsonResponse({ error: 'Solo se crean accesos de atletas y representantes por esta vía.' }, 400);
+  if (!['atleta', 'padre', 'coach'].includes(target.rol as string)) {
+    return jsonResponse({ error: 'Por esta vía solo se crean accesos de atletas, representantes y coaches.' }, 400);
+  }
+  // El acceso de un coach lo habilita el dueño del club, nunca otro coach (v35).
+  if (target.rol === 'coach' && caller!.rol !== 'owner' && caller!.rol !== 'superadmin') {
+    return jsonResponse({ error: 'Solo el dueño del club puede crear el acceso de un coach.' }, 403);
   }
 
   // Password inicial según el rol del target.
   let password: string;
-  if (target.rol === 'atleta') {
-    if (!target.cedula) return jsonResponse({ error: 'El atleta no tiene cédula registrada.' }, 400);
+  if (target.rol === 'atleta' || target.rol === 'coach') {
+    if (!target.cedula) return jsonResponse({ error: 'El usuario no tiene cédula registrada.' }, 400);
     password = target.cedula as string;
   } else {
     const hijoUsuarioId = body?.hijo_usuario_id;

@@ -1,0 +1,122 @@
+import { useState, useCallback, useEffect } from 'react';
+import { crearCoach, actualizarCoach, fetchCoachesDelClub } from '../api/coachesService';
+import { fetchClubesTodos } from '../api/clubesService';
+import { crearAccesoUsuario } from '../api/accesosService';
+
+// ─── Estado y lógica del alta/edición de coaches (v35) ───
+// Molde: useAdminAtletasForm. Diferencias: el acceso se crea siempre (un coach
+// sin cuenta de Auth no puede entrar — el bug que v33 arregló para los atletas)
+// y el club es el "club de trabajo" de la pantalla: el del owner, o el que el
+// superadmin elija (él lee todos los clubes, así que sin elegir uno vería el
+// equipo de la plataforma entera mezclado).
+export default function useAdminEquipoForm({ user }) {
+  const esSuperadmin = user?.rol === 'superadmin';
+  const [clubTrabajo, setClubTrabajo] = useState(user?.club || '');
+  const [clubes, setClubes] = useState([]);
+  const [coaches, setCoaches] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Catálogo solo para el superadmin (RPC v34, gate es_superadmin server-side).
+  useEffect(() => {
+    if (!esSuperadmin) return;
+    fetchClubesTodos()
+      .then((lista) => {
+        setClubes(lista);
+        // Sin club propio (o con uno que ya no existe), arrancar en el primero
+        // evita una pantalla vacía sin explicación.
+        setClubTrabajo((actual) => (actual && lista.includes(actual) ? actual : (lista[0] || '')));
+      })
+      .catch(() => setClubes([]));
+  }, [esSuperadmin]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const emptyForm = { cedula: '', nombre: '', correo: '', telefono: '', categoria: 'Todas' };
+  const [form, setForm] = useState(emptyForm);
+
+  const handleChange = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
+
+  const load = useCallback(async () => {
+    try {
+      const data = await fetchCoachesDelClub(clubTrabajo);
+      setCoaches(data);
+    } catch (e) {
+      setError(e.message);
+      setCoaches([]);
+    }
+    setLoading(false);
+  }, [clubTrabajo]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleEdit = useCallback((coach) => {
+    setForm({
+      cedula: coach.cedula || '',
+      nombre: coach.nombre || '',
+      correo: coach.correo || '',
+      telefono: coach.telefono || '',
+      categoria: coach.categoria || 'Todas',
+    });
+    setEditingId(coach.id);
+    setShowForm(true);
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      if (!form.nombre?.trim()) throw new Error('El nombre del coach es obligatorio.');
+
+      if (editingId) {
+        await actualizarCoach(editingId, form);
+        setSuccess(`✅ ${form.nombre} actualizado.`);
+      } else {
+        // La cédula es obligatoria aunque el esquema no la exija para
+        // no-atletas: es su usuario (resolver_email_login traduce cédula →
+        // email) y su contraseña inicial (crear-acceso-usuario deriva el
+        // password de ella). Sin cédula, el coach nace sin acceso posible.
+        if (!form.cedula?.trim()) {
+          throw new Error('La cédula es obligatoria: es su usuario y su contraseña inicial.');
+        }
+        const nuevo = await crearCoach(form, clubTrabajo);
+        try {
+          await crearAccesoUsuario({ usuarioId: nuevo.id });
+          setSuccess(`✅ ${form.nombre} ya es coach del club. Puede entrar con su cédula (contraseña inicial: su cédula).`);
+        } catch (accesoError) {
+          // El coach existe y sale en el panel del dueño, pero no puede entrar:
+          // se dice explícitamente en vez de fingir que el alta fue completa.
+          setSuccess(`✅ ${form.nombre} registrado. ⚠️ Quedó sin acceso (${accesoError.message}) — vuelve a intentarlo desde la lista.`);
+        }
+      }
+
+      setForm(emptyForm);
+      setEditingId(null);
+      setShowForm(false);
+      await load();
+    } catch (err) {
+      setError(err.message || 'Error al guardar.');
+    }
+    setSaving(false);
+  };
+
+  return {
+    coaches, loading, load,
+    clubTrabajo, setClubTrabajo, clubes, esSuperadmin,
+    showForm, setShowForm,
+    editingId, setEditingId,
+    saving,
+    error, setError,
+    success, setSuccess,
+    emptyForm,
+    form, setForm,
+    handleChange,
+    handleEdit,
+    handleSubmit,
+  };
+}

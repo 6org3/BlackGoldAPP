@@ -1,4 +1,4 @@
-import { C } from './arcadeTokens';
+import { C, PIXEL, cut } from './arcadeTokens';
 import MicroLabel from './MicroLabel';
 import Pill from './Pill';
 import RankRow from './RankRow';
@@ -16,7 +16,23 @@ export default function PanelEquipo({ ctx }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
         {ctx.coaches.map((c, i) => <RankRow key={i} c={c} />)}
       </div>
-      <p style={{ margin: 0, fontSize: 11, color: C.text3, lineHeight: 1.5 }}>Ranking según la métrica elegida · datos últimos 30 días.</p>
+      {ctx.coaches.length === 0 && (
+        <p style={{ margin: '0 0 12px', fontSize: 12, color: C.text3, lineHeight: 1.5 }}>
+          Aún no hay coaches en el club.
+        </p>
+      )}
+      <p style={{ margin: '0 0 12px', fontSize: 11, color: C.text3, lineHeight: 1.5 }}>Ranking según la métrica elegida · datos últimos 30 días.</p>
+      {/* El alta vive fuera del HUD (/admin/equipo): este panel es de lectura. */}
+      {ctx.onGestionar && (
+        <button
+          type="button"
+          onClick={ctx.onGestionar}
+          className="cut-focus"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', minHeight: 44, background: C.card, border: `1px solid rgba(255,215,0,.3)`, clipPath: cut(10), color: C.gold, fontFamily: PIXEL, fontSize: 8, cursor: 'pointer' }}
+        >
+          GESTIONAR EQUIPO ►
+        </button>
+      )}
     </div>
   );
 }

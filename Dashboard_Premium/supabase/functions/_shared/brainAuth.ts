@@ -33,6 +33,7 @@ export type Caller = {
   club: string | null;
   categoria: string | null;
   nombre: string | null;
+  estado?: string | null;
 };
 
 export type Target = {
@@ -71,10 +72,19 @@ export async function autenticar(req: Request): Promise<{ error?: Response; call
   // 2. Rol + club + categoría del caller (usuarios.auth_user_id, v24).
   const { data: caller, error: eCaller } = await admin
     .from('usuarios')
-    .select('id, rol, club, categoria, nombre')
+    .select('id, rol, club, categoria, nombre, estado')
     .eq('auth_user_id', user.id)
     .single();
   if (eCaller || !caller) return { error: jsonResponse({ error: 'Usuario sin perfil en el club.' }, 403) };
+
+  // 3. La cuenta debe estar activa (v35). Estas funciones corren con
+  //    service_role: saltan la RLS, así que el filtro de estado que v35 metió
+  //    en es_staff() no las cubre — hay que comprobarlo aquí. Sin esto, un
+  //    coach retirado o un atleta pendiente seguirían operando por el cerebro.
+  //    (Estado ausente = activo: la columna es NOT NULL DEFAULT 'activo'.)
+  if (caller.estado && caller.estado !== 'activo') {
+    return { error: jsonResponse({ error: 'Tu cuenta no está activa en el club.' }, 403) };
+  }
 
   return { caller: caller as Caller, admin };
 }

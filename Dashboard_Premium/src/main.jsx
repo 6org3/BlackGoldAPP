@@ -57,6 +57,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 // Carga diferida: cada vista se descarga solo cuando se navega a ella.
 const App = lazy(() => import('./App.jsx'))
 const AdminAtletasPage = lazy(() => import('./pages/AdminAtletasPage.jsx'))
+const AdminEquipoPage = lazy(() => import('./pages/AdminEquipoPage.jsx'))
 const AdminMisionesPage = lazy(() => import('./pages/AdminMisionesPage.jsx'))
 const AdminPagosPage = lazy(() => import('./pages/AdminPagosPage.jsx'))
 const AdminComunicacionesPage = lazy(() => import('./pages/AdminComunicacionesPage.jsx'))
@@ -101,9 +102,12 @@ const PrivateRoute = ({ children, roles }) => {
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
 
-  // Cuenta aún no aprobada por el club (v33): atleta o padre solo ven la
-  // pantalla de revisión/rechazo, en cualquier ruta privada.
-  if (user.estado === 'pendiente' || user.estado === 'rechazado') {
+  // Solo entra una cuenta activa. 'pendiente'/'rechazado' son del registro
+  // público (v33); 'inactivo' es el staff retirado (v35). Se comprueba por
+  // exclusión y no por lista: un estado nuevo debe cerrar la puerta por
+  // defecto, no abrirla por olvido. (Estado ausente = activo: la columna es
+  // NOT NULL DEFAULT 'activo' y así un select que no la traiga no bloquea.)
+  if (user.estado && user.estado !== 'activo') {
     return <CuentaEnRevision estado={user.estado} />;
   }
 
@@ -249,6 +253,16 @@ createRoot(document.getElementById('root')).render(
             element={
               <PrivateRoute roles={['superadmin', 'owner']}>
                 <OwnerKPIsPage />
+              </PrivateRoute>
+            }
+          />
+          {/* Equipo técnico (v35): el dueño da de alta a sus coaches. Sin
+              'coach' en los roles — la RLS usuarios_insert lo repite server-side. */}
+          <Route
+            path="/admin/equipo"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner']}>
+                <AdminEquipoPage />
               </PrivateRoute>
             }
           />
