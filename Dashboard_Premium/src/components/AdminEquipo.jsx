@@ -37,6 +37,7 @@ export default function AdminEquipo({ user }) {
     saving,
     error, setError,
     success, setSuccess,
+    credencial, setCredencial,
     emptyForm,
     form, setForm,
     handleChange,
@@ -88,9 +89,11 @@ export default function AdminEquipo({ user }) {
   // Function falló en el alta): sin esto no podría entrar nunca.
   const reintentarAcceso = useCallback(async (coach) => {
     setProcesandoId(coach.id);
+    setCredencial(null);
     try {
-      await crearAccesoUsuario({ usuarioId: coach.id });
+      const { password_temporal } = await crearAccesoUsuario({ usuarioId: coach.id });
       setSuccess(`✅ Acceso creado para ${coach.nombre}.`);
+      if (password_temporal) setCredencial({ nombre: coach.nombre, password: password_temporal });
       await load();
     } catch (e) {
       setModal({
@@ -100,7 +103,39 @@ export default function AdminEquipo({ user }) {
     } finally {
       setProcesandoId(null);
     }
-  }, [load, setSuccess]);
+  }, [load, setSuccess, setCredencial]);
+
+  // v41: rotar la contraseña de quien YA tiene acceso. Dos motivos: las cuentas
+  // creadas antes de v41 nacieron con la cédula por contraseña (y la cédula la
+  // lee cualquier staff del club), y la temporal se pierde. Pide confirmación
+  // porque invalida la contraseña anterior en el acto.
+  const regenerarAcceso = useCallback((coach) => {
+    const ejecutar = async () => {
+      setModal(null);
+      setProcesandoId(coach.id);
+      setCredencial(null);
+      try {
+        const { password_temporal } = await crearAccesoUsuario({ usuarioId: coach.id, regenerar: true });
+        setSuccess(`✅ Acceso de ${coach.nombre} regenerado.`);
+        if (password_temporal) setCredencial({ nombre: coach.nombre, password: password_temporal });
+      } catch (e) {
+        setModal({
+          variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Error',
+          title: 'No se pudo regenerar el acceso', message: e.message,
+        });
+      } finally {
+        setProcesandoId(null);
+      }
+    };
+    setModal({
+      variant: 'confirm', tone: 'warn', icon: KeyRound,
+      eyebrow: 'Regenerar acceso',
+      title: `¿Regenerar el acceso de ${coach.nombre}?`,
+      message: 'Se le asigna una contraseña nueva y la anterior deja de servir en el acto. La verás una sola vez: tendrás que dársela tú.',
+      confirmLabel: 'Regenerar',
+      onConfirm: ejecutar,
+    });
+  }, [setSuccess, setCredencial]);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -165,6 +200,40 @@ export default function AdminEquipo({ user }) {
             style={{ clipPath: cut(10), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }}>
             <span className="flex-1">{success}</span>
             <button onClick={() => setSuccess('')} aria-label="Cerrar mensaje" className="cut-focus p-2 -m-2 min-h-11 min-w-11 flex items-center justify-center" style={{ color: C.ok }}><X size={16} /></button>
+          </motion.div>
+        )}
+        {/* v41: la contraseña temporal, UNA sola vez. El servidor no la guarda:
+            si se cierra sin copiarla, la única salida es regenerarla. */}
+        {credencial && (
+          <motion.div role="status" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="mb-6 p-4"
+            style={{ clipPath: cut(10), background: TINT.gold, border: `1px solid ${BORDER.goldStrong}` }}>
+            <div className="flex items-start gap-3">
+              <KeyRound size={18} className="shrink-0 mt-0.5" style={{ color: C.gold }} />
+              <div className="flex-1 min-w-0">
+                <MicroLabel style={{ color: C.gold }}>Contraseña de {credencial.nombre} · se muestra una sola vez</MicroLabel>
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  <code className="text-lg font-black tracking-widest px-3 py-2 select-all break-all"
+                    style={{ background: C.ink, color: C.gold, clipPath: cut(6) }}>
+                    {credencial.password}
+                  </code>
+                  <button
+                    onClick={() => navigator.clipboard?.writeText(credencial.password)}
+                    className="cut-focus min-h-11 px-4 font-black text-2xs uppercase tracking-widest"
+                    style={{ clipPath: cut(6), background: GRAD.goldCTA, color: C.ink, border: 'none' }}>
+                    Copiar
+                  </button>
+                </div>
+                <p className="mt-2 text-xs font-bold" style={{ color: C.text3 }}>
+                  Entra con su cédula y esta contraseña. Dásela tú — nadie más puede volver a verla.
+                  Podrá cambiarla desde su perfil.
+                </p>
+              </div>
+              <button onClick={() => setCredencial(null)} aria-label="Ya la copié"
+                className="cut-focus p-2 -m-2 min-h-11 min-w-11 flex items-center justify-center" style={{ color: C.gold }}>
+                <X size={16} />
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -254,6 +323,14 @@ export default function AdminEquipo({ user }) {
                           (primero se le reincorpora, que es el clic de al lado). */}
                       {!coach.tieneAcceso && !retirado && (
                         <ActionButton onClick={() => reintentarAcceso(coach)} title={`Crear acceso de ${coach.nombre}`} className="hover:text-warning-soft">
+                          <KeyRound size={14} />
+                        </ActionButton>
+                      )}
+                      {/* v41: regenerar la contraseña de quien ya tiene acceso.
+                          El servidor repite el gate (solo el dueño toca a un
+                          coach; solo el dueño original, a un co-dueño). */}
+                      {coach.tieneAcceso && !retirado && (
+                        <ActionButton onClick={() => regenerarAcceso(coach)} title={`Regenerar la contraseña de ${coach.nombre}`} className="hover:text-brand">
                           <KeyRound size={14} />
                         </ActionButton>
                       )}

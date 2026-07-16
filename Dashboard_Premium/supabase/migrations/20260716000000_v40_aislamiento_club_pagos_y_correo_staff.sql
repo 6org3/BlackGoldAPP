@@ -90,15 +90,13 @@
 -- cruzando clubes por diseño.
 --
 -- Fuera de alcance, anotado para no perderlo:
---   * PENDIENTE MÁS IMPORTANTE (ver §6 arriba): un coach lee `correo`+`cedula`
---     de cualquier owner/coach de su club (usuarios_select, v24, sin GRANT por
---     columna) y esa cédula ES la contraseña que crear-acceso-usuario le
---     asignó — no hace falta escribir nada ni cruzar ningún guard de v34/v36/
---     v36b/v40 para iniciar sesión como esa cuenta. No es una regresión de
---     v40 y no lo bloquea, pero la escalada coach → owner NO queda cerrada por
---     esta migración, solo una de sus variantes (§6/§7). Requiere su propio
---     parche (contraseña aleatoria en vez de derivada de una columna legible,
---     y/o restringir qué columnas de `usuarios` puede leer el staff no-owner).
+--   * (RESUELTO en v41, que va justo detrás de esta migración.) Un coach leía
+--     `cedula` de cualquier owner/coach de su club y esa cédula ERA la
+--     contraseña que crear-acceso-usuario le había puesto: se entraba como el
+--     dueño sin escribir nada ni cruzar ningún guard de v34/v36/v36b/v40,
+--     porque ninguno protege una LECTURA. v41 corta la derivación en la Edge
+--     Function (contraseña aleatoria para coach/owner) en vez de esconder la
+--     cédula — que se sabe fuera de la base y no serviría de nada ocultar.
 --   * `generar_pagos_mes` admite coach mientras el panel esconde "Generar Mes"
 --     del coach (AdminPagos.jsx: `!esCoach`). Alinear eso a owner/superadmin es
 --     una decisión de producto, no un fix de aislamiento: se deja como está.

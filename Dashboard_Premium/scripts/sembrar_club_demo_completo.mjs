@@ -83,6 +83,12 @@ async function ensureUsuarioConAuth({ cedula, nombre, rol, fecha_nacimiento = nu
 }
 
 // ── Helper: crear+vincular cuenta Auth para una fila usuarios ya existente ──
+// v41: `password = cédula` se conserva aquí a propósito (club demo, este script
+// imprime sus credenciales al final). En el producto ya no ocurre para
+// coach/owner: crear-acceso-usuario les da una aleatoria, porque la cédula la
+// lee cualquier staff del club y era el par de credenciales completo.
+// Re-correr esto deshace la rotación de scripts/rotar_passwords_staff.mjs para
+// este club.
 async function ensureAuth({ id, cedula, auth_user_id }) {
   if (auth_user_id) return; // ya vinculado
   if (!EJECUTAR) { plan(`auth para ${cedula} (password = cédula)`); return; }

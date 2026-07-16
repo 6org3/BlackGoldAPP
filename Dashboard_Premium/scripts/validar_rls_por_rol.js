@@ -547,14 +547,33 @@ async function suiteEquipoTecnico() {
     check('owner SÍ crea el acceso del coach (Edge Function v35)',
       resAcceso.status === 200 && cuerpoAcceso?.success, `HTTP ${resAcceso.status} ${cuerpoAcceso?.error || ''}`);
 
+    // v41: la contraseña de un coach ya NO es su cédula. Llega aquí una sola vez.
+    QA.coachNuevo.password = cuerpoAcceso?.password_temporal;
+    check('el acceso del coach trae una contraseña temporal aleatoria (v41)',
+      typeof QA.coachNuevo.password === 'string'
+      && QA.coachNuevo.password.length >= 12
+      && QA.coachNuevo.password !== QA.coachNuevo.cedula,
+      `password_temporal=${JSON.stringify(QA.coachNuevo.password)}`);
+
     const { data: conAuth } = await svc.from('usuarios')
       .select('auth_user_id, estado, categoria').eq('id', QA.coachNuevo.usuarioId).single();
     check('el coach nuevo queda vinculado, activo y con su categoría',
       !!conAuth?.auth_user_id && conAuth?.estado === 'activo' && conAuth?.categoria === 'Menores (Sub-14)',
       JSON.stringify(conAuth));
 
-    // El coach recién creado entra y ve su club.
-    const cliNuevo = await loginComo(QA.coachNuevo.cedula, QA.coachNuevo.cedula);
+    // El corazón de v41: la cédula es pública (cualquier staff la lee de
+    // `usuarios`, y resolver_email_login la traduce a email hasta para anon).
+    // Si además fuera la contraseña, leerla bastaría para ser esa persona.
+    const cliIntruso = anon();
+    const { data: emailCoach } = await cliIntruso.rpc('resolver_email_login', { p_identificador: QA.coachNuevo.cedula });
+    const { data: intento, error: eIntento } = await cliIntruso.auth.signInWithPassword({
+      email: emailCoach, password: QA.coachNuevo.cedula,
+    });
+    check('la cédula de un coach YA NO es su contraseña (v41)',
+      !!eIntento && !intento?.session, 'la cédula sigue abriendo la cuenta');
+
+    // El coach recién creado entra con su contraseña temporal y ve su club.
+    const cliNuevo = await loginComo(QA.coachNuevo.cedula, QA.coachNuevo.password);
     const { data: perfil } = await cliNuevo.from('usuarios')
       .select('rol, club').eq('id', QA.coachNuevo.usuarioId).single();
     check('el coach nuevo inicia sesión y es coach de su club',
@@ -582,7 +601,7 @@ async function suiteEquipoTecnico() {
     // propio ex-coach), así que volvía a entrar con su cédula y por API
     // conservaba el padrón del club, pasar lista y crear atletas. v35 mete el
     // filtro de estado en es_staff(), que es de quien cuelga toda la RLS.
-    const cliRetirado = await loginComo(QA.coachNuevo.cedula, QA.coachNuevo.cedula);
+    const cliRetirado = await loginComo(QA.coachNuevo.cedula, QA.coachNuevo.password);
     check('el coach retirado TODAVÍA puede hacer login (la cuenta de Auth vive)', true);
 
     const { data: perfilRetirado } = await cliRetirado.from('usuarios')
@@ -653,9 +672,29 @@ async function suiteCoDuenos() {
     const cuerpo = await resAcceso.json().catch(() => ({}));
     check('el dueño original SÍ crea el acceso del co-dueño (Edge Function v36)',
       resAcceso.status === 200 && cuerpo?.success, `HTTP ${resAcceso.status} ${cuerpo?.error || ''}`);
+    QA.coDueno.password = cuerpo?.password_temporal;
 
-    // El co-dueño entra y administra el club: mismos poderes.
-    const cliCo = await loginComo(QA.coDueno.cedula, QA.coDueno.cedula);
+    // LA ESCALADA QUE CIERRA v41. El coach lee la cédula de un dueño de su club
+    // (usuarios_select se lo permite, y es un dato que además sabe fuera de la
+    // base). Si la cédula fuera la contraseña, ahí mismo sería dueño.
+    const cliCoachAtacante = await loginComo(QA.coach1.cedula, QA.coach1.cedula);
+    const { data: filaDueno } = await cliCoachAtacante.from('usuarios')
+      .select('cedula, correo').eq('id', QA.coDueno.usuarioId).maybeSingle();
+    check('un coach SÍ lee la cédula de un dueño de su club (el dato no es secreto)',
+      !!filaDueno?.cedula, 'no la ve — el assert de abajo pierde sentido');
+    await cliCoachAtacante.auth.signOut();
+
+    const cliEscalada = anon();
+    const { data: emailDueno } = await cliEscalada.rpc('resolver_email_login',
+      { p_identificador: QA.coDueno.cedula });
+    const { data: sesionRobada, error: eEscalada } = await cliEscalada.auth.signInWithPassword({
+      email: emailDueno, password: QA.coDueno.cedula,
+    });
+    check('un coach NO se hace dueño con la cédula que acaba de leer (v41)',
+      !!eEscalada && !sesionRobada?.session, 'ENTRÓ COMO DUEÑO: la escalada sigue abierta');
+
+    // El co-dueño entra con su contraseña temporal y administra el club.
+    let cliCo = await loginComo(QA.coDueno.cedula, QA.coDueno.password);
     const { data: perfilCo } = await cliCo.from('usuarios')
       .select('rol, club').eq('id', QA.coDueno.usuarioId).single();
     check('el co-dueño inicia sesión y es owner de su club',
@@ -664,6 +703,21 @@ async function suiteCoDuenos() {
     const { data: atlCo } = await cliCo.from('atletas').select('id');
     check('el co-dueño administra el plantel (ve atletas del club)', (atlCo || []).length >= 2,
       `ve ${(atlCo || []).length}`);
+
+    // v41: la otra mitad — quien recibe una contraseña temporal aleatoria tiene
+    // que poder poner la suya (antes la app no ofrecía NINGUNA vía, así que la
+    // inicial era para siempre). Es lo que hace EditarPerfilModal.
+    const passPropia = `QA_RLS_prop_${QA.coDueno.usuarioId.slice(0, 8)}`;
+    const { error: eCambio } = await cliCo.auth.updateUser({ password: passPropia });
+    check('el co-dueño SÍ cambia su propia contraseña (v41)', !eCambio, eCambio?.message);
+    await cliCo.auth.signOut();
+
+    QA.coDueno.password = passPropia;
+    // Reabre la sesión con la contraseña NUEVA: que el resto de la suite corra
+    // sobre ella es, en sí, la prueba de que el cambio surtió efecto.
+    cliCo = await loginComo(QA.coDueno.cedula, QA.coDueno.password);
+    check('la contraseña nueva del co-dueño funciona y la temporal muere (v41)',
+      !!cliCo, 'no pudo entrar con la contraseña que acaba de poner');
 
     // LA REGLA QUE PROTEGE EL CLUB: el co-dueño no echa al fundador.
     const { error: eGolpe } = await cliCo.from('usuarios')
