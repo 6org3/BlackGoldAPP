@@ -111,7 +111,7 @@ export default function AdminEquipoForm({
           : form.categoria === 'Todas'
             ? 'Verá y evaluará a todos los atletas del club.'
             : `Solo verá y evaluará a los atletas de ${form.categoria}.`}
-        {!editingId && ' Al guardar se crea su acceso: entra con su cédula (contraseña inicial: su cédula).'}
+        {!editingId && ' Al guardar se crea su acceso: entra con su cédula y una contraseña que verás una sola vez, para dársela tú.'}
       </p>
 
       <button

@@ -52,6 +52,14 @@ const CUENTAS = [
 
 async function crearUsuarioYAuth(cuenta) {
   const email = emailParaAuth(cuenta.cedula);
+  // OJO (v41): siembra `password = cédula` también para el coach y el owner QA.
+  // En el producto eso ya NO ocurre — crear-acceso-usuario les da una aleatoria,
+  // porque la cédula la lee cualquier staff del club y era el par de
+  // credenciales completo. Aquí se mantiene a propósito: son cuentas ficticias
+  // cuyas credenciales este script imprime y que cypress.env.json necesita.
+  // Consecuencia: re-correr esto DESHACE la rotación de
+  // scripts/rotar_passwords_staff.mjs para 'QA Demo Club'. Si lo haces, vuelve
+  // a rotar y actualiza cypress.env.json con las nuevas.
   const password = cuenta.cedula;
 
   const { data: existente } = await supabase

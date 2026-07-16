@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { X, Save, User } from 'lucide-react';
+import { X, Save, User, KeyRound } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
 import { C, BORDER, cut } from './arcade/arcadeTokens';
+
+// Mínimo de Supabase Auth por defecto. Se valida aquí solo para dar un mensaje
+// decente en vez del error crudo del servidor; quien manda es Auth.
+const MIN_PASSWORD = 6;
 
 export default function EditarPerfilModal({ onClose, onRefresh }) {
   const { user } = useAuth();
@@ -29,8 +33,44 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // v41: cambio de contraseña. Hasta ahora la app no tenía NINGUNA vía para
+  // cambiarla, así que la inicial era para siempre. Con las temporales
+  // aleatorias del staff eso ya no se sostiene: quien recibe una cadena de 14
+  // caracteres necesita poder poner la suya.
+  const [pass, setPass] = useState({ nueva: '', repetir: '' });
+  const [cambiandoPass, setCambiandoPass] = useState(false);
+  const [passError, setPassError] = useState('');
+  const [passSuccess, setPassSuccess] = useState('');
+
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCambiarPassword = async (e) => {
+    e.preventDefault();
+    setPassError('');
+    setPassSuccess('');
+    if (pass.nueva.length < MIN_PASSWORD) {
+      setPassError(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`);
+      return;
+    }
+    if (pass.nueva !== pass.repetir) {
+      setPassError('Las dos contraseñas no coinciden.');
+      return;
+    }
+    setCambiandoPass(true);
+    try {
+      // updateUser actúa sobre la sesión en curso: nadie puede cambiar la
+      // contraseña de otro por esta vía, ni hace falta mandar la actual.
+      const { error: eAuth } = await supabase.auth.updateUser({ password: pass.nueva });
+      if (eAuth) throw eAuth;
+      setPass({ nueva: '', repetir: '' });
+      setPassSuccess('Contraseña actualizada. Úsala la próxima vez que entres.');
+    } catch (err) {
+      setPassError(err.message || 'No se pudo cambiar la contraseña.');
+    } finally {
+      setCambiandoPass(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -141,6 +181,38 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
             <Save size={16} /><span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
           </button>
         </form>
+
+        {/* ─── Contraseña (v41) — form aparte: se envía a Auth, no a la tabla ─── */}
+        <div className="mt-8 pt-6 border-t border-white/10">
+          <div className="flex items-center space-x-2 mb-4">
+            <KeyRound className="text-brand" size={16} />
+            <h4 className="text-sm font-black text-white uppercase tracking-tight">Cambiar contraseña</h4>
+          </div>
+
+          {passError && <div className="mb-4 text-danger-soft text-xs font-bold bg-danger/10 border border-danger/20 p-2 rounded-lg">{passError}</div>}
+          {passSuccess && <div className="mb-4 text-success-soft text-xs font-bold bg-success/10 border border-success/20 p-2 rounded-lg">{passSuccess}</div>}
+
+          <form onSubmit={handleCambiarPassword} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="perfil-pass-nueva" className="block text-2xs text-fg-secondary font-bold uppercase tracking-widest mb-1">Nueva</label>
+                <input id="perfil-pass-nueva" type="password" autoComplete="new-password" value={pass.nueva}
+                  onChange={e => setPass(p => ({ ...p, nueva: e.target.value }))}
+                  className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" />
+              </div>
+              <div>
+                <label htmlFor="perfil-pass-repetir" className="block text-2xs text-fg-secondary font-bold uppercase tracking-widest mb-1">Repetir</label>
+                <input id="perfil-pass-repetir" type="password" autoComplete="new-password" value={pass.repetir}
+                  onChange={e => setPass(p => ({ ...p, repetir: e.target.value }))}
+                  className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" />
+              </div>
+            </div>
+            <button type="submit" disabled={cambiandoPass || !pass.nueva}
+              className="w-full flex items-center justify-center space-x-2 bg-surface-card/80 border border-white/10 text-white font-black uppercase tracking-widest text-xs py-3 rounded-control hover:border-brand/50 transition disabled:opacity-50">
+              <KeyRound size={14} /><span>{cambiandoPass ? 'Cambiando...' : 'Cambiar contraseña'}</span>
+            </button>
+          </form>
+        </div>
       </motion.div>
     </div>
   );

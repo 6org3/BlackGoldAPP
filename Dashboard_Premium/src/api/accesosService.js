@@ -7,12 +7,20 @@ import { supabase } from './supabaseClient';
 // El alta desde el panel del staff inserta filas en usuarios/atletas, pero la
 // cuenta de Supabase Auth solo puede crearla el service_role: lo hace la Edge
 // Function crear-acceso-usuario (valida JWT del staff, mismo club, vínculo
-// padre↔hijo). Password inicial = cédula del atleta (o del hijo, para un
-// representante) — el mismo esquema que el registro público.
+// padre↔hijo).
+//
+// Password inicial (v41): para un COACH o DUEÑO es ALEATORIA y viene en
+// `password_temporal` — se muestra una sola vez y no se puede volver a
+// consultar (no se guarda en ningún lado). Antes era la cédula, y como la
+// cédula se lee de `usuarios` y `resolver_email_login` la traduce a email
+// hasta para `anon`, era el par de credenciales completo: un coach entraba
+// como el dueño de su club sin escribir nada. Para un ATLETA o REPRESENTANTE
+// sigue siendo la cédula (su onboarding depende de eso) y `password_temporal`
+// llega null.
 
-export const crearAccesoUsuario = async ({ usuarioId, hijoUsuarioId = null }) => {
+export const crearAccesoUsuario = async ({ usuarioId, hijoUsuarioId = null, regenerar = false }) => {
   const { data, error } = await supabase.functions.invoke('crear-acceso-usuario', {
-    body: { usuario_id: usuarioId, hijo_usuario_id: hijoUsuarioId },
+    body: { usuario_id: usuarioId, hijo_usuario_id: hijoUsuarioId, regenerar },
   });
 
   if (error) {

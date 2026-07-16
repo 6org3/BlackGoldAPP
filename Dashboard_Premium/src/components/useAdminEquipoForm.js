@@ -33,6 +33,10 @@ export default function useAdminEquipoForm({ user }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // v41: la contraseña temporal del coach/dueño recién creado o regenerado.
+  // Vive SOLO aquí, en memoria y hasta que se cierre el aviso: el servidor no la
+  // guarda y no hay forma de volver a consultarla. Si se pierde, se regenera.
+  const [credencial, setCredencial] = useState(null); // { nombre, password }
 
   const emptyForm = { cedula: '', nombre: '', correo: '', telefono: '', categoria: 'Todas', rol: 'coach' };
   const [form, setForm] = useState(emptyForm);
@@ -90,18 +94,19 @@ export default function useAdminEquipoForm({ user }) {
         if (esCoDueno && !puedeInvitarCoDuenos) {
           throw new Error('Solo el dueño original del club puede invitar co-dueños.');
         }
-        // La cédula es obligatoria aunque el esquema no la exija para
-        // no-atletas: es su usuario (resolver_email_login traduce cédula →
-        // email) y su contraseña inicial (crear-acceso-usuario deriva el
-        // password de ella). Sin cédula nace sin acceso posible.
+        // La cédula sigue siendo obligatoria aunque el esquema no la exija para
+        // no-atletas: es su USUARIO (resolver_email_login traduce cédula →
+        // email). Desde v41 ya NO es su contraseña — esa es aleatoria y se
+        // muestra abajo una sola vez.
         if (!form.cedula?.trim()) {
-          throw new Error('La cédula es obligatoria: es su usuario y su contraseña inicial.');
+          throw new Error('La cédula es obligatoria: es el usuario con el que inicia sesión.');
         }
         const nuevo = await crearCoach(form, clubTrabajo);
         const queEs = esCoDueno ? 'co-dueño del club, con tus mismos permisos' : 'coach del club';
         try {
-          await crearAccesoUsuario({ usuarioId: nuevo.id });
-          setSuccess(`✅ ${form.nombre} ya es ${queEs}. Puede entrar con su cédula (contraseña inicial: su cédula).`);
+          const { password_temporal } = await crearAccesoUsuario({ usuarioId: nuevo.id });
+          setSuccess(`✅ ${form.nombre} ya es ${queEs}.`);
+          if (password_temporal) setCredencial({ nombre: form.nombre, password: password_temporal });
         } catch (accesoError) {
           // La fila existe y sale en la lista, pero no puede entrar: se dice
           // explícitamente en vez de fingir que el alta fue completa.
@@ -127,6 +132,7 @@ export default function useAdminEquipoForm({ user }) {
     saving,
     error, setError,
     success, setSuccess,
+    credencial, setCredencial,
     emptyForm,
     form, setForm,
     handleChange,

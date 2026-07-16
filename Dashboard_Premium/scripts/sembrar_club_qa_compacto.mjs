@@ -78,6 +78,10 @@ async function ensureUsuarioConAuth({ cedula, nombre, rol, fecha_nacimiento = nu
     if (error) throw new Error(`usuarios ${cedula}: ${error.message}`); id = data.id;
   }
   if (conAuth && !ex?.auth_user_id) {
+    // v41: `password = cédula` se conserva aquí a propósito (club demo, este
+    // script imprime sus credenciales al final). En el producto ya no ocurre
+    // para coach/owner. Re-correr esto deshace la rotación de
+    // scripts/rotar_passwords_staff.mjs para este club.
     const { data: a, error: e } = await supabase.auth.admin.createUser({ email: emailInterno(cedula), password: cedula, email_confirm: true, user_metadata: { usuario_id: id, demo: true } });
     if (!e && a?.user) await supabase.from('usuarios').update({ auth_user_id: a.user.id }).eq('id', id);
     else console.warn(`  ⚠️  auth ${cedula}: ${e?.message || 'sin user'}`);
