@@ -31,6 +31,11 @@ describe('QA Flow - 5 Roles', () => {
         'credenciales reales en este spec por seguridad (ver Fase 0 del plan de remediación).'
       );
     }
+    // El portal del atleta auto-abre el check-in de readiness cuando no hay
+    // registro del día (#89), y su overlay tapa el HUD: este spec entra a /atleta
+    // a comprobar el acceso, no el check-in. Como el registro es POR DÍA, sin
+    // esto el caso del atleta se ponía rojo solo al cambiar la fecha.
+    cy.task('sembrarReadinessHoyQA');
   });
 
   ROLES.forEach(rol => {
