@@ -2,6 +2,7 @@
 import { supabase } from './supabaseClient';
 import { calculateRank } from './authService';
 import { calcularCategoriaFEB, calcularMetricasDerivadas } from './utilsAtletas';
+import { fechaNacimientoDeEdad } from '../lib/edad';
 
 // ============================
 // FETCH ATLETAS (Supabase)
@@ -16,6 +17,8 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
     posicion = '',
     nivelDesarrollo = '',
     genero = '',
+    edadMin = null,
+    edadMax = null,
     // Por defecto, plantel OPERATIVO: los dados de baja no entran en cancha,
     // asistencia, comunicaciones, eventos ni KPIs (v34 — es lo que promete el
     // panel al dar de baja: "sale del plantel activo"). La gestión de atletas
@@ -67,6 +70,16 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   }
   if (categoria && categoria !== 'Todas') {
     query = query.eq('usuarios.categoria_feb', categoria);
+  }
+  // Rango de edad traducido a fechas límite de nacimiento (ver src/lib/edad.js
+  // para por qué no se filtra por `atletas.edad` ni por `categoria_feb`).
+  if (Number.isFinite(edadMin)) {
+    // Nacer en o antes de esta fecha ⇒ tener al menos `edadMin`.
+    query = query.lte('usuarios.fecha_nacimiento', fechaNacimientoDeEdad(edadMin));
+  }
+  if (Number.isFinite(edadMax)) {
+    // Nacer después de esta fecha ⇒ no haber cumplido aún `edadMax + 1`.
+    query = query.gt('usuarios.fecha_nacimiento', fechaNacimientoDeEdad(edadMax + 1));
   }
   if (genero && genero !== 'Todos') {
     query = query.eq('usuarios.genero', genero);

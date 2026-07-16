@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter } from 'lucide-react';
 import { CATEGORIAS_FEB, NIVELES_DESARROLLO, POSICIONES, ESTADOS_MEMBRESIA, ESTADOS_MEMBRESIA_LABELS } from './AdminAtletasConstants';
 import FilterSelect from './AdminAtletasFilterSelect';
+import FilterRangoEdad from './AdminAtletasFilterRangoEdad';
 import CutCard from './arcade/CutCard';
 import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
@@ -20,6 +21,10 @@ export default function AdminAtletasFiltersPanel({
   setFiltroGenero,
   filtroMembresia,
   setFiltroMembresia,
+  filtroEdadMin,
+  setFiltroEdadMin,
+  filtroEdadMax,
+  setFiltroEdadMax,
   filtrosActivos,
   clearFilters,
 }) {
@@ -71,6 +76,12 @@ export default function AdminAtletasFiltersPanel({
             <CutCard cut={10} padding="20px">
               <div className="flex flex-col gap-5">
                 <FilterSelect label="Categoría FEB" value={filtroCat} options={CATEGORIAS_FEB} onChange={setFiltroCat} />
+                <FilterRangoEdad
+                  edadMin={filtroEdadMin}
+                  edadMax={filtroEdadMax}
+                  onChangeMin={setFiltroEdadMin}
+                  onChangeMax={setFiltroEdadMax}
+                />
                 <FilterSelect label="Nivel Desarrollo" value={filtroNivel} options={NIVELES_DESARROLLO} onChange={setFiltroNivel} />
                 <FilterSelect label="Posición" value={filtroPosicion} options={['Todas', ...POSICIONES.filter(p => p !== 'N/A')]} onChange={setFiltroPosicion} />
                 <FilterSelect label="Género" value={filtroGenero} options={['Todos', 'Masculino', 'Femenino']} onChange={setFiltroGenero} />
