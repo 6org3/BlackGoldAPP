@@ -149,13 +149,22 @@ export async function fetchSesionesEnCurso(coachId) {
 // enteramente de RLS para no mezclar grupos de otros clubes — se filtra
 // también acá como defensa en profundidad (mismo criterio que
 // fetchTodosLosAtletas en atletasService.js).
-export async function fetchGrupos(club = null) {
+//
+// `incluirArchivados`: por defecto los grupos retirados (v37: activo=false) no
+// se ofrecen. Sin este filtro "archivar" no tendría ningún efecto visible: el
+// grupo seguiría apareciendo para programarle sesiones, pasarle lista o
+// segmentarle comunicaciones. Solo la gestión de grupos los pide, para poder
+// reactivarlos.
+export async function fetchGrupos(club = null, { incluirArchivados = false } = {}) {
   let query = supabase
     .from('grupos_entrenamiento')
     .select('*')
     .order('nombre');
   if (club) {
     query = query.eq('club', club);
+  }
+  if (!incluirArchivados) {
+    query = query.eq('activo', true);
   }
   const { data, error } = await query;
   if (error) { console.error(error); return []; }

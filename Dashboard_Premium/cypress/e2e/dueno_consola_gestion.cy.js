@@ -20,23 +20,37 @@ describe('Dueño · acceso a /admin desde el HUD', () => {
   });
 
   beforeEach(() => {
-    cy.visit('/login');
+    // Limpiar ANTES de visitar: estos tests terminan con la sesión abierta, y
+    // visitar /login con la sesión viva hace que el efecto de sesión-vigente de
+    // Login.jsx redirija a /club (#84) en vez de mostrar el formulario.
     cy.clearLocalStorage();
     cy.clearCookies();
+    cy.visit('/login');
     cy.get('input[type="text"], input[type="email"], input[placeholder*="ejemplo"]').first().type(OWNER.identificador);
     cy.get('input[type="password"]').first().type(OWNER.password);
     cy.get('form button[type="submit"]').click();
-    cy.url({ timeout: 15000 }).should('include', '/club');
+    cy.url({ timeout: 20000 }).should('include', '/club');
+    // Esperar a que el HUD se ASIENTE, no solo a que la URL sea /club: es lo que
+    // hace determinista al spec. Si se interactúa mientras el panel hidrata, una
+    // redirección post-login aún en vuelo pisa la navegación del test — el modal
+    // se cierra, la URL se queda en /club y el click se pierde sin ningún error.
+    // Solo se reproducía contra producción (latencia real) y a partir del 2º test.
+    cy.contains('CARGANDO', { timeout: 20000 }).should('not.exist');
+    cy.get('button[aria-label="Consola de gestión"]').should('be.visible');
   });
 
-  it('la consola del header lista los 10 módulos y navega a cada uno', () => {
+  it('la consola del header lista los 11 módulos y navega a cada uno', () => {
     cy.get('button[aria-label="Consola de gestión"]').click();
     cy.get('[role="dialog"]').should('be.visible').within(() => {
-      // Los 10 destinos de PrivateRoute: si se añade una ruta admin y no entra
-      // aquí, vuelve a quedar sin puerta desde /club.
-      ['ATLETAS', 'MISIONES', 'PAGOS', 'KPIS', 'SESIONES', 'ASISTENCIA',
+      // Los 11 destinos de PrivateRoute: si se añade una ruta admin y no entra
+      // aquí, vuelve a quedar sin puerta desde /club. Ya pasó con GRUPOS (v37),
+      // que nació mientras se escribía la consola.
+      // scrollIntoView: con 11 tiles la consola scrollea, así que los últimos
+      // bloques nacen fuera del área visible del diálogo. Se exige que cada tile
+      // sea ALCANZABLE (visible tras scrollear), no solo que exista en el DOM.
+      ['ATLETAS', 'MISIONES', 'GRUPOS', 'PAGOS', 'KPIS', 'SESIONES', 'ASISTENCIA',
         'EVENTOS', 'COMPARAR', 'EQUIPO', 'COMUNICACIONES'].forEach((t) => {
-        cy.contains('button', t).should('be.visible');
+        cy.contains('button', t).scrollIntoView().should('be.visible');
       });
     });
 
@@ -44,6 +58,26 @@ describe('Dueño · acceso a /admin desde el HUD', () => {
     cy.get('[role="dialog"]').contains('button', 'PAGOS').click();
     cy.url({ timeout: 15000 }).should('include', '/admin/pagos');
     cy.get('[role="dialog"]').should('not.exist'); // la consola se cierra al salir
+  });
+
+  // Los 11 módulos a los que la consola deja entrar tienen que dejar salir
+  // igual: antes solo 4 traían botón de vuelta, así que el dueño llegaba a
+  // Pagos desde su consola y salía distinto que desde Equipo. /admin/grupos
+  // volvía además al shell legacy (/dashboard), el bug que #91 ya había cerrado
+  // en los demás — nació de un molde copiado antes de aquel arreglo.
+  const MODULOS = [
+    '/admin/atletas', '/admin/misiones', '/admin/grupos', '/admin/pagos',
+    '/admin/kpis', '/admin/sesiones', '/admin/asistencia', '/admin/eventos',
+    '/admin/comparar', '/admin/equipo', '/admin/comunicaciones',
+  ];
+
+  MODULOS.forEach((ruta) => {
+    it(`${ruta} ofrece la vuelta al HUD del dueño`, () => {
+      cy.visit(ruta);
+      cy.get('button[aria-label="Volver al inicio"]', { timeout: 20000 }).first().click();
+      cy.url({ timeout: 15000 }).should('include', '/club');
+      cy.url().should('not.include', '/dashboard');
+    });
   });
 
   it('el volver de un módulo admin devuelve al HUD del dueño, no al shell legacy', () => {

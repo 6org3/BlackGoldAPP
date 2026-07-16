@@ -14,6 +14,7 @@ import { COLORS, CHART } from '../lib/designTokens';
 import { nombresCortos } from '../lib/nombresCortos';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
+import BotonVolver from './arcade/BotonVolver';
 import MicroLabel from './arcade/MicroLabel';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
@@ -392,6 +393,7 @@ export default function CompararPruebas({ user }) {
     <div className="max-w-3xl space-y-6">
       {/* Encabezado */}
       <div className="flex items-center gap-3">
+        <BotonVolver />
         <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
           <GitCompareArrows size={22} strokeWidth={2.5} />
         </HexAvatar>

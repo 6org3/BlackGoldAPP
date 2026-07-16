@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ArrowLeft, BarChart3, Crown, Loader2 } from 'lucide-react';
+import { BarChart3, Crown, Loader2 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
-import useVolverAlHome from '../hooks/useVolverAlHome';
+import BotonVolver from '../components/arcade/BotonVolver';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { supabase } from '../api/supabaseClient';
 import { getSubPilarScores } from '../lib/radarCalc';
@@ -56,7 +56,6 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function OwnerKPIsPage() {
   const { user } = useAuth();
-  const volver = useVolverAlHome();
   const esMovil = useEsMovil();
 
   const [atletas, setAtletas] = useState([]);
@@ -203,14 +202,7 @@ export default function OwnerKPIsPage() {
         <div className="max-w-7xl mx-auto">
           {/* Header (Panel-denso §6.4: HexAvatar de identidad + título + MicroLabel) */}
           <div className="flex items-center gap-4 mb-10">
-            <button
-              onClick={volver}
-              aria-label="Volver al inicio"
-              className="cut-focus grid place-items-center min-h-11 min-w-11 bg-white/5 hover:bg-white/10 transition-colors"
-              style={{ clipPath: cut(7), color: C.text3 }}
-            >
-              <ArrowLeft size={20} />
-            </button>
+            <BotonVolver />
             <div className="flex items-center gap-3">
               <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
                 <BarChart3 size={22} strokeWidth={2.5} />

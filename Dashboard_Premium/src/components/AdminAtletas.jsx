@@ -12,6 +12,7 @@ import AdminAtletasHeader from './AdminAtletasHeader';
 import AdminAtletasForm from './AdminAtletasForm';
 import AdminAtletasFiltersPanel from './AdminAtletasFiltersPanel';
 import AdminAtletasGrupoNivel from './AdminAtletasGrupoNivel';
+import MembresiaAtletaModal from './MembresiaAtletaModal';
 import SolicitudesPanel from './SolicitudesPanel';
 import ModalHUD from './arcade/ModalHUD';
 import { COLORS } from '../lib/designTokens';
@@ -43,6 +44,8 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     filtroPosicion, setFiltroPosicion,
     filtroGenero, setFiltroGenero,
     filtroMembresia, setFiltroMembresia,
+    filtroEdadMin, setFiltroEdadMin,
+    filtroEdadMax, setFiltroEdadMax,
     showFilters, setShowFilters,
     atletasFiltrados,
     atletasAgrupados,
@@ -59,6 +62,8 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
   // ─── Modals ───────────────────────────────────────────────
   const [evaluatingAntropometria, setEvaluatingAntropometria] = useState(null);
   const [exportingAtleta, setExportingAtleta] = useState(null);
+  // Membresía (v38): qué grupo cubre su cuota y qué extras se le cobran aparte.
+  const [membresiaAtleta, setMembresiaAtleta] = useState(null);
   // Diálogo HUD activo (reemplaza confirm/alert nativos): null | { variant, ... }.
   const [modal, setModal] = useState(null);
   const reportRef = React.useRef(null);
@@ -251,6 +256,10 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         setFiltroGenero={setFiltroGenero}
         filtroMembresia={filtroMembresia}
         setFiltroMembresia={setFiltroMembresia}
+        filtroEdadMin={filtroEdadMin}
+        setFiltroEdadMin={setFiltroEdadMin}
+        filtroEdadMax={filtroEdadMax}
+        setFiltroEdadMax={setFiltroEdadMax}
         filtrosActivos={filtrosActivos}
         clearFilters={clearFilters}
       />
@@ -269,6 +278,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         onExport={exportPDF}
         onAntropometria={setEvaluatingAntropometria}
         onToggleMembresia={puedeMembresia ? handleToggleMembresia : null}
+        onMembresia={setMembresiaAtleta}
       />
 
       {/* Componente oculto para exportación PDF */}
@@ -288,6 +298,15 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
       )}
 
       {/* Diálogo HUD (reemplaza confirm/alert): borrado de atleta y error de PDF */}
+      {membresiaAtleta && (
+        <MembresiaAtletaModal
+          atleta={membresiaAtleta}
+          club={membresiaAtleta.club || user?.club}
+          onClose={() => setMembresiaAtleta(null)}
+          onSaved={() => { if (onRefresh) onRefresh(); refetch(); }}
+        />
+      )}
+
       <ModalHUD open={!!modal} {...(modal || {})} onClose={() => setModal(null)} />
     </div>
   );

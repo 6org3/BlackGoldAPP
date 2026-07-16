@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
 import { calcularCategoriaFEB } from '../api/utilsAtletas';
 import { aprobarMision, rechazarMision, aprobarAsignacion, rechazarAsignacion, setMisionActiva, actualizarMision } from '../api/misionesService';
-import { ArrowLeft, Plus, Save, X, Play, Trash2, CheckCircle, XCircle, Power, ChevronDown, Pencil } from 'lucide-react';
+import { Plus, Save, X, Play, Trash2, CheckCircle, XCircle, Power, ChevronDown, Pencil } from 'lucide-react';
 import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
 import { useAuth } from '../AuthContext';
-import useVolverAlHome from '../hooks/useVolverAlHome';
+import BotonVolver from './arcade/BotonVolver';
 import HexAvatar from './arcade/HexAvatar';
 import MicroLabel from './arcade/MicroLabel';
 import ModalHUD from './arcade/ModalHUD';
@@ -39,7 +39,6 @@ const chipStyle = (on) => ({
 
 export default function AdminMisiones() {
   const { user } = useAuth();
-  const volver = useVolverAlHome();
   const [misiones, setMisiones] = useState([]);
   const [totalMisiones, setTotalMisiones] = useState(0);
   const [cargandoMas, setCargandoMas] = useState(false);
@@ -412,9 +411,7 @@ export default function AdminMisiones() {
     <div className="max-w-4xl mx-auto" style={{ color: C.text }}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
         <div className="flex items-center space-x-4">
-          <button onClick={volver} aria-label="Volver al inicio" className="p-2 -m-2 text-fg-muted hover:text-white transition-colors">
-            <ArrowLeft size={20} />
-          </button>
+          <BotonVolver />
           <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
             <Play size={20} strokeWidth={2.5} />
           </HexAvatar>

@@ -52,7 +52,13 @@ export default function Plantel({ user: userProp = null, showEditProfile = false
   return (
     <>
       {/* Premium Dashboard Toolbar */}
-      {user.rol !== 'atleta' && !loading && (
+      {/* Se monta con `loading` en curso a propósito: cada filtro dispara una
+          query, así que condicionarla a `!loading` desmontaba la barra entera en
+          cada tecleo y el campo perdía el foco a mitad de palabra (con los
+          <select> no se notaba porque un clic aplica el valor completo, pero
+          hacía intecleable cualquier campo de texto o número). Quien comunica la
+          carga es AppAthleteGrid, que ya recibe `loading`. */}
+      {user.rol !== 'atleta' && (
         <AppToolbar
           busqueda={busqueda}
           setBusqueda={setBusqueda}

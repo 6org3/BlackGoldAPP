@@ -503,12 +503,14 @@ async function run() {
 
       atletaIdsPorCedula[a.cedula] = atletaId;
 
-      // atleta_grupo (idempotente: PK compuesta atleta_id+grupo_id)
+      // atleta_grupo (idempotente: PK compuesta atleta_id+grupo_id).
+      // rol_membresia explícito (v38): el DEFAULT es 'adicional', así que sin
+      // esto el atleta quedaría sin grupo básico — el que factura su mensualidad.
       const { data: vinculoExistente } = await supabase
         .from('atleta_grupo').select('atleta_id').eq('atleta_id', atletaId).eq('grupo_id', gruposIds[a.grupoNombre]).maybeSingle();
       if (!vinculoExistente) {
         const { error: errVinculo } = await supabase
-          .from('atleta_grupo').insert({ atleta_id: atletaId, grupo_id: gruposIds[a.grupoNombre] });
+          .from('atleta_grupo').insert({ atleta_id: atletaId, grupo_id: gruposIds[a.grupoNombre], rol_membresia: 'basica' });
         if (errVinculo) throw new Error(`Insert atleta_grupo ${a.cedula} falló: ${errVinculo.message}`);
       }
     }

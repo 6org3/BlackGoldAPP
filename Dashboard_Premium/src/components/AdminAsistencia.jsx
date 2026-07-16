@@ -2,14 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, FileText, AlertTriangle, Search, Calendar, Users, Save, ClipboardList, ChevronDown } from 'lucide-react';
 import { fetchAsistenciaPorFecha, upsertAsistencia } from '../api/asistenciaService';
+import { fetchGrupos } from '../api/sesionesService';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
+import BotonVolver from './arcade/BotonVolver';
 import MicroLabel from './arcade/MicroLabel';
 import KpiTile from './arcade/KpiTile';
 import KpiGrid from './arcade/KpiGrid';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
-const CATEGORIAS = ['Todas', 'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)', 'Prejuvenil (Sub-16)', 'Juvenil (Sub-18)', 'Mayores'];
+// El pase de lista se acota por GRUPO de entrenamiento, no por categoría FEB:
+// quien está en la cancha a una hora dada es el grupo (que tiene horario), y un
+// grupo mezcla categorías y niveles a propósito. Los grupos son filas del club,
+// así que la lista se lee de la BD en vez de estar hardcodeada.
+const TODOS = 'Todos';
 
 // Estados de asistencia con su color semántico Arcade (C.ok/danger/warn) — antes
 // Justificada usaba yellow crudo. El icono distingue Justificada de Lesionado.
@@ -29,7 +35,8 @@ function getTodayStr() {
 
 export default function AdminAsistencia({ user, atletas = [] }) {
   const [fecha, setFecha] = useState(getTodayStr());
-  const [filtroCategoria, setFiltroCategoria] = useState('Todas');
+  const [filtroGrupo, setFiltroGrupo] = useState(TODOS); // TODOS | grupo.id
+  const [grupos, setGrupos] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [asistencias, setAsistencias] = useState({});
   // Atletas cuyo estado ya es de fiar: o el coach tocó el botón con la mano,
@@ -45,27 +52,44 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const [errorCarga, setErrorCarga] = useState(false);
   const [pidiendoConfirmacion, setPidiendoConfirmacion] = useState(false);
 
-  // Cargar asistencias existentes para la fecha/categoría seleccionada.
-  // El universo lo define la categoría, no la búsqueda (que es solo un
-  // filtro visual): así cambiar fecha/categoría con texto en el buscador
+  // Grupos del club para el selector. Si falla, se queda en "Todos" — un
+  // desplegable vacío no debe impedir pasar lista.
+  useEffect(() => {
+    let vivo = true;
+    fetchGrupos(user?.club)
+      .then(gs => { if (vivo) setGrupos(gs || []); })
+      .catch(() => { if (vivo) setGrupos([]); });
+    return () => { vivo = false; };
+  }, [user?.club]);
+
+  // Cargar asistencias existentes para la fecha/grupo seleccionados.
+  // El universo lo define el grupo, no la búsqueda (que es solo un
+  // filtro visual): así cambiar fecha/grupo con texto en el buscador
   // no descarta las marcas del resto del grupo.
   const loadAsistencias = useCallback(async () => {
     let registros;
     try {
-      registros = await fetchAsistenciaPorFecha(fecha, filtroCategoria === 'Todas' ? null : filtroCategoria);
+      registros = await fetchAsistenciaPorFecha(fecha);
       setErrorCarga(false);
     } catch {
       registros = [];
       setErrorCarga(true);
     }
+    // El grupo se acota AQUÍ, contra `atletas`, y no en la query: este array trae
+    // el grupo_id ya resuelto — `fetchTodosLosAtletas` lo deriva de `atleta_grupo`
+    // cuando la columna `atletas.grupo_id` está vacía. Pedirle a la query que
+    // filtrara por la columna cruda dejaba fuera los registros reales de esos
+    // atletas: salían en la lista del grupo con "Presente" por defecto y al
+    // guardar les pisaba el estado guardado. Una sola fuente de verdad, no dos.
+    const delGrupo = atletas.filter(a => filtroGrupo === TODOS || a.grupo_id === filtroGrupo);
     const base = {};
-    atletas
-      .filter(a => filtroCategoria === 'Todas' || a.categoria === filtroCategoria)
-      .forEach(a => { base[a.id] = 'Presente'; });
+    delGrupo.forEach(a => { base[a.id] = 'Presente'; });
     // registros.atleta_id es atletas.id (FK real de la tabla asistencia), pero
     // `base` está indexado por a.id (usuarios.id, la key que usa el resto del
-    // componente) — hay que traducir de uno a otro antes de aplicar el estado guardado.
-    const usuarioIdPorAtletaId = new Map(atletas.map(a => [a.atleta_id, a.id]));
+    // componente) — hay que traducir de uno a otro antes de aplicar el estado
+    // guardado. El Map solo lleva a los del grupo, así que de paso descarta los
+    // registros de atletas que no se están mostrando.
+    const usuarioIdPorAtletaId = new Map(delGrupo.map(a => [a.atleta_id, a.id]));
     const yaRevisados = new Set();
     registros.forEach(r => {
       const usuarioId = usuarioIdPorAtletaId.get(r.atleta_id);
@@ -77,7 +101,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
     setAsistencias(base);
     setRevisados(yaRevisados);
     setPidiendoConfirmacion(false);
-  }, [fecha, filtroCategoria, atletas]);
+  }, [fecha, filtroGrupo, atletas]);
 
   useEffect(() => { loadAsistencias(); }, [loadAsistencias]);
 
@@ -87,11 +111,11 @@ export default function AdminAsistencia({ user, atletas = [] }) {
     setPidiendoConfirmacion(false);
   };
 
-  // Filtrar atletas por categoría y búsqueda
+  // Filtrar atletas por grupo y búsqueda
   const atletasFiltrados = atletas.filter(a => {
-    const matchCategoria = filtroCategoria === 'Todas' || a.categoria === filtroCategoria;
+    const matchGrupo = filtroGrupo === TODOS || a.grupo_id === filtroGrupo;
     const matchBusqueda = busqueda === '' || a.nombre?.toLowerCase().includes(busqueda.toLowerCase());
-    return matchCategoria && matchBusqueda;
+    return matchGrupo && matchBusqueda;
   });
 
   // Métricas en tiempo real
@@ -103,6 +127,12 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const pctAusentes = total > 0 ? Math.round((ausentes / total) * 100) : 0;
   const pctOtros = total > 0 ? Math.round((otros / total) * 100) : 0;
   const sinRevisar = atletasFiltrados.filter(a => !revisados.has(a.id)).length;
+
+  // Qué se está pasando ahora mismo: sin esto, el coach que guarda no tiene en
+  // el encabezado ninguna señal de a qué grupo pertenece la lista de abajo.
+  const nombreGrupoActivo = filtroGrupo === TODOS
+    ? 'Gestión por grupos'
+    : (grupos.find(g => g.id === filtroGrupo)?.nombre ?? 'Grupo');
 
   const handleGuardar = async () => {
     // Cualquier fila sin revisar (no solo cuando son TODAS) se grabaría en
@@ -147,6 +177,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
       {/* Header */}
       <header className="mb-8 pb-8" style={{ borderBottom: `1px solid ${BORDER.neutral}` }}>
         <div className="flex items-center gap-3">
+          <BotonVolver />
           <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
             <ClipboardList size={22} strokeWidth={2.5} />
           </HexAvatar>
@@ -154,7 +185,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
             <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
               Control de <span style={{ color: C.gold }}>Asistencia</span>
             </h2>
-            <MicroLabel style={{ marginTop: 4 }}>Gestión por grupos · {total} atletas</MicroLabel>
+            <MicroLabel style={{ marginTop: 4 }}>{nombreGrupoActivo} · {total} atletas</MicroLabel>
           </div>
         </div>
       </header>
@@ -173,16 +204,18 @@ export default function AdminAsistencia({ user, atletas = [] }) {
           />
         </div>
 
-        {/* Categoría */}
+        {/* Grupo de entrenamiento */}
         <div className="flex items-center gap-2 px-4" style={boxStyle}>
           <Users size={14} style={{ color: C.gold }} />
           <select
-            value={filtroCategoria}
-            onChange={e => setFiltroCategoria(e.target.value)}
+            value={filtroGrupo}
+            onChange={e => setFiltroGrupo(e.target.value)}
+            aria-label="Filtrar por grupo de entrenamiento"
             className="cut-focus arcade-input bg-transparent min-h-11 md:min-h-9 text-sm font-bold focus:outline-none cursor-pointer appearance-none"
             style={{ color: C.text }}
           >
-            {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value={TODOS}>Todos los grupos</option>
+            {grupos.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
           </select>
           <ChevronDown size={12} className="pointer-events-none" style={{ color: C.text3 }} />
         </div>

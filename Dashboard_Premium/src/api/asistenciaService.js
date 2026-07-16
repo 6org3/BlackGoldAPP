@@ -4,27 +4,31 @@
 import { supabase } from './supabaseClient';
 
 /**
- * Obtiene las asistencias de una fecha dada, enriquecidas con datos del atleta.
- * Opcionalmente filtra por categoría.
+ * Obtiene TODAS las asistencias de una fecha dada. No acota por grupo: de eso se
+ * encarga quien llama, cruzando por `atleta_id` contra su propia lista de atletas.
+ *
+ * Aquí no se filtra por grupo a propósito. `atletas.grupo_id` NO es la única
+ * fuente de pertenencia: en los clubes cuya pertenencia vive solo en la tabla
+ * `atleta_grupo` (la fuente de verdad de v18) esa columna está vacía, y quien
+ * arma la lista de atletas la deriva de ahí (`fetchTodosLosAtletas`). Filtrar
+ * por la columna cruda aquí dejaba fuera precisamente los registros de esos
+ * atletas: el pase de lista los mostraba en el grupo, pero con "Presente" por
+ * defecto en vez de su estado real, y al guardar lo pisaba en silencio — el
+ * mismo daño que el `throw` de abajo existe para evitar. Una sola fuente de
+ * verdad para el grupo (la lista ya resuelta del componente) y no dos.
+ *
+ * El club ya lo acota la RLS (`asistencia_staff`, v29), no esta query.
+ *
  * Lanza si la consulta falla: devolver [] aquí haría indistinguible "sin
  * registros" de "falló la carga", y el pase de lista partiría de "100%
  * presente" pudiendo pisar asistencia real sin ninguna señal (auditoría
  * UX coach 2026-07-09).
  * @param {string} fecha - Fecha en formato 'YYYY-MM-DD'
- * @param {string|null} categoria - Categoría a filtrar (null = todas)
  */
-export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
+export async function fetchAsistenciaPorFecha(fecha) {
   const { data, error } = await supabase
     .from('asistencia')
-    .select(`
-      id,
-      atleta_id,
-      coach_id,
-      fecha,
-      estado,
-      notas,
-      atletas (id, posicion, usuarios!inner!atletas_usuario_id_fkey (nombre, categoria, club))
-    `)
+    .select('id, atleta_id, coach_id, fecha, estado, notas')
     .eq('fecha', fecha);
 
   if (error) {
@@ -32,10 +36,6 @@ export async function fetchAsistenciaPorFecha(fecha, categoria = null) {
     throw error;
   }
 
-  // Filtrar por categoría si se especifica
-  if (categoria && categoria !== 'Todas') {
-    return (data || []).filter(r => r.atletas?.usuarios?.categoria === categoria);
-  }
   return data || [];
 }
 

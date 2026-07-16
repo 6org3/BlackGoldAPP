@@ -15,6 +15,9 @@ export const FILTROS_INICIALES = {
   posicion: 'Todas',
   nivelDesarrollo: 'Todos',
   genero: 'Todos',
+  // Rango de edad libre: `undefined` = extremo sin acotar (no es lo mismo que 0).
+  edadMin: undefined,
+  edadMax: undefined,
 };
 
 // Campos que Postgres puede ordenar directamente. `nivel_desarrollo` usa un
@@ -55,6 +58,8 @@ export function useAppAtletasData({ user, busqueda, filtros, ordenarPor }) {
     posicion: filtros.posicion,
     nivelDesarrollo: filtros.nivelDesarrollo,
     genero: filtros.genero,
+    edadMin: filtros.edadMin,
+    edadMax: filtros.edadMax,
     orderBy: ORDER_BY_MAP[ordenarPor] || null,
   }), [busquedaDebounced, filtros, ordenarPor]);
 
