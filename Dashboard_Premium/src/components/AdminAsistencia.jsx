@@ -68,20 +68,27 @@ export default function AdminAsistencia({ user, atletas = [] }) {
   const loadAsistencias = useCallback(async () => {
     let registros;
     try {
-      registros = await fetchAsistenciaPorFecha(fecha, filtroGrupo === TODOS ? null : filtroGrupo);
+      registros = await fetchAsistenciaPorFecha(fecha);
       setErrorCarga(false);
     } catch {
       registros = [];
       setErrorCarga(true);
     }
+    // El grupo se acota AQUÍ, contra `atletas`, y no en la query: este array trae
+    // el grupo_id ya resuelto — `fetchTodosLosAtletas` lo deriva de `atleta_grupo`
+    // cuando la columna `atletas.grupo_id` está vacía. Pedirle a la query que
+    // filtrara por la columna cruda dejaba fuera los registros reales de esos
+    // atletas: salían en la lista del grupo con "Presente" por defecto y al
+    // guardar les pisaba el estado guardado. Una sola fuente de verdad, no dos.
+    const delGrupo = atletas.filter(a => filtroGrupo === TODOS || a.grupo_id === filtroGrupo);
     const base = {};
-    atletas
-      .filter(a => filtroGrupo === TODOS || a.grupo_id === filtroGrupo)
-      .forEach(a => { base[a.id] = 'Presente'; });
+    delGrupo.forEach(a => { base[a.id] = 'Presente'; });
     // registros.atleta_id es atletas.id (FK real de la tabla asistencia), pero
     // `base` está indexado por a.id (usuarios.id, la key que usa el resto del
-    // componente) — hay que traducir de uno a otro antes de aplicar el estado guardado.
-    const usuarioIdPorAtletaId = new Map(atletas.map(a => [a.atleta_id, a.id]));
+    // componente) — hay que traducir de uno a otro antes de aplicar el estado
+    // guardado. El Map solo lleva a los del grupo, así que de paso descarta los
+    // registros de atletas que no se están mostrando.
+    const usuarioIdPorAtletaId = new Map(delGrupo.map(a => [a.atleta_id, a.id]));
     const yaRevisados = new Set();
     registros.forEach(r => {
       const usuarioId = usuarioIdPorAtletaId.get(r.atleta_id);
