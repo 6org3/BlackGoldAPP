@@ -69,6 +69,7 @@ export const BORDER = {
   ai: 'rgba(168,85,247,.3)',
   warn: 'rgba(251,146,60,.35)',
   whatsapp: 'rgba(37,211,102,.35)',
+  cyan: 'rgba(34,211,238,.3)', // espejo de C.cyan; borde de contenedor (no usar C.cyan sólido)
 };
 
 /* ---- Gradientes ---- */

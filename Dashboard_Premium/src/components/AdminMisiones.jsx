@@ -7,8 +7,35 @@ import { Plus, Save, X, Play, Trash2, CheckCircle, XCircle, Power, ChevronDown, 
 import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
 import { useAuth } from '../AuthContext';
 import BotonVolver from './arcade/BotonVolver';
+import HexAvatar from './arcade/HexAvatar';
+import MicroLabel from './arcade/MicroLabel';
+import ModalHUD from './arcade/ModalHUD';
+import LiveDot from './arcade/LiveDot';
+import ActionButton from './AdminAtletasActionButton';
+import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
 const PAGE_SIZE = 50;
+
+// Campo del Formulario-HUD (§6.3): arcade-input + esquina cortada + foco dorado.
+const FIELD_CLASS = 'cut-focus arcade-input w-full min-h-11 md:min-h-9 px-4 py-2.5 text-sm border border-white/10 focus:outline-none focus:border-brand/60 transition-colors';
+const fieldStyle = { clipPath: cut(7), background: C.cardAlt1, color: C.text };
+
+// Badge de metadato: tinte neutro + borde/texto del color semántico (el color
+// nunca es la única señal; cada badge lleva su propia etiqueta de texto).
+const badgeStyle = (color) => ({
+  clipPath: cut(5),
+  background: C.cardAlt1,
+  border: `1px solid ${color}`,
+  color,
+});
+
+// Chip de filtro del banco: activo = oro, inactivo = neutro.
+const chipStyle = (on) => ({
+  clipPath: cut(7),
+  background: on ? TINT.gold : C.card,
+  border: `1px solid ${on ? BORDER.goldStrong : BORDER.neutral}`,
+  color: on ? C.gold : C.text3,
+});
 
 export default function AdminMisiones() {
   const { user } = useAuth();
@@ -29,6 +56,9 @@ export default function AdminMisiones() {
   // (comodín) — filtra "qué puede hacer el atleta ahí", no la etiqueta exacta.
   const [filtroContexto, setFiltroContexto] = useState('todos'); // todos | cancha | casa
   const [justifAbierta, setJustifAbierta] = useState(null); // id de misión con justificación expandida
+  // Diálogo HUD activo (reemplaza los confirm() nativos): null | props de ModalHUD.
+  // `onConfirm` no cierra solo — cada acción cierra y luego ejecuta.
+  const [dialogo, setDialogo] = useState(null);
 
   const misionesFiltradas = useMemo(() => misiones.filter(m => {
     if (busquedaMision && !m.titulo?.toLowerCase().includes(busquedaMision.toLowerCase())) return false;
@@ -276,13 +306,23 @@ export default function AdminMisiones() {
 
   // Tras cada acción se actualiza el estado local en vez de recargar todo
   // (loadData + banco completo): cada refetch descargaba el club entero.
-  const handleDelete = async (mision) => {
-    if (!confirm(`¿Eliminar la misión "${mision.titulo}"?`)) return;
-    await supabase.from('progreso_misiones').delete().eq('mision_id', mision.id);
-    await supabase.from('misiones').delete().eq('id', mision.id);
-    setMisiones(prev => prev.filter(m => m.id !== mision.id));
-    setTotalMisiones(prev => Math.max(0, prev - 1));
-    setPendientes(prev => prev.filter(p => p.mision_id !== mision.id));
+  const handleDelete = (mision) => {
+    setDialogo({
+      tone: 'danger',
+      icon: Trash2,
+      eyebrow: 'Acción destructiva',
+      title: 'Eliminar misión',
+      message: `¿Eliminar "${mision.titulo}"? También se borra el progreso de los atletas que la tengan asignada.`,
+      confirmLabel: 'Eliminar',
+      onConfirm: async () => {
+        setDialogo(null);
+        await supabase.from('progreso_misiones').delete().eq('mision_id', mision.id);
+        await supabase.from('misiones').delete().eq('id', mision.id);
+        setMisiones(prev => prev.filter(m => m.id !== mision.id));
+        setTotalMisiones(prev => Math.max(0, prev - 1));
+        setPendientes(prev => prev.filter(p => p.mision_id !== mision.id));
+      },
+    });
   };
 
   const handleAprobar = async (id) => {
@@ -295,15 +335,25 @@ export default function AdminMisiones() {
     }
   };
 
-  const handleRechazar = async (id) => {
-    if (!confirm('¿Rechazar esta misión completada? El atleta no recibirá el XP.')) return;
-    try {
-      await rechazarMision(id);
-      setSuccess('Misión rechazada.');
-      setPendientes(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
-      setError('Error al rechazar la misión: ' + err.message);
-    }
+  const handleRechazar = (id) => {
+    setDialogo({
+      tone: 'danger',
+      icon: XCircle,
+      eyebrow: 'El atleta no recibe XP',
+      title: 'Rechazar misión completada',
+      message: 'El atleta la marcó como hecha, pero no se le otorgará el XP.',
+      confirmLabel: 'Rechazar',
+      onConfirm: async () => {
+        setDialogo(null);
+        try {
+          await rechazarMision(id);
+          setSuccess('Misión rechazada.');
+          setPendientes(prev => prev.filter(p => p.id !== id));
+        } catch (err) {
+          setError('Error al rechazar la misión: ' + err.message);
+        }
+      },
+    });
   };
 
   const handleAprobarAsignacion = async (id) => {
@@ -316,15 +366,25 @@ export default function AdminMisiones() {
     }
   };
 
-  const handleRechazarAsignacion = async (id) => {
-    if (!confirm('¿Rechazar esta asignación propuesta? El atleta nunca la verá.')) return;
-    try {
-      await rechazarAsignacion(id);
-      setSuccess('Asignación rechazada (el atleta nunca la verá).');
-      setPendientes(prev => prev.filter(p => p.id !== id));
-    } catch (err) {
-      setError('Error al rechazar la asignación: ' + err.message);
-    }
+  const handleRechazarAsignacion = (id) => {
+    setDialogo({
+      tone: 'danger',
+      icon: XCircle,
+      eyebrow: 'El atleta nunca la verá',
+      title: 'Rechazar asignación propuesta',
+      message: 'La propuesta se descarta: esta misión no llegará al atleta.',
+      confirmLabel: 'Rechazar',
+      onConfirm: async () => {
+        setDialogo(null);
+        try {
+          await rechazarAsignacion(id);
+          setSuccess('Asignación rechazada (el atleta nunca la verá).');
+          setPendientes(prev => prev.filter(p => p.id !== id));
+        } catch (err) {
+          setError('Error al rechazar la asignación: ' + err.message);
+        }
+      },
+    });
   };
 
   const handleToggleActiva = async (mision) => {
@@ -340,40 +400,49 @@ export default function AdminMisiones() {
     }
   };
 
+  // Origen de la propuesta: color semántico Arcade (antes cyan/mental/gray crudos).
   const ORIGEN_BADGE = {
-    auto_baremo: { label: 'Por evaluación', cls: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' },
-    ia: { label: 'IA', cls: 'bg-mental/10 text-mental-soft border-mental/30' },
-    coach: { label: 'Coach', cls: 'bg-gray-500/10 text-fg-secondary border-gray-500/30' },
+    auto_baremo: { label: 'Por evaluación', color: C.cyan },
+    ia: { label: 'IA', color: C.ai },
+    coach: { label: 'Coach', color: C.text3 },
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto" style={{ color: C.text }}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
         <div className="flex items-center space-x-4">
           <BotonVolver />
-          <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">
-            Gestionar <span className="text-brand">Misiones</span>
-          </h2>
+          <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
+            <Play size={20} strokeWidth={2.5} />
+          </HexAvatar>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+              Gestionar <span style={{ color: C.gold }}>Misiones</span>
+            </h2>
+            <MicroLabel style={{ marginTop: 4 }}>Catálogo · Aprobaciones · Asignación</MicroLabel>
+          </div>
         </div>
         <button
           onClick={() => { if (showForm) { cerrarForm(); } else { setEditandoId(null); setForm(emptyForm); setShowForm(true); } }}
-          className="flex items-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black text-xs uppercase tracking-widest px-5 py-3 rounded-control shadow-[0_0_15px_rgba(255,215,0,0.3)] hover:shadow-[0_0_25px_rgba(255,215,0,0.5)] transition"
+          className="cut-focus flex items-center justify-center gap-2 min-h-11 px-5 text-xs font-black uppercase tracking-widest transition active:scale-[0.99]"
+          style={{ clipPath: cut(8), background: GRAD.goldCTA, color: C.ink, border: 'none' }}
         >
           <Plus size={16} />
           <span>Nueva Misión</span>
         </button>
       </div>
 
-      {error && <div className="mb-6 p-4 rounded-control bg-danger/10 border border-danger/30 text-danger-soft text-sm font-bold">{error}</div>}
-      {success && <div className="mb-6 p-4 rounded-control bg-success/10 border border-success/30 text-success-soft text-sm font-bold">{success}</div>}
+      {error && <div role="alert" className="mb-6 p-4 text-sm font-bold" style={{ clipPath: cut(8), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}>{error}</div>}
+      {success && <div role="status" className="mb-6 p-4 text-sm font-bold" style={{ clipPath: cut(8), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }}>{success}</div>}
 
       {/* Formulario de Misión */}
       {showForm && (
         <motion.form
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           onSubmit={handleSubmit}
-          className="glass-card rounded-panel p-4 sm:p-8 mb-10 space-y-6"
+          className="p-4 sm:p-8 mb-10 space-y-6"
+          style={{ clipPath: cut(12), background: C.card, border: `1px solid ${BORDER.neutral}` }}
         >
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-black text-white uppercase tracking-tight">{editandoId ? 'Editar Misión' : 'Crear Misión Educativa'}</h3>
@@ -384,18 +453,18 @@ export default function AdminMisiones() {
             <div className="col-span-2">
               <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Título de la Misión</label>
               <input value={form.titulo} onChange={e => handleChange('titulo', e.target.value)} required
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" placeholder="Ej. Mejora tu defensa perimetral" />
+                className={FIELD_CLASS} style={fieldStyle} placeholder="Ej. Mejora tu defensa perimetral" />
             </div>
             <div className="col-span-2">
               <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Descripción</label>
               <textarea value={form.descripcion} onChange={e => handleChange('descripcion', e.target.value)} rows={2}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50 resize-none" placeholder="Instrucciones para el atleta..." />
+                className={`${FIELD_CLASS} resize-none`} style={fieldStyle} placeholder="Instrucciones para el atleta..." />
             </div>
             <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Pilar</label>
                 <select value={form.pilar} onChange={e => handleChange('pilar', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50 appearance-none cursor-pointer">
+                  className={`${FIELD_CLASS} appearance-none cursor-pointer`} style={fieldStyle}>
                   {PILARES_OPTIONS.map(({ value, label }) => (
                     <option key={value} value={value} className="bg-surface-card">{label}</option>
                   ))}
@@ -404,26 +473,26 @@ export default function AdminMisiones() {
               <div>
                 <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">URL del Video (YouTube)</label>
                 <input value={form.video_url} onChange={e => handleChange('video_url', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" placeholder="https://www.youtube.com/watch?v=..." />
+                  className={FIELD_CLASS} style={fieldStyle} placeholder="https://www.youtube.com/watch?v=..." />
               </div>
             </div>
             <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">XP Recompensa</label>
                 <input type="number" inputMode="numeric" min="0" value={form.xp_recompensa} onChange={e => handleChange('xp_recompensa', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" />
+                  className={FIELD_CLASS} style={fieldStyle} />
               </div>
               <div>
                 <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Categoría Objetivo</label>
                 <select value={form.categoria_objetivo} onChange={e => handleChange('categoria_objetivo', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50 appearance-none cursor-pointer">
+                  className={`${FIELD_CLASS} appearance-none cursor-pointer`} style={fieldStyle}>
                   {['Sub12', 'Sub15', 'Sub18', 'Femenino', 'Senior', 'Todos'].map(c => <option key={c} value={c} className="bg-surface-card">{c}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-[11px] text-fg-secondary font-bold uppercase tracking-widest mb-2">Contexto</label>
                 <select value={form.contexto} onChange={e => handleChange('contexto', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50 appearance-none cursor-pointer">
+                  className={`${FIELD_CLASS} appearance-none cursor-pointer`} style={fieldStyle}>
                   <option value="ambos" className="bg-surface-card">Ambos (cancha o casa)</option>
                   <option value="cancha" className="bg-surface-card">Cancha</option>
                   <option value="casa" className="bg-surface-card">Casa</option>
@@ -439,7 +508,7 @@ export default function AdminMisiones() {
               <button type="button" onClick={addQuestion} className="text-2xs text-brand font-bold uppercase tracking-widest hover:text-white transition-colors">+ Agregar Pregunta</button>
             </div>
             {form.quiz.map((q, qi) => (
-              <div key={qi} className="bg-white/[0.02] border border-white/5 rounded-control p-4 mb-3">
+              <div key={qi} className="p-4 mb-3" style={{ clipPath: cut(8), background: C.cardAlt1, border: `1px solid ${BORDER.neutralFaint}` }}>
                 <div className="flex justify-between items-start mb-3">
                   <label className="text-[11px] text-fg-secondary font-bold uppercase tracking-widest">Pregunta {qi + 1}</label>
                   {form.quiz.length > 1 && (
@@ -447,14 +516,15 @@ export default function AdminMisiones() {
                   )}
                 </div>
                 <input value={q.pregunta} onChange={e => handleQuizChange(qi, 'pregunta', e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white mb-3 focus:outline-none focus:border-brand/50" placeholder="¿Cuál es...?" />
+                  className={`${FIELD_CLASS} mb-3`} style={fieldStyle} placeholder="¿Cuál es...?" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {q.opciones.map((op, oi) => (
                     <div key={oi} className="flex items-center space-x-2">
                       <input type="radio" name={`correct-${qi}`} checked={q.correcta === oi} onChange={() => handleQuizChange(qi, 'correcta', oi)}
                         className="w-5 h-5 shrink-0 accent-brand" />
                       <input value={op} onChange={e => handleQuizChange(qi, `opcion_${oi}`, e.target.value)}
-                        className="flex-1 bg-white/5 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-brand/50"
+                        className="cut-focus arcade-input flex-1 min-h-11 md:min-h-9 px-3 text-xs border border-white/10 focus:outline-none focus:border-brand/60 transition-colors"
+                        style={fieldStyle}
                         placeholder={`Opción ${String.fromCharCode(65 + oi)}`} />
                     </div>
                   ))}
@@ -470,11 +540,8 @@ export default function AdminMisiones() {
             <div className="grid grid-cols-2 gap-2">
               {atletas.map(a => (
                 <button key={a.atleta_id} type="button" onClick={() => toggleAtleta(a.atleta_id)}
-                  className={`flex items-center space-x-3 p-3 rounded-lg border text-left text-xs font-medium transition ${
-                    form.asignar_a.includes(a.atleta_id)
-                      ? 'bg-brand/10 border-brand/40 text-brand'
-                      : 'bg-white/[0.02] border-white/10 text-fg-secondary hover:text-white hover:border-white/20'
-                  }`}
+                  className="cut-focus flex items-center space-x-3 p-3 min-h-11 text-left text-xs font-medium transition-colors"
+                  style={chipStyle(form.asignar_a.includes(a.atleta_id))}
                 >
                   <span>{form.asignar_a.includes(a.atleta_id) ? '✓' : '○'}</span>
                   <span>{a.nombre} <span className="text-3xs opacity-60">({a.categoria})</span></span>
@@ -485,7 +552,8 @@ export default function AdminMisiones() {
           )}
 
           <button type="submit" disabled={saving}
-            className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-brand to-brand-strong text-black font-black uppercase tracking-widest py-4 rounded-control shadow-[0_0_20px_rgba(255,215,0,0.3)] disabled:opacity-50">
+            className="cut-focus w-full flex items-center justify-center gap-2 min-h-11 py-3.5 font-black uppercase tracking-widest transition disabled:opacity-50 active:scale-[0.99]"
+            style={{ clipPath: cut(10), background: GRAD.goldCTA, color: C.ink, border: 'none' }}>
             <Save size={16} />
             <span>{saving ? 'Guardando…' : editandoId ? 'Guardar cambios' : 'Crear Misión y Asignar'}</span>
           </button>
@@ -496,14 +564,15 @@ export default function AdminMisiones() {
       {completadasPorAprobar.length > 0 && (
         <div className="mb-10">
           <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4 flex items-center">
-            <span className="w-2 h-2 rounded-full bg-brand mr-2 animate-pulse"></span>
+            <LiveDot color={C.gold} style={{ marginRight: 8 }} />
             Completadas por Aprobar
           </h3>
           <div className="space-y-3">
             {completadasPorAprobar.map((p, i) => (
               <motion.div key={p.id}
-                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.04 }}
-                className="bg-white/5 border border-brand/30 rounded-control p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 10) * 0.04 }}
+                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                style={{ clipPath: cut(8), background: C.card, border: `1px solid ${BORDER.goldMid}` }}
               >
                 <div>
                   <p className="text-sm font-bold text-white">{p.misiones?.titulo}</p>
@@ -515,11 +584,11 @@ export default function AdminMisiones() {
                   </p>
                 </div>
                 <div className="flex gap-3 w-full sm:w-auto">
-                  <button onClick={() => handleAprobar(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-success/10 text-success-soft border border-success/30 hover:bg-success/20 rounded-control transition-colors">
+                  <button onClick={() => handleAprobar(p.id)} className="cut-focus flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 transition-colors" style={{ clipPath: cut(7), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }}>
                     <CheckCircle size={16} />
                     <span className="text-sm font-bold uppercase">Aprobar (+{p.misiones?.xp_recompensa} XP)</span>
                   </button>
-                  <button onClick={() => handleRechazar(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-danger/10 text-danger-soft border border-danger/30 hover:bg-danger/20 rounded-control transition-colors">
+                  <button onClick={() => handleRechazar(p.id)} className="cut-focus flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 transition-colors" style={{ clipPath: cut(7), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}>
                     <XCircle size={16} />
                     <span className="text-sm font-bold uppercase">Rechazar</span>
                   </button>
@@ -535,7 +604,7 @@ export default function AdminMisiones() {
       {asignacionesPropuestas.length > 0 && (
         <div className="mb-10">
           <h3 className="text-xl font-black text-white uppercase tracking-tight mb-4 flex items-center">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 mr-2 animate-pulse"></span>
+            <LiveDot color={C.cyan} style={{ marginRight: 8 }} />
             Asignaciones Propuestas
           </h3>
           <div className="space-y-3">
@@ -543,15 +612,16 @@ export default function AdminMisiones() {
               const badge = ORIGEN_BADGE[p.origen] || ORIGEN_BADGE.coach;
               return (
                 <motion.div key={p.id}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 10) * 0.04 }}
-                  className="bg-white/5 border border-cyan-500/30 rounded-control p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 10) * 0.04 }}
+                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  style={{ clipPath: cut(8), background: C.card, border: `1px solid ${BORDER.cyan}` }}
                 >
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-white">{p.misiones?.titulo}</p>
-                      <span className={`px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border ${badge.cls}`}>{badge.label}</span>
+                      <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(badge.color)}>{badge.label}</span>
                       {p.sub_pilar_objetivo && (
-                        <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-caution/10 text-caution-soft border-caution/30">
+                        <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(C.warn)}>
                           Objetivo: {p.sub_pilar_objetivo}
                         </span>
                       )}
@@ -564,11 +634,11 @@ export default function AdminMisiones() {
                     </p>
                   </div>
                   <div className="flex gap-3 w-full sm:w-auto">
-                    <button onClick={() => handleAprobarAsignacion(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-success/10 text-success-soft border border-success/30 hover:bg-success/20 rounded-control transition-colors">
+                    <button onClick={() => handleAprobarAsignacion(p.id)} className="cut-focus flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 transition-colors" style={{ clipPath: cut(7), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }}>
                       <CheckCircle size={16} />
                       <span className="text-sm font-bold uppercase">Aprobar</span>
                     </button>
-                    <button onClick={() => handleRechazarAsignacion(p.id)} className="flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 bg-danger/10 text-danger-soft border border-danger/30 hover:bg-danger/20 rounded-control transition-colors">
+                    <button onClick={() => handleRechazarAsignacion(p.id)} className="cut-focus flex-1 sm:flex-initial flex items-center justify-center space-x-1 px-4 py-3 min-h-11 transition-colors" style={{ clipPath: cut(7), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}>
                       <XCircle size={16} />
                       <span className="text-sm font-bold uppercase">Rechazar</span>
                     </button>
@@ -587,22 +657,16 @@ export default function AdminMisiones() {
         <div className="flex flex-wrap gap-1 items-center">
           {[['todas', 'Todas'], ['activas', 'Activas'], ['propuestas', 'Propuestas']].map(([id, label]) => (
             <button key={id} onClick={() => setFiltroBanco(id)}
-              className={`inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
-                filtroBanco === id
-                  ? 'bg-brand/15 border-brand/40 text-brand'
-                  : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'
-              }`}>
+              className="cut-focus inline-flex items-center min-h-11 md:min-h-9 px-3.5 text-2xs font-black uppercase tracking-widest transition-colors"
+              style={chipStyle(filtroBanco === id)}>
               {label}
             </button>
           ))}
           <span className="w-px h-5 bg-white/10 mx-1" />
           {[['todos', 'Todo lugar'], ['cancha', 'Cancha'], ['casa', 'Casa']].map(([id, label]) => (
             <button key={id} onClick={() => setFiltroContexto(id)}
-              className={`inline-flex items-center min-h-11 md:min-h-9 px-3.5 rounded-lg text-2xs font-black uppercase tracking-widest border transition ${
-                filtroContexto === id
-                  ? 'bg-brand/15 border-brand/40 text-brand'
-                  : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'
-              }`}>
+              className="cut-focus inline-flex items-center min-h-11 md:min-h-9 px-3.5 text-2xs font-black uppercase tracking-widest transition-colors"
+              style={chipStyle(filtroContexto === id)}>
               {label}
             </button>
           ))}
@@ -611,42 +675,43 @@ export default function AdminMisiones() {
       <div className="mb-4">
         <input type="text" placeholder="Buscar misión por título..."
            value={busquedaMision} onChange={e => setBusquedaMision(e.target.value)}
-           className="w-full bg-black/40 border border-white/10 rounded-control px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand/50" />
+           className={FIELD_CLASS} style={fieldStyle} />
       </div>
       <div className="space-y-3">
         {misionesFiltradas.map((mision, i) => (
           <motion.div key={mision.id}
-            initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 10) * 0.03 }}
-            className={`glass-card rounded-control p-5 glow-border ${mision.activa === false ? 'opacity-70' : ''}`}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 10) * 0.03 }}
+            className={`p-5 border border-white/5 glow-border ${mision.activa === false ? 'opacity-70' : ''}`}
+            style={{ clipPath: cut(10), background: C.card }}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center space-x-4 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-brand/10 border border-brand/30 flex items-center justify-center shrink-0">
-                  <Play size={16} className="text-brand" />
-                </div>
+                <HexAvatar size={40} background={TINT.gold} color={C.gold}>
+                  <Play size={16} />
+                </HexAvatar>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-bold text-white">{mision.titulo}</p>
                     {mision.activa === false && (
-                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-gray-500/10 text-fg-secondary border-gray-500/30">Propuesta</span>
+                      <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(C.text3)}>Propuesta</span>
                     )}
                     {mision.is_ai_generated && (
-                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-mental/10 text-mental-soft border-mental/30">IA</span>
+                      <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(C.ai)}>IA</span>
                     )}
                     {mision.complejidad && (
-                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-cyan-500/10 text-cyan-400 border-cyan-500/30">{mision.complejidad}</span>
+                      <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(C.cyan)}>{mision.complejidad}</span>
                     )}
                     {mision.nivel_objetivo && (
-                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-caution/10 text-caution-soft border-caution/30">{mision.nivel_objetivo}</span>
+                      <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(C.warn)}>{mision.nivel_objetivo}</span>
                     )}
                     {mision.categoria_bucket && (
-                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-success/10 text-success-soft border-success/30">{mision.categoria_bucket}</span>
+                      <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(C.ok)}>{mision.categoria_bucket}</span>
                     )}
                     {mision.contexto && mision.contexto !== 'ambos' && (
-                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-brand/10 text-brand border-brand/30">{mision.contexto === 'casa' ? 'Casa' : 'Cancha'}</span>
+                      <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(C.gold)}>{mision.contexto === 'casa' ? 'Casa' : 'Cancha'}</span>
                     )}
                     {mision.fase_temporada && (
-                      <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-widest border bg-white/[0.04] text-fg-secondary border-white/15">{mision.fase_temporada}</span>
+                      <span className="px-2 py-0.5 text-3xs font-black uppercase tracking-widest" style={badgeStyle(C.text3)}>{mision.fase_temporada}</span>
                     )}
                   </div>
                   <p className="text-2xs text-fg-secondary font-bold uppercase tracking-widest mt-1">
@@ -656,37 +721,40 @@ export default function AdminMisiones() {
               </div>
               <div className="flex items-center space-x-2 shrink-0">
                 {mision.justificacion && (
-                  <button onClick={() => setJustifAbierta(justifAbierta === mision.id ? null : mision.id)}
-                    aria-label="Ver justificación"
-                    className={`p-2 rounded-lg border transition-colors ${justifAbierta === mision.id ? 'bg-brand/10 border-brand/40 text-brand' : 'bg-white/[0.02] border-white/10 text-fg-muted hover:text-white'}`}
-                    title="Ver justificación científica">
+                  <ActionButton
+                    onClick={() => setJustifAbierta(justifAbierta === mision.id ? null : mision.id)}
+                    title="Ver justificación científica"
+                    isActive={justifAbierta === mision.id}>
                     <ChevronDown size={14} className={justifAbierta === mision.id ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                  </button>
+                  </ActionButton>
                 )}
-                <button onClick={() => handleEditar(mision)} aria-label="Editar misión"
-                  className="p-2 rounded-lg border bg-white/[0.02] border-white/10 text-fg-muted hover:text-brand transition-colors"
-                  title="Editar (contexto, link de YouTube, pilar, texto…)">
+                <ActionButton
+                  onClick={() => handleEditar(mision)}
+                  title="Editar misión"
+                  className="hover:text-brand">
                   <Pencil size={14} />
-                </button>
+                </ActionButton>
                 <button onClick={() => handleToggleActiva(mision)}
-                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg border transition-colors ${
-                    mision.activa === false
-                      ? 'bg-success/10 text-success-soft border-success/30 hover:bg-success/20'
-                      : 'bg-white/[0.02] text-fg-secondary border-white/10 hover:text-white'
-                  }`}
+                  className="cut-focus flex items-center space-x-1 px-3 min-h-11 md:min-h-9 transition-colors"
+                  style={mision.activa === false
+                    ? { clipPath: cut(7), background: TINT.ok, border: `1px solid ${BORDER.okStrong}`, color: C.ok }
+                    : { clipPath: cut(7), background: C.card, border: `1px solid ${BORDER.neutral}`, color: C.text3 }}
                   title={mision.activa === false ? 'Activar (entra al catálogo del selector)' : 'Desactivar (sale del catálogo)'}>
                   <Power size={14} />
                   <span className="text-2xs font-bold uppercase">{mision.activa === false ? 'Activar' : 'Activa'}</span>
                 </button>
-                <button onClick={() => handleDelete(mision)} aria-label="Eliminar misión" className="p-2 -m-1 text-fg-muted hover:text-danger transition-colors">
+                <ActionButton
+                  onClick={() => handleDelete(mision)}
+                  title="Eliminar misión"
+                  className="hover:text-danger">
                   <Trash2 size={16} />
-                </button>
+                </ActionButton>
               </div>
             </div>
             {justifAbierta === mision.id && mision.justificacion && (
-              <div className="mt-3 pt-3 border-t border-white/10">
-                <p className="text-3xs text-brand font-bold uppercase tracking-widest mb-1">Justificación científica</p>
-                <p className="text-xs text-gray-300 leading-relaxed">{mision.justificacion}</p>
+              <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${BORDER.neutral}` }}>
+                <MicroLabel color={C.gold} style={{ marginBottom: 4 }}>Justificación científica</MicroLabel>
+                <p className="text-xs leading-relaxed" style={{ color: C.text2 }}>{mision.justificacion}</p>
               </div>
             )}
           </motion.div>
@@ -694,10 +762,19 @@ export default function AdminMisiones() {
       </div>
       {misiones.length < totalMisiones && (
         <button onClick={() => cargarMisiones(misiones.length)} disabled={cargandoMas}
-          className="w-full mt-4 py-3 min-h-11 rounded-control border border-white/10 bg-white/[0.02] text-fg-secondary hover:text-white text-xs font-black uppercase tracking-widest transition-colors disabled:opacity-50">
+          className="cut-focus w-full mt-4 min-h-11 py-3 text-xs font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+          style={{ clipPath: cut(8), background: C.card, border: `1px solid ${BORDER.neutral}`, color: C.text3 }}>
           {cargandoMas ? 'Cargando...' : `Cargar más (${misiones.length} de ${totalMisiones})`}
         </button>
       )}
+
+      {/* Diálogo HUD: reemplaza los confirm() nativos de eliminar/rechazar. */}
+      <ModalHUD
+        open={!!dialogo}
+        variant="confirm"
+        {...(dialogo || {})}
+        onClose={() => setDialogo(null)}
+      />
     </div>
   );
 }
