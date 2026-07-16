@@ -11,7 +11,9 @@
  * para forzar el estado "pendiente": así la prueba corre igual cualquier día,
  * haya o no check-in real del atleta QA (la tabla tiene UNIQUE (atleta_id,
  * fecha), así que sin stub solo pasaría una vez al día). El POST del último caso
- * es real y se verifica a nivel de red.
+ * también va stubeado, por el mismo UNIQUE: lo que se verifica es su payload a
+ * nivel de red. Por eso este spec es inmune al seed `sembrarReadinessHoyQA` que
+ * otros piden — no depende del estado real de la tabla.
  *
  * Requiere:
  *   - dev server (baseUrl de cypress.config.js o CYPRESS_BASE_URL)

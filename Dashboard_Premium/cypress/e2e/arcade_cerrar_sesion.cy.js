@@ -22,6 +22,11 @@ describe('Arcade HUD - cerrar sesión', () => {
         'a cypress.env.json (gitignored) y completa una cuenta real por rol.'
       );
     }
+    // Sin check-in del día, /atleta auto-abre el modal de readiness (#89) y su
+    // overlay tapa el avatar: aquí se prueba la SALIDA de sesión, no el check-in.
+    // Como el registro es por día, sin esto el spec se rompía solo al cambiar la
+    // fecha (el modal cubría el menú de perfil del atleta).
+    cy.task('sembrarReadinessHoyQA');
   });
 
   ROLES.forEach((rol) => {
