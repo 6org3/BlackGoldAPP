@@ -5,12 +5,15 @@
 //
 // El spec NO asume nombres de grupo concretos: lee los que el club tenga de
 // verdad. Así no depende de una siembra manual y sigue valiendo cuando el club
-// cree sus propios grupos.
+// cree sus propios grupos — ni siquiera para detectar la regresión a categoría
+// FEB, que se comprueba por la forma del `value` de cada opción y no por su
+// texto (un grupo puede llamarse "Sub-16" legítimamente).
 describe('Asistencia — filtro por grupo de entrenamiento', () => {
   const ROLES_CONFIG = Cypress.env('QA_ROLES');
 
-  // Categorías FEB: ninguna puede aparecer como opción del selector.
-  const CATEGORIAS_FEB = ['Sub-9', 'Sub-11', 'Sub-14', 'Sub-16', 'Sub-18', 'Premini', 'Mini', 'Menores', 'Prejuvenil', 'Juvenil', 'Mayores'];
+  // Un grupo se identifica por su id; una categoría FEB, por su nombre. Ver el
+  // primer test: es la forma del `value` lo que separa un selector del otro.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   before(function () {
     if (!ROLES_CONFIG) {
@@ -36,20 +39,34 @@ describe('Asistencia — filtro por grupo de entrenamiento', () => {
 
   const selectGrupo = () => cy.get('select[aria-label="Filtrar por grupo de entrenamiento"]', { timeout: 15000 });
 
-  it('el selector ofrece grupos del club, nunca categorías FEB', () => {
+  it('el selector identifica cada opción por id de grupo, nunca por categoría FEB', () => {
     selectGrupo().should('be.visible');
-    selectGrupo().find('option').should('have.length.at.least', 1);
+    // ≥2 = el placeholder MÁS al menos un grupo. Esta espera no es cosmética:
+    // los grupos llegan por fetch y el <select> se pinta antes, con "Todos los
+    // grupos" a secas. Con `at.least, 1` la aserción se cumplía con el
+    // placeholder solo, el `.then()` de abajo (que no reintenta) leía una lista
+    // sin grupos y el test pasaba sin comprobar absolutamente nada.
+    selectGrupo().find('option').should('have.length.at.least', 2);
 
     selectGrupo().find('option').then(($ops) => {
-      const textos = [...$ops].map((o) => o.textContent.trim());
-      expect(textos[0], 'la primera opción no acota').to.eq('Todos los grupos');
+      const opciones = [...$ops].map((o) => ({ texto: o.textContent.trim(), value: o.value }));
+      expect(opciones[0].texto, 'la primera opción no acota').to.eq('Todos los grupos');
 
-      // Una categoría FEB como opción significaría que la pantalla volvió a
-      // filtrar por cohorte de edad en vez de por grupo.
-      const sospechosas = textos.filter((t) =>
-        t !== 'Todos los grupos' && CATEGORIAS_FEB.some((c) => t.includes(c))
-      );
-      expect(sospechosas, `opciones que parecen categoría FEB: ${sospechosas.join(', ')}`).to.be.empty;
+      // Lo que separa "acota por grupo" de "acota por categoría FEB" es el VALUE,
+      // no el texto: un grupo se identifica por su id, y la lista vieja usaba el
+      // nombre de la cohorte como valor ('Premini (Sub-9)'). Volver a filtrar por
+      // categoría es imposible sin romper esta forma.
+      //
+      // Mirar el texto sería un falso rojo esperando su turno: un club puede
+      // llamar "Sub-16" a un grupo con toda legitimidad, y los propios clubes
+      // demo del repo ya lo hacen (simular_club_nuevo_1anio.mjs siembra 'Sub-16';
+      // sembrar_club_qa_compacto.mjs, 'QAC Sub-16'). Este spec pasaba solo porque
+      // la cuenta QA vive en otro club.
+      const noSonGrupo = opciones.slice(1).filter((o) => !UUID_RE.test(o.value));
+      expect(
+        noSonGrupo,
+        `opciones que no identifican a un grupo por id: ${noSonGrupo.map((o) => `${o.texto}=${o.value}`).join(', ')}`
+      ).to.be.empty;
     });
   });
 
@@ -57,12 +74,15 @@ describe('Asistencia — filtro por grupo de entrenamiento', () => {
     // Con "Todos los grupos" el encabezado no nombra ninguno.
     cy.contains('Gestión por grupos', { timeout: 15000 }).should('be.visible');
 
+    // Mismo motivo que arriba: sin esperar a que lleguen los grupos, el
+    // `.then()` leía cero y la prueba se autodescartaba por "el club no tiene
+    // grupos" — un verde que no ejercía el filtro. La cuenta QA sí tiene grupos:
+    // si esto falla, es que no llegan, y eso es exactamente lo que hay que saber.
+    selectGrupo().find('option').should('have.length.at.least', 2);
+
     selectGrupo().find('option').then(($ops) => {
       const grupos = [...$ops].map((o) => o.textContent.trim()).filter((t) => t !== 'Todos los grupos');
-      if (grupos.length === 0) {
-        cy.log('El club no tiene grupos: nada que acotar.');
-        return;
-      }
+
       // Elegir un grupo debe reflejarse en el encabezado y en el conteo.
       selectGrupo().select(grupos[0]);
       cy.contains(new RegExp(`${grupos[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} · \\d+ atletas`), { timeout: 15000 })
