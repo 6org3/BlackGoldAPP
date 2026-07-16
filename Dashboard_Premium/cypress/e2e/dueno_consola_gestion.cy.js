@@ -39,14 +39,18 @@ describe('Dueño · acceso a /admin desde el HUD', () => {
     cy.get('button[aria-label="Consola de gestión"]').should('be.visible');
   });
 
-  it('la consola del header lista los 10 módulos y navega a cada uno', () => {
+  it('la consola del header lista los 11 módulos y navega a cada uno', () => {
     cy.get('button[aria-label="Consola de gestión"]').click();
     cy.get('[role="dialog"]').should('be.visible').within(() => {
-      // Los 10 destinos de PrivateRoute: si se añade una ruta admin y no entra
-      // aquí, vuelve a quedar sin puerta desde /club.
-      ['ATLETAS', 'MISIONES', 'PAGOS', 'KPIS', 'SESIONES', 'ASISTENCIA',
+      // Los 11 destinos de PrivateRoute: si se añade una ruta admin y no entra
+      // aquí, vuelve a quedar sin puerta desde /club. Ya pasó con GRUPOS (v37),
+      // que nació mientras se escribía la consola.
+      // scrollIntoView: con 11 tiles la consola scrollea, así que los últimos
+      // bloques nacen fuera del área visible del diálogo. Se exige que cada tile
+      // sea ALCANZABLE (visible tras scrollear), no solo que exista en el DOM.
+      ['ATLETAS', 'MISIONES', 'GRUPOS', 'PAGOS', 'KPIS', 'SESIONES', 'ASISTENCIA',
         'EVENTOS', 'COMPARAR', 'EQUIPO', 'COMUNICACIONES'].forEach((t) => {
-        cy.contains('button', t).should('be.visible');
+        cy.contains('button', t).scrollIntoView().should('be.visible');
       });
     });
 
@@ -56,12 +60,14 @@ describe('Dueño · acceso a /admin desde el HUD', () => {
     cy.get('[role="dialog"]').should('not.exist'); // la consola se cierra al salir
   });
 
-  // Los 10 módulos a los que la consola deja entrar tienen que dejar salir
+  // Los 11 módulos a los que la consola deja entrar tienen que dejar salir
   // igual: antes solo 4 traían botón de vuelta, así que el dueño llegaba a
-  // Pagos desde su consola y salía distinto que desde Equipo.
+  // Pagos desde su consola y salía distinto que desde Equipo. /admin/grupos
+  // volvía además al shell legacy (/dashboard), el bug que #91 ya había cerrado
+  // en los demás — nació de un molde copiado antes de aquel arreglo.
   const MODULOS = [
-    '/admin/atletas', '/admin/misiones', '/admin/pagos', '/admin/kpis',
-    '/admin/sesiones', '/admin/asistencia', '/admin/eventos',
+    '/admin/atletas', '/admin/misiones', '/admin/grupos', '/admin/pagos',
+    '/admin/kpis', '/admin/sesiones', '/admin/asistencia', '/admin/eventos',
     '/admin/comparar', '/admin/equipo', '/admin/comunicaciones',
   ];
 
