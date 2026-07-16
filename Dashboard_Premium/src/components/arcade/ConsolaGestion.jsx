@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid, Users, Target, DollarSign, BarChart3,
+  LayoutGrid, Users, Target, Boxes, DollarSign, BarChart3,
   FlaskConical, Activity, CalendarDays, TrendingUp, UserCog, MessageSquare,
 } from 'lucide-react';
 import { C, BORDER, PIXEL, cut } from './arcadeTokens';
@@ -22,10 +22,15 @@ import MicroLabel from './MicroLabel';
  * BottomNav por rol y su propio <main> scrolleable, y el HUD acabaría con dos
  * barras inferiores y dos contenedores de scroll dentro de un marco de 100dvh.
  *
- * Los 10 destinos son los de PrivateRoute en main.jsx. Sin filtro por rol a
+ * Los 11 destinos son los de PrivateRoute en main.jsx. Sin filtro por rol a
  * propósito: /club solo admite owner y superadmin, y ambos pasan las guardas de
- * las 10 rutas (las dos más estrictas —kpis y equipo— piden exactamente ese par).
+ * las 11 rutas (las dos más estrictas —kpis y equipo— piden exactamente ese par).
  * Si algún día entra otro rol a /club, aquí hay que filtrar.
+ *
+ * MANTENIMIENTO: una ruta /admin/* que no entre en esta lista queda sin puerta
+ * desde /club — el dueño no monta Sidebar. Ya pasó con /admin/grupos (v37), que
+ * nació mientras esta consola se escribía. Al añadir una ruta admin, añade su
+ * tile aquí y su caso al spec dueno_consola_gestion.cy.js.
  */
 
 // Iconos: manda el idioma que el dueño ya tiene delante (la bottom-nav de su
@@ -38,6 +43,10 @@ const BLOQUES = [
     tiles: [
       { label: 'ATLETAS', Icon: Users, href: '/admin/atletas' },
       { label: 'MISIONES', Icon: Target, href: '/admin/misiones' },
+      // Grupos va en PLANTEL, no en OPERACIÓN: un grupo es una agrupación de
+      // atletas (con su nivel y su cuota), no una actividad del día. Icono Boxes,
+      // el mismo con el que el Sidebar y la propia pantalla ya lo nombran.
+      { label: 'GRUPOS', Icon: Boxes, href: '/admin/grupos' },
     ],
   },
   {

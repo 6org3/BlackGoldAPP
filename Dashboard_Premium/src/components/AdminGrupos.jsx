@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Boxes, Plus, Pencil, Archive, ArchiveRestore, Trash2, AlertCircle, X, Users } from 'lucide-react';
+import { Boxes, Plus, Pencil, Archive, ArchiveRestore, Trash2, AlertCircle, X, Users } from 'lucide-react';
 import useAdminGruposForm from './useAdminGruposForm';
 import AdminGruposForm from './AdminGruposForm';
 import SelectField from './AdminAtletasSelectField';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
 import MicroLabel from './arcade/MicroLabel';
+import BotonVolver from './arcade/BotonVolver';
 import ModalHUD from './arcade/ModalHUD';
 import { NIVELES_GRUPO } from '../api/gruposService';
 import { C, BORDER, TINT, GRAD, cut } from './arcade/arcadeTokens';
@@ -116,7 +116,6 @@ function PrincipalVacio({ nivel, onCrear }) {
 }
 
 export default function AdminGrupos({ user }) {
-  const navigate = useNavigate();
   const [modal, setModal] = useState(null);
   const {
     esSuperadmin, clubTrabajo, setClubTrabajo, clubes,
@@ -161,15 +160,14 @@ export default function AdminGrupos({ user }) {
   return (
     <div className="max-w-5xl mx-auto">
       {/* ═══════════════════════ HEADER ═══════════════════════ */}
-      <div className="flex items-center justify-between mb-8 gap-4">
+      {/* flex-wrap: a 375px "ENTRENAMIENTO" es una palabra que no cabe en lo que
+          deja el CTA "+", así que se pintaba por debajo de él ("GRUPOS DE
+          ENTRENAMIE|+"). Dejando que el CTA baje de línea, el título recupera el
+          ancho y entra entero. Ya se solapaba antes de que este header estrenara
+          botón de volver; el botón solo lo empeoraba 10px. */}
+      <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div className="flex items-center gap-3 min-w-0">
-          <button
-            onClick={() => navigate('/dashboard')} aria-label="Volver al dashboard"
-            className="cut-focus p-2.5 -ml-2.5 min-h-11 min-w-11 flex items-center justify-center transition-colors"
-            style={{ color: C.text3, clipPath: cut(5) }}
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <BotonVolver />
           <HexAvatar size={44} background={GRAD.goldHex} color={C.ink}>
             <Boxes size={20} strokeWidth={2.5} />
           </HexAvatar>
