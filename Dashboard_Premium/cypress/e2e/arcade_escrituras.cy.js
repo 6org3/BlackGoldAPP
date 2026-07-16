@@ -100,9 +100,17 @@ describe('Arcade HUD — escrituras reales (fase 5)', () => {
     cy.contains(/\+.*XP/i).should('be.visible');
   });
 
-  // Requiere sembrar una sesión activa antes:
-  //   node scripts/sembrar_sesion_activa_qa.js
   it('Coach — reanuda una sesión activa (reconstruye asistencia) y la cierra con XP', () => {
+    // Este test CONSUME su precondición: cierra la sesión, que deja de estar
+    // activa. Por eso la siembra él mismo (task en Node, ver cypress.config.js)
+    // en vez de depender de `node scripts/sembrar_sesion_activa_qa.js` a mano:
+    // así solo pasaba la primera corrida tras sembrar y quedaba rojo el resto,
+    // sin que nada estuviera roto. El seed es idempotente (borra la previa).
+    // Va dentro del it y no en un beforeEach del describe a propósito: los otros
+    // dos tests no la necesitan, y al de "escribe sesión" una sesión activa
+    // colgando le cambiaría el landing del Modo Cancha.
+    cy.task('sembrarSesionActivaQA');
+
     cy.viewport(412, 860);
     cy.intercept('PATCH', '**/rest/v1/atletas*').as('patchAtleta');
     cy.intercept('PATCH', '**/rest/v1/sesiones_programadas*').as('patchSesion');
