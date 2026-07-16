@@ -259,7 +259,18 @@ async function run() {
         pagosRows.push({ atleta_id: aid, tipo: 'Mensualidad', mes, anio, monto_base: base, descuento_pct: 0, monto_final: base, estado: 'Pendiente', fecha_vencimiento: `${anio}-${String(mes).padStart(2, '0')}-05`, registrado_por: owner.id, notas: '' });
       }
     }
-    if (pagosRows.length) await supabase.from('pagos').upsert(pagosRows, { onConflict: 'atleta_id,mes,anio,tipo', ignoreDuplicates: true });
+    // Idempotencia por chequeo previo, no por upsert: el índice único de pagos
+    // pasó a ser PARCIAL en v39 (WHERE mes IS NOT NULL) y PostgREST no infiere
+    // índices parciales, así que un onConflict aquí falla con "no unique or
+    // exclusion constraint matching the ON CONFLICT specification".
+    if (pagosRows.length) {
+      const { data: yaHay } = await supabase
+        .from('pagos').select('atleta_id, mes, anio, tipo')
+        .in('atleta_id', [...new Set(pagosRows.map((r) => r.atleta_id))]);
+      const vistos = new Set((yaHay || []).map((p) => `${p.atleta_id}|${p.mes}|${p.anio}|${p.tipo}`));
+      const nuevos = pagosRows.filter((r) => !vistos.has(`${r.atleta_id}|${r.mes}|${r.anio}|${r.tipo}`));
+      if (nuevos.length) await supabase.from('pagos').insert(nuevos);
+    }
     const idsAtl = Object.values(atletaIdPorCedula);
     const { data: pagos } = await supabase.from('pagos').select('id, monto_final, monto_base, estado').in('atleta_id', idsAtl.length ? idsAtl : ['00000000-0000-0000-0000-000000000000']).eq('tipo', 'Mensualidad');
     for (const p of pagos || []) {

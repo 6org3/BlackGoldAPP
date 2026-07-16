@@ -59,19 +59,30 @@ export default function CajaResumen({ mes, anio }) {
 
   const totalEfectivo = useMemo(() => arqueo.reduce((a, r) => a + r.total, 0), [arqueo]);
 
-  // Recaudado vs esperado por grupo
+  // Recaudado vs esperado por grupo.
+  //
+  // Se agrupa por el grupo QUE SE FACTURÓ (v39: pagos.grupo_id), no por el grupo
+  // actual del atleta: mover a alguien de grupo reescribía el recaudado de meses
+  // ya cerrados. Los pagos anteriores a v39 no tienen grupo_id y caen al nombre
+  // denormalizado, que es lo mejor que hay para el histórico.
+  //
+  // `atletas` cuenta atletas DISTINTOS, no filas: desde v39 un mismo atleta
+  // puede tener varias líneas en el mes (su cuota + un add-on por grupo extra),
+  // y contarlas por fila inflaría el plantel del grupo.
   const porGrupo = useMemo(() => {
     const m = new Map();
     pagos.forEach(p => {
       if (p.estado === 'Anulado' || p.estado === 'Becado') return;
-      const g = p.atletas?.grupo_nombre || 'Sin grupo';
-      const row = m.get(g) || { grupo: g, esperado: 0, recaudado: 0, atletas: 0 };
+      const g = p.grupos_entrenamiento?.nombre || p.atletas?.grupo_nombre || 'Sin grupo';
+      const row = m.get(g) || { grupo: g, esperado: 0, recaudado: 0, ids: new Set() };
       row.esperado += p.monto_final || 0;
       row.recaudado += p.monto_pagado || 0;
-      row.atletas += 1;
+      if (p.atleta_id) row.ids.add(p.atleta_id);
       m.set(g, row);
     });
-    return [...m.values()].sort((a, b) => b.esperado - a.esperado);
+    return [...m.values()]
+      .map(({ ids, ...r }) => ({ ...r, atletas: ids.size }))
+      .sort((a, b) => b.esperado - a.esperado);
   }, [pagos]);
 
   const totales = useMemo(() => porGrupo.reduce(

@@ -490,7 +490,22 @@ export default function AdminPagos({ user, atletas = [] }) {
 
                 {/* Grupo · Monto · Estado (fila compacta en móvil, columnas del grid en md+) */}
                 <div className="flex items-center justify-between gap-2 md:contents">
-                  <span className="text-2xs font-bold" style={{ color: C.text2 }}>{pago.atletas?.grupo_nombre || '—'}</span>
+                  {/* El grupo QUE SE FACTURÓ (v39), no el actual del atleta: en un
+                      mes cerrado la línea debe seguir diciendo por qué grupo se
+                      cobró. Y un add-on se etiqueta: desde v39 el mismo atleta
+                      puede tener su cuota y un extra en el mismo mes, y sin esto
+                      las dos filas serían idénticas en pantalla. */}
+                  <span className="text-2xs font-bold flex flex-col gap-0.5" style={{ color: C.text2 }}>
+                    <span>{pago.grupos_entrenamiento?.nombre || pago.atletas?.grupo_nombre || '—'}</span>
+                    {pago.tipo === 'Adicional' && (
+                      <span
+                        className="self-start px-1.5 py-0.5 text-3xs font-black uppercase tracking-widest"
+                        style={{ clipPath: cut(3), background: TINT.info, border: `1px solid ${BORDER.info}`, color: C.info }}
+                      >
+                        Extra
+                      </span>
+                    )}
+                  </span>
                   <span className="text-lg md:text-sm font-black" style={{ color: C.text }}>
                     ${(pago.monto_final || 0).toFixed(0)}
                     {pago.estado === 'Abonado' && (
