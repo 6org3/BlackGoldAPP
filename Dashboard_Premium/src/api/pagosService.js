@@ -9,6 +9,7 @@ export async function fetchPagosMes(mes, anio, grupoId = null) {
     .from('pagos')
     .select(`
       *,
+      grupos_entrenamiento (nombre),
       atletas!inner (
         id,
         grupo_id,
@@ -22,14 +23,21 @@ export async function fetchPagosMes(mes, anio, grupoId = null) {
     `)
     .eq('mes', mes)
     .eq('anio', anio)
-    .eq('tipo', 'Mensualidad');
+    // v39: los add-ons son cobros del mes como la cuota. Sin incluirlos aquí no
+    // sumarían al esperado de caja, no entrarían en el % de meta, no generarían
+    // recordatorio ni saldrían en el CSV al contador: sería cobrar dinero que el
+    // dueño no ve.
+    .in('tipo', ['Mensualidad', 'Adicional']);
 
   const { data, error } = await q;
   if (error) { console.error(error); return []; }
 
   let result = data || [];
   if (grupoId && grupoId !== 'Todos') {
-    result = result.filter(p => p.atletas?.grupo_id === grupoId);
+    // Por el grupo QUE SE FACTURÓ (v39), no por el actual del atleta: si alguien
+    // cambia de grupo, el arqueo de un mes cerrado no debe reescribirse. Además
+    // un add-on de Elite tiene que aparecer al filtrar Elite.
+    result = result.filter(p => p.grupo_id === grupoId);
   }
   return result;
 }
@@ -48,17 +56,10 @@ export async function fetchGruposClub() {
   return data || [];
 }
 
-export async function upsertPago(payload) {
-  // Calcular monto final con descuento
-  const monto_final = payload.monto_base * (1 - (payload.descuento_pct || 0) / 100);
-  const { data, error } = await supabase
-    .from('pagos')
-    .upsert({ ...payload, monto_final }, { onConflict: 'atleta_id,mes,anio,tipo' })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
+// upsertPago se eliminó en v39: no tenía llamadores y su `onConflict`
+// ('atleta_id,mes,anio,tipo') apuntaba al índice que esa migración sustituye por
+// uno parcial —que PostgREST no puede inferir—, así que reanimarlo habría
+// fallado en tiempo de ejecución. Quien crea cobros puntuales es crearCargo().
 
 // ── Transacciones (abonos) — v27 ─────────────────────────────────────────────
 // Cada entrega de dinero es una fila de pago_transacciones; un trigger en la
@@ -451,7 +452,13 @@ export async function crearCargo({ atletaId, servicioId, tipo = 'Otro', concepto
   return data;
 }
 
-// Cargos extra abiertos/recientes del club (no mensualidades) para la pestaña Servicios.
+// Cargos extra abiertos/recientes del club para la pestaña Servicios.
+//
+// "Extra" aquí significa cargo PUNTUAL (crearCargo), no recurrente. Excluye
+// 'Adicional' además de 'Mensualidad': desde v39 un add-on es un cobro mensual
+// del grupo extra, que ya sale en Caja como línea del mes. Sin excluirlo
+// aparecería en las dos pestañas, contado dos veces y con dos recordatorios por
+// el mismo dinero.
 export async function fetchCargosExtra(grupoId = null) {
   let q = supabase
     .from('pagos')
@@ -462,7 +469,7 @@ export async function fetchCargosExtra(grupoId = null) {
         usuarios!inner!atletas_usuario_id_fkey (nombre)
       )
     `)
-    .neq('tipo', 'Mensualidad')
+    .not('tipo', 'in', '("Mensualidad","Adicional")')
     .order('created_at', { ascending: false })
     .limit(200);
   const { data, error } = await q;
