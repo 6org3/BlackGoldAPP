@@ -1,5 +1,5 @@
 -- ============================================================
--- MIGRACIÓN v42 — octavo pilar (resistencia): cierre de reproducibilidad P1.5
+-- MIGRACIÓN v43 — octavo pilar (resistencia): cierre de reproducibilidad P1.5
 -- ============================================================
 -- Las 4 pruebas de resistencia (Course Navette, 600 m, 1000 m, Yo-Yo IR1)
 -- existían en prod SOLO por inserción manual vía MCP — ninguna migración las

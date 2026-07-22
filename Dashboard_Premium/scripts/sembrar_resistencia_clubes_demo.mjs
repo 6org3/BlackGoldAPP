@@ -1,4 +1,4 @@
-// Backfill de evaluaciones de RESISTENCIA (8º sub-pilar del radar, v42) para los
+// Backfill de evaluaciones de RESISTENCIA (8º sub-pilar del radar, v43) para los
 // 2 clubes demo ya sembrados: 'DEMO Simulación 1 Año' y 'DEMO QA Compacto'.
 //
 // ¿Por qué existe? Los seeds (simular_club_nuevo_1anio.mjs / sembrar_club_qa_compacto.mjs)
@@ -49,7 +49,7 @@ if (!supabaseUrl || !serviceRoleKey) {
 const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
 const CLUBES = ['DEMO Simulación 1 Año', 'DEMO QA Compacto'];
-// Las 4 pruebas de resistencia de BAREMOS (v42). resolverUmbrales decide cuáles
+// Las 4 pruebas de resistencia de BAREMOS (v43). resolverUmbrales decide cuáles
 // aplican a cada atleta (600m solo Sub12, 1000m solo Sub15).
 const CLAVES_RESISTENCIA = ['course_navette', 'yoyo_ir1', 'carrera_600m_vinueza', 'carrera_1000m_vinueza'];
 const PUNT_TIER = { poor: 15, below_avg: 35, average: 55, above_avg: 75, excellent: 95 };

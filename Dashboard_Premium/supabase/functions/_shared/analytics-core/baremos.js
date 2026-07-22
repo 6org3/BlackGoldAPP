@@ -186,7 +186,7 @@ const BAREMOS = {
     },
   },
 
-  // ─── Resistencia (thresholds reales del catálogo de prod, v42) ─────
+  // ─── Resistencia (thresholds reales del catálogo de prod, v43) ─────
   // Estas 4 entradas replican TAL CUAL los umbrales por capas del catálogo en
   // producción (Género→Bucket→Nivel→[4 cortes] o Género→Todas→[4]); el label es
   // el nombre EXACTO de prod para que el backfill por nombre de
