@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import {
   Home, Target, Calendar, BarChart2, TrendingUp,
@@ -39,14 +40,46 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
   // refetchear todo su contenido en cada cambio de pestaña.
   const [visitedTabs, setVisitedTabs] = useState(() => new Set(['inicio']));
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  // null = cerrado; si no, el getBoundingClientRect() del disparador. El menú se
+  // porta a document.body (ver render más abajo) porque el backdrop-blur del
+  // header sticky ancestro crea un containing block para `fixed` y lo re-ancla
+  // a la caja del header en vez del viewport; al portalizar se pierde el anclaje
+  // CSS relativo al botón, así que se mide a mano y se vuelve a medir en
+  // scroll/resize (sin cerrar), igual que ArcadePerfilMenu.
+  const [mobileMenuRect, setMobileMenuRect] = useState(null);
+  const mobileMenuTriggerRef = useRef(null);
+  const showMobileMenu = mobileMenuRect !== null;
+
+  const closeMobileMenu = useCallback(() => setMobileMenuRect(null), []);
+  const repositionMobileMenu = useCallback(() => {
+    const el = mobileMenuTriggerRef.current;
+    if (el) setMobileMenuRect(el.getBoundingClientRect());
+  }, []);
+
+  useEffect(() => {
+    if (!showMobileMenu) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeMobileMenu();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', repositionMobileMenu);
+    window.addEventListener('scroll', repositionMobileMenu, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', repositionMobileMenu);
+      window.removeEventListener('scroll', repositionMobileMenu, true);
+    };
+  }, [showMobileMenu, closeMobileMenu, repositionMobileMenu]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
   const handleTabChange = (id) => {
     setVisitedTabs(prev => (prev.has(id) ? prev : new Set(prev).add(id)));
     setActiveTab(id);
-    setShowMobileMenu(false);
+    closeMobileMenu();
   };
 
   if (!atleta) return null;
@@ -181,33 +214,48 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
             {/* Menú de perfil (solo móvil): Editar Perfil / Cerrar Sesión */}
             <div className="relative md:hidden">
               <button
-                onClick={() => setShowMobileMenu(v => !v)}
+                ref={mobileMenuTriggerRef}
+                onClick={() => (showMobileMenu ? closeMobileMenu() : repositionMobileMenu())}
                 aria-label="Menú de perfil"
+                aria-haspopup="menu"
+                aria-expanded={showMobileMenu}
                 className="min-h-11 min-w-11 flex items-center justify-center rounded-control bg-white/5 border border-white/10 text-fg-secondary hover:text-white transition-colors"
               >
                 <User size={18} />
               </button>
-              {showMobileMenu && (
-                <>
-                  <div className="fixed inset-0" onClick={() => setShowMobileMenu(false)} />
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-surface-raised border border-white/10 rounded-control shadow-modal overflow-hidden">
-                    <button
-                      onClick={() => { setShowMobileMenu(false); setShowEditProfile(true); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-white/5 transition-colors"
+              {showMobileMenu &&
+                createPortal(
+                  <>
+                    <div className="fixed inset-0 z-[90]" onClick={closeMobileMenu} />
+                    <div
+                      role="menu"
+                      aria-label="Menú de perfil"
+                      className="fixed z-[100] w-52 bg-surface-raised border border-white/10 rounded-control shadow-modal overflow-hidden"
+                      style={{
+                        top: mobileMenuRect.bottom + 8,
+                        right: Math.max(8, window.innerWidth - mobileMenuRect.right),
+                        maxHeight: `calc(100dvh - ${mobileMenuRect.bottom + 16}px)`,
+                        overflowY: 'auto',
+                      }}
                     >
-                      <User size={16} className="text-fg-muted" />
-                      <span className="text-[11px] font-black uppercase tracking-widest">Editar Perfil</span>
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-danger/10 hover:text-danger-soft transition-colors border-t border-white/5"
-                    >
-                      <LogOut size={16} className="text-fg-muted" />
-                      <span className="text-[11px] font-black uppercase tracking-widest">Cerrar Sesión</span>
-                    </button>
-                  </div>
-                </>
-              )}
+                      <button
+                        onClick={() => { closeMobileMenu(); setShowEditProfile(true); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-white/5 transition-colors"
+                      >
+                        <User size={16} className="text-fg-muted" />
+                        <span className="text-[11px] font-black uppercase tracking-widest">Editar Perfil</span>
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-danger/10 hover:text-danger-soft transition-colors border-t border-white/5"
+                      >
+                        <LogOut size={16} className="text-fg-muted" />
+                        <span className="text-[11px] font-black uppercase tracking-widest">Cerrar Sesión</span>
+                      </button>
+                    </div>
+                  </>,
+                  document.body
+                )}
             </div>
           </div>
         </div>
