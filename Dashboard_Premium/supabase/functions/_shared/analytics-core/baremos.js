@@ -22,11 +22,24 @@ const BAREMOS = {
     label: 'Salto Vertical (CMJ)',
     pilar: 'fisico', sub_pilar: 'explosividad', tren: 'inferior',
     unidad: 'cm', tipo: 'mas_es_mejor',
+    // Separado por sexo desde Sub15 (fase 2026-07, ver docs/baremos_por_sexo_2026.md).
+    // Sub12 idéntico en ambos sexos (dimorfismo pre-puberal mínimo). Femenino: Lesinski 2020
+    // (PLoS ONE, élite juvenil alemana, manos en cadera), Cabarkapa 2024, Philipp 2023 (NCAA D1);
+    // Sub18/Senior rebajados por verificación adversarial (la primera propuesta inflaba la brecha
+    // F/M y anclaba Senior a NCAA n=7). Masculino = valor validado julio 2026, sin cambios.
     thresholds: {
-      Sub12: [22, 27, 32, 37],   // <22=poor, 22-27=below, 28-32=avg, 33-37=above, ≥38=excellent
-      Sub15: [27, 31, 36, 41],
-      Sub18: [32, 37, 42, 48],
-      Senior: [34, 39, 44, 50],
+      Masculino: {
+        Sub12: [22, 27, 32, 37],   // <22=poor, 22-27=below, 28-32=avg, 33-37=above, ≥38=excellent
+        Sub15: [27, 31, 36, 41],
+        Sub18: [32, 37, 42, 48],
+        Senior: [34, 39, 44, 50],
+      },
+      Femenino: {
+        Sub12: [22, 27, 32, 37],   // = Masculino (sin dimorfismo relevante pre-Sub15)
+        Sub15: [22, 25, 28, 31],
+        Sub18: [24, 28, 31, 34],
+        Senior: [27, 30, 33, 36],
+      },
     },
   },
 
@@ -35,11 +48,22 @@ const BAREMOS = {
     label: 'Flexiones en 30s',
     pilar: 'fisico', sub_pilar: 'explosividad', tren: 'superior',
     unidad: 'reps', tipo: 'mas_es_mejor',
+    // Separado por sexo desde Sub15 (2026-07). ⚠️ Femenino DERIVADO por ratio 30s/máx del
+    // masculino aplicado al femenino de pushups_max (no hay normativa directa del test de 30s
+    // por sexo) → confianza baja, revisar con datos reales del club. Masculino sin cambios.
     thresholds: {
-      Sub12: [7, 11, 16, 21],
-      Sub15: [12, 17, 22, 27],
-      Sub18: [16, 21, 26, 31],
-      Senior: [18, 23, 29, 34],
+      Masculino: {
+        Sub12: [7, 11, 16, 21],
+        Sub15: [12, 17, 22, 27],
+        Sub18: [16, 21, 26, 31],
+        Senior: [18, 23, 29, 34],
+      },
+      Femenino: {
+        Sub12: [7, 11, 16, 21],   // = Masculino (pre-Sub15 unificado)
+        Sub15: [4, 8, 11, 13],
+        Sub18: [7, 11, 14, 17],
+        Senior: [9, 13, 15, 18],
+      },
     },
   },
 
@@ -48,11 +72,23 @@ const BAREMOS = {
     label: 'Dominadas',
     pilar: 'fisico', sub_pilar: 'explosividad', tren: 'superior',
     unidad: 'reps', tipo: 'mas_es_mejor',
+    // Separado por sexo desde Sub15 (2026-07). Femenino: President's Council 1985 (niñas p50≈1),
+    // NCYFS chin-ups (p50=0 en todas las edades), USMC PFT (min 1 / máx 7); piso realista por el
+    // declive secular documentado — la mayoría de atletas mujeres marca 0 dominadas estrictas.
+    // t1=t2=0 en Sub15 (banda inferior de ancho cero, mismo patrón que el masculino). Masculino sin cambios.
     thresholds: {
-      Sub12: [0, 0, 3, 8],
-      Sub15: [0, 3, 6, 12],
-      Sub18: [4, 6, 9, 14],
-      Senior: [4, 7, 12, 17],
+      Masculino: {
+        Sub12: [0, 0, 3, 8],
+        Sub15: [0, 3, 6, 12],
+        Sub18: [4, 6, 9, 14],
+        Senior: [4, 7, 12, 17],
+      },
+      Femenino: {
+        Sub12: [0, 0, 3, 8],   // = Masculino (pre-Sub15 unificado)
+        Sub15: [0, 0, 1, 3],
+        Sub18: [0, 1, 2, 4],
+        Senior: [0, 1, 2, 5],
+      },
     },
   },
 
@@ -65,11 +101,23 @@ const BAREMOS = {
     label: 'Sentadilla (× Peso Corp.)',
     pilar: 'fisico', sub_pilar: 'fuerza', tren: 'inferior',
     unidad: 'x_bw', tipo: 'mas_es_mejor',
+    // Separado por sexo desde Sub15 (2026-07). Femenino = razón F/M ≈0.80 (Sub18/Senior) y ≈0.85
+    // (Sub15, interpolación puberal) sobre el masculino, verificado exacto contra van den Hoek 2024
+    // (JSAMS, n=809.986 powerlifting) y Nuzzo & Pinto 2026 (meta-análisis, tren inferior F/M=0.855).
+    // Validado contra futbolistas universitarias (1.16×BW ≈ t3 Senior). Masculino sin cambios.
     thresholds: {
-      Sub12: [0.25, 0.39, 0.59, 0.79],
-      Sub15: [0.45, 0.7, 1.0, 1.3],
-      Sub18: [0.85, 1.15, 1.45, 1.75],
-      Senior: [0.85, 1.15, 1.5, 1.99],
+      Masculino: {
+        Sub12: [0.25, 0.39, 0.59, 0.79],
+        Sub15: [0.45, 0.7, 1.0, 1.3],
+        Sub18: [0.85, 1.15, 1.45, 1.75],
+        Senior: [0.85, 1.15, 1.5, 1.99],
+      },
+      Femenino: {
+        Sub12: [0.25, 0.39, 0.59, 0.79],   // = Masculino (pre-Sub15 unificado)
+        Sub15: [0.38, 0.60, 0.85, 1.10],
+        Sub18: [0.68, 0.92, 1.16, 1.40],
+        Senior: [0.68, 0.92, 1.20, 1.59],
+      },
     },
   },
 
@@ -78,11 +126,23 @@ const BAREMOS = {
     label: 'Push-ups Máx.',
     pilar: 'fisico', sub_pilar: 'fuerza', tren: 'superior',
     unidad: 'reps', tipo: 'mas_es_mejor',
+    // Separado por sexo desde Sub15 (2026-07). Femenino: President's Council 1985 (percentiles
+    // de flexiones en niñas, misma postura completa; corroborado por Boy Scouts NCYFS) — brecha
+    // grande y real (mediana 17a: ♀16 vs ♂37). Senior EXTRAPOLADO más allá del rango 17+ de la
+    // fuente. Masculino sin cambios.
     thresholds: {
-      Sub12: [8, 13, 19, 29],
-      Sub15: [15, 23, 29, 40],
-      Sub18: [20, 29, 34, 45],
-      Senior: [20, 29, 39, 55],
+      Masculino: {
+        Sub12: [8, 13, 19, 29],
+        Sub15: [15, 23, 29, 40],
+        Sub18: [20, 29, 34, 45],
+        Senior: [20, 29, 39, 55],
+      },
+      Femenino: {
+        Sub12: [8, 13, 19, 29],   // = Masculino (pre-Sub15 unificado)
+        Sub15: [5, 10, 14, 20],
+        Sub18: [8, 14, 19, 25],
+        Senior: [11, 17, 20, 28],
+      },
     },
   },
 
@@ -91,9 +151,19 @@ const BAREMOS = {
     label: 'Press Banca (× Peso Corp.)',
     pilar: 'fisico', sub_pilar: 'fuerza', tren: 'superior',
     unidad: 'x_bw', tipo: 'mas_es_mejor',
+    // Separado por sexo (solo Sub18/Senior existen). Femenino: razón F/M ≈0.70 (van den Hoek 2024
+    // press banca; Nuzzo & Pinto tren superior F/M=0.74), REBAJADO por verificación adversarial
+    // porque el promedio real de jugadoras de baloncesto (~0.54×BW, Cabarkapa) caía en el t1 de la
+    // primera propuesta. Provisional: recalibrar con muestra propia. Masculino sin cambios.
     thresholds: {
-      Sub18: [0.6, 0.84, 1.09, 1.29],
-      Senior: [0.75, 0.99, 1.19, 1.49],
+      Masculino: {
+        Sub18: [0.6, 0.84, 1.09, 1.29],
+        Senior: [0.75, 0.99, 1.19, 1.49],
+      },
+      Femenino: {
+        Sub18: [0.35, 0.49, 0.65, 0.82],
+        Senior: [0.44, 0.58, 0.75, 0.98],
+      },
     },
   },
 
@@ -106,11 +176,23 @@ const BAREMOS = {
     label: 'Sit & Reach',
     pilar: 'fisico', sub_pilar: 'movilidad', tren: null,
     unidad: 'cm', tipo: 'mas_es_mejor',
+    // Separado por sexo desde Sub15 (2026-07). ÚNICA prueba donde Femenino > Masculino (las
+    // mujeres son más flexibles). Femenino = masculino + delta F−M (~+8/+7/+6/+5 cm) de la
+    // Canadian Health Measures Survey (Hoffmann/…/Tomkinson 2019, Tabla 3); el offset de caja se
+    // cancela en la resta. La brecha es ESTABLE con la edad (~5-8 cm), no se ensancha. Masculino sin cambios.
     thresholds: {
-      Sub12: [0, 4, 9, 13],
-      Sub15: [-1, 3, 8, 12],
-      Sub18: [0, 4, 9, 13],
-      Senior: [-2, 2, 8, 13],
+      Masculino: {
+        Sub12: [0, 4, 9, 13],
+        Sub15: [-1, 3, 8, 12],
+        Sub18: [0, 4, 9, 13],
+        Senior: [-2, 2, 8, 13],
+      },
+      Femenino: {
+        Sub12: [0, 4, 9, 13],   // = Masculino (pre-Sub15 unificado)
+        Sub15: [7, 10, 14, 17],
+        Sub18: [8, 11, 15, 18],
+        Senior: [5, 9, 14, 18],
+      },
     },
   },
 
@@ -329,11 +411,23 @@ const BAREMOS = {
     label: 'Lane Agility',
     pilar: 'tecnico', sub_pilar: 'agilidad', tren: null,
     unidad: 'segundos', tipo: 'menos_es_mejor',
+    // Separado por sexo desde Sub15 (2026-07). menos_es_mejor → cortes crecientes, femenino más
+    // lento (tiempos mayores) que masculino. ⚠️ ESTIMACIÓN INDIRECTA: no existe tabla pública de
+    // lane agility femenino; brecha ~5-14% triangulada de tests de COD análogos por sexo (T-test
+    // Pauole et al. 2000; 505; Illinois). Confianza baja, revisar con datos del club. Masculino sin cambios.
     thresholds: {
-      Sub12: [13.0, 13.9, 14.9, 16.0],
-      Sub15: [12.0, 12.9, 13.5, 14.5],
-      Sub18: [11.0, 11.5, 12.0, 12.8],
-      Senior: [10.5, 11.0, 11.5, 12.3],
+      Masculino: {
+        Sub12: [13.0, 13.9, 14.9, 16.0],
+        Sub15: [12.0, 12.9, 13.5, 14.5],
+        Sub18: [11.0, 11.5, 12.0, 12.8],
+        Senior: [10.5, 11.0, 11.5, 12.3],
+      },
+      Femenino: {
+        Sub12: [13.0, 13.9, 14.9, 16.0],   // = Masculino (pre-Sub15 unificado)
+        Sub15: [12.6, 13.7, 14.4, 15.8],
+        Sub18: [11.8, 12.5, 13.2, 14.5],
+        Senior: [11.3, 12.1, 12.9, 14.1],
+      },
     },
   },
 

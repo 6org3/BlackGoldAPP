@@ -290,3 +290,55 @@ describe('normalizarValor — perfil (nivel_desarrollo / genero) con umbrales se
     expect(sinPerfil).toEqual(conPerfil);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Baremos por sexo desde Sub15 (fase 2026-07): 8 pruebas físicas ya separan sus
+// umbrales en { Masculino: {...}, Femenino: {...} }. Sub12 queda unificado.
+// Ver packages/analytics-core/baremos.js y docs/baremos_por_sexo_2026.md.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('normalizarValor — baremos por sexo desde Sub15', () => {
+  const SUB15 = 'Menores (Sub-14)';   // → bucket Sub15
+  const SUB12 = 'Mini (Sub-11)';      // → bucket Sub12 (unificado)
+
+  it('CMJ: el mismo salto puntúa mejor a una mujer (umbral femenino más bajo)', () => {
+    // Sub15 M [27,31,36,41] → 30 = below_avg ; F [22,25,28,31] → 30 = above_avg
+    const varon = normalizarValor('cmj_salto', 30, SUB15, { genero: 'Masculino' });
+    const mujer = normalizarValor('cmj_salto', 30, SUB15, { genero: 'Femenino' });
+    expect(varon.tier).toBe('below_avg');
+    expect(mujer.tier).toBe('above_avg');
+  });
+
+  it('Sit & Reach: el mismo alcance exige más a una mujer (más flexibles → umbral femenino más alto)', () => {
+    // Sub15 M [-1,3,8,12] → 10 = above_avg ; F [7,10,14,17] → 10 = below_avg
+    const varon = normalizarValor('sit_reach', 10, SUB15, { genero: 'Masculino' });
+    const mujer = normalizarValor('sit_reach', 10, SUB15, { genero: 'Femenino' });
+    expect(varon.tier).toBe('above_avg');
+    expect(mujer.tier).toBe('below_avg');
+  });
+
+  it('sin género → cae al umbral Masculino (fallback del resolver)', () => {
+    const sinGenero = normalizarValor('cmj_salto', 30, SUB15);
+    const varon = normalizarValor('cmj_salto', 30, SUB15, { genero: 'Masculino' });
+    expect(sinGenero.tier).toBe(varon.tier);
+    expect(sinGenero.tier).toBe('below_avg');
+  });
+
+  it('Sub12 está unificado: mismo tier para ambos sexos (separación es "desde Sub15")', () => {
+    const varon = normalizarValor('cmj_salto', 30, SUB12, { genero: 'Masculino' });
+    const mujer = normalizarValor('cmj_salto', 30, SUB12, { genero: 'Femenino' });
+    expect(varon.tier).toBe(mujer.tier); // Sub12 [22,27,32,37] en ambos → average
+    expect(mujer.tier).toBe('average');
+  });
+
+  it('press_banca_rel sigue en noAplica para una atleta en bucket Sub12 (solo define Sub18/Senior)', () => {
+    const res = normalizarValor('press_banca_rel', 1.0, SUB12, { genero: 'Femenino' });
+    expect(res.noAplica).toBe(true);
+  });
+
+  it('cadera_ri quedó UNISEX (veredicto adversarial): el género no cambia el tier', () => {
+    // No se separó por sexo → mismo umbral [22,29,37,44] sin importar el género.
+    const varon = normalizarValor('cadera_ri', [35, 35], SUB15, { genero: 'Masculino' });
+    const mujer = normalizarValor('cadera_ri', [35, 35], SUB15, { genero: 'Femenino' });
+    expect(varon.tier).toBe(mujer.tier);
+  });
+});

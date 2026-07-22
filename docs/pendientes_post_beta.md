@@ -68,9 +68,9 @@
 
 ## P2 — Ciencia de los baremos (de `packages/analytics-core/baremos_cientificos.md`)
 
-### 12. Diferenciación por género
+### 12. Diferenciación por género — ✅ RESUELTO (2026-07-22)
 **Qué:** hoy TODOS los atletas se evalúan con el mismo set de umbrales, pese a que FitnessGram y la literatura de salto vertical juvenil diferencian por sexo (especialmente push-ups, dominadas, CMJ). El parámetro fantasma de código ya se eliminó; falta la implementación real.
-**Cómo:** (a) columna de género confiable (existe `usuarios.genero`, hay scripts `check_excel_genders.js`/`fix_genders_in_db.js` para depurar datos); (b) umbrales por sexo y prueba con fuente citable; (c) pasar el género por `normalizarValor`. Es decisión de producto/ciencia con el cuerpo técnico, no solo código.
+**Estado:** hecho. 8 pruebas físicas se separan por sexo desde Sub15 (cmj_salto, pushups_30s, pushups_max, dominadas, sentadilla_rel, press_banca_rel, sit_reach, lane_agility) con umbrales femeninos citables + verificación adversarial; 5 quedaron unisex por evidencia insuficiente (cadera_ri/re, hombro_re/ri, zigzag_balon). El runtime ya pasa `genero` por `normalizarValor` (`EvaluacionModal.jsx`). Ver `docs/baremos_por_sexo_2026.md`. Pendiente menor: recalibrar con datos propios del club (las 5 unisex + los buckets de baja confianza pushups_30s/lane_agility) tras el primer ciclo.
 
 ### 13. Umbrales de movilidad idénticos en las 4 edades
 **Qué:** `dorsiflexion`, `cadera_ri`, `cadera_re`, `hombro_re`, `hombro_ri` repiten el mismo umbral en Sub12/Sub15/Sub18/Senior. La evidencia clínica muestra variación (modesta) con la edad. Validar con el cuerpo técnico si fue intencional.
