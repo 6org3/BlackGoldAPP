@@ -71,3 +71,46 @@ export const contarSolicitudesPendientes = async () => {
   }
   return count ?? 0;
 };
+
+// ============================
+// CUENTAS RECHAZADAS (v45)
+// ============================
+// Rechazar una solicitud (arriba) deja usuarios.estado='rechazado' PARA
+// SIEMPRE — usuarios.cedula es UNIQUE, así que esa cédula queda bloqueada
+// para cualquier reintento de registro. Esta bandeja (solo superadmin, RLS
+// usuarios_select de v24/v29 ya deja leer cross-club) permite "liberar" la
+// cédula purgando la cuenta por completo, vía purgarUsuarioRechazado.
+export const fetchUsuariosRechazados = async () => {
+  const { data, error } = await supabase
+    .from('usuarios')
+    .select('id, cedula, nombre, correo, telefono, rol, club, created_at')
+    .eq('estado', 'rechazado')
+    .order('created_at', { ascending: true });
+  if (error) throw new Error('No se pudieron cargar las cuentas rechazadas: ' + error.message);
+  return data || [];
+};
+
+// Purga irreversible de una cuenta rechazada (Edge Function purgar-usuario-
+// rechazado): borra usuarios/atletas/padres_atletas y, si tenía cuenta de
+// Auth, también esa. La RPC purgar_usuario_rechazado re-valida server-side
+// que sea superadmin y que el estado sea 'rechazado' — el gate de acá no es
+// la única barrera. Mismo patrón de invocación/errores que crearAccesoUsuario
+// (accesosService.js).
+export const purgarUsuarioRechazado = async (usuarioId) => {
+  const { data, error } = await supabase.functions.invoke('purgar-usuario-rechazado', {
+    body: { usuario_id: usuarioId },
+  });
+
+  if (error) {
+    // FunctionsHttpError: el mensaje real viene en el cuerpo de la respuesta.
+    let msg = 'No se pudo liberar la cédula.';
+    try {
+      const cuerpo = await error.context?.json();
+      if (cuerpo?.error) msg = cuerpo.error;
+    } catch { /* respuesta sin JSON: se usa el mensaje genérico */ }
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.error);
+
+  return data;
+};

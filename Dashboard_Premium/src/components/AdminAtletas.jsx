@@ -14,6 +14,7 @@ import AdminAtletasFiltersPanel from './AdminAtletasFiltersPanel';
 import AdminAtletasGrupoNivel from './AdminAtletasGrupoNivel';
 import MembresiaAtletaModal from './MembresiaAtletaModal';
 import SolicitudesPanel from './SolicitudesPanel';
+import RechazadosPanel from './RechazadosPanel';
 import ModalHUD from './arcade/ModalHUD';
 import { COLORS } from '../lib/designTokens';
 import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
@@ -215,6 +216,15 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
       {(user?.rol === 'owner' || user?.rol === 'superadmin') && (
         <div className="mb-6">
           <SolicitudesPanel onResuelto={onRefresh} />
+        </div>
+      )}
+
+      {/* ═══════════════════════ CUENTAS RECHAZADAS (v45) ═══════════════════════ */}
+      {/* "Liberar cédula" es irreversible (purga la cuenta por completo):
+          solo superadmin, ni siquiera el dueño del club la ve. */}
+      {user?.rol === 'superadmin' && (
+        <div className="mb-6">
+          <RechazadosPanel />
         </div>
       )}
 
