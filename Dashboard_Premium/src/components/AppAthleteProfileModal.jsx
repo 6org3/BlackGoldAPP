@@ -1,14 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 import MicroCard from './MicroCard';
 import AtletaCard from './AtletaCard';
 import HistorialPruebas from './HistorialPruebas';
 import CardDiagnosticoIA from './CardDiagnosticoIA';
 import CardReadinessIA from './CardReadinessIA';
+import { C } from './arcade/arcadeTokens';
 
 export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClose }) {
   const closeBtnRef = useRef(null);
+  const [hasScrolled, setHasScrolled] = useState(false);
 
   // Scroll-lock del body: sin esto, en iOS/Android el scroll del modal se
   // encadena al grid de atrás y el coach pierde su posición al cerrar.
@@ -17,6 +19,13 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
+  }, [selectedAtleta]);
+
+  // El hint de scroll se re-arma en cada apertura (o cambio de atleta): sin
+  // esto, tras ver la ficha de un atleta ya "gastada" (scrolleada), la del
+  // siguiente abriría sin avisar que hay más contenido debajo.
+  useEffect(() => {
+    if (selectedAtleta) setHasScrolled(false);
   }, [selectedAtleta]);
 
   // Semántica de diálogo: foco inicial en Cerrar y cierre con Escape.
@@ -40,6 +49,7 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
       aria-modal="true"
       aria-label={`Perfil de ${selectedAtleta.nombre}`}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onScroll={(e) => { if (!hasScrolled && e.currentTarget.scrollTop > 8) setHasScrolled(true); }}
       className="fixed inset-0 z-[100] flex items-start md:items-center justify-center p-0 md:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto overscroll-contain"
     >
       <button
@@ -74,6 +84,17 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
           </h3>
           <HistorialPruebas atletaId={selectedAtleta.atleta_id || selectedAtleta.id} />
         </div>
+      </div>
+
+      {/* Hint "hay más contenido debajo": fijo al borde inferior del propio
+          overlay (no del div de contenido, donde solo se vería al llegar al
+          fondo). Se desvanece con el primer scroll vía onScroll de arriba. */}
+      <div
+        aria-hidden="true"
+        className={`absolute inset-x-0 bottom-0 flex justify-center pointer-events-none pt-10 pb-[max(0.75rem,env(safe-area-inset-bottom))] transition-opacity duration-300 ${hasScrolled ? 'opacity-0' : 'opacity-100'}`}
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0))' }}
+      >
+        <ChevronDown size={20} style={{ color: C.text3 }} />
       </div>
     </div>,
     document.body
