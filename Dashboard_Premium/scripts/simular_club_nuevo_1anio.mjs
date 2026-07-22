@@ -216,6 +216,13 @@ function progresar(valorAnterior, clave) {
     // mejorar = reducir el valor
     return Math.max(0.1, Math.round(valorAnterior * (1 - factorMejora + ruido) * 100) / 100);
   }
+  // mas_es_mejor con valor <= 0 (Sit & Reach arranca negativo en Sub12/Sub15):
+  // multiplicar por (1 + factor) alejaría de 0 (empeora). Progresar con paso
+  // absoluto, con piso de 0.5 para poder cruzar el 0 y no quedar asintótico.
+  if (valorAnterior <= 0) {
+    const paso = Math.max(Math.abs(valorAnterior), 0.5) * (factorMejora + ruido);
+    return Math.round((valorAnterior + paso) * 100) / 100;
+  }
   return Math.round(valorAnterior * (1 + factorMejora + ruido) * 100) / 100;
 }
 
@@ -599,7 +606,7 @@ async function run() {
         if (!th) continue; // prueba sin cortes para este perfil (p.ej. carrera_600m fuera de Sub12)
 
         // Progresión batería a batería (la primera usa el valor inicial).
-        if (filasBateria.length === 0 && offsetMeses > 0) {
+        if (offsetMeses > 0) {
           valoresActuales[clave] = progresar(valoresActuales[clave], clave);
         }
         const valorCrudo = valoresActuales[clave];
@@ -720,6 +727,20 @@ async function run() {
     contadores.recompensas_desbloqueadas = estimadoRecompensas;
     console.log(`[SIMULACIÓN] Recalcularía overall_score/rango/rango_tier tras cada batería (fórmula calcularOverall de analytics-core)`);
     console.log(`[SIMULACIÓN] Cruces de rango estimados (→ recompensas_desbloqueadas): ~${estimadoRecompensas}`);
+
+    // Muestra de progresión: serie de valor_crudo por prueba (todas las baterías)
+    // del primer atleta, para revisar a ojo que TODAS las pruebas mejoran entre baterías.
+    const atletaMuestra = atletasTodos[0];
+    const seriesPorPrueba = {};
+    for (const bateria of evaluacionesPorAtleta[atletaMuestra.cedula]) {
+      for (const fila of bateria.filas) {
+        (seriesPorPrueba[fila.prueba_tipo] ||= []).push(fila.valor_crudo);
+      }
+    }
+    console.log(`[SIMULACIÓN] Series por prueba (${atletaMuestra.nombre}, valor_crudo batería 1→${OFFSETS_BATERIA_MESES.length}):`);
+    for (const [prueba, serie] of Object.entries(seriesPorPrueba)) {
+      console.log(`  - ${prueba}: ${serie.join(' → ')}`);
+    }
   }
 
   // ============================
@@ -965,7 +986,7 @@ async function run() {
   console.log(`Recompensas desbloqueadas (cruces de rango): ${contadores.recompensas_desbloqueadas}`);
 
   if (SIMULAR) {
-    console.log('\nNada se escribió. Para ejecutar de verdad, edita este archivo y cambia "const SIMULAR = true" a "const SIMULAR = false".');
+    console.log('\nNada se escribió. Para ejecutar de verdad: SEED_REAL=1 node scripts/simular_club_nuevo_1anio.mjs');
     console.log('(Revisa el script con el club antes de hacerlo — este dry-run es para revisión humana.)');
   } else {
     console.log('\n✅ Simulación completa insertada en la base de datos.');
