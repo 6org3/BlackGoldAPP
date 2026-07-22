@@ -13,6 +13,8 @@ const money = (n) => '$' + (Number(n) || 0).toLocaleString('en-US');
 const cellsOf = (val, max, color) =>
   Array.from({ length: 10 }, (_, i) => (i < Math.round((10 * val) / max) ? color : EMPTY));
 
+// El título del RESUMEN es el nombre real del club (data.clubNombre, modo
+// real); 'Black Gold' queda solo como fallback del modo demo sin club.
 const TITLES = { resumen: 'Black Gold', finanzas: 'Finanzas', asistencia: 'Asistencia', equipo: 'Equipo técnico', retencion: 'Retención' };
 const DN = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
 
@@ -121,6 +123,9 @@ function ctxAsistencia(state, data, actions) {
   const sdi = parseInt(sdiStr, 10);
   const sfi = parseInt(sfiStr, 10);
   const sc = (HD[sfi] || [])[sdi];
+  // Heatmap sin datos reales (HEAT_VACIO de duenoData): la ficha inferior
+  // rotula "sin datos" en vez de fingir una franja libre seleccionable.
+  const heatVacio = !!data.heat.vacio;
 
   return {
     ...salida(actions, 'PASAR ASISTENCIA', '/admin/asistencia'),
@@ -136,9 +141,11 @@ function ctxAsistencia(state, data, actions) {
     })),
     heatDays: days,
     heatRows,
-    heatTitle: `${DN[sdi]} · ${franjas[sfi]}`,
-    heatSub: sc ? `${sc.g} · ${Math.round((sc.p * 24) / 100)}/24 cupos` : 'Franja libre · disponible para 1v1',
-    heatPct: sc ? `${sc.p}%` : '—',
+    heatTitle: heatVacio ? 'SIN DATOS DE OCUPACIÓN' : `${DN[sdi]} · ${franjas[sfi]}`,
+    heatSub: heatVacio
+      ? 'Aún no hay sesiones con asistencia registrada en los últimos 60 días.'
+      : sc ? `${sc.g} · ${Math.round((sc.p * 24) / 100)}/24 cupos` : 'Franja libre · disponible para 1v1',
+    heatPct: heatVacio ? '—' : sc ? `${sc.p}%` : '—',
   };
 }
 
@@ -252,7 +259,7 @@ export function buildDuenoCtx(state, data, actions) {
     isAsistencia: tab === 'asistencia',
     isEquipo: tab === 'equipo',
     isRetencion: tab === 'retencion',
-    panelTitle: TITLES[tab],
+    panelTitle: tab === 'resumen' ? (data.clubNombre || TITLES.resumen) : TITLES[tab],
     navActive: tab,
     demo: !!data.demo,
   };

@@ -18,6 +18,9 @@ import {
   nombrePilar,
   proximoEvento,
   pagoActual,
+  fmtUSD,
+  descuentoPago,
+  conceptoCorto,
   misionActual,
   estadoMision,
   responderRSVP,
@@ -82,7 +85,12 @@ function buildVM(hijo, detalle, user) {
   const pago = pagoActual(detalle?.estadoCuenta);
   const mision = misionActual(detalle?.misiones);
   const em = estadoMision(mision);
-  const historial = (detalle?.estadoCuenta?.historial || []).slice(0, 3).map((p) => ({ m: MESES[(p.mes || 1) - 1] || p.concepto || 'Pago' }));
+  // `detalle` distingue mensualidad de add-ons: dos '✓ Julio' iguales no dicen
+  // cuál era el grupo adicional.
+  const historial = (detalle?.estadoCuenta?.historial || []).slice(0, 3).map((p) => ({
+    m: MESES[(p.mes || 1) - 1] || p.concepto || 'Pago',
+    detalle: conceptoCorto(p),
+  }));
   const comun = (detalle?.comunicaciones || []).slice(0, 2).map((c) => ({ icon: '📣', titulo: c.titulo, sub: c.mensaje }));
   const anuncios = comun.length ? comun : (detalle?.anuncios || []).slice(0, 2).map((c) => ({ icon: '📣', titulo: c.titulo, sub: c.mensaje }));
 
@@ -104,6 +112,8 @@ function buildVM(hijo, detalle, user) {
           id: pago.id,
           titulo: pago.concepto || `${MESES[(pago.mes || 1) - 1] || ''} ${pago.anio || ''}`.trim(),
           monto: Math.max(0, (pago.monto_final || 0) - (pago.monto_pagado || 0)),
+          // Descuento visible (hermanos/beca): antes solo se veía el neto.
+          descuento: descuentoPago(pago),
           estadoLabel: pago.estado === 'Vencido' ? `⚠ VENCIDO` : pago.estado === 'Por Verificar' ? 'ENVIADO · POR VERIFICAR' : `⚠ ${(pago.estado || 'PENDIENTE').toUpperCase()}`,
           vencido: pago.estado === 'Vencido' || pago.estado === 'Pendiente',
           yaEnviado: pago.estado === 'Por Verificar' || !!pago.ultimo_comprobante,
@@ -311,13 +321,20 @@ export default function VistaPadreArcade() {
                       <MicroLabel color={pagado ? C.ok : C.warn} size={9} tracking=".04em" style={{ marginTop: 3 }}>
                         {pagado ? 'ENVIADO · POR VERIFICAR' : vm.pago.estadoLabel}
                       </MicroLabel>
+                      {/* Descuento aplicado (hermanos/beca): precio base tachado + etiqueta de las notas */}
+                      {vm.pago.descuento && (
+                        <p style={{ margin: '4px 0 0', fontSize: 10.5, color: C.text3 }}>
+                          <span style={{ textDecoration: 'line-through' }}>{fmtUSD(vm.pago.descuento.base)}</span>{' '}
+                          <b style={{ color: C.ok, fontWeight: 700 }}>{vm.pago.descuento.etiqueta}</b>
+                        </p>
+                      )}
                     </div>
-                    <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 20, color: pagado ? C.ok : C.warn }}>${vm.pago.monto}</p>
+                    <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 20, color: pagado ? C.ok : C.warn }}>{fmtUSD(vm.pago.monto)}</p>
                   </div>
                   {!pagado ? (
                     <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                       <button type="button" onClick={onPagar} style={{ flex: 1, padding: 13, background: GRAD.goldText, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9.5, cursor: 'pointer' }}>
-                        💳 PAGAR ${vm.pago.monto}
+                        💳 PAGAR {fmtUSD(vm.pago.monto)}
                       </button>
                       <button type="button" onClick={onWhatsApp} style={{ flex: 1, padding: 13, background: 'transparent', border: `1px solid rgba(37,211,102,.45)`, color: C.whatsapp, clipPath: cut(10), fontFamily: PIXEL, fontSize: 9.5, cursor: 'pointer' }}>
                         WHATSAPP
@@ -333,7 +350,7 @@ export default function VistaPadreArcade() {
                       {vm.historial.map((p, i) => (
                         <div key={i}>
                           <p style={{ margin: 0, fontSize: 11, color: C.ok, fontWeight: 700 }}>✓ {p.m}</p>
-                          <p style={{ margin: '2px 0 0', fontSize: 9.5, color: C.text3 }}>Pagado</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 9.5, color: C.text3 }}>{p.detalle || 'Pagado'}</p>
                         </div>
                       ))}
                     </div>

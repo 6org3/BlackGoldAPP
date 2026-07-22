@@ -128,6 +128,30 @@ export function pagoActual(estadoCuenta) {
   return (estadoCuenta?.abiertos || [])[0] || null;
 }
 
+/** Formato de moneda del widget de pagos: SIEMPRE 2 decimales ($20.40, no $20.4). */
+export const fmtUSD = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+
+/** Descuento aplicado a un pago (hermanos, beca…) o null si no hay. La
+    etiqueta preferida son las notas que registró el staff ('Desc. hermanos
+    15%', 'Beca 50%'); si vienen vacías se genera con el %. `base` = precio
+    sin descuento, para mostrar el antes/después. */
+export function descuentoPago(pago) {
+  const pct = Number(pago?.descuento_pct) || 0;
+  if (pct <= 0) return null;
+  const etiqueta = (pago?.notas || '').trim() || `Descuento ${pct}%`;
+  return { pct, base: Number(pago?.monto_base) || 0, etiqueta };
+}
+
+/** Concepto corto para el chip de historial: distingue los cargos que no son
+    la mensualidad (dos '✓ Julio Pagado' idénticos no dicen cuál era el grupo
+    adicional). 'Grupo adicional: Acondicionamiento Físico' → 'Acondicionamiento
+    Físico'. Null para mensualidades (el chip mantiene su 'Pagado'). */
+export function conceptoCorto(p) {
+  if (!p || p.tipo === 'Mensualidad') return null;
+  const c = (p.concepto || '').trim().replace(/^Grupo adicional:\s*/i, '');
+  return c || p.tipo || null;
+}
+
 /** Misión "actual" del hijo: la que está en revisión, o la primera sin completar. */
 export function misionActual(misiones) {
   const list = misiones || [];

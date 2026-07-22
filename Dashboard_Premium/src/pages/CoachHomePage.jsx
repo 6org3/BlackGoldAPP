@@ -154,7 +154,10 @@ export default function CoachHomePage() {
       <HomeShell
         eyebrow={fechaHoy}
         titulo={<>Hola, <span className="text-gradient-gold">{primerNombre}</span></>}
-        contexto={<ContextChip>🎯 Tu plantel · {atletas.length} atleta{atletas.length === 1 ? '' : 's'}</ContextChip>}
+        contexto={
+          // Mientras cargan los atletas el chip no afirma "0": muestra "—".
+          <ContextChip>🎯 Tu plantel · {loadingAtletas ? '— atletas' : `${atletas.length} atleta${atletas.length === 1 ? '' : 's'}`}</ContextChip>
+        }
       >
         {/* Hero "Hoy" — por modalidad de sesión (no categoría FEB) */}
         <CutCard cut={12} background={GRAD.heroGold} border={BORDER.goldMid} padding="0" style={{ overflow: 'hidden' }}>

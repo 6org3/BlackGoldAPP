@@ -3,12 +3,14 @@ import { Search } from 'lucide-react';
 import { C, BORDER, cut, PIXEL } from './arcadeTokens';
 import CutCard from './CutCard';
 import HexAvatar from './HexAvatar';
+import { coincideBusqueda } from '../../lib/normalizarTexto';
 
 export default function PantallaBuscador({ state, actions, roster = [] }) {
   const [q, setQ] = useState('');
-  const term = q.trim().toLowerCase();
-  // Filtra por nombre o cédula (el placeholder ya lo anuncia) (#9).
-  const rows = term ? roster.filter((a) => `${a.name} ${a.cedula || ''}`.toLowerCase().includes(term)) : roster;
+  const term = q.trim();
+  // Filtra por nombre o cédula (el placeholder ya lo anuncia) (#9), insensible
+  // a tildes como el buscador del plantel ('Nuñez' encuentra 'Núñez').
+  const rows = term ? roster.filter((a) => coincideBusqueda(`${a.name} ${a.cedula || ''}`, term)) : roster;
 
   return (
     <div>

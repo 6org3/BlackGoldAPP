@@ -125,6 +125,15 @@ export default function AdminPagos({ user, atletas = [] }) {
     return m;
   }, [pagos]);
 
+  // Subtítulo de "Por Cobrar" derivado de los MISMOS sumandos del monto:
+  // vencidos y sin-plan también aportan saldo, no solo los pendientes — sin
+  // esto el KPI decía "$X · 0 pendientes" cuando todo el saldo era vencido.
+  const subPorCobrar = [
+    vencidos > 0 && `${vencidos} vencido${vencidos === 1 ? '' : 's'}`,
+    pendientes > 0 && `${pendientes} pendiente${pendientes === 1 ? '' : 's'}`,
+    sinPlan > 0 && `${sinPlan} sin plan`,
+  ].filter(Boolean).join(' · ') || 'sin saldos abiertos';
+
   const saldoDe = (pago) => Math.max((pago.monto_final || 0) - (pago.monto_pagado || 0), 0);
 
   const abrirRegistro = (pago) => {
@@ -421,7 +430,7 @@ export default function AdminPagos({ user, atletas = [] }) {
       {/* Stats Bar */}
       <KpiGrid min={160} gap={12} style={{ marginBottom: 32 }}>
         <KpiTile label="Recaudado" val={`$${recaudado.toFixed(0)}`} color={C.ok} sub={`${pagados} pagos completos`} labelSize={9} border={BORDER.ok} />
-        <KpiTile label="Por Cobrar" val={`$${porCobrar.toFixed(0)}`} color={C.gold} sub={`${pendientes} pendientes`} labelSize={9} border={BORDER.gold16} />
+        <KpiTile label="Por Cobrar" val={`$${porCobrar.toFixed(0)}`} color={C.gold} sub={subPorCobrar} labelSize={9} border={BORDER.gold16} />
         <KpiTile label="Vencidos" val={vencidos} color={C.danger} sub="requieren atención" labelSize={9} border={BORDER.danger} />
         <KpiTile label="Sin Plan" val={sinPlan} color={C.warn} sub="falta asignar grupo" labelSize={9} border={BORDER.warn} />
         <KpiTile label="Becados" val={becados} color={C.ai} sub="del grupo" labelSize={9} border={BORDER.ai} />
