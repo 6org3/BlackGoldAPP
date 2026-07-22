@@ -19,6 +19,7 @@
 // auth.admin.deleteUser lo borra también de Auth.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { autenticar, jsonResponse } from "../_shared/brainAuth.ts";
 
 serve(async (req) => {
@@ -37,9 +38,21 @@ serve(async (req) => {
   const usuarioId = body?.usuario_id;
   if (!usuarioId) return jsonResponse({ error: 'usuario_id es obligatorio.' }, 400);
 
+  // purgar_usuario_rechazado es SECURITY DEFINER pero su guard usa
+  // es_superadmin(), que resuelve por auth.uid() — con el cliente `admin`
+  // (service_role, sin sesión) auth.uid() es NULL y el guard SIEMPRE falla,
+  // aunque el caller ya haya sido validado como superadmin arriba. Se llama
+  // con un cliente que lleva el JWT real del usuario (mismo Authorization
+  // que llegó en el request) para que auth.uid() resuelva de verdad; `admin`
+  // se reserva para lo único que EXIGE service_role: borrar de auth.users.
   // La RPC vuelve a validar todo server-side (superadmin + estado='rechazado'
-  // + huérfanos de un padre): este gate de arriba no es la única barrera.
-  const { data: purga, error: eRpc } = await admin!.rpc('purgar_usuario_rechazado', {
+  // + huérfanos de un padre): el gate de arriba no es la única barrera.
+  const comoUsuario = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
+    { global: { headers: { Authorization: req.headers.get('Authorization')! } } },
+  );
+  const { data: purga, error: eRpc } = await comoUsuario.rpc('purgar_usuario_rechazado', {
     p_usuario_id: usuarioId,
   });
   if (eRpc) return jsonResponse({ error: eRpc.message }, 400);
