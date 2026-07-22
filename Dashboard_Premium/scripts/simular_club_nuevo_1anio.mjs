@@ -31,9 +31,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 
-import { BAREMOS, calcularOverall } from '../../packages/analytics-core/baremos.js';
+import { BAREMOS, calcularOverall, resolverUmbrales } from '../../packages/analytics-core/baremos.js';
 import { calcularEdad, calcularCategoriaFEB } from '../../packages/analytics-core/categoriaFEB.js';
 import { calcularXPMision } from '../../packages/analytics-core/recomendaciones.js';
+import { SUB_PILARES } from '../../packages/analytics-core/taxonomia.js';
 
 // Dry-run por defecto. Para escribir de verdad: SEED_REAL=1 node scripts/simular_club_nuevo_1anio.mjs
 const SIMULAR = process.env.SEED_REAL !== '1';
@@ -160,16 +161,22 @@ const APELLIDOS = [
 ];
 
 // ===================================================================
-// EVALUACIONES: pruebas por batería (6-8 variadas, cubriendo los 3 pilares)
+// EVALUACIONES: pruebas por batería (variadas, cubriendo los 3 pilares y
+// los sub-pilares del radar, resistencia incluida desde v42)
 // ===================================================================
 // Se seleccionan claves de BAREMOS que aplican ampliamente (sin inputs_requeridos
-// bilaterales, para simplificar — igual quedan 8 pruebas cubriendo los 3 pilares
-// y respetando qué claves tienen thresholds para cada bucket de edad).
+// bilaterales, para simplificar). Son 12 claves, pero por atleta aplican ~10-11:
+// carrera_600m solo tiene cortes en Sub12 y carrera_1000m solo en Sub15 —
+// resolverUmbrales devuelve null para el resto y la prueba se salta sin romper.
 const CLAVES_EVALUACION = [
   'cmj_salto',        // fisico/explosividad
   'pushups_30s',      // fisico/explosividad
   'sentadilla_rel',   // fisico/fuerza
   'sit_reach',        // fisico/movilidad
+  'course_navette',        // fisico/resistencia
+  'yoyo_ir1',              // fisico/resistencia
+  'carrera_600m_vinueza',  // fisico/resistencia (solo bucket Sub12)
+  'carrera_1000m_vinueza', // fisico/resistencia (solo bucket Sub15)
   'tiro_libre',       // tecnico/tiro
   'zigzag_balon',      // tecnico/agilidad
   'eficiencia_tactica', // mental/tactica
@@ -178,11 +185,16 @@ const CLAVES_EVALUACION = [
 
 const BUCKET_POR_GRUPO = { 'Sub-8': 'Sub12', 'Sub-12': 'Sub12', 'Sub-16': 'Sub18' };
 
-// Valor crudo inicial realista por prueba y bucket: arrancamos cerca del
-// límite inferior de "average" (tier average = thresholds[1]..thresholds[2])
-// y mejoramos progresivamente batería a batería (entrenamiento efectivo).
-function valorInicial(clave, bucket) {
-  const th = BAREMOS[clave]?.thresholds?.[bucket];
+// Valor crudo inicial realista por prueba y perfil del atleta: arrancamos cerca
+// del límite inferior de "average" (tier average = cortes[1]..cortes[2]) y
+// mejoramos progresivamente batería a batería (entrenamiento efectivo).
+// Los cortes se resuelven SIEMPRE con resolverUmbrales (baremos.js), que entiende
+// tanto los arrays planos viejos como las capas Género→Bucket→Nivel de las pruebas
+// de resistencia (v42) — nunca leer BAREMOS[clave].thresholds[bucket] directo.
+function valorInicial(clave, atleta) {
+  const th = resolverUmbrales(BAREMOS[clave]?.thresholds, {
+    bucket: atleta.grupoBucket, genero: atleta.genero, nivelDesarrollo: atleta.nivel_desarrollo,
+  });
   if (!th) return null;
   const [t1, t2, t3] = th;
   const invertido = BAREMOS[clave].tipo === 'menos_es_mejor';
@@ -234,8 +246,10 @@ const TIPO_SESION_GRUPAL_DB = 'Grupal';
 
 // ===================================================================
 // SESIONES_ENTRENAMIENTO (individualizadas) — pilar_objetivo variado.
+// Derivado de la taxonomía canónica (SUB_PILARES, 8 sub-pilares con resistencia)
+// en vez de una lista hardcodeada que se quedaba corta al crecer la taxonomía.
 // ===================================================================
-const PILARES_OBJETIVO = ['fuerza', 'explosividad', 'movilidad', 'tiro', 'agilidad', 'tactica', 'resiliencia'];
+const PILARES_OBJETIVO = SUB_PILARES.map(s => s.key);
 
 // ===================================================================
 // HELPERS DE INSERT POR LOTES
@@ -370,8 +384,8 @@ async function run() {
     atletasTodos = atletasTodos.concat(construirAtletasDeGrupo(g, desde));
   });
 
-  // Catálogo de misiones: reusa seed_catalogo_misiones.json (56 misiones,
-  // 7 sub-pilares × 2 complejidades × 4 buckets). Para la simulación las
+  // Catálogo de misiones: reusa seed_catalogo_misiones.json (64 misiones,
+  // 8 sub-pilares × 2 complejidades × 4 buckets). Para la simulación las
   // insertamos con activa=true (a diferencia del seed real, que nace
   // inactiva para curaduría del coach) porque necesitamos que
   // seleccionarMisiones/asignación funcione de punta a punta sin depender
@@ -560,7 +574,7 @@ async function run() {
   // ============================
   // 5. EVALUACIONES + RECÁLCULO DE OVERALL (4 baterías/atleta)
   // ============================
-  console.log('\n── 4. Evaluaciones (4 baterías/atleta, ~cada 3 meses, 8 pruebas/batería) ──');
+  console.log('\n── 4. Evaluaciones (4 baterías/atleta, ~cada 3 meses, ~10-11 pruebas/batería) ──');
   console.log(`Pruebas usadas por batería: ${CLAVES_EVALUACION.map(k => BAREMOS[k].label).join(', ')}`);
 
   const evaluacionesPorAtleta = {}; // cedula -> [{prueba_tipo, pilar, sub_pilar, puntuacion_normalizada, created_at, ...}]
@@ -569,7 +583,7 @@ async function run() {
   for (const a of atletasTodos) {
     const bucket = a.grupoBucket;
     let valoresActuales = {};
-    CLAVES_EVALUACION.forEach(clave => { valoresActuales[clave] = valorInicial(clave, bucket); });
+    CLAVES_EVALUACION.forEach(clave => { valoresActuales[clave] = valorInicial(clave, a); });
 
     const evaluacionesAtleta = [];
 
@@ -579,8 +593,10 @@ async function run() {
 
       for (const clave of CLAVES_EVALUACION) {
         const baremo = BAREMOS[clave];
-        const th = baremo.thresholds[bucket];
-        if (!th) continue; // prueba no aplica a este bucket
+        const th = resolverUmbrales(baremo.thresholds, {
+          bucket, genero: a.genero, nivelDesarrollo: a.nivel_desarrollo,
+        });
+        if (!th) continue; // prueba sin cortes para este perfil (p.ej. carrera_600m fuera de Sub12)
 
         // Progresión batería a batería (la primera usa el valor inicial).
         if (filasBateria.length === 0 && offsetMeses > 0) {
@@ -633,7 +649,7 @@ async function run() {
   }
 
   contadores.evaluaciones = totalEvaluaciones;
-  console.log(`Total evaluaciones a insertar: ${totalEvaluaciones} (${atletasTodos.length} atletas × 4 baterías × ~8 pruebas)`);
+  console.log(`Total evaluaciones a insertar: ${totalEvaluaciones} (${atletasTodos.length} atletas × 4 baterías × ~10-11 pruebas según bucket)`);
 
   if (!SIMULAR) {
     for (const a of atletasTodos) {

@@ -25,8 +25,9 @@ function Rango({ r, extra }) {
   );
 }
 
-/** A4 · Progreso — rangos de desarrollo, radar táctil de 7 pilares, filas de
- *  pilares sincronizadas, insignias y XP semanal. Dirigida por ctx.ctxProgreso. */
+/** A4 · Progreso — rangos de desarrollo, radar táctil de N pilares (los de
+ *  ctx.radar), filas de pilares sincronizadas, insignias y XP semanal.
+ *  Dirigida por ctx.ctxProgreso. */
 export default function PantallaAtletaProgreso({ ctx }) {
   return (
     <div>
@@ -52,7 +53,7 @@ export default function PantallaAtletaProgreso({ ctx }) {
       <FichaFisica fisico={ctx.fisico} />
 
       {/* Radar táctil */}
-      <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }}>MIS 7 PILARES · TOCA UNO</MicroLabel>
+      <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }}>{`MIS ${ctx.radar.length} PILARES · TOCA UNO`}</MicroLabel>
       <div style={{ background: C.card, border: `1px solid ${BORDER.gold}`, clipPath: cut(12), padding: '10px 14px 12px', marginBottom: 14, textAlign: 'center' }}>
         <RadarChart axes={ctx.radar} selectedKey={ctx.selKey} onSelect={ctx.onPilarPick} accent={C.gold} />
         <div style={{ textAlign: 'left', background: 'rgba(255,215,0,.05)', border: `1px solid rgba(255,215,0,.2)`, clipPath: cut(8), padding: '11px 12px', marginTop: 4 }}>

@@ -52,7 +52,7 @@ const server = new McpServer({
 // Tool 1: Analyze Athlete Pillars
 server.tool(
   "analyze_athlete_pillars",
-  "Genera un resumen analítico de los 7 pilares de un atleta basado en sus evaluaciones físicas, técnicas y percepciones subjetivas.",
+  "Genera un resumen analítico de los sub-pilares del radar de un atleta basado en sus evaluaciones físicas, técnicas y percepciones subjetivas.",
   {
     athlete_id: z.string().describe("UUID del atleta a evaluar")
   },
@@ -253,7 +253,7 @@ server.tool(
 // CATÁLOGO DE MISIONES (D3 del spec loop misiones-baremo):
 // el MCP propone misiones con justificación científica, el coach
 // las activa desde AdminMisiones. Matriz objetivo:
-// 7 sub-pilares × 3 niveles × 4 buckets de edad = 84 celdas.
+// SUB_PILARES.length × 3 niveles × 4 buckets de edad (96 celdas hoy).
 // ============================================================
 
 // Derivado de la taxonomía compartida (fuente única): los sub-pilares del radar
@@ -567,22 +567,17 @@ server.tool(
 // AUTORÍA DE PRUEBAS DE EVALUACIÓN + BAREMOS (fase P1.5):
 // el MCP propone pruebas con umbrales fundamentados en la guía
 // metodológica ecuatoriana (Vinueza, knowledge/) y las inserta en
-// catalogo_ejercicios. Cubre los 3 pilares / 8 sub-pilares
-// (los 7 del radar + 'resistencia', pendiente de taxonomía).
+// catalogo_ejercicios. Cubre los 3 pilares / 8 sub-pilares del radar.
 // ============================================================
 
 const KNOWLEDGE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "knowledge");
 const DOC_METODOLOGIA = path.join(KNOWLEDGE_DIR, "fundamentos_iniciacion_vinueza.md");
 
-// 'resistencia' se acepta en autoría ANTES de existir en taxonomia.js: la regla del
-// club es que el sub-pilar entra al radar (7→8 ejes) recién cuando tiene pruebas con
-// baremos — este tool es justamente la vía para crearlas.
-const SUB_PILARES_PRUEBAS = [...new Set([...SUB_PILARES, "resistencia"])];
+const SUB_PILARES_PRUEBAS = SUB_PILARES;
 const GENEROS = ["Masculino", "Femenino"];
 const BUCKETS_PRUEBA = [...BUCKETS, "Todas"];
 
-const pilarDeSubPilar = (subPilar) =>
-  subPilar === "resistencia" ? "fisico" : (getSubPilar(subPilar)?.pilar ?? null);
+const pilarDeSubPilar = (subPilar) => getSubPilar(subPilar)?.pilar ?? null;
 
 // --- Validación estructural de thresholds (mismas convenciones que resolverUmbrales) ---
 function validarCortes(arr, ruta) {
@@ -792,7 +787,7 @@ server.tool(
 // Tool 9: Generar Catálogo de Pruebas de Evaluación
 server.tool(
   "generar_catalogo_pruebas",
-  "Analiza la cobertura del catálogo de pruebas de evaluación (catalogo_ejercicios) por sub-pilar — los 7 del radar + 'resistencia' — detectando huecos y pruebas con umbrales irresolubles, y devuelve las instrucciones para redactar las pruebas/baremos faltantes fundamentadas en la guía metodológica ecuatoriana (Vinueza). Tras redactarlas y validarlas con el cuerpo técnico, insertarlas con insertar_pruebas_evaluacion.",
+  "Analiza la cobertura del catálogo de pruebas de evaluación (catalogo_ejercicios) por sub-pilar — los 8 sub-pilares del radar — detectando huecos y pruebas con umbrales irresolubles, y devuelve las instrucciones para redactar las pruebas/baremos faltantes fundamentadas en la guía metodológica ecuatoriana (Vinueza). Tras redactarlas y validarlas con el cuerpo técnico, insertarlas con insertar_pruebas_evaluacion.",
   {
     sub_pilar: z.enum(SUB_PILARES_PRUEBAS).optional().describe("Limitar el análisis a un sub-pilar"),
   },
@@ -845,7 +840,6 @@ server.tool(
         const s = porSubPilar[sp] || { total: 0, vivas: 0, porNivel: 0, muertas: [] };
         const pilar = pilarDeSubPilar(sp);
         out += `- ${sp} (pilar ${pilar}): ${s.total} prueba(s), ${s.vivas} con umbrales resolubles, ${s.porNivel} segmentada(s) por nivel`;
-        if (sp === "resistencia") out += `  ← SUB-PILAR NUEVO: aún fuera del radar; entra a taxonomia.js con sus primeras pruebas`;
         if (s.muertas.length) out += `\n    · umbrales irresolubles (revisar/reescribir): ${s.muertas.join("; ")}`;
         out += `\n`;
       });
@@ -887,7 +881,7 @@ Para cada prueba faltante define:
 // Tool 10: Insertar Pruebas de Evaluación al Catálogo
 server.tool(
   "insertar_pruebas_evaluacion",
-  "Inserta en lote pruebas de evaluación con sus baremos en catalogo_ejercicios. Valida sub_pilar contra la taxonomía (+'resistencia'), y thresholds contra las convenciones del motor (bucket→[t1,t2,t3,t4] ascendentes; capas opcionales por género Masculino/Femenino y por nivel Micro/Desarrollo/Elite). ATENCIÓN: quedan visibles de inmediato en la Evaluación Científica — insertar solo baremos ya validados con el cuerpo técnico.",
+  "Inserta en lote pruebas de evaluación con sus baremos en catalogo_ejercicios. Valida sub_pilar contra la taxonomía, y thresholds contra las convenciones del motor (bucket→[t1,t2,t3,t4] ascendentes; capas opcionales por género Masculino/Femenino y por nivel Micro/Desarrollo/Elite). ATENCIÓN: quedan visibles de inmediato en la Evaluación Científica — insertar solo baremos ya validados con el cuerpo técnico.",
   {
     pruebas: z.array(z.object({
       nombre: z.string().min(4),
@@ -931,9 +925,6 @@ server.tool(
 
       let msg = `✅ ${filas.length} prueba(s) insertada(s) en catalogo_ejercicios — ya visibles en la Evaluación Científica.\n`;
       msg += filas.map(f => `- ${f.nombre} → ${f.pilar}/${f.sub_pilar} (${f.tipo}, ${f.unidad})`).join("\n");
-      if (filas.some(f => f.sub_pilar === "resistencia") && !SUB_PILARES.includes("resistencia")) {
-        msg += `\n\n⚠️ SIGUIENTE PASO (código): 'resistencia' ya tiene pruebas pero AÚN NO está en la taxonomía. Añadir { key: 'resistencia', label: 'Resistencia', pilar: 'fisico' } a SUB_PILARES en packages/analytics-core/taxonomia.js (el radar pasa de 7 a 8 ejes automáticamente) y correr npm run functions:sync en Dashboard_Premium.`;
-      }
       return { content: [{ type: "text", text: msg }] };
     } catch (err) {
       return { content: [{ type: "text", text: `Error: ${err.message}` }] };

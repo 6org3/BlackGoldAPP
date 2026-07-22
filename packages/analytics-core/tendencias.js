@@ -102,9 +102,9 @@ export function seriePorPrueba(evaluaciones, pruebaTipo) {
  * HistorialPruebas.jsx a mano, ahora fijada aquí como fuente única.
  *
  * Solo se consideran los sub-pilares de RADAR_AXES; cualquier otro
- * (p.ej. 'antropometrico') se ignora. Los 7 ejes siempre están presentes en
- * el resultado — con array vacío si no tienen datos — para que la UI pueda
- * iterar sin comprobar existencia.
+ * (p.ej. 'antropometrico') se ignora. Todos los ejes de RADAR_AXES siempre
+ * están presentes en el resultado — con array vacío si no tienen datos — para
+ * que la UI pueda iterar sin comprobar existencia.
  *
  * @param {Array} evaluaciones - [{ sub_pilar, puntuacion_normalizada, created_at }, ...]
  * @returns {Object} { [sub_pilar]: [{ fecha: 'YYYY-MM-DD', score }] }

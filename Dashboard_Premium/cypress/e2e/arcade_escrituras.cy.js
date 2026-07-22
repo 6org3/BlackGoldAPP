@@ -152,7 +152,7 @@ describe('Arcade HUD — escrituras reales (fase 5)', () => {
     // Lectura real del representado.
     cy.contains(/MI REPRESENTADO/i, { timeout: 20000 }).should('be.visible');
     cy.contains(/QA Atleta Demo/i, { timeout: 20000 }).should('be.visible');
-    cy.contains(/SUS 7 PILARES/i).should('be.visible');
+    cy.contains(/SUS \d+ PILARES/i).should('be.visible');
 
     // RSVP solo si el atleta QA tiene un evento próximo (si no, se omite).
     cy.get('body').then(($b) => {

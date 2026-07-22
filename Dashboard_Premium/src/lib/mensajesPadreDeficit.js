@@ -26,6 +26,9 @@ const MENSAJES_POR_CONDICION = {
   tactica_baja: 'Está aprendiendo los fundamentos del básquet: leer la cancha, encontrar espacios, la mecánica del tiro. Con práctica constante mejora rápido.',
   explosividad_baja: 'Está trabajando su salto y velocidad de reacción. Estos ejercicios toman tiempo — la constancia es lo que cuenta.',
   fuerza_movilidad_baja: 'El coach está reforzando su fuerza y flexibilidad con ejercicios adaptados a su edad. Es parte normal de su desarrollo.',
+  resistencia_baja: 'Está construyendo su tanque de energía para aguantar el partido completo. El juego activo fuera de la cancha (bici, natación, correr jugando) le ayuda muchísimo.',
+  tiro_bajo: 'Está puliendo la mecánica de su tiro. Mejora con repeticiones cortas y alguien que le diga cómo va — la paciencia cuenta más que la cantidad.',
+  agilidad_baja: 'Está trabajando su juego de pies y los cambios de dirección. Jugar a atrapadas o a esquivar en casa es una forma divertida de reforzarlo.',
   baja_dorsiflexion: 'El coach está dando seguimiento a la movilidad de su tobillo para prevenir molestias al saltar y caer. Nada de qué preocuparse, solo seguimiento.',
   asimetria_imtp: 'El coach notó que un lado de su cuerpo trabaja algo más que el otro y lo está equilibrando con ejercicios específicos.',
 

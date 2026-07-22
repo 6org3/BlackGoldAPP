@@ -12,7 +12,7 @@ import {
   fetchPadrePanel,
   fetchHijoDetalle,
   xpInfo,
-  radar7,
+  radarPilares,
   fichaFisica,
   palabrasSimples,
   nombrePilar,
@@ -40,6 +40,7 @@ const MOCK = {
   radar: [
     { key: 'fuerza', label: 'FUERZA', value: 60 },
     { key: 'explosividad', label: 'EXPLO', value: 82 },
+    { key: 'resistencia', label: 'CARDIO', value: 58 },
     { key: 'movilidad', label: 'MOVIL', value: 66 },
     { key: 'tiro', label: 'TIRO', value: 40 },
     { key: 'agilidad', label: 'AGIL', value: 70 },
@@ -74,7 +75,7 @@ function fechaEventoLine(ev) {
 
 function buildVM(hijo, detalle, user) {
   const xp = xpInfo(hijo);
-  const radar = radar7(hijo);
+  const radar = radarPilares(hijo);
   const simples = palabrasSimples(radar);
   const conv = proximoEvento(detalle?.convocatorias);
   const ev = conv?.eventos || null;
@@ -367,8 +368,8 @@ export default function VistaPadreArcade() {
                 </div>
               )}
 
-              {/* 7 pilares */}
-              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">SUS 7 PILARES</MicroLabel>
+              {/* Pilares (radar de N ejes según el view-model) */}
+              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">{`SUS ${vm.radar.length} PILARES`}</MicroLabel>
               <div style={{ background: C.card, border: `1px solid ${BORDER.gold}`, clipPath: cut(12), padding: '10px 14px 4px', marginBottom: 14, textAlign: 'center' }}>
                 <RadarChart axes={vm.radar} accent={C.info} fill={RADAR_FILL_INFO} rings={[0.4, 0.7]} />
                 {vm.simples && (

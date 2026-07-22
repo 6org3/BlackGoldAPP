@@ -185,6 +185,75 @@ const BAREMOS = {
     },
   },
 
+  // ─── Resistencia (thresholds reales del catálogo de prod, v43) ─────
+  // Estas 4 entradas replican TAL CUAL los umbrales por capas del catálogo en
+  // producción (Género→Bucket→Nivel→[4 cortes] o Género→Todas→[4]); el label es
+  // el nombre EXACTO de prod para que el backfill por nombre de
+  // scripts/sync_catalogo_ejercicios.mjs los enlace. NO leer thresholds[bucket]
+  // directo en estas claves — resolverUmbrales ya entiende las capas.
+
+  // Resistencia - Capacidad aeróbica (Course Navette / Léger 20m)
+  course_navette: {
+    label: 'Course Navette (Léger 20m)',
+    pilar: 'fisico', sub_pilar: 'resistencia', tren: null,
+    unidad: 'paliers', tipo: 'mas_es_mejor',
+    thresholds: {
+      Femenino: {
+        Sub12: { Micro: [2.5, 3, 4, 5], Desarrollo: [2.5, 3.5, 4.5, 5.5], Elite: [3, 4, 5, 6] },
+        Sub15: { Micro: [3, 4, 5, 6.5], Desarrollo: [3.5, 4.5, 5.5, 7], Elite: [4, 5, 6, 7.5] },
+        Sub18: { Micro: [3.5, 4.5, 5.5, 7], Desarrollo: [4, 5, 6, 7.5], Elite: [4.5, 5.5, 6.5, 8.5] },
+        Senior: { Micro: [3.5, 5, 6, 7], Desarrollo: [4, 5.5, 6.5, 8], Elite: [4.5, 6, 7, 9] },
+      },
+      Masculino: {
+        Sub12: { Micro: [3, 4, 5, 6], Desarrollo: [3.5, 4.5, 5.5, 6.5], Elite: [4, 5, 6, 7] },
+        Sub15: { Micro: [4.5, 6, 7, 8.5], Desarrollo: [5, 6.5, 8, 9.5], Elite: [5.5, 7, 9, 10.5] },
+        Sub18: { Micro: [5.5, 7, 8, 9.5], Desarrollo: [6, 7.5, 9, 10.5], Elite: [6.5, 8.5, 10, 11.5] },
+        Senior: { Micro: [6, 7, 8.5, 10], Desarrollo: [6.5, 8, 9.5, 11], Elite: [7, 9, 10.5, 12] },
+      },
+    },
+  },
+
+  // Resistencia - Carrera 600 m, batería Vinueza 9-10 años (solo Sub12, menos es mejor)
+  carrera_600m_vinueza: {
+    label: 'Carrera 600 m (Vinueza)',
+    pilar: 'fisico', sub_pilar: 'resistencia', tren: null,
+    unidad: 'segundos', tipo: 'menos_es_mejor',
+    thresholds: {
+      Femenino: {
+        Sub12: { Micro: [165, 182, 198, 220], Desarrollo: [150, 165, 180, 200], Elite: [135, 149, 162, 180] },
+      },
+      Masculino: {
+        Sub12: { Micro: [154, 171, 187, 209], Desarrollo: [140, 155, 170, 190], Elite: [126, 140, 153, 171] },
+      },
+    },
+  },
+
+  // Resistencia - Carrera 1000 m, batería Vinueza 11-12 años (solo Sub15, menos es mejor)
+  carrera_1000m_vinueza: {
+    label: 'Carrera 1000 m (Vinueza)',
+    pilar: 'fisico', sub_pilar: 'resistencia', tren: null,
+    unidad: 'segundos', tipo: 'menos_es_mejor',
+    thresholds: {
+      Femenino: {
+        Sub15: { Micro: [292, 319, 347, 380], Desarrollo: [265, 290, 315, 345], Elite: [239, 261, 284, 311] },
+      },
+      Masculino: {
+        Sub15: { Micro: [264, 292, 319, 352], Desarrollo: [240, 265, 290, 320], Elite: [216, 239, 261, 288] },
+      },
+    },
+  },
+
+  // Resistencia - Capacidad aeróbica máxima intermitente (Yo-Yo IR1)
+  yoyo_ir1: {
+    label: 'Yo-Yo Intermittent Recovery L1',
+    pilar: 'fisico', sub_pilar: 'resistencia', tren: 'inferior',
+    unidad: 'nivel', tipo: 'mas_es_mejor',
+    thresholds: {
+      Femenino: { Todas: [10, 12, 14, 16] },
+      Masculino: { Todas: [12, 14, 16, 18] },
+    },
+  },
+
   // ─── PILAR 2: TÉCNICO-BALONCESTÍSTICO ─────────────────────
 
   // Tiro Libre

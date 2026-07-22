@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import RadarChartComp from './RadarChartComp';
 import { Eye, EyeOff, ClipboardList } from 'lucide-react';
 import { getBaremoUI, MOTION, staggerDelay } from '../lib/designTokens';
-import { getSubPilarScores } from '../lib/radarCalc';
+import { getSubPilarScores, RADAR_AXES } from '../lib/radarCalc';
 import { useAuth } from '../AuthContext';
 import PortalPadreSeccion from './PortalPadreSeccion';
 import RangoProgreso from './RangoProgreso';
@@ -43,8 +43,7 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
   const deficits = useMemo(() => evaluarDeficits(atleta), [atleta]);
   const historiales = useMemo(
     () => Object.fromEntries(
-      ['fuerza', 'explosividad', 'movilidad', 'tiro', 'agilidad', 'tactica', 'resiliencia']
-        .map(k => [k, getHistoricalData(atleta._evaluaciones, k)])
+      RADAR_AXES.map(({ key }) => [key, getHistoricalData(atleta._evaluaciones, key)])
     ),
     [atleta._evaluaciones]
   );
@@ -243,13 +242,9 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
       {/* Sub-Pilar Progress Bars (1 columna en móviles angostos para que
           label + nivel + sparkline no colisionen) */}
       <div className="relative z-10 grid grid-cols-1 min-[480px]:grid-cols-2 gap-x-6 gap-y-4">
-        <ProgressBar label="Fuerza" value={subPilarScores.fuerza} index={index} history={historiales.fuerza} />
-        <ProgressBar label="Explosividad" value={subPilarScores.explosividad} index={index} history={historiales.explosividad} />
-        <ProgressBar label="Movilidad" value={subPilarScores.movilidad} index={index} history={historiales.movilidad} />
-        <ProgressBar label="Técnica Tiro" value={subPilarScores.tiro} index={index} history={historiales.tiro} />
-        <ProgressBar label="Agilidad" value={subPilarScores.agilidad} index={index} history={historiales.agilidad} />
-        <ProgressBar label="Efic. Táctica" value={subPilarScores.tactica} index={index} history={historiales.tactica} />
-        <ProgressBar label="Resiliencia" value={subPilarScores.resiliencia} index={index} history={historiales.resiliencia} />
+        {RADAR_AXES.map(({ key, label }) => (
+          <ProgressBar key={key} label={label} value={subPilarScores[key]} index={index} history={historiales[key]} />
+        ))}
       </div>
 
       {/* Evaluaciones count */}

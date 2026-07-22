@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { build3LayerRadarData, getSubPilarScores } from '../lib/radarCalc.js';
+import { build3LayerRadarData, getSubPilarScores, RADAR_AXES } from '../lib/radarCalc.js';
 import { COLORS, CHART } from '../lib/designTokens';
 
 // Etiquetas abreviadas para que los ejes no se recorten en viewports angostos.
@@ -10,6 +10,7 @@ const ETIQUETAS_CORTAS = {
   'Técnica Tiro': 'Tiro',
   'Resiliencia': 'Resil.',
   'Movilidad': 'Movil.',
+  'Resistencia': 'Resist.',
 };
 
 function useEsMovil() {
@@ -45,17 +46,14 @@ export default function RadarChartComp({ atleta, todosLosAtletas, showCategoria 
       const clubScores = todosLosAtletas.map(a => getSubPilarScores(a._evaluaciones || []));
       return build3LayerRadarData(atletaScores, categoriaScores, clubScores);
     }
-    // Even if no full DB, we might have local evaluations for the single athlete
+    // Even if no full DB, we might have local evaluations for the single athlete.
+    // Ejes derivados de la fuente única (RADAR_AXES), no lista hardcodeada.
     const localScores = getSubPilarScores(evaluaciones || []);
-    return [
-      { subject: 'Fuerza', Atleta: localScores.fuerza || 0, fullMark: 100 },
-      { subject: 'Explosividad', Atleta: localScores.explosividad || 0, fullMark: 100 },
-      { subject: 'Movilidad', Atleta: localScores.movilidad || 0, fullMark: 100 },
-      { subject: 'Técnica Tiro', Atleta: localScores.tiro || 0, fullMark: 100 },
-      { subject: 'Agilidad', Atleta: localScores.agilidad || 0, fullMark: 100 },
-      { subject: 'Efic. Táctica', Atleta: localScores.tactica || 0, fullMark: 100 },
-      { subject: 'Resiliencia', Atleta: localScores.resiliencia || 0, fullMark: 100 },
-    ];
+    return RADAR_AXES.map(({ key, label }) => ({
+      subject: label,
+      Atleta: localScores[key] || 0,
+      fullMark: 100,
+    }));
   }, [use3Layer, evaluaciones, categoria, todosLosAtletas]);
 
   return (

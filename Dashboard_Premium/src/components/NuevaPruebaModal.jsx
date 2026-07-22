@@ -3,20 +3,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Target, Save, Info, AlertCircle } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { TABLA_PRUEBAS_EVALUACION } from '../api/tablas';
+import { SUB_PILARES } from '../../../packages/analytics-core/taxonomia.js';
 import { useAuth } from '../AuthContext';
+
+// Métricas del radar derivadas de la fuente única (taxonomia.js): label,
+// pilar y sub_pilar por key. Antes era una lista hardcodeada que dejaba
+// fuera a los sub-pilares nuevos (p. ej. resistencia).
+const METRIC_MAP = Object.fromEntries(
+  SUB_PILARES.map(({ key, label, pilar }) => [key, { label, pilar, sub_pilar: key }])
+);
 
 export default function NuevaPruebaModal({ isOpen, onClose, onPruebaCreated }) {
   const { user } = useAuth();
-  
-  const METRIC_MAP = {
-    'fuerza': { label: 'Fuerza', pilar: 'fisico', sub_pilar: 'fuerza' },
-    'explosividad': { label: 'Explosividad', pilar: 'fisico', sub_pilar: 'explosividad' },
-    'movilidad': { label: 'Movilidad', pilar: 'fisico', sub_pilar: 'movilidad' },
-    'tiro': { label: 'Técnica de Tiro', pilar: 'tecnico', sub_pilar: 'tiro' },
-    'agilidad': { label: 'Agilidad', pilar: 'tecnico', sub_pilar: 'agilidad' },
-    'tactica': { label: 'Eficiencia Táctica', pilar: 'mental', sub_pilar: 'tactica' },
-    'resiliencia': { label: 'Resiliencia', pilar: 'mental', sub_pilar: 'resiliencia' },
-  };
 
   const [formData, setFormData] = useState({
     nombre: '',

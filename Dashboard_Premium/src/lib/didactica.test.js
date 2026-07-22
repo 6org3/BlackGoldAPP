@@ -51,6 +51,62 @@ describe('evaluarDeficits — integración con readiness', () => {
   });
 });
 
+describe('evaluarDeficits — déficits de rendimiento nuevos (resistencia/tiro/agilidad)', () => {
+  // Atleta con una única evaluación puntuada del sub-pilar indicado
+  // (getSubPilarScores solo necesita {sub_pilar, puntuacion_normalizada}).
+  const atletaConScore = (subPilar, puntuacion) => ({
+    categoria: 'Menores (Sub-14)',
+    _evaluaciones: [{ sub_pilar: subPilar, puntuacion_normalizada: puntuacion }],
+  });
+
+  it('resistencia baja (<50) → déficit resistencia_baja con prioridad alta', () => {
+    const deficits = evaluarDeficits(atletaConScore('resistencia', 30));
+    const def = deficits.find(d => d.condicion === 'resistencia_baja');
+    expect(def).toBeTruthy();
+    expect(def.prioridad).toBe('alta');
+    expect(def.valor).toBe(30);
+  });
+
+  it('resistencia suficiente (60) → sin déficit resistencia_baja', () => {
+    const deficits = evaluarDeficits(atletaConScore('resistencia', 60));
+    expect(deficits.some(d => d.condicion === 'resistencia_baja')).toBe(false);
+  });
+
+  it('tiro bajo (<50) → déficit tiro_bajo con prioridad media', () => {
+    const deficits = evaluarDeficits(atletaConScore('tiro', 30));
+    const def = deficits.find(d => d.condicion === 'tiro_bajo');
+    expect(def).toBeTruthy();
+    expect(def.prioridad).toBe('media');
+  });
+
+  it('tiro suficiente (60) → sin déficit tiro_bajo', () => {
+    const deficits = evaluarDeficits(atletaConScore('tiro', 60));
+    expect(deficits.some(d => d.condicion === 'tiro_bajo')).toBe(false);
+  });
+
+  it('agilidad baja (<50) → déficit agilidad_baja con prioridad media', () => {
+    const deficits = evaluarDeficits(atletaConScore('agilidad', 30));
+    const def = deficits.find(d => d.condicion === 'agilidad_baja');
+    expect(def).toBeTruthy();
+    expect(def.prioridad).toBe('media');
+  });
+
+  it('agilidad suficiente (60) → sin déficit agilidad_baja', () => {
+    const deficits = evaluarDeficits(atletaConScore('agilidad', 60));
+    expect(deficits.some(d => d.condicion === 'agilidad_baja')).toBe(false);
+  });
+
+  it('getAutoMissions empareja una misión con condicion_trigger resistencia_baja', () => {
+    const misiones = [
+      { id: 'mr', condicion_trigger: 'resistencia_baja' },
+      { id: 'mx', condicion_trigger: 'condicion_inexistente' },
+    ];
+    const ids = getAutoMissions(atletaConScore('resistencia', 30), misiones).map(m => m.id);
+    expect(ids).toContain('mr');
+    expect(ids).not.toContain('mx');
+  });
+});
+
 describe('emparejarMisionesPorCondicion — matcher compartido', () => {
   const misiones = [
     { id: 'm1', condicion_trigger: 'deshidratado_extremo' },
