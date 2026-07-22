@@ -103,7 +103,13 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
       <nav className="flex-1 p-5 space-y-1.5 overflow-y-auto">
         {esStaff && (
           <button
-            onClick={() => setShowModoCancha(true)}
+            onClick={() => {
+              // Cerrar el drawer móvil al abrir Modo Cancha: si queda abierto
+              // detrás del overlay, al salir del modo el usuario aterriza en
+              // un drawer que ya no esperaba (y su scroll-lock sigue vivo).
+              setIsMobileMenuOpen(false);
+              setShowModoCancha(true);
+            }}
             className={`cut-focus w-full flex items-center justify-between px-5 min-h-11 py-3.5 text-xs font-bold uppercase tracking-[0.15em] transition mb-2 ${activeSessionCount > 0 ? 'animate-pulse' : ''}`}
             style={{ ...mcTono, clipPath: cut(8) }}
           >

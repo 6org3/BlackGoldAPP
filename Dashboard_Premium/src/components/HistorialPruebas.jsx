@@ -112,8 +112,11 @@ export default function HistorialPruebas({ atletaId }) {
   }, [evaluaciones, pruebaActiva]);
 
   if (loading) {
+    // min-h-72 ≈ el alto mínimo del contenido real cargado (~300px): reserva
+    // espacio para que la ficha no pegue un salto de layout bajo el dedo del
+    // usuario cuando la carga resuelve mientras él ya está scrolleando.
     return (
-      <div className="flex items-center justify-center h-48 text-brand">
+      <div className="flex items-center justify-center min-h-72 text-brand">
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );

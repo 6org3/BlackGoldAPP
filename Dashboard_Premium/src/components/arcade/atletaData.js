@@ -13,7 +13,7 @@ import { supabase } from '../../api/supabaseClient';
 import { fetchMisiones, completarMision } from '../../api/misionesService';
 import { fetchConvocatoriasAtleta, fetchTableroConvocados, responderRSVP } from '../../api/eventosService';
 import { fetchSesionesAtleta } from '../../api/sesionesEntrenamientoService';
-import { radar7, xpInfo } from './padreData';
+import { radar7, xpInfo, fichaFisica } from './padreData';
 
 export { completarMision, responderRSVP };
 
@@ -258,6 +258,9 @@ export async function fetchAtletaPanel(user) {
       xp,
     },
     radar: radar7(user),
+    // user = usuarios + atletas mergeados (authService), así que peso/talla/
+    // envergadura ya vienen ahí — sin fetch extra.
+    fisico: fichaFisica(user),
     hoyEntrenas: hoyEntrenasDe(sesiones),
     alertaIA: alertaReadiness(user),
     misionDestacada,

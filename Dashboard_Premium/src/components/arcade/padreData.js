@@ -54,6 +54,25 @@ export function radar7(hijo) {
   return PILARES_RADAR.map((p) => ({ ...p, value: Math.max(0, Math.min(100, scores?.[p.key] || 0)) }));
 }
 
+/** Ficha física para atleta/padre a partir de la fila de `atletas` (el user
+    del atleta y el `hijo` del padre ya la traen mergeada). IMC sin etiqueta
+    clínica a propósito: en menores se interpreta por percentiles de edad/sexo
+    y clasificarlo aquí induciría a error — el número lo contextualiza el coach.
+    Devuelve null si no hay ni peso ni talla (→ la UI muestra el estado vacío). */
+export function fichaFisica(f) {
+  const num = (v) => {
+    const n = parseFloat(v);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+  const peso = num(f?.peso_kg);
+  const talla = num(f?.talla_cm);
+  const envergadura = num(f?.envergadura_cm);
+  if (peso == null && talla == null) return null;
+  const imc = peso != null && talla != null ? +(peso / (talla / 100) ** 2).toFixed(1) : null;
+  const brazada = envergadura != null && talla != null ? +(envergadura - talla).toFixed(1) : null;
+  return { peso, talla, imc, envergadura, brazada };
+}
+
 /** Nivel/XP para la cabecera y las celdas (sistema XP, no overall). */
 export function xpInfo(hijo) {
   const p = getXPProgress(hijo?.xp_total || 0);

@@ -80,6 +80,8 @@ export const ATLETA_MOCK = {
     { key: 'tactica', label: 'TACT', value: 58 },
     { key: 'resiliencia', label: 'RESIL', value: 70 },
   ],
+  // Mismo shape que fichaFisica() (padreData) sobre la fila de atletas.
+  fisico: { peso: 58.4, talla: 168, imc: 20.7, envergadura: 172, brazada: 4 },
   hoyEntrenas: { time: '16:00', titulo: 'Sub-16 · Físico', sub: 'Cancha Central · Prof. Andrade', chip: 'EN 2 H' },
   alertaIA: { tone: 'cyan', text: 'Toma 2L de agua hoy — tu readiness lo pide antes del físico.' },
   misionDestacada: { id: 'm2', titulo: 'Tiro libre · 50 repeticiones', sub: 'Cancha · pilar Tiro · 5 días', xp: 40, prog: 3, tot: 5 },

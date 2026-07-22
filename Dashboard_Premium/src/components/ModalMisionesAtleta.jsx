@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Search, Save, RefreshCw } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
@@ -143,10 +144,15 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  return (
+  // Portal a <body> (regla del proyecto para overlays fixed): montado dentro
+  // de AtletaCard, el clip-path cut(14) de la card recortaba su pintado. El
+  // z-[110] lo apila sobre el overlay z-[100] del perfil (mismo patrón que su
+  // hermano EvaluacionModal) — como hermanos bajo <body>, empatarlos dejaría
+  // el orden al azar del montaje.
+  return createPortal(
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
           className="bg-surface-base border border-white/10 p-6 md:p-8 rounded-card w-full max-w-2xl relative shadow-modal max-h-[90dvh] overflow-y-auto">
 
@@ -252,6 +258,7 @@ export default function ModalMisionesAtleta({ atleta, isOpen, onClose }) {
           )}
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
