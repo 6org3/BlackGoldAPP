@@ -214,8 +214,11 @@ const BAREMOS = {
   // `node scripts/sync_catalogo_ejercicios.mjs` (SIMULAR=false): sincroniza baremos.js →
   // catalogo_ejercicios por baremo_key (UPDATE de thresholds). Editar baremos.js solo NO
   // cambia el scoring en vivo.
-  // Excepción: carrera_600m_vinueza y carrera_1000m_vinueza conservan TAL CUAL las tablas
-  // originales del owner (batería Vinueza) — esas no se recalibraron.
+  // Nota (2026-07-22): carrera_1000m_vinueza conserva TAL CUAL las tablas originales del owner
+  // (batería Vinueza / FEDENADOR) — contrastada celda por celda contra el manual y sin cambios.
+  // carrera_600m_vinueza SÍ se re-ancló: ese mismo contraste reveló que la columna 600m FEMENINA
+  // de la fuente es inservible (tiempos imposibles + dimorfismo invertido). Detalle en el
+  // comentario de carrera_600m_vinueza y en docs/baremos_revision_2026.md.
 
   // Resistencia - Capacidad aeróbica (Course Navette / Léger 20m)
   // Recalibrado 2026-07 con Tomkinson 2017 (n=1.14M, 50 países), FUPRECOL (población
@@ -242,17 +245,28 @@ const BAREMOS = {
     },
   },
 
-  // Resistencia - Carrera 600 m, batería Vinueza 9-10 años (solo Sub12, menos es mejor)
+  // Resistencia - Carrera 600 m, batería Vinueza 9-10 años (solo Sub12, menos es mejor).
+  // RE-ANCLADO 2026-07-22 tras el contraste celda por celda con el manual original
+  // (Romero Frómeta 2013 / FEDENADOR, N=1266). La columna 600m FEMENINA del manual (Tabla 4)
+  // es inservible: tiempos imposibles en niveles altos (1:56-2:15 en 600m para una niña de
+  // 9-10a ≈ récord mundial adulto de 800m) y dimorfismo invertido (mostraba a las niñas más
+  // rápidas que los niños; Brown 2024/EJSS PMC11235854: los varones 9-10a son ~4% MÁS rápidos
+  // en 800m). Los cortes previos heredaban ese error — Fem Elite "excellent" ≤135s (2:15) y
+  // Masc ≤126s (2:06) eran más rápidos que el MEJOR registro del estudio (2:20) → inalcanzables.
+  // Corrección: Masculino se ancla a la Tabla 5 (600m masculino, la única columna plausible y
+  // monótona); Femenino = Masculino +5% (dimorfismo Brown 2024). Medianas resultantes (capa
+  // Desarrollo, tier average): Masc 3:06, Fem 3:15; techos Elite alcanzables (Masc 2:26, Fem 2:33).
+  // 1000m NO se tocó: su columna sí es coherente y con dimorfismo correcto.
   carrera_600m_vinueza: {
     label: 'Carrera 600 m (Vinueza)',
     pilar: 'fisico', sub_pilar: 'resistencia', tren: null,
     unidad: 'segundos', tipo: 'menos_es_mejor',
     thresholds: {
       Femenino: {
-        Sub12: { Micro: [165, 182, 198, 220], Desarrollo: [150, 165, 180, 200], Elite: [135, 149, 162, 180] },
+        Sub12: { Micro: [181, 195, 223, 248], Desarrollo: [166, 181, 195, 223], Elite: [153, 166, 181, 195] },
       },
       Masculino: {
-        Sub12: { Micro: [154, 171, 187, 209], Desarrollo: [140, 155, 170, 190], Elite: [126, 140, 153, 171] },
+        Sub12: { Micro: [172, 186, 212, 236], Desarrollo: [158, 172, 186, 212], Elite: [146, 158, 172, 186] },
       },
     },
   },
