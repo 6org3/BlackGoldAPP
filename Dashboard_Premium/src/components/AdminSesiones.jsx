@@ -110,11 +110,16 @@ export default function AdminSesiones({ user, atletas = [] }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Ejercicios filtrados por tipo y grupo
+  // Ejercicios filtrados por tipo y grupo. `nivel` es el vocabulario cerrado
+  // (Micro/Desarrollo/Elite) contra el que matchea grupos_recomendados; `nombre`
+  // es texto libre por club y solo se conserva como compatibilidad adicional.
+  // Sin grupo o con nivel NULL no se filtra por nivel (se muestran todos los del tipo).
   const grupoActual = grupos.find(g => g.id === form.grupoId);
   const ejerciciosFiltrados = ejerciciosCatalogo.filter(e =>
     e.tipo === form.objetivoTipo &&
-    (!grupoActual || e.grupos_recomendados?.includes(grupoActual.nombre) || e.grupos_recomendados?.includes('Micro'))
+    (!grupoActual || !grupoActual.nivel ||
+      e.grupos_recomendados?.includes(grupoActual.nivel) ||
+      e.grupos_recomendados?.includes(grupoActual.nombre))
   );
 
   const toggleEjercicio = (id) => {
