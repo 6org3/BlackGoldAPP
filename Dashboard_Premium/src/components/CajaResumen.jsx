@@ -23,9 +23,11 @@ export default function CajaResumen({ mes, anio }) {
 
   // Rango del mes para transacciones (fecha de cobro, no fecha del pago
   // generado) — el mismo criterio para arqueo de efectivo y export contable.
+  // `hasta` termina en el último ms del mes: el servicio filtra con lte, y
+  // cerrar en la medianoche del día 1 contaría ese instante en dos meses.
   const rangoMes = useCallback(() => ({
     desde: new Date(anio, mes - 1, 1).toISOString(),
-    hasta: new Date(anio, mes, 1).toISOString(),
+    hasta: new Date(anio, mes, 0, 23, 59, 59, 999).toISOString(),
   }), [anio, mes]);
 
   const load = useCallback(async () => {
@@ -151,7 +153,7 @@ export default function CajaResumen({ mes, anio }) {
                     <span className="text-2xs" style={{ color: C.text2 }}>{r.transacciones} mov. · <span className="font-black" style={{ color: C.text }}>${r.total.toFixed(2)}</span></span>
                   </div>
                 ))}
-                <p className="text-3xs mt-1" style={{ color: C.text3 }}>Concilia este total contra el efectivo entregado físicamente por cada coach.</p>
+                <p className="text-3xs mt-1" style={{ color: C.text3 }}>Concilia este total contra el efectivo entregado físicamente por cada coach. Cuenta lo cobrado (registrado) en {MESES[mes]}, incluidos abonos a cuotas de otros meses — por eso puede diferir del "Recaudado" del mes.</p>
               </div>
             )}
           </section>

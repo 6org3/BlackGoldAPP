@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import { calculateRank } from './authService';
 import { calcularCategoriaFEB, calcularMetricasDerivadas } from './utilsAtletas';
 import { fechaNacimientoDeEdad } from '../lib/edad';
+import { coincideBusqueda, patronBusquedaRelajado } from '../lib/normalizarTexto';
 
 // ============================
 // FETCH ATLETAS (Supabase)
@@ -66,7 +67,13 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   // condición de filtro arbitraria a través del cuadro de búsqueda.
   const sanitizedSearch = search.replace(/[,()%]/g, '').trim();
   if (sanitizedSearch) {
-    query = query.or(`nombre.ilike.%${sanitizedSearch}%,cedula.ilike.%${sanitizedSearch}%`, { foreignTable: 'usuarios' });
+    // `ilike` es sensible a tildes ('Nuñez' jamás encontraría 'Núñez' y la BD
+    // no tiene `unaccent`): al servidor se le pide un SUPERCONJUNTO con el
+    // patrón relajado (letras acentuables → `_`) y la coincidencia real — con
+    // ambos lados normalizados sin diacríticos — se refina en memoria más
+    // abajo con `coincideBusqueda`.
+    const patronRelajado = patronBusquedaRelajado(sanitizedSearch);
+    query = query.or(`nombre.ilike.%${patronRelajado}%,cedula.ilike.%${patronRelajado}%`, { foreignTable: 'usuarios' });
   }
   if (categoria && categoria !== 'Todas') {
     query = query.eq('usuarios.categoria_feb', categoria);
@@ -240,10 +247,19 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   // El scoping por club y por categoría de coach ya se aplicó en SQL arriba
   // (usuarios.club / usuarios.categoria_feb), así que no hace falta repetirlo aquí.
 
+  // Refino insensible a tildes de la búsqueda: el patrón relajado enviado a
+  // Postgres devuelve un superconjunto (p. ej. 'nunez' → '____z' también
+  // atrapa 'Sánchez'); aquí queda solo lo que de verdad contiene el término,
+  // comparando nombre y cédula normalizados (NFD sin diacríticos, minúsculas)
+  // contra el texto tecleado normalizado igual.
+  const atletasBuscados = sanitizedSearch
+    ? mappedAtletas.filter(a => coincideBusqueda(a.nombre, sanitizedSearch) || coincideBusqueda(a.cedula, sanitizedSearch))
+    : mappedAtletas;
+
   if (limit > 0) {
     const hasMore = (page * limit) < count;
-    return { data: mappedAtletas, hasMore };
+    return { data: atletasBuscados, hasMore };
   }
 
-  return mappedAtletas;
+  return atletasBuscados;
 };

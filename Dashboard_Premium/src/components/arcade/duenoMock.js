@@ -3,10 +3,13 @@
 
    Objeto `data` COMPLETO para el modo demo (sin login), con la MISMA forma
    que produce duenoData.fetchDuenoPanel — así los selectores no ramifican
-   demo vs real. En modo real, duenoData OVERLAYea los números que sí existen
-   en Supabase (KPIs, finanzas por mes, asistencia media/categoría) sobre estas
-   constantes; lo demás (heatmap de ocupación, ranking de coaches, retención,
-   filas de acción) queda mock con `// TODO` hasta las migraciones SQL.
+   demo vs real. En modo real, duenoData reemplaza TODO lo que ve el dueño
+   con datos reales de Supabase (KPIs, alertas, agenda de hoy, finanzas,
+   filas verificar/vencidos, asistencia, heatmap, retención) o con estados
+   vacíos honestos; estas constantes solo se muestran en el modo demo (sin
+   rol owner) o como degradación completa ante error, siempre con badge DEMO.
+   Excepción declarada: coaches/retención aún caen a este mock en clubes sin
+   datos (TODO en duenoData).
    ============================================================ */
 import { C } from './arcadeTokens';
 

@@ -26,8 +26,9 @@ function fechaHoy() {
  * Panel del DUEÑO en estilo Arcade HUD (rediseño del handoff). Dashboard denso
  * móvil-first: 5 paneles (Resumen · Asistencia · Finanzas · Equipo · Retención)
  * con bottom-nav de hex central ($ = Finanzas). Con `user` owner/superadmin usa
- * datos reales (KPIs/finanzas/asistencia sobre mock); sin ese rol corre en demo
- * con DUENO_MOCK. Molde de shell tomado de VistaPadreArcade.
+ * datos reales (fetchDuenoPanel: KPIs/alertas/agenda/finanzas/asistencia, con
+ * estados vacíos honestos donde no hay dato; el título del Resumen es el club
+ * real); sin ese rol corre en demo con DUENO_MOCK. Molde de VistaPadreArcade.
  */
 export default function VistaDuenoArcade() {
   const { user } = useAuth();
