@@ -767,13 +767,15 @@ Hoy: la ruta admite `coach`, la RLS le da `FOR ALL`, el Sidebar le oculta el enl
 
 ## 10. Decisiones de producto pendientes (para el owner)
 
-1. **¿Quién absorbe la comisión de pasarela** si algún día se activa: el club (~5,75%) o el padre (recargo visible)?
-2. **Alta a mitad de mes**: ¿mes completo o prorrateo por semanas?
-3. **¿Moras/recargos** por pago atrasado? (el modelo lo soporta como cargo extra; decidir si se usa)
-4. **Coach en modo cobro** (§7.4) ¿o excluido del módulo por completo?
-5. **Situación fiscal**: ¿RUC vigente? ¿A nombre de quién está la cuenta que recibe transferencias hoy? (condiciona P2 y la titularidad del dinero)
-6. **`descuento_hermanos_pct`**: ¿qué porcentaje? ¿Existe hoy como práctica informal?
-7. **Día de vencimiento**: ¿se mantiene el 5?
+**Resueltas por el owner el 2026-07-22** (sesión de decisiones de producto):
+
+1. **Comisión de pasarela** → la paga el padre como **recargo visible** (~6%) si algún día se activa Payphone; la transferencia bancaria queda sin recargo como opción gratuita. Decisión condicionada a la 5 (hoy no hay pasarela posible).
+2. **Alta a mitad de mes** → regla de dos tramos: alta **antes del día 15 = mes completo**; alta **el 15 o después = 50% de la mensualidad**, solo en el mes de ingreso (`atletas.fecha_alta`). Implementada en `generar_pagos_mes` (migración v46).
+3. **Moras/recargos** → **NO por ahora**. El vencido se marca y se recuerda por WhatsApp; el modelo sigue soportando cargos extra si se quiere activar después.
+4. **Coach en modo cobro** → **EXCLUIDO**. Pagos es solo-owner (y co-dueños); el §7.4 queda descartado.
+5. **Situación fiscal** → **sin RUC aún**; la cuenta receptora es personal. Payphone (y cualquier pasarela) queda descartado hasta formalizar en el SRI. El flujo de cobro sigue siendo transferencia + efectivo + comprobantes.
+6. **`descuento_hermanos_pct`** → resuelto en producto: configurable por club en Configuración de Pagos (default 0; los clubes de prueba usan 10).
+7. **Día de vencimiento** → resuelto en producto: configurable por club (default 5).
 
 ---
 
