@@ -59,12 +59,36 @@ export default function RadarChart({
           y={LABEL_XY[i][1]}
           fill={p.key === selectedKey ? accent : C.text2}
           textAnchor="middle"
-          style={{ fontFamily: PIXEL, fontSize: 7, cursor: onSelect ? 'pointer' : 'default' }}
-          onClick={onSelect ? () => onSelect(p.key) : undefined}
+          style={{ fontFamily: PIXEL, fontSize: 7 }}
         >
           {p.label}
         </text>
       ))}
+      {/* Hit-targets táctiles: el <text> de 7px era el único objetivo y quedaba
+          muy por debajo de los 44px del estándar táctil. Círculos transparentes
+          r=23u (≈46px reales al 82% de 375px, medido en vivo), clampeados para
+          no salirse del viewBox (fuera de él no reciben eventos). Solo táctil. */}
+      {onSelect &&
+        axes.map((p, i) => (
+          <circle
+            key={`hit-${p.key}`}
+            cx={Math.max(23, Math.min(237, LABEL_XY[i][0]))}
+            cy={Math.max(23, Math.min(192, LABEL_XY[i][1]))}
+            r="23"
+            fill="transparent"
+            role="button"
+            tabIndex={0}
+            aria-label={`Ver pilar ${p.label}`}
+            style={{ cursor: 'pointer' }}
+            onClick={() => onSelect(p.key)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(p.key);
+              }
+            }}
+          />
+        ))}
     </svg>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import MicroCard from './MicroCard';
 import AtletaCard from './AtletaCard';
@@ -29,7 +30,11 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
 
   if (!selectedAtleta) return null;
 
-  return (
+  // Portal a <body>: la regla del proyecto para todo overlay fixed (ModalHUD/
+  // ModalShell) — el clip-path de un ancestro cut() recorta el pintado de
+  // descendientes fixed, y un transform lo re-ancla. Plantel vive embebido en
+  // /dashboard, /sistema y /coach; el portal lo blinda en las tres cadenas.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -70,6 +75,7 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
           <HistorialPruebas atletaId={selectedAtleta.atleta_id || selectedAtleta.id} />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -10,6 +10,15 @@ import { fetchAtletaPanel, completarMision, responderRSVP, alertaReadiness } fro
  * 100% con ATLETA_MOCK para preview aislada.
  */
 
+// La pestaña activa sobrevive a recargas de página (deploy del SW, refresh):
+// sin esto, una recarga en plena lectura devolvía al atleta de Progreso a la
+// Base, que se percibe como "la app me regresa sola al inicio".
+const TABS_ATLETA = ['inicio', 'misiones', 'progreso', 'eventos'];
+const tabPersistida = () => {
+  const t = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('bg-atleta-tab') : null;
+  return TABS_ATLETA.includes(t) ? t : 'inicio';
+};
+
 const initialState = {
   aTab: 'inicio', // 'inicio'|'misiones'|'progreso'|'eventos'
   aDetalle: false,
@@ -66,7 +75,10 @@ function reducer(state, action) {
 
 export default function useAtleta(user) {
   const isReal = !!(user && user.rol === 'atleta');
-  const [state, dispatch] = useReducer(reducer, initialState);
+  // Init lazy (3er arg): initialState es de alcance de módulo y se evalúa una
+  // sola vez por carga de página — leyendo sessionStorage aquí, cada MOUNT
+  // (remount de ruta incluido, no solo recargas) restaura la pestaña activa.
+  const [state, dispatch] = useReducer(reducer, initialState, (base) => ({ ...base, aTab: tabPersistida() }));
   const [data, setData] = useState(() => (isReal ? null : ATLETA_MOCK));
   const [loading, setLoading] = useState(isReal);
 
@@ -133,7 +145,10 @@ export default function useAtleta(user) {
 
   const actions = useMemo(
     () => ({
-      goTab: (tab) => dispatch({ type: 'GO_TAB', tab }),
+      goTab: (tab) => {
+        sessionStorage.setItem('bg-atleta-tab', tab);
+        dispatch({ type: 'GO_TAB', tab });
+      },
       openDetalle: (id) => dispatch({ type: 'OPEN_DETALLE', id }),
       back: () => dispatch({ type: 'BACK' }),
       answer: (q, i) => dispatch({ type: 'ANSWER', q, i }),

@@ -2,6 +2,7 @@ import { C, BORDER, GRAD, GLOW, cut, HEX, PIXEL } from './arcadeTokens';
 import Badge from './Badge';
 import MicroLabel from './MicroLabel';
 import RadarChart from './RadarChart';
+import FichaFisica from './FichaFisica';
 
 const NODE = {
   done: { size: 40, bg: 'rgba(34,211,238,.16)', color: C.cyan, glow: 'none' },
@@ -45,6 +46,10 @@ export default function PantallaAtletaProgreso({ ctx }) {
           </div>
         ))}
       </div>
+
+      {/* Ficha física — los datos "de verdad" que registra el coach */}
+      <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }}>MI FICHA FÍSICA</MicroLabel>
+      <FichaFisica fisico={ctx.fisico} />
 
       {/* Radar táctil */}
       <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }}>MIS 7 PILARES · TOCA UNO</MicroLabel>

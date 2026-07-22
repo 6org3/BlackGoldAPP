@@ -5,6 +5,7 @@ import ArcadePerfilMenu from './ArcadePerfilMenu';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
 import RadarChart from './RadarChart';
+import FichaFisica from './FichaFisica';
 import XPCells from './XPCells';
 import ArcadeBottomNav from './ArcadeBottomNav';
 import {
@@ -12,6 +13,7 @@ import {
   fetchHijoDetalle,
   xpInfo,
   radar7,
+  fichaFisica,
   palabrasSimples,
   nombrePilar,
   proximoEvento,
@@ -92,6 +94,8 @@ function buildVM(hijo, detalle, user) {
     rangoLine: `${(xp.rangoNombre || '').toUpperCase()} ${xp.emoji}`,
     xp,
     radar,
+    // `hijo` trae la fila completa de atletas (padreService) → peso/talla/IMC.
+    fisico: fichaFisica(hijo),
     simples,
     evento: ev ? { titulo: ev.titulo || (ev.rival ? `vs ${ev.rival}` : 'Evento'), fechaLine: fechaEventoLine(ev), convId: conv.id, estadoRsvp: conv.estado_rsvp } : null,
     pago: pago
@@ -202,8 +206,11 @@ export default function VistaPadreArcade() {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: C.bgApp }}>
       <input ref={fileRef} type="file" accept="image/*,application/pdf" onChange={onFileComprobante} style={{ display: 'none' }} />
-      <div style={{ position: 'relative', width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '18px 16px 96px', WebkitOverflowScrolling: 'touch' }}>
+      {/* height 100dvh + minHeight 0: mismo marco que VistaAtletaArcade/
+          VistaDuenoArcade — sin ellos el scroll se iba al body en vez del
+          contenedor interno (scroller sin cota de altura). */}
+      <div style={{ position: 'relative', width: '100%', maxWidth: 480, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 96px', WebkitOverflowScrolling: 'touch' }}>
           {/* Cabecera */}
           <div id="padre-base" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
             <div>
@@ -374,6 +381,14 @@ export default function VistaPadreArcade() {
                   </div>
                 )}
               </div>
+
+              {/* Ficha física del hijo — los datos que registra el coach */}
+              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">SU FICHA FÍSICA</MicroLabel>
+              <FichaFisica
+                fisico={vm.fisico}
+                accent={C.info}
+                emptyText="Aún sin medición — el coach la registra en la evaluación antropométrica."
+              />
 
               {/* Comunicados */}
               <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">COMUNICADOS DEL CLUB</MicroLabel>

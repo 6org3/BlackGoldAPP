@@ -38,10 +38,29 @@ window.addEventListener('vite:preloadError', (event) => {
 // que sin este listener se queda mostrando el build viejo indefinidamente.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   let recargandoPorSW = false
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
+  let recargaPendientePorSW = false
+  const recargarPorSW = () => {
     if (recargandoPorSW) return
     recargandoPorSW = true
     window.location.reload()
+  }
+  // Con la pestaña visible NO se recarga en el acto: un deploy en pleno uso
+  // arrancaba la app de las manos (el usuario deslizaba por el radar y la
+  // vista volvía sola al tope). Se difiere al próximo paso a segundo plano;
+  // la PWA instalada pasa por 'hidden' cada cambio de app o de pantalla, así
+  // que el build nuevo sigue aplicándose en minutos, solo que sin interrumpir.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (document.visibilityState === 'visible') {
+      recargaPendientePorSW = true
+      return
+    }
+    recargarPorSW()
+  })
+  document.addEventListener('visibilitychange', () => {
+    // 'hidden': recarga silenciosa. 'visible' con recarga pendiente: el SO
+    // congeló el proceso antes de procesar el 'hidden' — recargar al entrar,
+    // que es cuando un flash de carga no molesta.
+    if (recargaPendientePorSW) recargarPorSW()
   })
 
   window.addEventListener('load', async () => {

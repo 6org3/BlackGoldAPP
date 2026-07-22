@@ -226,6 +226,9 @@ function ctxProgreso(state, data, actions) {
 
   return {
     resumenLine: `${(p.nivelDesarrollo || '').toUpperCase()} · ${p.xp.current.toLocaleString()} XP TOTAL · PWR ${p.pwr}`,
+    // Ficha física (peso/talla/IMC/brazada) de la fila de atletas; null → la
+    // card muestra el estado vacío.
+    fisico: data.fisico || null,
     rangos: NIVELES.map((n, i) => ({
       tier: ['I', 'II', 'III'][i],
       label: n.toUpperCase(),
