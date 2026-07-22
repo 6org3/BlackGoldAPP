@@ -11,11 +11,12 @@ import { fetchEvaluacionesDeAtletas } from '../api/evaluacionesService';
 import { agregarDebilidadesGrupo, serieGrupalPorSubPilar } from '../../../packages/analytics-core/tendencias.js';
 import { scoreATier } from '../../../packages/analytics-core/recomendaciones.js';
 import { COLORS, CHART, TENDENCIA_TIERS } from '../lib/designTokens';
+import { PILAR_LABELS } from '../constants/pilares';
 
-const SUB_PILAR_LABELS = {
-  fuerza: 'Fuerza', explosividad: 'Explosividad', movilidad: 'Movilidad',
-  tiro: 'Tiro', agilidad: 'Agilidad', tactica: 'Táctica', resiliencia: 'Resiliencia',
-};
+// Etiquetas cortas por sub-pilar, derivadas de la fuente única (taxonomia.js
+// vía constants/pilares). Incluye formatos de misión (youtube/articulo) que
+// aquí nunca se consultan: el lookup es siempre por key de sub-pilar.
+const SUB_PILAR_LABELS = PILAR_LABELS;
 
 // Color de barra según el tier del promedio del grupo.
 // Fuente única del design system (antes mapa hex local duplicado).
@@ -135,7 +136,7 @@ export default function GrupoTendencias({ atletas }) {
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={debilidades} margin={{ top: 18, right: 5, left: -25, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                          {/* interval={0} + inclinación: las 7 etiquetas siempre
+                          {/* interval={0} + inclinación: todas las etiquetas siempre
                               visibles aunque el viewport sea angosto */}
                           <XAxis dataKey="label" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }}
                             interval={0} angle={-35} textAnchor="end" height={55} />

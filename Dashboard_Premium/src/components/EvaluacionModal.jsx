@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ClipboardCheck, Save, Loader2, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { normalizarValor, resolverUmbrales, categoriaABucketBaremo } from '../lib/baremosEngine';
-import { labelPilar, labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
+import { SUB_PILARES, labelPilar, labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { supabase } from '../api/supabaseClient';
 import { TABLA_PRUEBAS_EVALUACION } from '../api/tablas';
 import { recalcularOverall } from '../api/evaluacionesService';
@@ -25,18 +25,31 @@ const TREN_LABELS = {
   null: null,
 };
 
-// Pestañas de objetivo: el `id` es la key del sub-pilar (taxonomía compartida) y el
-// `label` se deriva de ella con labelSubPilar; ícono/colores son presentación local.
+// Pestañas de objetivo: la membresía deriva de la taxonomía compartida (SUB_PILARES
+// + 'recuperacion' de monitoreo al final) y el `label` con labelSubPilar;
+// ícono/colores son presentación local por key, con estilo default de fallback
+// para sub-pilares nuevos sin identidad asignada aún.
+const PRESENTACION = {
+  fuerza:       { icon: '💪', border: 'border-danger/30',     bgActive: 'bg-danger/20',     text: 'text-danger-soft' },
+  explosividad: { icon: '🚀', border: 'border-caution/30',    bgActive: 'bg-caution/20',    text: 'text-caution-soft' },
+  resistencia:  { icon: '🏃', border: 'border-teal-500/30',   bgActive: 'bg-teal-500/20',   text: 'text-teal-400' },
+  movilidad:    { icon: '🤸', border: 'border-success/30',    bgActive: 'bg-success/20',    text: 'text-success-soft' },
+  tiro:         { icon: '🎯', border: 'border-cyan-500/30',   bgActive: 'bg-cyan-500/20',   text: 'text-cyan-400' },
+  agilidad:     { icon: '⚡', border: 'border-yellow-500/30', bgActive: 'bg-yellow-500/20', text: 'text-yellow-400' },
+  tactica:      { icon: '🧠', border: 'border-mental/30',     bgActive: 'bg-mental/20',     text: 'text-mental-soft' },
+  resiliencia:  { icon: '🛡️', border: 'border-pink-500/30',   bgActive: 'bg-pink-500/20',   text: 'text-pink-400' },
+  recuperacion: { icon: '🔋', border: 'border-info/30',       bgActive: 'bg-info/20',       text: 'text-info-soft' },
+};
+const PRESENTACION_DEFAULT = { icon: '📈', border: 'border-white/10', bgActive: 'bg-white/10', text: 'text-fg-secondary' };
+
 const OBJETIVOS = [
   { id: 'todas', label: 'Todas', icon: '📋', filter: () => true, border: 'border-gray-500/30', bgActive: 'bg-gray-500/20', text: 'text-fg-secondary' },
-  { id: 'fuerza', label: labelSubPilar('fuerza'), icon: '💪', filter: (b) => b.sub_pilar === 'fuerza', border: 'border-danger/30', bgActive: 'bg-danger/20', text: 'text-danger-soft' },
-  { id: 'explosividad', label: labelSubPilar('explosividad'), icon: '🚀', filter: (b) => b.sub_pilar === 'explosividad', border: 'border-caution/30', bgActive: 'bg-caution/20', text: 'text-caution-soft' },
-  { id: 'movilidad', label: labelSubPilar('movilidad'), icon: '🤸', filter: (b) => b.sub_pilar === 'movilidad', border: 'border-success/30', bgActive: 'bg-success/20', text: 'text-success-soft' },
-  { id: 'tiro', label: labelSubPilar('tiro'), icon: '🎯', filter: (b) => b.sub_pilar === 'tiro', border: 'border-cyan-500/30', bgActive: 'bg-cyan-500/20', text: 'text-cyan-400' },
-  { id: 'agilidad', label: labelSubPilar('agilidad'), icon: '⚡', filter: (b) => b.sub_pilar === 'agilidad', border: 'border-yellow-500/30', bgActive: 'bg-yellow-500/20', text: 'text-yellow-400' },
-  { id: 'tactica', label: labelSubPilar('tactica'), icon: '🧠', filter: (b) => b.sub_pilar === 'tactica', border: 'border-mental/30', bgActive: 'bg-mental/20', text: 'text-mental-soft' },
-  { id: 'resiliencia', label: labelSubPilar('resiliencia'), icon: '🛡️', filter: (b) => b.sub_pilar === 'resiliencia', border: 'border-pink-500/30', bgActive: 'bg-pink-500/20', text: 'text-pink-400' },
-  { id: 'recuperacion', label: labelSubPilar('recuperacion'), icon: '🔋', filter: (b) => b.sub_pilar === 'recuperacion', border: 'border-info/30', bgActive: 'bg-info/20', text: 'text-info-soft' },
+  ...[...SUB_PILARES.map(s => s.key), 'recuperacion'].map((id) => ({
+    id,
+    label: labelSubPilar(id),
+    filter: (b) => b.sub_pilar === id,
+    ...(PRESENTACION[id] || PRESENTACION_DEFAULT),
+  })),
 ];
 
 // Salvaguarda defensiva: si catalogo_ejercicios llegara a tener filas

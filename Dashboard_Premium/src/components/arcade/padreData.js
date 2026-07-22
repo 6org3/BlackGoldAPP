@@ -14,7 +14,7 @@ import { fetchMisiones } from '../../api/misionesService';
 import { fetchConvocatoriasAtleta, responderRSVP } from '../../api/eventosService';
 import { fetchEstadoCuentaPadre, fetchClubConfig, subirComprobante } from '../../api/pagosService';
 import { fetchComunicacionesParaPadre } from '../../api/comunicacionesService';
-import { getSubPilarScores } from '../../lib/radarCalc';
+import { getSubPilarScores, RADAR_AXES } from '../../lib/radarCalc';
 import { getXPProgress } from '../../lib/xpProgress';
 import { linkWhatsApp } from '../../lib/plantillasWhatsApp';
 
@@ -38,18 +38,22 @@ export async function fetchHijoDetalle(user, hijo) {
   return { misiones, convocatorias, estadoCuenta, clubConfig, comunicaciones };
 }
 
-/** 7 pilares del radar (omite `resistencia`, como PadreDashboard). */
-export const PILARES_RADAR = [
-  { key: 'fuerza', label: 'FUERZA' },
-  { key: 'explosividad', label: 'EXPLO' },
-  { key: 'movilidad', label: 'MOVIL' },
-  { key: 'tiro', label: 'TIRO' },
-  { key: 'agilidad', label: 'AGIL' },
-  { key: 'tactica', label: 'TACT' },
-  { key: 'resiliencia', label: 'RESIL' },
-];
+/** Abreviaturas HUD por sub-pilar (decisión de producto: resistencia = CARDIO). */
+const LABEL_ARCADE = {
+  fuerza: 'FUERZA',
+  explosividad: 'EXPLO',
+  resistencia: 'CARDIO',
+  movilidad: 'MOVIL',
+  tiro: 'TIRO',
+  agilidad: 'AGIL',
+  tactica: 'TACT',
+  resiliencia: 'RESIL',
+};
 
-export function radar7(hijo) {
+/** Pilares del radar, derivados de la fuente única (taxonomia via RADAR_AXES). */
+export const PILARES_RADAR = RADAR_AXES.map(({ key }) => ({ key, label: LABEL_ARCADE[key] || key.slice(0, 6).toUpperCase() }));
+
+export function radarPilares(hijo) {
   const scores = getSubPilarScores(hijo?._evaluaciones || []);
   return PILARES_RADAR.map((p) => ({ ...p, value: Math.max(0, Math.min(100, scores?.[p.key] || 0)) }));
 }
@@ -102,6 +106,7 @@ export function palabrasSimples(radar) {
 const NOMBRE_PILAR = {
   fuerza: 'su fuerza',
   explosividad: 'su explosividad',
+  resistencia: 'su resistencia',
   movilidad: 'su movilidad',
   tiro: 'el tiro',
   agilidad: 'su agilidad',

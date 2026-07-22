@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext';
 import BotonVolver from '../components/arcade/BotonVolver';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { supabase } from '../api/supabaseClient';
-import { getSubPilarScores } from '../lib/radarCalc';
+import { getSubPilarScores, RADAR_AXES } from '../lib/radarCalc';
 import { COLORS, CHART } from '../lib/designTokens';
 import Sidebar from '../components/Sidebar';
 import CutCard from '../components/arcade/CutCard';
@@ -16,15 +16,9 @@ import KpiGrid from '../components/arcade/KpiGrid';
 import LiveDot from '../components/arcade/LiveDot';
 import { C, BORDER, GRAD, GLOW, TINT, cut, gridBackgroundDesktop, PIXEL } from '../components/arcade/arcadeTokens';
 
-const METRIC_LABELS = {
-  fuerza: 'Fuerza',
-  explosividad: 'Explosividad',
-  movilidad: 'Movilidad',
-  tiro: 'Técnica Tiro',
-  agilidad: 'Agilidad',
-  tactica: 'Efic. Táctica',
-  resiliencia: 'Resiliencia',
-};
+// Etiquetas de las métricas del radar, derivadas de la fuente única
+// (taxonomia.js vía radarCalc) — antes lista hardcodeada que podía divergir.
+const METRIC_LABELS = Object.fromEntries(RADAR_AXES.map(({ key, label }) => [key, label]));
 
 // Claves alineadas con calcularCategoriaFEB() (src/api/utilsAtletas.js).
 // Colores desde la paleta categórica del design system (CHART.categorical).
@@ -154,14 +148,20 @@ export default function OwnerKPIsPage() {
       const conDato = perAtleta.filter(p => p.subPilaresConDato.has(key));
       const sum = conDato.reduce((acc, p) => acc + (p.scores[key] || 0), 0);
       const avg = conDato.length ? Math.round(sum / conDato.length) : 0;
-      return { key, name: METRIC_LABELS[key], promedio: avg };
+      // `evaluados`: cuántos atletas aportan datos a este eje — 0 significa
+      // "sin datos", no "promedio 0 real".
+      return { key, name: METRIC_LABELS[key], promedio: avg, evaluados: conDato.length };
     });
     return averages;
   }, [atletas]);
 
   const weakestMetric = useMemo(() => {
-    if (!metricData.length) return null;
-    return metricData.reduce((min, m) => m.promedio < min.promedio ? m : min, metricData[0]);
+    // Solo compiten los ejes con al menos una evaluación: un eje sin datos
+    // (p. ej. un club que aún no mide resistencia) se muestra en 0 en el bar
+    // chart, pero no debe clavarse como "punto débil" del club.
+    const conDatos = metricData.filter(m => m.evaluados > 0);
+    if (!conDatos.length) return null;
+    return conDatos.reduce((min, m) => m.promedio < min.promedio ? m : min, conDatos[0]);
   }, [metricData]);
 
   // Category distribution

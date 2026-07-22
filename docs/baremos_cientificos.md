@@ -303,31 +303,106 @@ NBA average: ~75% FT | Elite: 85–90%+
 
 ---
 
-## 6. Sources & References
+## 6. Endurance / Resistencia (Sub-Pilar Físico)
+
+> [!NOTE]
+> The tables in this section follow the club engine's threshold convention: **four ascending cut-points `[t1, t2, t3, t4]`** per cell, marking the boundaries between the five tiers. For *more-is-better* tests: < t1 = Poor | t1–t2 = Below Average | t2–t3 = Average | t3–t4 = Above Average | ≥ t4 = Excellent. For *less-is-better* (timed) tests the reading is inverted: ≤ t1 = Excellent … > t4 = Poor. Development-level layer: **Desarrollo** = population norm; **Micro** −10% / **Elite** +10% demand (internal club rule aligned to Vinueza's percentile framework; recalibrate with the club's own data).
+
+### 6.1 Course Navette / 20m Shuttle Run (Léger)
+
+**Protocol:** Shuttle run between two lines 20 m apart, paced by audio (speed increases each palier/stage). The test ends when the athlete fails to reach the line on the beep twice in a row. Record the last completed palier (half-paliers allowed, e.g. 5.5). Estimates aerobic capacity (VO₂max) — the base of the intermittent endurance basketball demands.
+
+**Sources:** Léger et al. 1988 (J Sports Sci) — original 20 m shuttle run protocol, the most validated aerobic field test in pediatric populations; Tomkinson et al. 2017 (Br J Sports Med, n≈1.14M) — international norms ages 9–17; Vinueza (Cap. II) — sensitive phase for aerobic endurance from ages 9–10. Documented sexual dimorphism → gender layer.
+
+**Masculino — cut-points [t1, t2, t3, t4] in paliers:**
+
+| Bucket | Micro | Desarrollo | Elite |
+|:---|:---:|:---:|:---:|
+| **Sub12 (10–12)** | [3, 4, 5, 6] | [3.5, 4.5, 5.5, 6.5] | [4, 5, 6, 7] |
+| **Sub15 (13–15)** | [4.5, 6, 7, 8.5] | [5, 6.5, 8, 9.5] | [5.5, 7, 9, 10.5] |
+| **Sub18 (16–18)** | [5.5, 7, 8, 9.5] | [6, 7.5, 9, 10.5] | [6.5, 8.5, 10, 11.5] |
+| **Senior (18+)** | [6, 7, 8.5, 10] | [6.5, 8, 9.5, 11] | [7, 9, 10.5, 12] |
+
+**Femenino — cut-points [t1, t2, t3, t4] in paliers:**
+
+| Bucket | Micro | Desarrollo | Elite |
+|:---|:---:|:---:|:---:|
+| **Sub12 (10–12)** | [2.5, 3, 4, 5] | [2.5, 3.5, 4.5, 5.5] | [3, 4, 5, 6] |
+| **Sub15 (13–15)** | [3, 4, 5, 6.5] | [3.5, 4.5, 5.5, 7] | [4, 5, 6, 7.5] |
+| **Sub18 (16–18)** | [3.5, 4.5, 5.5, 7] | [4, 5, 6, 7.5] | [4.5, 5.5, 6.5, 8.5] |
+| **Senior (18+)** | [3.5, 5, 6, 7] | [4, 5.5, 6.5, 8] | [4.5, 6, 7, 9] |
+
+---
+
+### 6.2 Yo-Yo Intermittent Recovery Test — Level 1
+
+**Protocol:** Intermittent 2×20 m shuttle runs with 10 s of active recovery between bouts, paced by audio with progressively increasing speed. Record the last completed level. Evaluates the ability to repeatedly perform intense intermittent exercise — the physiological profile of basketball play.
+
+**Sources:** Bangsbo, Iaia & Krustrup 2008 (Sports Med) — Yo-Yo IR test validity and physiological response in intermittent sports.
+
+Cut-points by gender (age wildcard **"Todas"** — applies to all buckets). Unit: level reached (more is better):
+
+| Género | t1 | t2 | t3 | t4 |
+|:---|:---:|:---:|:---:|:---:|
+| **Masculino** | 12 | 14 | 16 | 18 |
+| **Femenino** | 10 | 12 | 14 | 16 |
+
+---
+
+### 6.3 Carrera 600 m (Sub12) & 1000 m (Sub15) — Batería Vinueza
+
+**Protocol:** On a track or court with measured distance, run 600 m (ages 9–10, bucket **Sub12 only**) or 1000 m (ages 11–12, bucket **Sub15 only**) in the shortest possible time. Standing start, manual stopwatch. Record total time in **seconds** (less is better). The 600 m serves as field alternative to the Course Navette when no audio is available.
+
+**Sources:** Prueba nº5 of Vinueza's Ecuadorian physical talent-detection battery (Ecuadorian population norms — see the club's methodological guide).
+
+> [!WARNING]
+> **PROVISIONAL cut-points.** The available summary of the Vinueza guide does not include the original time tables; these cortes are estimated from school athletics literature. Deferred pending item (P1.5): calibrate against Vinueza's original tables (and the club's first own data) before treating them as normative.
+
+**600 m (Sub12 only, seconds — less is better):**
+
+| Género | Micro | Desarrollo | Elite |
+|:---|:---:|:---:|:---:|
+| **Masculino** | [154, 171, 187, 209] | [140, 155, 170, 190] | [126, 140, 153, 171] |
+| **Femenino** | [165, 182, 198, 220] | [150, 165, 180, 200] | [135, 149, 162, 180] |
+
+**1000 m (Sub15 only, seconds — less is better):**
+
+| Género | Micro | Desarrollo | Elite |
+|:---|:---:|:---:|:---:|
+| **Masculino** | [264, 292, 319, 352] | [240, 265, 290, 320] | [216, 239, 261, 288] |
+| **Femenino** | [292, 319, 347, 380] | [265, 290, 315, 345] | [239, 261, 284, 311] |
+
+---
+
+## 7. Sources & References
 
 ### Peer-Reviewed / Scientific
 1. NIH/PubMed — Multiple meta-analyses on youth CMJ performance and biological maturation
 2. MDPI Sports Science — Youth athlete physical testing protocols
 3. NIH study (n=693 youth basketball players) — WBLT normative values
 4. Journal of Strength and Conditioning Research — Hip and shoulder ROM in athletes
+5. Léger et al. 1988 (J Sports Sci) — The multistage 20 metre shuttle run test for aerobic fitness
+6. Tomkinson et al. 2017 (Br J Sports Med) — International 20m shuttle run norms, ages 9–17 (n≈1.14M)
+7. Bangsbo, Iaia & Krustrup 2008 (Sports Med) — The Yo-Yo Intermittent Recovery Test
 
 ### Institutional / Federation
-5. NSCA Position Statement — Youth Resistance Training guidelines
-6. FIBA Coaching Library — Youth development framework
-7. FitnessGram / Healthy Fitness Zone — US school-based norms
-8. ACSM — Adult exercise testing guidelines
-9. NBA Draft Combine — Lane agility, vertical jump, bench press data (2000–present)
+8. NSCA Position Statement — Youth Resistance Training guidelines
+9. FIBA Coaching Library — Youth development framework
+10. FitnessGram / Healthy Fitness Zone — US school-based norms
+11. ACSM — Adult exercise testing guidelines
+12. NBA Draft Combine — Lane agility, vertical jump, bench press data (2000–present)
+13. Vinueza — Batería ecuatoriana de detección física (600 m / 1000 m; cortes provisionales pendientes de calibrar)
 
 ### Professional / Coaching
-10. NoahBasketball.com — Shooting analytics across competition levels
-11. Breakthrough Basketball — Youth shooting development benchmarks
-12. Topendsports.com — T-test and sit-and-reach normative tables
-13. ExRx.net — Pull-up normative data for youth
+14. NoahBasketball.com — Shooting analytics across competition levels
+15. Breakthrough Basketball — Youth shooting development benchmarks
+16. Topendsports.com — T-test and sit-and-reach normative tables
+17. ExRx.net — Pull-up normative data for youth
 
 ### Clinical / Rehabilitation
-14. Dr. Aaron Horschig, *Rebuilding Milo* — Structural assessment methodology
-15. Eric Cressey — Shoulder ROM, GIRD assessment
-16. World Rugby — Hip rotation screening protocol
+18. Dr. Aaron Horschig, *Rebuilding Milo* — Structural assessment methodology
+19. Eric Cressey — Shoulder ROM, GIRD assessment
+20. World Rugby — Hip rotation screening protocol
 
 ---
 

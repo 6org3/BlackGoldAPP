@@ -17,7 +17,7 @@ import EditarPerfilModal from './EditarPerfilModal';
 import CardDiagnosticoIA from './CardDiagnosticoIA';
 import Gauge from './Gauge';
 import { evaluarDeficits } from '../lib/didacticEngine';
-import { getSubPilarScores } from '../lib/radarCalc';
+import { getSubPilarScores, RADAR_AXES } from '../lib/radarCalc';
 import { getBaremoUI, COLORS, CHART } from '../lib/designTokens';
 import { getXPProgress } from '../lib/xpProgress';
 import { tieneDatosAntropometricos } from '../api/utilsAtletas';
@@ -449,15 +449,14 @@ function TabInicio({ atleta, todosLosAtletas }) {
 }
 
 /* ── TAB: KPIs ───────────────────────────────────────────────── */
-const PILARES = [
-  { key: 'fuerza',       label: 'Fuerza',        color: CHART.pilares.fuerza },
-  { key: 'explosividad', label: 'Explosividad',  color: CHART.pilares.explosividad },
-  { key: 'movilidad',    label: 'Movilidad',     color: CHART.pilares.movilidad },
-  { key: 'tiro',         label: 'Técnica Tiro',  color: CHART.pilares.tiro },
-  { key: 'agilidad',     label: 'Agilidad',      color: CHART.pilares.agilidad },
-  { key: 'tactica',      label: 'Efic. Táctica', color: CHART.pilares.tactica },
-  { key: 'resiliencia',  label: 'Resiliencia',   color: CHART.pilares.resiliencia },
-];
+// Ejes derivados de la fuente única (RADAR_AXES); el color es presentación
+// local desde la paleta CHART.pilares, con fallback neutro por si aparece
+// un eje sin color asignado.
+const PILARES = RADAR_AXES.map(({ key, label }) => ({
+  key,
+  label,
+  color: CHART.pilares[key] || CHART.categorical.fallback,
+}));
 
 function TabKPIs({ atleta, todosLosAtletas }) {
   const subPilarScores = useMemo(() => getSubPilarScores(atleta._evaluaciones || []), [atleta._evaluaciones]);

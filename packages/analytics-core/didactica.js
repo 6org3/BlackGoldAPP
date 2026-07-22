@@ -121,6 +121,32 @@ export function evaluarDeficits(atleta) {
     });
   }
 
+  // ─── Tiro (Básquetbol) ─────────────────────────────────
+  if ((subPilarScores.tiro || 0) < 50) {
+    deficits.push({
+      condicion: 'tiro_bajo',
+      metrica: 'tiro',
+      valor: subPilarScores.tiro || 0,
+      mensaje:
+        `Tiro en ${subPilarScores.tiro || 0}/100. ` +
+        'Asignar misiones de mecánica de tiro (forma contra la pared, tiro cercano por posiciones) y volumen de repeticiones con feedback y registro de aciertos.',
+      prioridad: 'media',
+    });
+  }
+
+  // ─── Agilidad (Básquetbol) ─────────────────────────────
+  if ((subPilarScores.agilidad || 0) < 50) {
+    deficits.push({
+      condicion: 'agilidad_baja',
+      metrica: 'agilidad',
+      valor: subPilarScores.agilidad || 0,
+      mensaje:
+        `Agilidad en ${subPilarScores.agilidad || 0}/100. ` +
+        'Asignar misiones de cambios de dirección, juego de pies (escalera, frenado excéntrico) y trabajo de velocidad con pelota.',
+      prioridad: 'media',
+    });
+  }
+
   // ─── Explosividad (Básquetbol) ─────────────────────────
   if ((subPilarScores.explosividad || 0) < 40) {
     deficits.push({
@@ -130,6 +156,20 @@ export function evaluarDeficits(atleta) {
       mensaje:
         `Explosividad en ${subPilarScores.explosividad || 0}/100. ` +
         'Asignar misiones de pliometría progresiva, potencia reactiva para el primer paso y salto vertical en baloncesto.',
+      prioridad: 'alta',
+    });
+  }
+
+  // ─── Resistencia (Base Aeróbica e Intermitente) ─────────
+  if ((subPilarScores.resistencia || 0) < 50) {
+    deficits.push({
+      condicion: 'resistencia_baja',
+      metrica: 'resistencia',
+      valor: subPilarScores.resistencia || 0,
+      mensaje:
+        `Resistencia en ${subPilarScores.resistencia || 0}/100. ` +
+        'Asignar misiones de base aeróbica y capacidad intermitente: juego continuo, trabajo en zona 2 y protocolos tipo Navette/Yo-Yo adaptados a la edad. ' +
+        `Fase biológica: ${fase} — dosificar volumen e intensidad según el momento madurativo.`,
       prioridad: 'alta',
     });
   }

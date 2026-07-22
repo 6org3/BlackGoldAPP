@@ -66,12 +66,21 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
     const scores = [
       { pilar: 'Fuerza', score: subPilarScores.fuerza || 0, req: 60, msg: 'Falta fuerza base para evitar lesiones en articulaciones. Se recomienda añadir rutinas isométricas en casa (3 días x semana).' },
       { pilar: 'Explosividad', score: subPilarScores.explosividad || 0, req: 65, msg: 'Requiere más potencia en el salto. Se recomiendan ejercicios pliométricos básicos.' },
+      { pilar: 'Resistencia', score: subPilarScores.resistencia || 0, req: 50, msg: 'Le falta base aeróbica para sostener el ritmo todo el partido. Ayuda mucho el juego activo continuo fuera de la cancha (bici, natación, 20-30 min).' },
       { pilar: 'Táctica', score: subPilarScores.tactica || 0, req: 50, msg: 'Debe mejorar su lectura de juego. Le asignaremos más misiones teóricas y análisis de video en la plataforma.' },
       { pilar: 'Movilidad', score: subPilarScores.movilidad || 0, req: 60, msg: 'Su movilidad articular es baja. Es vital realizar los estiramientos recomendados antes de dormir.' },
+      { pilar: 'Tiro', score: subPilarScores.tiro || 0, req: 50, msg: 'Su mecánica de tiro necesita más repeticiones con buena técnica. Mejor 10 minutos diarios de tiros cortos bien hechos que 1 hora un solo día.' },
+      { pilar: 'Agilidad', score: subPilarScores.agilidad || 0, req: 50, msg: 'Debe mejorar su juego de pies y los cambios de dirección. Jugar a atrapadas o circuitos de esquivar en casa lo refuerza de forma divertida.' },
       { pilar: 'Resiliencia', score: subPilarScores.resiliencia || 0, req: 70, msg: 'Presenta frustración rápida en juegos. Reforzar la actitud positiva en casa y no enfocarse solo en ganar.' }
     ];
 
-    const sorted = scores.sort((a, b) => a.score - b.score);
+    // Score 0 significa "sin evaluaciones de ese sub-pilar" (getSubPilarScores
+    // devuelve 0 sin datos), no un 0 medido: esos ejes no compiten como foco de
+    // mejora — mismo criterio que palabrasSimples (padreData) y OwnerKPIsPage.
+    const conDatos = scores.filter((s) => s.score > 0);
+    if (!conDatos.length) return null;
+
+    const sorted = conDatos.sort((a, b) => a.score - b.score);
     const weakest = sorted[0];
 
     if (weakest.score < weakest.req) {

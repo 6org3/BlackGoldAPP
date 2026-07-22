@@ -13,7 +13,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 
-import { BAREMOS, calcularOverall } from '../../packages/analytics-core/baremos.js';
+import { BAREMOS, calcularOverall, resolverUmbrales } from '../../packages/analytics-core/baremos.js';
 import { calcularEdad, calcularCategoriaFEB } from '../../packages/analytics-core/categoriaFEB.js';
 import { calcularXPMision } from '../../packages/analytics-core/recomendaciones.js';
 
@@ -53,19 +53,21 @@ const NIVELES = ['Micro', 'Desarrollo', 'Desarrollo', 'Desarrollo', 'Elite', 'De
 const POSICIONES = ['Base', 'Escolta', 'Alero', 'Ala-Pívot', 'Pívot'];
 const NOMBRES = ['Mateo', 'Sofía', 'Lucas', 'Valentina', 'Samuel', 'Isabella', 'Emilio', 'Camila', 'Daniel', 'Martina', 'Iker', 'Paula'];
 const APELLIDOS = ['Vera', 'Rosero', 'Ortiz', 'Jiménez', 'Chávez', 'Andrade', 'Salazar', 'Mora'];
-const CLAVES = ['cmj_salto', 'pushups_30s', 'sentadilla_rel', 'sit_reach', 'tiro_libre', 'zigzag_balon', 'eficiencia_tactica', 'resiliencia'];
+// 12 claves con resistencia (v42); por atleta aplican ~10-11 (carrera_600m solo
+// Sub12, carrera_1000m solo Sub15 — resolverUmbrales devuelve null y se salta).
+const CLAVES = ['cmj_salto', 'pushups_30s', 'sentadilla_rel', 'sit_reach', 'course_navette', 'yoyo_ir1', 'carrera_600m_vinueza', 'carrera_1000m_vinueza', 'tiro_libre', 'zigzag_balon', 'eficiencia_tactica', 'resiliencia'];
 const PUNT_TIER = { poor: 15, below_avg: 35, average: 55, above_avg: 75, excellent: 95 };
 
-function tierDe(clave, valor, bucket) {
-  const b = BAREMOS[clave]; const th = b.thresholds[bucket]; if (!th) return null;
-  const [t1, t2, t3, t4] = th;
-  if (b.tipo === 'mas_es_mejor') return valor > t4 ? 'excellent' : valor > t3 ? 'above_avg' : valor > t2 ? 'average' : valor > t1 ? 'below_avg' : 'poor';
+// Los cortes llegan YA resueltos por resolverUmbrales (baremos.js), que entiende
+// tanto los arrays planos viejos como las capas Género→Bucket→Nivel de resistencia
+// (v42) — nunca leer BAREMOS[clave].thresholds[bucket] directo.
+function tierDe(tipo, cortes, valor) {
+  const [t1, t2, t3, t4] = cortes;
+  if (tipo === 'mas_es_mejor') return valor > t4 ? 'excellent' : valor > t3 ? 'above_avg' : valor > t2 ? 'average' : valor > t1 ? 'below_avg' : 'poor';
   return valor <= t1 ? 'excellent' : valor <= t2 ? 'above_avg' : valor <= t3 ? 'average' : valor <= t4 ? 'below_avg' : 'poor';
 }
-function valorMedio(clave, bucket) {
-  const th = BAREMOS[clave]?.thresholds?.[bucket]; if (!th) return null;
-  const [t1, t2, t3] = th; return BAREMOS[clave].tipo === 'menos_es_mejor' ? randFloat(t2, t3) : randFloat(t2, t3);
-}
+// Banda media (tier average, cortes[1]..cortes[2]) — vale para ambos tipos de prueba.
+function valorMedio(cortes) { const [, t2, t3] = cortes; return randFloat(t2, t3); }
 
 async function ensureUsuarioConAuth({ cedula, nombre, rol, fecha_nacimiento = null, genero = null, conAuth = true }) {
   const { data: ex } = await supabase.from('usuarios').select('id, auth_user_id').eq('cedula', cedula).maybeSingle();
@@ -163,8 +165,10 @@ async function run() {
       if (exEval && exEval.length) continue; // idempotente: ya tiene batería
       const filas = [];
       for (const clave of CLAVES) {
-        const b = BAREMOS[clave]; if (!b.thresholds[a.bucket]) continue;
-        const valor = valorMedio(clave, a.bucket); const tier = tierDe(clave, valor, a.bucket);
+        const b = BAREMOS[clave];
+        const cortes = resolverUmbrales(b.thresholds, { bucket: a.bucket, genero: a.genero, nivelDesarrollo: a.nivel });
+        if (!cortes) continue; // sin cortes para este perfil (p.ej. carrera_600m fuera de Sub12)
+        const valor = valorMedio(cortes); const tier = tierDe(b.tipo, cortes, valor);
         filas.push({ atleta_id: atletaId, prueba_tipo: b.label, pilar: b.pilar, sub_pilar: b.sub_pilar, tren: b.tren || null, lado: 'unico', valor_crudo: valor, unidad: b.unidad, puntuacion_normalizada: PUNT_TIER[tier], tier, registrado_por: coach.id, created_at: fechaEval, notas: 'Evaluación QA compacto' });
       }
       if (filas.length) {
@@ -176,7 +180,7 @@ async function run() {
     }
     console.log(`  Evaluaciones insertadas (1 batería × ${atletas.length} atletas).`);
   } else {
-    console.log('  · 1 batería reciente (8 pruebas) por atleta + recálculo overall/rango');
+    console.log('  · 1 batería reciente (~10-11 pruebas según bucket, resistencia incluida) por atleta + recálculo overall/rango');
   }
 
   // 6. Asistencia reciente (últimas 3 semanas)

@@ -9,8 +9,8 @@
 //
 // Los términos van normalizados a minúsculas SIN acentos (así los indexa el rack).
 // Sinónimos genéricos no taxonómicos (velocidad, deteccion, prueba, baremo, nino)
-// viven en blackgold-mcp/src/rack.js como SINONIMOS_GENERALES: son vocabulario de
-// recuperación, no de dominio.
+// viven en packages/brain-core/rackMotor.js como SINONIMOS_GENERALES: son
+// vocabulario de recuperación, no de dominio.
 
 import { SUB_PILARES, SUB_PILARES_MONITOREO } from './taxonomia.js';
 

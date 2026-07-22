@@ -38,7 +38,7 @@ describe('getSubPilarScores', () => {
 
 describe('build3LayerRadarData', () => {
   it('construye una fila por eje con las 3 capas (atleta/categoría/club)', () => {
-    const atletaScores = { fuerza: 70, explosividad: 60, movilidad: 50, tiro: 40, agilidad: 30, tactica: 20, resiliencia: 10 };
+    const atletaScores = { fuerza: 70, explosividad: 60, resistencia: 55, movilidad: 50, tiro: 40, agilidad: 30, tactica: 20, resiliencia: 10 };
     const categoriaScores = [{ fuerza: 60 }, { fuerza: 80 }];
     const clubScores = [{ fuerza: 50 }];
 

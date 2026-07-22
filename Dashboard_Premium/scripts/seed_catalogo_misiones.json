@@ -1,5 +1,5 @@
 {
-  "_comentario": "Catálogo inicial de misiones (cobertura mínima del spec loop misiones-baremo: ≥1 general + ≥1 específica por sub-pilar × bucket de edad). Redactado con el estándar de justificación de packages/analytics-core/baremos_cientificos.md. Todas nacen inactivas: el coach las cura en AdminMisiones (D3). nivel_objetivo se deja null a propósito = comodín de nivel en seleccionarMisiones (la dosis por edad va en la descripción). Insertar con scripts/seed_catalogo_misiones.mjs.",
+  "_comentario": "Catálogo inicial de misiones — 64 misiones: 8 sub-pilares × 4 buckets × 2 complejidades (cobertura mínima del spec loop misiones-baremo: ≥1 general + ≥1 específica por sub-pilar × bucket de edad; resistencia entró en v42 copiando las 8 misiones curadas del catálogo MCP de prod). Redactado con el estándar de justificación de packages/analytics-core/baremos_cientificos.md. Todas nacen inactivas: el coach las cura en AdminMisiones (D3). nivel_objetivo se deja null a propósito = comodín de nivel en seleccionarMisiones (la dosis por edad va en la descripción). Insertar con scripts/seed_catalogo_misiones.mjs.",
   "misiones": [
     {
       "pilar": "fuerza", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
@@ -97,6 +97,55 @@
       "titulo": "Bloque de potencia: triple extensión con carga",
       "descripcion": "Con el coach, 2 sesiones por semana durante 4 semanas: cargada de potencia o salto con trap-bar al 30-40% 1RM (5×3, máxima velocidad de ejecución), más drop jumps 3×4. CMJ test antes y después del bloque.",
       "justificacion": "El entrenamiento balístico con cargas del 30-40% 1RM maximiza la potencia mecánica de la triple extensión (tobillo-rodilla-cadera), el determinante del salto vertical Senior (baremo 40-69 cm); la combinación fuerza+balístico supera a cualquiera aislado (Cormie et al., Sports Med, 2011)."
+    },
+
+    {
+      "pilar": "resistencia", "categoria_bucket": "Sub12", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Juego aeróbico: 15 min sin parar",
+      "descripcion": "Elige un juego de persecución (pilla-pilla, la ola, cazador) y muévete 15 minutos seguidos, con pausas cortas solo para respirar. La meta no es ganar, es no dejar de moverte.",
+      "justificacion": "Fase sensible de la resistencia aeróbica desde los 9-10 años (Vinueza, Fundamentos de Iniciación, Cap. II): a esta edad la resistencia se desarrolla mejor de forma lúdica y continua, no con cargas."
+    },
+    {
+      "pilar": "resistencia", "categoria_bucket": "Sub12", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Circuito de relevos progresivos",
+      "descripcion": "Con el coach: 4 postas (conos, saltos, dribbling, sprint corto) en formato relevo. 3 vueltas con descanso completo entre vueltas. Se busca mantener buena técnica aunque llegue el cansancio.",
+      "justificacion": "Método fraccionado de baja densidad apropiado para prepúberes (NSCA Youth Training Guidelines): intervalos cortos con recuperación amplia protegen el sistema neuromuscular en desarrollo."
+    },
+    {
+      "pilar": "resistencia", "categoria_bucket": "Sub15", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Trote continuo 12 min en zona cómoda",
+      "descripcion": "Trota 12 minutos a un ritmo en el que aún puedas hablar (zona 2). Si te falta el aire, camina 30 s y retoma. Registra cómo te sentiste al terminar.",
+      "justificacion": "A los 11-14 años se puede aumentar el volumen aeróbico (Vinueza, Cap. II). El trabajo en zona 2 construye la base aeróbica sin estrés excesivo (NSCA Essentials, resistencia juvenil)."
+    },
+    {
+      "pilar": "resistencia", "categoria_bucket": "Sub15", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Series 4×400 m a ritmo controlado",
+      "descripcion": "Con el coach: 4 vueltas de 400 m a ritmo firme pero sostenible, con 2 min de descanso entre cada una. El objetivo es que las 4 series tengan tiempos parecidos, no salir a tope en la primera.",
+      "justificacion": "Introducción a la resistencia específica a los 13-14 (Vinueza, Cap. II). El control del ritmo enseña regulación del esfuerzo, base del acondicionamiento intermitente del baloncesto (NSCA)."
+    },
+    {
+      "pilar": "resistencia", "categoria_bucket": "Sub18", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Carrera continua 20 min zona 2",
+      "descripcion": "Corre 20 minutos continuos a ritmo conversacional. Suma 1-2 minutos cada semana. La constancia (2-3 veces por semana) importa más que la velocidad.",
+      "justificacion": "Consolidación de la base aeróbica en juveniles como plataforma para el trabajo anaeróbico posterior (NSCA Essentials of S&C, cap. resistencia; Vinueza, desarrollo post-puberal)."
+    },
+    {
+      "pilar": "resistencia", "categoria_bucket": "Sub18", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Intervalos 5×(1 min alto / 1 min bajo)",
+      "descripcion": "Con el coach: 5 bloques de 1 minuto a intensidad alta seguidos de 1 minuto suave. Es una introducción a la capacidad de repetir esfuerzos (RSA), clave para aguantar todo el partido.",
+      "justificacion": "La componente anaeróbica se desarrolla post-pubertad (Vinueza, Cap. II). El entrenamiento intermitente (RSA) reproduce la demanda real del baloncesto (Buchheit & Laursen, HIIT science)."
+    },
+    {
+      "pilar": "resistencia", "categoria_bucket": "Senior", "complejidad": "general", "xp_recompensa": 25,
+      "titulo": "Base aeróbica 25-30 min semanal",
+      "descripcion": "Mantén al menos una sesión semanal de 25-30 minutos de carrera o bici continua en zona 2. Es tu seguro de fondo para no perder la base durante la temporada.",
+      "justificacion": "El mantenimiento de la base aeróbica sostiene la recuperación entre esfuerzos y entre partidos (NSCA; posicionamiento ACSM sobre resistencia cardiorrespiratoria)."
+    },
+    {
+      "pilar": "resistencia", "categoria_bucket": "Senior", "complejidad": "especifica", "xp_recompensa": 50,
+      "titulo": "Protocolo intermitente tipo Yo-Yo 2×/sem",
+      "descripcion": "Con el coach: 2 sesiones semanales de trabajo intermitente (ida y vuelta con recuperación incompleta, estilo Yo-Yo IR1). Mide tu progreso con el test cada 4-6 semanas.",
+      "justificacion": "La resistencia intermitente específica del baloncesto se entrena con protocolos tipo Yo-Yo (Bangsbo et al.), correlacionados con la capacidad de repetir sprints en cancha."
     },
 
     {

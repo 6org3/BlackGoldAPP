@@ -120,13 +120,14 @@ export const CHART = {
     borderRadius: 12,
     color: '#EDEDED',
   },
-  // Paleta categórica de los 7 pilares (barras/comparativas por pilar).
+  // Paleta categórica de los sub-pilares del radar (barras/comparativas por pilar).
   // Restricción CVD: agilidad↔tiro indistinguibles en visión deután — solo
   // usarla con etiqueta de pilar visible en cada marca, nunca color-solo
   // ni reordenar (ver design_system.md §4.9).
   pilares: {
     fuerza: '#F97316',
     explosividad: '#EAB308',
+    resistencia: '#EF4444',
     movilidad: '#22C55E',
     tiro: '#3B82F6',
     agilidad: '#A855F7',

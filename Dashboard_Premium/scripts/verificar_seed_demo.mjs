@@ -5,6 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import { SUB_PILARES } from '../../packages/analytics-core/taxonomia.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.join(__dirname, '..', '.env.local'));
 const url = process.env.VITE_SUPABASE_URL;
@@ -35,6 +37,20 @@ async function conteosClub(club) {
   console.log(`  usuarios por rol: ${JSON.stringify(roles)}`);
   console.log(`  atletas: ${ids.length}`);
   console.log(`  evaluaciones_pruebas: ${await inCount('evaluaciones_pruebas')}`);
+  // Desglose por sub_pilar (paginado: el club rico supera el límite de 1000 filas
+  // por request de PostgREST) + WARNING si algún sub-pilar del radar (SUB_PILARES,
+  // taxonomia.js — 8 con resistencia) quedó con 0 evaluaciones en este club.
+  const porSubPilar = {};
+  if (ids.length) {
+    for (let desde = 0; ; desde += 1000) {
+      const { data: evs } = await admin.from('evaluaciones_pruebas').select('sub_pilar').in('atleta_id', ids).range(desde, desde + 999);
+      for (const e of evs || []) { const k = e.sub_pilar || '(sin sub_pilar)'; porSubPilar[k] = (porSubPilar[k] || 0) + 1; }
+      if (!evs || evs.length < 1000) break;
+    }
+  }
+  console.log(`  evaluaciones por sub_pilar: ${JSON.stringify(porSubPilar)}`);
+  const sinEvaluaciones = SUB_PILARES.filter((s) => !porSubPilar[s.key]).map((s) => s.key);
+  if (sinEvaluaciones.length) console.log(`  ⚠️  WARNING: sub-pilares del radar SIN evaluaciones en este club: ${sinEvaluaciones.join(', ')}`);
   console.log(`  asistencia: ${await inCount('asistencia')}`);
   console.log(`  pagos: ${await inCount('pagos')}`);
   console.log(`  pago_transacciones: (por pago) ` + (await (async () => { const { data: pg } = await admin.from('pagos').select('id').in('atleta_id', ids.length ? ids : ['x']); const pids = (pg || []).map((p) => p.id); if (!pids.length) return 0; const { count } = await admin.from('pago_transacciones').select('*', { count: 'exact', head: true }).in('pago_id', pids); return count ?? 0; })()));

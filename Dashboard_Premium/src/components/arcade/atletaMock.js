@@ -31,6 +31,7 @@ export const PASOS_DETALLE = [
 export const PILAR_TIPS = {
   fuerza: 'Dentro de la media de tu categoría. Las misiones de fuerza en casa la suben rápido.',
   explosividad: 'Tu mejor arma 🔥. La pliometría está funcionando — sigue así.',
+  resistencia: 'Tu motor para el último cuarto 🔋. Juego continuo y carrera suave lo suben — muévete sin parar.',
   movilidad: 'Bien. Cuida los tobillos con la rutina de movilidad.',
   tiro: 'Tu gran oportunidad. La misión de tiro libre apunta justo aquí.',
   agilidad: 'Buena base para defender el perímetro.',
@@ -74,6 +75,7 @@ export const ATLETA_MOCK = {
   radar: [
     { key: 'fuerza', label: 'FUERZA', value: 55 },
     { key: 'explosividad', label: 'EXPLO', value: 78 },
+    { key: 'resistencia', label: 'CARDIO', value: 52 },
     { key: 'movilidad', label: 'MOVIL', value: 60 },
     { key: 'tiro', label: 'TIRO', value: 42 },
     { key: 'agilidad', label: 'AGIL', value: 65 },

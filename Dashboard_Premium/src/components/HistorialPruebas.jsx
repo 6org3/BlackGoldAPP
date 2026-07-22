@@ -9,19 +9,14 @@ import { fetchEvaluacionesAtleta } from '../api/evaluacionesService';
 // Agregación multi-punto compartida (fuente única): la lógica de series vive en
 // analytics-core/tendencias.js, no aquí.
 import { seriesPorSubPilar, seriePorPrueba } from '../../../packages/analytics-core/tendencias.js';
+import { RADAR_AXES } from '../lib/radarCalc';
 import { COLORS, CHART, TENDENCIA_TIERS } from '../lib/designTokens';
 
-// Config visual por sub-pilar (los 7 del radar + antropométrico, que no es un
-// eje del radar y conserva su serie local por prueba_tipo). Colores desde la
-// paleta única CHART.pilares del design system.
+// Config visual por sub-pilar (los ejes del radar derivados de la fuente única
+// + antropométrico, que no es un eje del radar y conserva su serie local por
+// prueba_tipo). Colores desde la paleta única CHART.pilares del design system.
 const PILARES = [
-  { id: 'fuerza',        label: 'Fuerza',          color: CHART.pilares.fuerza },
-  { id: 'explosividad',  label: 'Explosividad',    color: CHART.pilares.explosividad },
-  { id: 'movilidad',     label: 'Movilidad',       color: CHART.pilares.movilidad },
-  { id: 'tiro',          label: 'Técnica de Tiro', color: CHART.pilares.tiro },
-  { id: 'agilidad',      label: 'Agilidad',        color: CHART.pilares.agilidad },
-  { id: 'tactica',       label: 'Efic. Táctica',   color: CHART.pilares.tactica },
-  { id: 'resiliencia',   label: 'Resiliencia',     color: CHART.pilares.resiliencia },
+  ...RADAR_AXES.map(({ key, label }) => ({ id: key, label, color: CHART.pilares[key] })),
   { id: 'antropometrico', label: 'Antropométrico', color: CHART.pilares.antropometrico,
     pruebas: ['peso_kg', 'altura_cm', 'imc', 'envergadura_cm', 'brazada_relativa'] },
 ];
@@ -62,7 +57,7 @@ export default function HistorialPruebas({ atletaId }) {
     return () => { cancelado = true; };
   }, [atletaId]);
 
-  // Series por sub-pilar: los 7 ejes del radar salen de analytics-core;
+  // Series por sub-pilar: los ejes del radar salen de analytics-core;
   // 'antropometrico' (fuera del radar) conserva su agregación local por prueba_tipo.
   const seriesPorPilar = useMemo(() => {
     const base = seriesPorSubPilar(evaluaciones);
