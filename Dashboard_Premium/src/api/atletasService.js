@@ -153,35 +153,16 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
     .in('atleta_id', atletaIds)
     .eq('fecha', hoy);
 
-  // Fallback de pertenencia atleta↔grupo: cuando `atletas.grupo_id` está vacío
-  // (clubes cuya pertenencia vive solo en `atleta_grupo` — la fuente de verdad
-  // de v18, poblada por la importación y la segmentación de comunicaciones) lo
-  // derivamos del vínculo `atleta_grupo` del MISMO club. Sin esto el hero del
-  // coach (nivel de la clase, conteo de atletas) y cualquier consumidor de
-  // `a.grupo_id` quedan en blanco. Validamos el club para no heredar un grupo
-  // ajeno (existe data legacy de importación con vínculos cross-club); la RLS
-  // `grupos_select` scopea por club como segunda barrera. Solo consulta cuando
-  // hace falta (en clubes con la columna ya poblada, `idsSinGrupo` es vacío).
-  const clubPorAtleta = {};
-  atletas.forEach((a) => { clubPorAtleta[a.id] = a.usuarios?.club; });
-  const idsSinGrupo = atletas.filter((a) => !a.grupo_id).map((a) => a.id);
-  const grupoDerivado = {};
-  if (idsSinGrupo.length > 0) {
-    const { data: vinculos } = await supabase
-      .from('atleta_grupo')
-      .select('atleta_id, grupo_id, added_at, grupos_entrenamiento (nombre, club)')
-      .in('atleta_id', idsSinGrupo)
-      .order('added_at', { ascending: false });
-    (vinculos || []).forEach((v) => {
-      const g = v.grupos_entrenamiento;
-      // Nos quedamos con el vínculo mismo-club más reciente (order desc + primer
-      // match gana). Un atleta puede tener varios grupos; para colapsar a la
-      // columna single se elige el más reciente de su propio club.
-      if (g && g.club === clubPorAtleta[v.atleta_id] && !grupoDerivado[v.atleta_id]) {
-        grupoDerivado[v.atleta_id] = { grupo_id: v.grupo_id, grupo_nombre: g.nombre };
-      }
-    });
-  }
+  // PR-7: `atletas.grupo_id`/`grupo_nombre` es la CACHÉ de la membresía básica,
+  // con un único escritor: el espejo `sync_grupo_basico` de v38, que dispara
+  // toda alta/cambio de grupo por la app (RPCs asignar_grupo_basico/
+  // set_grupo_adicional). Antes esta capa RE-DERIVABA la pertenencia desde
+  // `atleta_grupo` en cada lectura (2º deriver de la caché) para tapar clubes
+  // importados en crudo — el caso LAGO AGRIO, ya purgado en el reset de 5 clubes.
+  // Se retiró: la columna es fiable para el flujo normal. Si una importación
+  // futura inserta `atleta_grupo` en crudo sin poblar la columna, el hero del
+  // coach saldrá en blanco hasta correr `scripts/reparar_pertenencia_grupos.mjs`
+  // (backfill on-demand documentado), no perpetuamente en cada fetch.
 
   const readinessByAtleta = {};
   (readinessData || []).forEach(r => {
@@ -218,8 +199,8 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
       genero: a.usuarios.genero || 'Masculino',
       edad: a.edad,
       posicion: a.posicion,
-      grupo_id: a.grupo_id || grupoDerivado[a.id]?.grupo_id || null,
-      grupo_nombre: a.grupo_nombre || grupoDerivado[a.id]?.grupo_nombre || null,
+      grupo_id: a.grupo_id || null,
+      grupo_nombre: a.grupo_nombre || null,
       es_becado: a.es_becado || false,
       descuento_pct: a.descuento_pct || 0,
       overall_score: a.overall_score || 0,
