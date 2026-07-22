@@ -24,6 +24,7 @@ import {
   detectarDebilidades,
   seleccionarMisiones,
 } from "../_shared/analytics-core/index.js";
+import { analizarReadiness } from "../_shared/brain-core/readiness.js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -126,7 +127,7 @@ serve(async (req) => {
     // 1. Atleta + fecha de nacimiento → categoría FEB → bucket de baremo
     const { data: atleta, error: atletaError } = await supabase
       .from('atletas')
-      .select('id, nivel_desarrollo, usuarios!atletas_usuario_id_fkey(fecha_nacimiento)')
+      .select('id, nivel_desarrollo, estado_recuperacion, usuarios!atletas_usuario_id_fkey(fecha_nacimiento)')
       .eq('id', atletaId)
       .single();
 
@@ -149,19 +150,34 @@ serve(async (req) => {
     // 3. Debilidades medidas (D6: máx 3 por defecto)
     const debilidades = detectarDebilidades(evaluaciones ?? []);
 
-    // 4. Catálogo activo + TODAS las asignaciones históricas (dedup total)
-    const [{ data: catalogo, error: catError }, { data: asignadas, error: asigError }] = await Promise.all([
+    // 4. Catálogo activo + TODAS las asignaciones históricas (dedup total) +
+    //    check-in de readiness de HOY (v47: la recuperación entra al auto-assign).
+    //    "Hoy" en hora del club: Ecuador es UTC-5 sin horario de verano — la
+    //    Edge corre en UTC y usar su fecha desfasaría los check-ins nocturnos.
+    const hoyEcuador = new Date(Date.now() - 5 * 3600 * 1000).toISOString().split('T')[0];
+    const [
+      { data: catalogo, error: catError },
+      { data: asignadas, error: asigError },
+      { data: readinessHoy, error: readinessError },
+    ] = await Promise.all([
       supabase
         .from('misiones')
-        .select('id, pilar, nivel_objetivo, categoria_bucket, complejidad, activa, created_at, xp_recompensa')
+        .select('id, pilar, nivel_objetivo, categoria_bucket, complejidad, activa, created_at, xp_recompensa, condicion_trigger')
         .eq('activa', true),
       supabase
         .from('progreso_misiones')
         .select('mision_id')
         .eq('atleta_id', atletaId),
+      supabase
+        .from('atleta_readiness')
+        .select('*')
+        .eq('atleta_id', atletaId)
+        .eq('fecha', hoyEcuador)
+        .maybeSingle(),
     ]);
     if (catError) throw catError;
     if (asigError) throw asigError;
+    if (readinessError) throw readinessError;
 
     // 5. Selección determinista (D6: 2 por debilidad)
     const { asignaciones, sinCobertura } = seleccionarMisiones(
@@ -199,6 +215,53 @@ serve(async (req) => {
         throw insError;
       }
       insertadas.push({ mision_id: asignacion.mision_id, estado, sub_pilar_objetivo: asignacion.sub_pilar_objetivo });
+    }
+
+    // 6b. (v47) Recuperación → auto-assign. El check-in de hoy (sueño/fatiga/
+    //     hidratación) y atletas.estado_recuperacion generan alertas vía el
+    //     motor COMPARTIDO brain-core/analizarReadiness (el mismo de la web y
+    //     del MCP analyze_athlete_readiness); las misiones del catálogo cuyo
+    //     condicion_trigger coincida con una alerta activa se asignan con
+    //     origen 'auto_readiness' (CHECK ampliado en la migración v47).
+    const { deficits: alertasRecuperacion, recomendadas } = analizarReadiness({
+      readiness: readinessHoy ?? null,
+      estadoRecuperacion: atleta.estado_recuperacion ?? null,
+      misiones: catalogo ?? [],
+    });
+
+    const yaAsignadas = new Set((asignadas ?? []).map((r: { mision_id: string }) => r.mision_id));
+    for (const a of asignaciones) yaAsignadas.add(a.mision_id);
+
+    const asignadasRecuperacion: Array<{ mision_id: string; estado: string; condicion?: string }> = [];
+    // Tope de 3 por corrida: emparejarMisionesPorCondicion ya ordena por
+    // prioridad (crítica primero) — un mal día no debe volcar el catálogo entero.
+    const recuperacionAAsignar = (recomendadas as Array<{ id: string; complejidad?: string }>)
+      .filter(m => !yaAsignadas.has(m.id))
+      .slice(0, 3);
+
+    for (const mision of recuperacionAAsignar) {
+      const estado = mision.complejidad === 'general' ? 'pendiente' : 'pendiente_aprobacion';
+      const { error: insError } = await supabase.from('progreso_misiones').insert({
+        atleta_id: atletaId,
+        mision_id: mision.id,
+        completada: false,
+        estado,
+        origen: 'auto_readiness',
+        sub_pilar_objetivo: 'recuperacion',
+        evaluacion_id: evaluacionId,
+        tipo_asignacion: 'individual',
+        fecha_asignacion: new Date().toISOString(),
+      });
+
+      if (insError) {
+        if (insError.code === '23505') {
+          omitidasPorDuplicado++;
+          continue;
+        }
+        throw insError;
+      }
+      yaAsignadas.add(mision.id);
+      asignadasRecuperacion.push({ mision_id: mision.id, estado });
     }
 
     // 7. Debilidades sin cobertura → generación IA bajo demanda (best-effort).
@@ -283,6 +346,11 @@ serve(async (req) => {
       asignadas: insertadas,
       omitidasPorDuplicado,
       sinCobertura: sinCoberturaReportadas,
+      // v47: la recuperación ya participa del auto-assign.
+      readiness: {
+        alertas: alertasRecuperacion,
+        asignadas: asignadasRecuperacion,
+      },
     }, 200);
   } catch (error) {
     console.error(error);
