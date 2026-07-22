@@ -68,7 +68,7 @@ describe('normalizarValor — mapeo de categoría FEB a bucket de baremos', () =
     const premini = normalizarValor('cmj_salto', 30, 'Premini (Sub-9)');
     const menores = normalizarValor('cmj_salto', 30, 'Menores (Sub-14)');
     expect(premini.tier).toBe('average');    // Sub12: [22,27,32,37] → 30 > 27, no > 32
-    expect(menores.tier).toBe('below_avg');  // Sub15: [28,34,41,49] → 30 > 28, no > 34
+    expect(menores.tier).toBe('below_avg');  // Sub15: [27,31,36,41] → 30 > 27, no > 31
     expect(premini.tier).not.toBe(menores.tier);
   });
 
@@ -80,7 +80,7 @@ describe('normalizarValor — mapeo de categoría FEB a bucket de baremos', () =
 
   it('una categoría desconocida cae al fallback histórico Sub15', () => {
     const resultado = normalizarValor('cmj_salto', 30, 'Categoria Inventada');
-    // Sub15: [28,34,41,49] → 30 > 28, no > 34 → below_avg
+    // Sub15: [27,31,36,41] → 30 > 27, no > 31 → below_avg
     expect(resultado.tier).toBe('below_avg');
   });
 });

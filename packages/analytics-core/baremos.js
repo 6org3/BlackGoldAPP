@@ -13,15 +13,19 @@ const BAREMOS = {
   // ─── PILAR 1: FÍSICO-ATLÉTICO ─────────────────────────────
 
   // Explosividad - Tren Inferior
+  // Protocolo = CMJ con manos en cadera (si el club salta con brazos libres, sumar ~5-8 cm).
+  // Recalibrado 2026-07 con normativos de baloncesto juvenil portugués (PMC8222820),
+  // profesionales españoles ACB/EBA (PMC12121892) y NBA (PMC7504515) — los cortes previos
+  // de Senior exigían la media NBA (68.7cm) para "excellent".
   cmj_salto: {
     label: 'Salto Vertical (CMJ)',
     pilar: 'fisico', sub_pilar: 'explosividad', tren: 'inferior',
     unidad: 'cm', tipo: 'mas_es_mejor',
     thresholds: {
       Sub12: [22, 27, 32, 37],   // <22=poor, 22-27=below, 28-32=avg, 33-37=above, ≥38=excellent
-      Sub15: [28, 34, 41, 49],
-      Sub18: [36, 43, 51, 59],
-      Senior: [40, 49, 59, 69],
+      Sub15: [27, 31, 36, 41],
+      Sub18: [32, 37, 42, 48],
+      Senior: [34, 39, 44, 50],
     },
   },
 
@@ -52,15 +56,19 @@ const BAREMOS = {
   },
 
   // Fuerza - Tren Inferior (Sentadilla relativa)
+  // Recalibrado 2026-07 con PMC9140541 (492 futbolistas juveniles por estratos de fuerza
+  // relativa; ninguno superó 2.0×BW) — los cortes previos de Sub15 [0.7,...] exigían de
+  // entrada el promedio de 16-17 años. Nota: el 1RM directo en Sub12 es cuestionable — a esa
+  // edad la literatura recomienda estimar por repeticiones submáximas, no 1RM real.
   sentadilla_rel: {
     label: 'Sentadilla (× Peso Corp.)',
     pilar: 'fisico', sub_pilar: 'fuerza', tren: 'inferior',
     unidad: 'x_bw', tipo: 'mas_es_mejor',
     thresholds: {
       Sub12: [0.25, 0.39, 0.59, 0.79],
-      Sub15: [0.7, 0.99, 1.29, 1.59],
-      Sub18: [1.0, 1.39, 1.69, 1.99],
-      Senior: [1.0, 1.39, 1.69, 1.99],
+      Sub15: [0.45, 0.7, 1.0, 1.3],
+      Sub18: [0.85, 1.15, 1.45, 1.75],
+      Senior: [0.85, 1.15, 1.5, 1.99],
     },
   },
 
@@ -89,15 +97,19 @@ const BAREMOS = {
   },
 
   // Movilidad - Sit & Reach
+  // Convención: 0 cm = punta del pie (dedos). Negativo = no se alcanza la punta;
+  // positivo = se sobrepasa. Recalibrado 2026-07 con EUROFIT/Tomkinson 2018 (BJSM,
+  // n=2.78M, convertido de caja +15cm) — los cortes previos saltaban de norma masculina
+  // (Sub12/15) a femenina (Sub18/Senior) con un escalón fisiológicamente injustificado.
   sit_reach: {
     label: 'Sit & Reach',
     pilar: 'fisico', sub_pilar: 'movilidad', tren: null,
     unidad: 'cm', tipo: 'mas_es_mejor',
     thresholds: {
-      Sub12: [-5, -1, 3, 7],
-      Sub15: [-5, -1, 4, 9],
-      Sub18: [4, 6, 10, 13],
-      Senior: [4, 6, 13, 16],
+      Sub12: [0, 4, 9, 13],
+      Sub15: [-1, 3, 8, 12],
+      Sub18: [0, 4, 9, 13],
+      Senior: [-2, 2, 8, 13],
     },
   },
 
@@ -144,16 +156,19 @@ const BAREMOS = {
   },
 
   // Movilidad - Rotación Externa Hombro
+  // Recalibrado 2026-07 — con los cortes previos [70,79,87,94] un hombro con ER NORMAL
+  // (~90°, AAOS en 90° de abducción) clasificaba above_avg; ahora la mediana cae en average.
+  // Protocolo: goniometría en 90° de abducción (documentado porque medir "a lado" da ~10° menos).
   hombro_re: {
     label: 'Rot. Externa Hombro',
     pilar: 'fisico', sub_pilar: 'movilidad', tren: 'superior',
     unidad: 'grados', tipo: 'mas_es_mejor',
     inputs_requeridos: [{ id: 'izq', label: 'Izquierdo' }, { id: 'der', label: 'Derecho' }],
     thresholds: {
-      Sub12: [70, 79, 87, 94],
-      Sub15: [70, 79, 87, 94],
-      Sub18: [70, 79, 87, 94],
-      Senior: [70, 79, 87, 94],
+      Sub12: [80, 86, 92, 98],
+      Sub15: [80, 86, 92, 98],
+      Sub18: [80, 86, 92, 98],
+      Senior: [80, 86, 92, 98],
     },
   },
 
@@ -185,30 +200,43 @@ const BAREMOS = {
     },
   },
 
-  // ─── Resistencia (thresholds reales del catálogo de prod, v43) ─────
-  // Estas 4 entradas replican TAL CUAL los umbrales por capas del catálogo en
-  // producción (Género→Bucket→Nivel→[4 cortes] o Género→Todas→[4]); el label es
-  // el nombre EXACTO de prod para que el backfill por nombre de
-  // scripts/sync_catalogo_ejercicios.mjs los enlace. NO leer thresholds[bucket]
+  // ─── Resistencia ──────────────────────────────────────────────────
+  // Estas entradas usan umbrales por capas (Género→Bucket→Nivel→[4 cortes] o
+  // Género→Todas→[4]); el label es el nombre EXACTO de prod para que el backfill por
+  // nombre de scripts/sync_catalogo_ejercicios.mjs las enlace. NO leer thresholds[bucket]
   // directo en estas claves — resolverUmbrales ya entiende las capas.
+  //
+  // FUENTE CANÓNICA (2026-07): tras la recalibración científica de julio 2026, baremos.js
+  // es la fuente de verdad de course_navette (ya NO replica el catálogo de prod). El runtime
+  // de evaluación (EvaluacionModal) puntúa con catalogo_ejercicios.thresholds de la BD, así
+  // que para que estos cortes lleguen a producción hay que propagarlos con
+  // `node scripts/sync_catalogo_ejercicios.mjs` (SIMULAR=false): sincroniza baremos.js →
+  // catalogo_ejercicios por baremo_key (UPDATE de thresholds). Editar baremos.js solo NO
+  // cambia el scoring en vivo.
+  // Excepción: carrera_600m_vinueza y carrera_1000m_vinueza conservan TAL CUAL las tablas
+  // originales del owner (batería Vinueza) — esas no se recalibraron.
 
   // Resistencia - Capacidad aeróbica (Course Navette / Léger 20m)
+  // Recalibrado 2026-07 con Tomkinson 2017 (n=1.14M, 50 países), FUPRECOL (población
+  // latinoamericana) y PACER/FitnessGram; capa Desarrollo ≈ mediana poblacional, la meseta
+  // puberal femenina ahora se respeta, y "excellent" de Elite pasó de p99+ inalcanzable a
+  // ~p90-p95.
   course_navette: {
     label: 'Course Navette (Léger 20m)',
     pilar: 'fisico', sub_pilar: 'resistencia', tren: null,
     unidad: 'paliers', tipo: 'mas_es_mejor',
     thresholds: {
       Femenino: {
-        Sub12: { Micro: [2.5, 3, 4, 5], Desarrollo: [2.5, 3.5, 4.5, 5.5], Elite: [3, 4, 5, 6] },
-        Sub15: { Micro: [3, 4, 5, 6.5], Desarrollo: [3.5, 4.5, 5.5, 7], Elite: [4, 5, 6, 7.5] },
-        Sub18: { Micro: [3.5, 4.5, 5.5, 7], Desarrollo: [4, 5, 6, 7.5], Elite: [4.5, 5.5, 6.5, 8.5] },
-        Senior: { Micro: [3.5, 5, 6, 7], Desarrollo: [4, 5.5, 6.5, 8], Elite: [4.5, 6, 7, 9] },
+        Sub12:  { Micro: [2, 2.5, 3, 4],     Desarrollo: [2.5, 3, 4, 4.5],   Elite: [3, 4, 4.5, 5.5] },
+        Sub15:  { Micro: [2.5, 3, 4, 4.5],   Desarrollo: [3, 4, 4.5, 5.5],   Elite: [4, 4.5, 5.5, 6] },
+        Sub18:  { Micro: [2.5, 3.5, 4, 5],   Desarrollo: [3.5, 4, 5, 5.5],   Elite: [4, 5, 5.5, 6.5] },
+        Senior: { Micro: [3, 3.5, 4.5, 5.5], Desarrollo: [3.5, 4.5, 5.5, 6.5], Elite: [4.5, 5.5, 6.5, 7.5] },
       },
       Masculino: {
-        Sub12: { Micro: [3, 4, 5, 6], Desarrollo: [3.5, 4.5, 5.5, 6.5], Elite: [4, 5, 6, 7] },
-        Sub15: { Micro: [4.5, 6, 7, 8.5], Desarrollo: [5, 6.5, 8, 9.5], Elite: [5.5, 7, 9, 10.5] },
-        Sub18: { Micro: [5.5, 7, 8, 9.5], Desarrollo: [6, 7.5, 9, 10.5], Elite: [6.5, 8.5, 10, 11.5] },
-        Senior: { Micro: [6, 7, 8.5, 10], Desarrollo: [6.5, 8, 9.5, 11], Elite: [7, 9, 10.5, 12] },
+        Sub12:  { Micro: [2.5, 3, 3.5, 4.5], Desarrollo: [3, 3.5, 4.5, 5],   Elite: [3.5, 4.5, 5, 6] },
+        Sub15:  { Micro: [4, 5, 6, 6.5],     Desarrollo: [5, 6, 6.5, 7.5],   Elite: [6, 6.5, 7.5, 8.5] },
+        Sub18:  { Micro: [5, 6, 7, 7.5],     Desarrollo: [6, 7, 7.5, 8.5],   Elite: [7, 8, 8.5, 10] },
+        Senior: { Micro: [5.5, 6.5, 7, 8],   Desarrollo: [6.5, 7, 8, 9],     Elite: [7, 8, 9, 10] },
       },
     },
   },
