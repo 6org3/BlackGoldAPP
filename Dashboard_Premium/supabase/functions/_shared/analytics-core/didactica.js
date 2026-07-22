@@ -14,12 +14,65 @@
 // La detección de recuperación (sueño/fatiga/hidratación) se delega en readiness.js,
 // fuente única de esos umbrales (antes el color de orina estaba hardcodeado aquí).
 
-import { getSubPilarScores } from './radar.js';
+import { RADAR_AXES } from './radar.js';
 import { categoriaABucketBaremo } from './baremos.js';
 import { detectarAlertasRecuperacion } from './readiness.js';
+import { detectarDebilidades } from './recomendaciones.js';
 
 // severidad de readiness.js → prioridad del déficit (misma escala de nombres).
 const SEVERIDAD_A_PRIORIDAD = { critica: 'critica', alta: 'alta', media: 'media' };
+
+// Tier de la debilidad (definición única de recomendaciones.js) → prioridad del
+// déficit. Un rendimiento débil nunca es 'critica': ese nivel queda reservado a
+// los estados agudos (sobreentrenamiento, deshidratación, RPE extremo).
+const PRIORIDAD_POR_TIER = { poor: 'alta', below_avg: 'media' };
+
+// Mensajes didácticos por sub-pilar débil. La DETECCIÓN (qué es débil) vive en
+// detectarDebilidades; aquí solo se decide cómo contarlo. Las claves `condicion`
+// son contrato público: los `condicion_trigger` del catálogo de misiones y
+// mensajesPadreDeficit.js dependen de estos nombres — no renombrarlas.
+// Fuerza y movilidad no están aquí: comparten la condición combinada
+// 'fuerza_movilidad_baja' (Protocolo Milo) y se componen aparte.
+const DEFICITS_RENDIMIENTO = {
+  resiliencia: {
+    condicion: 'resiliencia_baja',
+    mensaje: (score, fase) =>
+      `Resiliencia Psicológica en ${score}/100. ` +
+      'Asignar misión de manejo de frustración y regulación emocional. ' +
+      `Fase biológica: ${fase} — adaptar contenido al nivel madurativo.`,
+  },
+  tactica: {
+    condicion: 'tactica_baja',
+    mensaje: score =>
+      `Eficiencia Táctica en ${score}/100. ` +
+      'Asignar misiones de fundamentos de baloncesto: lectura de pick & roll, spacing, mecánica de tiro, dribbling y sistemas de ayuda defensiva.',
+  },
+  tiro: {
+    condicion: 'tiro_bajo',
+    mensaje: score =>
+      `Tiro en ${score}/100. ` +
+      'Asignar misiones de mecánica de tiro (forma contra la pared, tiro cercano por posiciones) y volumen de repeticiones con feedback y registro de aciertos.',
+  },
+  agilidad: {
+    condicion: 'agilidad_baja',
+    mensaje: score =>
+      `Agilidad en ${score}/100. ` +
+      'Asignar misiones de cambios de dirección, juego de pies (escalera, frenado excéntrico) y trabajo de velocidad con pelota.',
+  },
+  explosividad: {
+    condicion: 'explosividad_baja',
+    mensaje: score =>
+      `Explosividad en ${score}/100. ` +
+      'Asignar misiones de pliometría progresiva, potencia reactiva para el primer paso y salto vertical en baloncesto.',
+  },
+  resistencia: {
+    condicion: 'resistencia_baja',
+    mensaje: (score, fase) =>
+      `Resistencia en ${score}/100. ` +
+      'Asignar misiones de base aeróbica y capacidad intermitente: juego continuo, trabajo en zona 2 y protocolos tipo Navette/Yo-Yo adaptados a la edad. ' +
+      `Fase biológica: ${fase} — dosificar volumen e intensidad según el momento madurativo.`,
+  },
+};
 
 /**
  * Mapea la categoría del atleta a su fase biológica de desarrollo.
@@ -49,6 +102,15 @@ export function getFaseBiologica(categoria) {
  * Evalúa las métricas del atleta y detecta déficits que requieren intervención
  * didáctica. Retorna condiciones ordenadas por prioridad (critica > alta > media).
  *
+ * Dos familias de déficits, con dueños distintos:
+ * - RENDIMIENTO: delega la detección en detectarDebilidades (recomendaciones.js)
+ *   — la definición ÚNICA de "debilidad" del producto (tier poor/below_avg,
+ *   score < 45; sin medición no hay debilidad). Aquí solo se añade el mensaje
+ *   didáctico y la prioridad derivada del tier (poor→alta, below_avg→media).
+ * - ESTADO AGUDO (recuperación, RPE, WBLT, asimetría IMTP, discrepancias
+ *   coach/atleta): umbrales clínicos propios, centralizados en readiness.js
+ *   donde aplica; puede llegar a prioridad 'critica'.
+ *
  * @param {Object} atleta - Atleta con {categoria, _evaluaciones, estado_recuperacion,
  *   readiness_hoy, eva_registro, observacion_hoy}.
  * @returns {Array<{condicion, metrica, valor, mensaje, prioridad}>}
@@ -56,7 +118,6 @@ export function getFaseBiologica(categoria) {
 export function evaluarDeficits(atleta) {
   const deficits = [];
   const fase = getFaseBiologica(atleta.categoria);
-  const subPilarScores = getSubPilarScores(atleta._evaluaciones || []);
 
   // ─── Estado de Recuperación (Prioridad Crítica) ─────────
   if (atleta.estado_recuperacion === 'Agotamiento Activo') {
@@ -95,102 +156,62 @@ export function evaluarDeficits(atleta) {
     });
   });
 
-  // ─── Resiliencia Psicológica ────────────────────────────
-  if ((subPilarScores.resiliencia || 0) < 70) {
-    deficits.push({
-      condicion: 'resiliencia_baja',
-      metrica: 'resiliencia',
-      valor: subPilarScores.resiliencia || 0,
-      mensaje:
-        `Resiliencia Psicológica en ${subPilarScores.resiliencia || 0}/100. ` +
-        'Asignar misión de manejo de frustración y regulación emocional. ' +
-        `Fase biológica: ${fase} — adaptar contenido al nivel madurativo.`,
-      prioridad: 'critica',
-    });
-  }
+  // ─── Debilidades de rendimiento (definición ÚNICA del motor) ────
+  // Desde 2026-07-22 (decisión del owner) la detección delega en
+  // detectarDebilidades (recomendaciones.js), el MISMO motor que asigna
+  // misiones en la Edge generar-misiones-ia: última evaluación por prueba →
+  // promedio por sub-pilar → débil si su tier es poor/below_avg (score < 45,
+  // bordes de scoreATier). Se acabaron los umbrales por sub-pilar (70/50/40):
+  // un sub-pilar SIN medición ya no cuenta como debilidad (antes el || 0
+  // hacía que un atleta sin evaluaciones disparara TODOS los déficits).
+  //
+  // prueba_tipo es NOT NULL en evaluaciones_pruebas; el fallback sintético
+  // mantiene vivas las filas mínimas {sub_pilar, puntuacion_normalizada} de
+  // tests y llamadores viejos (cada una cuenta como prueba distinta, el mismo
+  // promedio que hacía getSubPilarScores).
+  const evalsRendimiento = (atleta._evaluaciones || [])
+    .filter(Boolean)
+    .map((e, i) => (e.prueba_tipo ? e : { ...e, prueba_tipo: `_sin_prueba_${i}` }));
+  const debilidades = detectarDebilidades(evalsRendimiento, {
+    maxDebilidades: RADAR_AXES.length,
+  });
 
-  // ─── Eficiencia Táctica y Técnica (Básquetbol) ──────────
-  if ((subPilarScores.tactica || 0) < 50) {
-    deficits.push({
-      condicion: 'tactica_baja',
-      metrica: 'tactica',
-      valor: subPilarScores.tactica || 0,
-      mensaje:
-        `Eficiencia Táctica en ${subPilarScores.tactica || 0}/100. ` +
-        'Asignar misiones de fundamentos de baloncesto: lectura de pick & roll, spacing, mecánica de tiro, dribbling y sistemas de ayuda defensiva.',
-      prioridad: 'alta',
-    });
-  }
+  const porSubPilar = {};
+  debilidades.forEach(d => { porSubPilar[d.sub_pilar] = d; });
 
-  // ─── Tiro (Básquetbol) ─────────────────────────────────
-  if ((subPilarScores.tiro || 0) < 50) {
+  debilidades.forEach(d => {
+    const def = DEFICITS_RENDIMIENTO[d.sub_pilar];
+    if (!def) return; // fuerza/movilidad se componen abajo (condición combinada)
     deficits.push({
-      condicion: 'tiro_bajo',
-      metrica: 'tiro',
-      valor: subPilarScores.tiro || 0,
-      mensaje:
-        `Tiro en ${subPilarScores.tiro || 0}/100. ` +
-        'Asignar misiones de mecánica de tiro (forma contra la pared, tiro cercano por posiciones) y volumen de repeticiones con feedback y registro de aciertos.',
-      prioridad: 'media',
+      condicion: def.condicion,
+      metrica: d.sub_pilar,
+      valor: d.score,
+      mensaje: def.mensaje(d.score, fase),
+      prioridad: PRIORIDAD_POR_TIER[d.tier] || 'media',
     });
-  }
-
-  // ─── Agilidad (Básquetbol) ─────────────────────────────
-  if ((subPilarScores.agilidad || 0) < 50) {
-    deficits.push({
-      condicion: 'agilidad_baja',
-      metrica: 'agilidad',
-      valor: subPilarScores.agilidad || 0,
-      mensaje:
-        `Agilidad en ${subPilarScores.agilidad || 0}/100. ` +
-        'Asignar misiones de cambios de dirección, juego de pies (escalera, frenado excéntrico) y trabajo de velocidad con pelota.',
-      prioridad: 'media',
-    });
-  }
-
-  // ─── Explosividad (Básquetbol) ─────────────────────────
-  if ((subPilarScores.explosividad || 0) < 40) {
-    deficits.push({
-      condicion: 'explosividad_baja',
-      metrica: 'explosividad',
-      valor: subPilarScores.explosividad || 0,
-      mensaje:
-        `Explosividad en ${subPilarScores.explosividad || 0}/100. ` +
-        'Asignar misiones de pliometría progresiva, potencia reactiva para el primer paso y salto vertical en baloncesto.',
-      prioridad: 'alta',
-    });
-  }
-
-  // ─── Resistencia (Base Aeróbica e Intermitente) ─────────
-  if ((subPilarScores.resistencia || 0) < 50) {
-    deficits.push({
-      condicion: 'resistencia_baja',
-      metrica: 'resistencia',
-      valor: subPilarScores.resistencia || 0,
-      mensaje:
-        `Resistencia en ${subPilarScores.resistencia || 0}/100. ` +
-        'Asignar misiones de base aeróbica y capacidad intermitente: juego continuo, trabajo en zona 2 y protocolos tipo Navette/Yo-Yo adaptados a la edad. ' +
-        `Fase biológica: ${fase} — dosificar volumen e intensidad según el momento madurativo.`,
-      prioridad: 'alta',
-    });
-  }
+  });
 
   // ─── Fuerza, Movilidad y Milo Rebuilding ────────────────
-  if ((subPilarScores.movilidad || 0) < 50 || (subPilarScores.fuerza || 0) < 50) {
-    const fuerza = subPilarScores.fuerza || 0;
-    const movilidad = subPilarScores.movilidad || 0;
+  // Condición combinada histórica: el catálogo de misiones dispara por
+  // 'fuerza_movilidad_baja', así que ambos sub-pilares comparten un déficit.
+  const debilidadFuerza = porSubPilar.fuerza;
+  const debilidadMovilidad = porSubPilar.movilidad;
+  if (debilidadFuerza || debilidadMovilidad) {
     const detalles = [];
-    if (fuerza < 50) detalles.push(`Fuerza: ${fuerza}/100`);
-    if (movilidad < 50) detalles.push(`Movilidad: ${movilidad}/100`);
+    if (debilidadFuerza) detalles.push(`Fuerza: ${debilidadFuerza.score}/100`);
+    if (debilidadMovilidad) detalles.push(`Movilidad: ${debilidadMovilidad.score}/100`);
+    const peor = debilidadFuerza && debilidadMovilidad
+      ? (debilidadFuerza.score <= debilidadMovilidad.score ? debilidadFuerza : debilidadMovilidad)
+      : (debilidadFuerza || debilidadMovilidad);
 
     deficits.push({
       condicion: 'fuerza_movilidad_baja',
-      metrica: fuerza < 50 ? 'fuerza' : 'movilidad',
-      valor: Math.min(fuerza, movilidad),
+      metrica: peor.sub_pilar,
+      valor: peor.score,
       mensaje:
         `Déficit de Fuerza/Movilidad (${detalles.join(', ')}). ` +
         'Activar Protocolo Milo Rebuilding: combinar biomecánica, fortalecimiento isométrico (HSR), técnica estructural y movilidad funcional adaptada.',
-      prioridad: 'media',
+      prioridad: PRIORIDAD_POR_TIER[peor.tier] || 'media',
     });
   }
 

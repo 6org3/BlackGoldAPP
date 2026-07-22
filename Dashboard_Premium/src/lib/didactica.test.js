@@ -51,19 +51,27 @@ describe('evaluarDeficits — integración con readiness', () => {
   });
 });
 
-describe('evaluarDeficits — déficits de rendimiento nuevos (resistencia/tiro/agilidad)', () => {
-  // Atleta con una única evaluación puntuada del sub-pilar indicado
-  // (getSubPilarScores solo necesita {sub_pilar, puntuacion_normalizada}).
+describe('evaluarDeficits — rendimiento con la definición ÚNICA (tiers de detectarDebilidades)', () => {
+  // Atleta con una única evaluación puntuada del sub-pilar indicado (el motor
+  // tolera filas sin prueba_tipo vía la clave sintética de evaluarDeficits).
   const atletaConScore = (subPilar, puntuacion) => ({
     categoria: 'Menores (Sub-14)',
     _evaluaciones: [{ sub_pilar: subPilar, puntuacion_normalizada: puntuacion }],
   });
 
-  it('resistencia baja (<50) → déficit resistencia_baja con prioridad alta', () => {
-    const deficits = evaluarDeficits(atletaConScore('resistencia', 30));
+  it('resistencia en tier poor (20, borde <25 de scoreATier) → prioridad alta', () => {
+    const deficits = evaluarDeficits(atletaConScore('resistencia', 20));
     const def = deficits.find(d => d.condicion === 'resistencia_baja');
     expect(def).toBeTruthy();
     expect(def.prioridad).toBe('alta');
+    expect(def.valor).toBe(20);
+  });
+
+  it('resistencia en tier below_avg (30) → prioridad media', () => {
+    const deficits = evaluarDeficits(atletaConScore('resistencia', 30));
+    const def = deficits.find(d => d.condicion === 'resistencia_baja');
+    expect(def).toBeTruthy();
+    expect(def.prioridad).toBe('media');
     expect(def.valor).toBe(30);
   });
 
@@ -72,28 +80,66 @@ describe('evaluarDeficits — déficits de rendimiento nuevos (resistencia/tiro/
     expect(deficits.some(d => d.condicion === 'resistencia_baja')).toBe(false);
   });
 
-  it('tiro bajo (<50) → déficit tiro_bajo con prioridad media', () => {
-    const deficits = evaluarDeficits(atletaConScore('tiro', 30));
+  it('tiro en tier poor (20) → prioridad alta (deriva del tier, no del sub-pilar)', () => {
+    const deficits = evaluarDeficits(atletaConScore('tiro', 20));
+    const def = deficits.find(d => d.condicion === 'tiro_bajo');
+    expect(def).toBeTruthy();
+    expect(def.prioridad).toBe('alta');
+  });
+
+  it('tiro en tier below_avg (40) → prioridad media', () => {
+    const deficits = evaluarDeficits(atletaConScore('tiro', 40));
     const def = deficits.find(d => d.condicion === 'tiro_bajo');
     expect(def).toBeTruthy();
     expect(def.prioridad).toBe('media');
   });
 
-  it('tiro suficiente (60) → sin déficit tiro_bajo', () => {
-    const deficits = evaluarDeficits(atletaConScore('tiro', 60));
+  it('tiro 47 (average: ≥45) → sin déficit — el umbral viejo <50 ya no aplica', () => {
+    const deficits = evaluarDeficits(atletaConScore('tiro', 47));
     expect(deficits.some(d => d.condicion === 'tiro_bajo')).toBe(false);
   });
 
-  it('agilidad baja (<50) → déficit agilidad_baja con prioridad media', () => {
+  it('agilidad en tier poor (30) → déficit agilidad_baja', () => {
     const deficits = evaluarDeficits(atletaConScore('agilidad', 30));
-    const def = deficits.find(d => d.condicion === 'agilidad_baja');
+    expect(deficits.some(d => d.condicion === 'agilidad_baja')).toBe(true);
+  });
+
+  it('resiliencia 60 (average) → sin déficit — el umbral especial <70 ya no existe', () => {
+    const deficits = evaluarDeficits(atletaConScore('resiliencia', 60));
+    expect(deficits.some(d => d.condicion === 'resiliencia_baja')).toBe(false);
+  });
+
+  it('resiliencia 40 (below_avg) → déficit con prioridad media (ya no critica)', () => {
+    const deficits = evaluarDeficits(atletaConScore('resiliencia', 40));
+    const def = deficits.find(d => d.condicion === 'resiliencia_baja');
     expect(def).toBeTruthy();
     expect(def.prioridad).toBe('media');
   });
 
-  it('agilidad suficiente (60) → sin déficit agilidad_baja', () => {
-    const deficits = evaluarDeficits(atletaConScore('agilidad', 60));
-    expect(deficits.some(d => d.condicion === 'agilidad_baja')).toBe(false);
+  it('sin ninguna evaluación → CERO déficits de rendimiento (no se inventan ceros)', () => {
+    const deficits = evaluarDeficits({ categoria: 'Menores (Sub-14)' });
+    const rendimiento = deficits.filter(d => [
+      'resiliencia_baja', 'tactica_baja', 'tiro_bajo', 'agilidad_baja',
+      'explosividad_baja', 'resistencia_baja', 'fuerza_movilidad_baja',
+    ].includes(d.condicion));
+    expect(rendimiento).toHaveLength(0);
+  });
+
+  it('fuerza 20 (poor) + movilidad 40 (below_avg) → UN solo déficit combinado con prioridad del peor tier', () => {
+    const deficits = evaluarDeficits({
+      categoria: 'Menores (Sub-14)',
+      _evaluaciones: [
+        { sub_pilar: 'fuerza', puntuacion_normalizada: 20 },
+        { sub_pilar: 'movilidad', puntuacion_normalizada: 40 },
+      ],
+    });
+    const combinados = deficits.filter(d => d.condicion === 'fuerza_movilidad_baja');
+    expect(combinados).toHaveLength(1);
+    expect(combinados[0].valor).toBe(20);
+    expect(combinados[0].metrica).toBe('fuerza');
+    expect(combinados[0].prioridad).toBe('alta');
+    expect(combinados[0].mensaje).toContain('Fuerza: 20/100');
+    expect(combinados[0].mensaje).toContain('Movilidad: 40/100');
   });
 
   it('getAutoMissions empareja una misión con condicion_trigger resistencia_baja', () => {
