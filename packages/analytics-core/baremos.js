@@ -56,15 +56,19 @@ const BAREMOS = {
   },
 
   // Fuerza - Tren Inferior (Sentadilla relativa)
+  // Recalibrado 2026-07 con PMC9140541 (492 futbolistas juveniles por estratos de fuerza
+  // relativa; ninguno superó 2.0×BW) — los cortes previos de Sub15 [0.7,...] exigían de
+  // entrada el promedio de 16-17 años. Nota: el 1RM directo en Sub12 es cuestionable — a esa
+  // edad la literatura recomienda estimar por repeticiones submáximas, no 1RM real.
   sentadilla_rel: {
     label: 'Sentadilla (× Peso Corp.)',
     pilar: 'fisico', sub_pilar: 'fuerza', tren: 'inferior',
     unidad: 'x_bw', tipo: 'mas_es_mejor',
     thresholds: {
       Sub12: [0.25, 0.39, 0.59, 0.79],
-      Sub15: [0.7, 0.99, 1.29, 1.59],
-      Sub18: [1.0, 1.39, 1.69, 1.99],
-      Senior: [1.0, 1.39, 1.69, 1.99],
+      Sub15: [0.45, 0.7, 1.0, 1.3],
+      Sub18: [0.85, 1.15, 1.45, 1.75],
+      Senior: [0.85, 1.15, 1.5, 1.99],
     },
   },
 
@@ -152,16 +156,19 @@ const BAREMOS = {
   },
 
   // Movilidad - Rotación Externa Hombro
+  // Recalibrado 2026-07 — con los cortes previos [70,79,87,94] un hombro con ER NORMAL
+  // (~90°, AAOS en 90° de abducción) clasificaba above_avg; ahora la mediana cae en average.
+  // Protocolo: goniometría en 90° de abducción (documentado porque medir "a lado" da ~10° menos).
   hombro_re: {
     label: 'Rot. Externa Hombro',
     pilar: 'fisico', sub_pilar: 'movilidad', tren: 'superior',
     unidad: 'grados', tipo: 'mas_es_mejor',
     inputs_requeridos: [{ id: 'izq', label: 'Izquierdo' }, { id: 'der', label: 'Derecho' }],
     thresholds: {
-      Sub12: [70, 79, 87, 94],
-      Sub15: [70, 79, 87, 94],
-      Sub18: [70, 79, 87, 94],
-      Senior: [70, 79, 87, 94],
+      Sub12: [80, 86, 92, 98],
+      Sub15: [80, 86, 92, 98],
+      Sub18: [80, 86, 92, 98],
+      Senior: [80, 86, 92, 98],
     },
   },
 
