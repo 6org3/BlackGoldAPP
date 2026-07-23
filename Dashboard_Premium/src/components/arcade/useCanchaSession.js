@@ -5,6 +5,8 @@ import {
   fetchActiveSessions,
   fetchPlannedToday,
   fetchSessionAttendance,
+  fetchPlantillasCancha,
+  fetchEjerciciosMap,
   startSession,
   saveSubjectiveEval,
   closeClass,
@@ -22,10 +24,12 @@ import {
 
 const hhmm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
-const initialState = (user) => ({
+export const initialState = (user) => ({
   step: 'cancha',
   classType: null,
   level: null,
+  plantilla: null, // plantilla de sesión elegida (con drills resueltos) o null
+  hasPlantillas: false, // hay plantillas cargadas → el paso 'objetivo' se muestra
   present: {},
   destacados: {},
   scores: {},
@@ -38,7 +42,7 @@ const initialState = (user) => ({
   closingSession: null, // sesión que se está cerrando (para el write de cierre)
 });
 
-function reducer(state, action) {
+export function reducer(state, action) {
   switch (action.type) {
     case 'TICK':
       if (!state.sessions.length) return state;
@@ -47,13 +51,18 @@ function reducer(state, action) {
     case 'HYDRATE_SESSIONS':
       return { ...state, sessions: action.sessions };
 
+    // Hay plantillas en el catálogo → se habilita el paso 'objetivo'. Sin ellas,
+    // el flujo lo auto-omite (nivel/buscador → lista directo).
+    case 'SET_PLANTILLAS':
+      return { ...state, hasPlantillas: action.has };
+
     case 'PICK_TYPE': {
       const t = action.tipo;
       return { ...state, classType: t, step: t === '1v1' ? 'buscador' : 'nivel', present: {} };
     }
 
     case 'PICK_LEVEL':
-      return { ...state, level: action.level, step: 'lista', present: {} };
+      return { ...state, level: action.level, step: state.hasPlantillas ? 'objetivo' : 'lista', present: {} };
 
     // 1v1: selección exclusiva — elegir un atleta reemplaza al anterior (#8).
     case 'CHOOSE_TOGGLE': {
@@ -62,6 +71,20 @@ function reducer(state, action) {
     }
 
     case 'TO_LISTA':
+      return { ...state, step: 'lista' };
+
+    // Avance desde buscador/nivel al paso 'objetivo' (o directo a 'lista' si no
+    // hay plantillas que elegir).
+    case 'TO_OBJETIVO':
+      return { ...state, step: state.hasPlantillas ? 'objetivo' : 'lista' };
+
+    // Selección exclusiva de plantilla con toggle: reelegir la misma la quita.
+    // `action.plantilla` llega ya con sus drills resueltos (los resuelve la
+    // pantalla, que tiene el ejerciciosMap vivo).
+    case 'PICK_PLANTILLA':
+      return { ...state, plantilla: state.plantilla?.id === action.plantilla.id ? null : action.plantilla };
+
+    case 'OBJETIVO_DONE':
       return { ...state, step: 'lista' };
 
     case 'MARK':
@@ -84,7 +107,7 @@ function reducer(state, action) {
         ...state,
         sessions: [
           ...state.sessions,
-          { ...action.session, attendance: state.present, classType: state.classType, level: state.level },
+          { ...action.session, attendance: state.present, classType: state.classType, level: state.level, plantilla: state.plantilla },
         ],
         focusedId: action.session.id,
         step: 'activa',
@@ -105,6 +128,7 @@ function reducer(state, action) {
         hue: 'gold',
         evaluable: true,
         notas: `[EN_CURSO] ${action.label}`,
+        plantilla: state.plantilla, // plantilla elegida (o null) — la consume PantallaActiva
       };
       return { ...state, sessions: [...state.sessions, sess], focusedId: action.id, step: 'activa' };
     }
@@ -164,6 +188,7 @@ function reducer(state, action) {
         step: 'cancha',
         classType: null,
         level: null,
+        plantilla: null, // hasPlantillas se conserva (el catálogo no cambia entre sesiones)
         present: {},
         destacados: {},
         scores: {},
@@ -180,8 +205,13 @@ function reducer(state, action) {
         case 'buscador':
         case 'activa': // salir a la cancha sin cerrar la sesión (queda activa) (#1)
           return { ...state, step: 'cancha' };
-        case 'lista':
+        case 'objetivo':
           return { ...state, step: state.classType === '1v1' ? 'buscador' : 'nivel' };
+        case 'lista':
+          return {
+            ...state,
+            step: state.hasPlantillas ? 'objetivo' : state.classType === '1v1' ? 'buscador' : 'nivel',
+          };
         case 'cierre':
           return { ...state, step: 'cancha' };
         case 'evaluar':
@@ -226,6 +256,8 @@ export default function useCanchaSession(user) {
   const [state, dispatch] = useReducer(reducer, user, initialState);
   const [roster, setRoster] = useState(() => (user ? [] : ROSTER));
   const [planned, setPlanned] = useState([]);
+  const [plantillas, setPlantillas] = useState([]);
+  const [ejerciciosMap, setEjerciciosMap] = useState(() => new Map());
   const [loading, setLoading] = useState(!!user);
   const isReal = !!user;
 
@@ -233,12 +265,21 @@ export default function useCanchaSession(user) {
   useEffect(() => {
     if (!user) return undefined;
     let alive = true;
-    Promise.all([fetchRoster(user), fetchActiveSessions(user), fetchPlannedToday(user)])
-      .then(([r, sess, pl]) => {
+    Promise.all([
+      fetchRoster(user),
+      fetchActiveSessions(user),
+      fetchPlannedToday(user),
+      fetchPlantillasCancha(),
+      fetchEjerciciosMap(),
+    ])
+      .then(([r, sess, pl, plt, em]) => {
         if (!alive) return;
         setRoster(r);
         setPlanned(pl);
+        setPlantillas(plt);
+        setEjerciciosMap(em);
         dispatch({ type: 'HYDRATE_SESSIONS', sessions: sess });
+        dispatch({ type: 'SET_PLANTILLAS', has: plt.length > 0 });
         setLoading(false);
       })
       .catch(() => {
@@ -268,13 +309,16 @@ export default function useCanchaSession(user) {
       pickLevel: (level) => dispatch({ type: 'PICK_LEVEL', level }),
       chooseToggle: (id) => dispatch({ type: 'CHOOSE_TOGGLE', id }),
       toLista: () => dispatch({ type: 'TO_LISTA' }),
+      toObjetivo: () => dispatch({ type: 'TO_OBJETIVO' }),
+      pickPlantilla: (p) => dispatch({ type: 'PICK_PLANTILLA', plantilla: p }),
+      objetivoDone: () => dispatch({ type: 'OBJETIVO_DONE' }),
       mark: (id, val) => dispatch({ type: 'MARK', id, val }),
       allPresent: (list) => dispatch({ type: 'ALL_PRESENT', roster: list || [] }),
-      start: async ({ classType, level, present, roster: r }) => {
+      start: async ({ classType, level, present, roster: r, plantilla }) => {
         if (user) {
           try {
             const focusName = classType === '1v1' ? r.find((a) => present[a.id] === 'P')?.name : null;
-            const session = await startSession({ user, classType, level, present, roster: r, focusName });
+            const session = await startSession({ user, classType, level, present, roster: r, focusName, plantilla });
             dispatch({ type: 'ADD_SESSION', session });
             return;
           } catch {
@@ -333,5 +377,5 @@ export default function useCanchaSession(user) {
     [user],
   );
 
-  return { state, actions, roster, levels, isReal, loading, planned };
+  return { state, actions, roster, levels, isReal, loading, planned, plantillas, ejerciciosMap };
 }

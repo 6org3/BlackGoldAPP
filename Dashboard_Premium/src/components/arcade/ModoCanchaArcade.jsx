@@ -11,6 +11,7 @@ import ArcadeBottomNav from './ArcadeBottomNav';
 import PantallaCancha from './PantallaCancha';
 import PantallaNivel from './PantallaNivel';
 import PantallaBuscador from './PantallaBuscador';
+import PantallaObjetivo from './PantallaObjetivo';
 import PantallaLista from './PantallaLista';
 import PantallaActiva from './PantallaActiva';
 import PantallaCierre from './PantallaCierre';
@@ -27,16 +28,21 @@ function footerStyle(enabled, tone) {
 }
 
 // Cabecera de flujo por paso (chevron + micro-label + título).
+// El paso 'objetivo' solo existe si hay plantillas (hasPlantillas); cuando falta,
+// la numeración de lista/cierre se corre para no dejar huecos.
 function headerFor(state, roster) {
+  const hasP = state.hasPlantillas;
   switch (state.step) {
     case 'nivel':
       return { label: 'PASO 1 · BLOQUE', title: 'Nueva sesión' };
     case 'buscador':
       return { label: 'PASO 1 · ATLETA', title: 'Elige atleta' };
+    case 'objetivo':
+      return { label: 'PASO 2 · OBJETIVO', title: 'Objetivo de la sesión' };
     case 'lista':
-      return { label: 'PASO 2 · ASISTENCIA', title: 'Pasar lista' };
+      return { label: `PASO ${hasP ? 3 : 2} · ASISTENCIA`, title: 'Pasar lista' };
     case 'cierre':
-      return { label: 'PASO 3 · DESTACADOS', title: 'Cierre de clase' };
+      return { label: `PASO ${hasP ? 4 : 3} · DESTACADOS`, title: 'Cierre de clase' };
     case 'evaluar': {
       const a = roster.find((x) => x.id === state.evalTargetId) || roster[0];
       return { label: 'EVALUAR ATLETA', title: a?.name || 'Atleta' };
@@ -56,15 +62,24 @@ function footerFor(state, actions, roster) {
   switch (state.step) {
     case 'buscador': {
       const n = roster.filter((a) => state.present[a.id]).length;
-      return { label: `CONTINUAR · ${n}`, enabled: n > 0, tone: 'gold', onClick: actions.toLista };
+      return { label: `CONTINUAR · ${n}`, enabled: n > 0, tone: 'gold', onClick: actions.toObjetivo };
     }
+    case 'objetivo':
+      // CTA siempre habilitado: la plantilla es opcional.
+      return {
+        label: state.plantilla ? 'CONTINUAR' : 'CONTINUAR SIN PLANTILLA',
+        enabled: true,
+        tone: 'gold',
+        onClick: actions.objetivoDone,
+      };
     case 'lista': {
       const pc = presentesP(state, roster).length;
       return {
         label: `INICIAR SESIÓN · ${pc} ✓`,
         enabled: pc > 0,
         tone: 'green',
-        onClick: () => actions.start({ classType: state.classType, level: state.level, present: state.present, roster }),
+        onClick: () =>
+          actions.start({ classType: state.classType, level: state.level, present: state.present, roster, plantilla: state.plantilla }),
       };
     }
     case 'cierre': {
@@ -95,7 +110,7 @@ function footerFor(state, actions, roster) {
 
 function CanchaTakeover({ onClose }) {
   const { user } = useAuth();
-  const { state, actions, roster, levels, isReal, planned } = useCanchaSession(user);
+  const { state, actions, roster, levels, isReal, planned, plantillas, ejerciciosMap } = useCanchaSession(user);
   const navigate = useNavigate();
   const coachInitial = user?.nombre
     ? user.nombre.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
@@ -234,6 +249,9 @@ function CanchaTakeover({ onClose }) {
           )}
           {state.step === 'nivel' && <PantallaNivel actions={actions} levels={levels} />}
           {state.step === 'buscador' && <PantallaBuscador state={state} actions={actions} roster={roster} />}
+          {state.step === 'objetivo' && (
+            <PantallaObjetivo state={state} actions={actions} plantillas={plantillas} ejerciciosMap={ejerciciosMap} />
+          )}
           {state.step === 'lista' && <PantallaLista state={state} actions={actions} roster={roster} />}
           {isActiva && <PantallaActiva focused={focused} others={others} actions={actions} />}
           {state.step === 'cierre' && <PantallaCierre state={state} actions={actions} roster={roster} />}

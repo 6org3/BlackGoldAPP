@@ -14,16 +14,37 @@ import { fetchMisiones } from '../../api/misionesService';
 import { fetchConvocatoriasAtleta, responderRSVP } from '../../api/eventosService';
 import { fetchEstadoCuentaPadre, fetchClubConfig, subirComprobante } from '../../api/pagosService';
 import { fetchComunicacionesParaPadre } from '../../api/comunicacionesService';
+import { fetchEjercicios } from '../../api/sesionesService';
 import { getSubPilarScores, RADAR_AXES } from '../../lib/radarCalc';
 import { getXPProgress } from '../../lib/xpProgress';
 import { linkWhatsApp } from '../../lib/plantillasWhatsApp';
+import { resolverNombresEjercicios } from '../../lib/ejerciciosCatalogo';
 
 export { responderRSVP, subirComprobante, linkWhatsApp };
 
-/** Carga base del padre: hijos + anuncios. */
+/** Carga base del padre: hijos + sesiones + anuncios + catálogo de ejercicios
+ *  (necesario para resolver ejercicios_ids a nombre en "Últimas sesiones"). */
 export async function fetchPadrePanel(user) {
-  const data = await fetchPadreData(user.id);
-  return { hijos: data?.hijos || [], anuncios: data?.anuncios || [] };
+  const [data, ejercicios] = await Promise.all([
+    fetchPadreData(user.id),
+    fetchEjercicios(),
+  ]);
+  return { hijos: data?.hijos || [], sesiones: data?.sesiones || [], anuncios: data?.anuncios || [], ejercicios };
+}
+
+/** Últimas `limite` sesiones del hijo, con sus ejercicios resueltos contra el
+ *  catálogo. `sesiones` ya viene ordenada por fecha desc (padreService). */
+export function ultimasSesiones(sesiones, hijo, catalogo, limite = 3) {
+  return (sesiones || [])
+    .filter((s) => s.atleta_id === hijo?.atleta_id)
+    .slice(0, limite)
+    .map((s) => ({
+      id: s.id,
+      fecha: s.fecha,
+      objetivoTipo: s.objetivo_tipo,
+      objetivo: s.objetivo_descripcion,
+      drills: resolverNombresEjercicios(s.ejercicios_ids, catalogo).map((d) => d.nombre || 'Ejercicio eliminado'),
+    }));
 }
 
 /** Detalle del hijo seleccionado (misiones/eventos/pagos/config/comunicados). */

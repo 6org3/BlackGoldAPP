@@ -13,6 +13,9 @@ import {
 } from '../api/sesionesService';
 import { labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { generarMensajeSesion, generarLinkWhatsApp } from '../api/comunicacionesService';
+import { filtrarEjerciciosPorTipoYNivel, resolverNombresEjercicios } from '../lib/ejerciciosCatalogo';
+import { NIVEL_BADGE } from './AdminAtletasConstants';
+import { NIVELES_GRUPO } from '../api/gruposService';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
 import BotonVolver from './arcade/BotonVolver';
@@ -73,6 +76,8 @@ export default function AdminSesiones({ user, atletas = [] }) {
   const [errorCarga, setErrorCarga] = useState(false);
   // Diálogo HUD activo (reemplaza window.prompt/alert): null | { variant, tone, ... }.
   const [modal, setModal] = useState(null);
+  // Ids de ejercicios con la descripción expandida (toggle "Ver más"/"Ver menos").
+  const [expandidos, setExpandidos] = useState(() => new Set());
 
   // Form state
   const [form, setForm] = useState({
@@ -110,17 +115,10 @@ export default function AdminSesiones({ user, atletas = [] }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Ejercicios filtrados por tipo y grupo. `nivel` es el vocabulario cerrado
-  // (Micro/Desarrollo/Elite) contra el que matchea grupos_recomendados; `nombre`
-  // es texto libre por club y solo se conserva como compatibilidad adicional.
-  // Sin grupo o con nivel NULL no se filtra por nivel (se muestran todos los del tipo).
+  // Ejercicios filtrados por tipo y nivel del grupo actual (ver semántica en
+  // filtrarEjerciciosPorTipoYNivel, src/lib/ejerciciosCatalogo.js).
   const grupoActual = grupos.find(g => g.id === form.grupoId);
-  const ejerciciosFiltrados = ejerciciosCatalogo.filter(e =>
-    e.tipo === form.objetivoTipo &&
-    (!grupoActual || !grupoActual.nivel ||
-      e.grupos_recomendados?.includes(grupoActual.nivel) ||
-      e.grupos_recomendados?.includes(grupoActual.nombre))
-  );
+  const ejerciciosFiltrados = filtrarEjerciciosPorTipoYNivel(ejerciciosCatalogo, form.objetivoTipo, grupoActual);
 
   const toggleEjercicio = (id) => {
     setForm(f => ({
@@ -138,6 +136,14 @@ export default function AdminSesiones({ user, atletas = [] }) {
         ? f.pruebasIds.filter(x => x !== id)
         : [...f.pruebasIds, id]
     }));
+  };
+
+  const toggleExpandido = (id) => {
+    setExpandidos(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   };
 
   const esEvaluacion = form.objetivoTipo === 'Evaluación';
@@ -264,7 +270,11 @@ export default function AdminSesiones({ user, atletas = [] }) {
 
   const abrirWA = (sesion) => {
     const grupoNombre = sesion.grupos_entrenamiento?.nombre || 'Individual';
-    const msg = generarMensajeSesion(grupoNombre, sesion.objetivo_descripcion, sesion.se_logro || 'Pendiente', sesion.notas_evaluacion);
+    // Huérfanos (ejercicio eliminado del catálogo) quedan fuera del mensaje al padre.
+    const drillNombres = resolverNombresEjercicios(sesion.ejercicios_ids, ejerciciosCatalogo)
+      .map(d => d.nombre)
+      .filter(Boolean);
+    const msg = generarMensajeSesion(grupoNombre, sesion.objetivo_descripcion, sesion.se_logro || 'Pendiente', sesion.notas_evaluacion, drillNombres);
     window.open(generarLinkWhatsApp('', msg), '_blank');
   };
 
@@ -500,6 +510,9 @@ export default function AdminSesiones({ user, atletas = [] }) {
               {ejerciciosFiltrados.map(ej => {
                 const sel = form.ejerciciosIds.includes(ej.id);
                 const c = TIPO_META[form.objetivoTipo].c;
+                const expandido = expandidos.has(ej.id);
+                const descripcion = ej.descripcion?.trim();
+                const nivelesBadge = (ej.grupos_recomendados || []).filter(n => NIVELES_GRUPO.includes(n));
                 return (
                   <button key={ej.id} onClick={() => toggleEjercicio(ej.id)}
                     aria-pressed={sel}
@@ -514,9 +527,30 @@ export default function AdminSesiones({ user, atletas = [] }) {
                       style={{ width: 16, height: 16, borderRadius: 9999, border: `1px solid ${sel ? c : BORDER.neutralSoft}`, background: sel ? c : 'transparent' }}>
                       {sel && <span style={{ width: 8, height: 8, borderRadius: 9999, background: C.ink }} />}
                     </span>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold" style={{ color: C.text }}>{ej.nombre}</p>
-                      <p className="text-3xs" style={{ color: C.text3 }}>{ej.descripcion?.substring(0, 60)}...</p>
+                      {nivelesBadge.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {nivelesBadge.map(n => {
+                            const badge = NIVEL_BADGE[n];
+                            return (
+                              <span key={n} className="text-3xs font-bold uppercase tracking-widest px-2 py-0.5"
+                                style={{ clipPath: cut(4), border: `1px solid ${badge.c}`, background: badge.tint, color: badge.c }}>
+                                {badge.icon} {n}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <p className={`text-3xs mt-1 ${expandido ? '' : 'line-clamp-2'}`} style={{ color: C.text3 }}>
+                        {descripcion || 'Sin descripción.'}
+                      </p>
+                      {descripcion && (
+                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleExpandido(ej.id); }}
+                          className="cut-focus mt-0.5 text-3xs font-bold transition-colors" style={{ color: C.gold }}>
+                          {expandido ? 'Ver menos' : 'Ver más'}
+                        </button>
+                      )}
                     </div>
                   </button>
                 );
@@ -618,6 +652,22 @@ export default function AdminSesiones({ user, atletas = [] }) {
                       <span className="text-3xs font-bold shrink-0" style={{ color: C.text4 }}>{s.fecha}</span>
                     </div>
                     <p className="text-xs mb-3 leading-relaxed" style={{ color: C.text2 }}>{s.objetivo_descripcion}</p>
+
+                    {/* Ejercicios de la sesión, resueltos contra el catálogo actual */}
+                    {s.ejercicios_ids?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {resolverNombresEjercicios(s.ejercicios_ids, ejerciciosCatalogo).map((d, i) => (
+                          <span key={`${d.id}-${i}`} className="text-3xs font-bold px-2 py-0.5"
+                            style={{
+                              clipPath: cut(4),
+                              border: `1px solid ${d.nombre ? BORDER.neutralSoft : BORDER.neutralFaint}`,
+                              color: d.nombre ? C.text2 : C.text4,
+                            }}>
+                            {d.nombre || 'Ejercicio eliminado'}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Estado de evaluación */}
                     {s.se_logro ? (

@@ -1,5 +1,6 @@
 import { ChevronRight } from 'lucide-react';
 import { C, BORDER, GRAD, cut, PIXEL, GLOW, hueFg, fmtClock } from './arcadeTokens';
+import { agruparDrillsPorTipo } from './canchaData';
 import MicroLabel from './MicroLabel';
 import CutCard from './CutCard';
 import LiveDot from './LiveDot';
@@ -32,6 +33,28 @@ export default function PantallaActiva({ focused, others, actions }) {
           </p>
         </div>
       </div>
+
+      {/* Plan de sesión (drills de la plantilla elegida). Ausente en sesiones sin
+          plantilla o reanudadas (que no cargan su plantilla). */}
+      {focused.plantilla?.drills?.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <MicroLabel color={C.text3} size={9.5} style={{ margin: '2px 0 8px' }}>
+            PLAN DE SESIÓN · {focused.plantilla.titulo}
+          </MicroLabel>
+          <div style={{ background: C.card, border: `1px solid ${BORDER.neutral}`, clipPath: cut(12), padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {agruparDrillsPorTipo(focused.plantilla.drills).map(([tipo, ds]) => (
+              <div key={tipo}>
+                <MicroLabel color={C.goldDeep} size={8} tracking=".08em" style={{ marginBottom: 5 }}>{tipo}</MicroLabel>
+                <ul style={{ margin: 0, paddingLeft: 16 }}>
+                  {ds.map((d, i) => (
+                    <li key={i} style={{ fontSize: 12, color: C.text2, lineHeight: 1.6 }}>{d.nombre}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Otras sesiones activas */}
       {others.length > 0 && (
