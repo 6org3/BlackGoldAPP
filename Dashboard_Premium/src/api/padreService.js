@@ -59,15 +59,23 @@ export const fetchPadreData = async (padreId) => {
     return merged;
   });
 
-  // 3. Traer sesiones recientes de los hijos
+  // 3. Traer sesiones recientes de los hijos: las INDIVIDUALES (atleta_id del
+  //    hijo) + las GRUPALES (atleta_id NULL) del grupo del hijo. Las grupales no
+  //    se filtran por grupo aquí: la RLS v50 (ses_control_select_grupo_propio)
+  //    ya restringe atleta_id IS NULL a los grupos de mis atletas, así que
+  //    `atleta_id.is.null` solo devuelve las que le corresponden al padre.
+  //    grupos_entrenamiento(nombre) se embebe para etiquetar la grupal (el
+  //    padre puede leer grupos_entrenamiento de su club por grupos_select v24);
+  //    si por RLS llegara null, el cliente hace fallback ('Sesión grupal').
   const { data: sesiones } = await supabase
     .from('sesiones_control')
     .select(`
-      id, fecha, tipo, objetivo_tipo, objetivo_descripcion, ejercicios_ids, ejercicios_notas, notas_evaluacion, se_logro, atleta_id,
+      id, fecha, tipo, objetivo_tipo, objetivo_descripcion, ejercicios_ids, ejercicios_notas, notas_evaluacion, se_logro, atleta_id, grupo_id,
       coach_id,
-      usuarios!sesiones_control_coach_id_fkey(nombre)
+      usuarios!sesiones_control_coach_id_fkey(nombre),
+      grupos_entrenamiento(nombre)
     `)
-    .in('atleta_id', idsHijos)
+    .or(`atleta_id.in.(${idsHijos.join(',')}),atleta_id.is.null`)
     .order('fecha', { ascending: false })
     .limit(20);
 

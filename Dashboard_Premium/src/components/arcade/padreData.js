@@ -33,18 +33,36 @@ export async function fetchPadrePanel(user) {
 }
 
 /** Últimas `limite` sesiones del hijo, con sus ejercicios resueltos contra el
- *  catálogo. `sesiones` ya viene ordenada por fecha desc (padreService). */
+ *  catálogo. `sesiones` ya viene ordenada por fecha desc (padreService) y mezcla
+ *  INDIVIDUALES del hijo (atleta_id) con GRUPALES (atleta_id null) de su grupo.
+ *
+ *  Regla de atribución de las grupales: una grupal se muestra a ESTE hijo solo
+ *  si `hijo.grupo_id` (caché legacy de la membresía básica) coincide con el
+ *  `grupo_id` de la sesión. Si el hijo no tiene grupo_id, no se le atribuye
+ *  ninguna grupal — con varios hermanos, evita mostrarle a uno el trabajo de
+ *  otro grupo. La RLS v50 ya garantizó que toda grupal recibida pertenece a un
+ *  grupo de ALGÚN hijo del padre; esto solo decide a cuál hijo asignarla. */
 export function ultimasSesiones(sesiones, hijo, catalogo, limite = 3) {
+  const hijoAtletaId = hijo?.atleta_id ?? null;
+  const hijoGrupoId = hijo?.grupo_id ?? null;
   return (sesiones || [])
-    .filter((s) => s.atleta_id === hijo?.atleta_id)
+    .filter((s) =>
+      s.atleta_id != null ? s.atleta_id === hijoAtletaId : hijoGrupoId != null && s.grupo_id === hijoGrupoId
+    )
     .slice(0, limite)
-    .map((s) => ({
-      id: s.id,
-      fecha: s.fecha,
-      objetivoTipo: s.objetivo_tipo,
-      objetivo: s.objetivo_descripcion,
-      drills: resolverNombresEjercicios(s.ejercicios_ids, catalogo).map((d) => d.nombre || 'Ejercicio eliminado'),
-    }));
+    .map((s) => {
+      const esGrupal = s.atleta_id == null;
+      return {
+        id: s.id,
+        fecha: s.fecha,
+        objetivoTipo: s.objetivo_tipo,
+        objetivo: s.objetivo_descripcion,
+        drills: resolverNombresEjercicios(s.ejercicios_ids, catalogo).map((d) => d.nombre || 'Ejercicio eliminado'),
+        esGrupal,
+        // Embed grupos_entrenamiento(nombre); si la RLS lo dejó null, fallback.
+        grupoNombre: esGrupal ? s.grupos_entrenamiento?.nombre || 'Sesión grupal' : null,
+      };
+    });
 }
 
 /** Detalle del hijo seleccionado (misiones/eventos/pagos/config/comunicados). */

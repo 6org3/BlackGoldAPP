@@ -7,6 +7,7 @@ import {
   fetchSessionAttendance,
   fetchPlantillasCancha,
   fetchEjerciciosMap,
+  rehidratarPlantilla,
   startSession,
   saveSubjectiveEval,
   closeClass,
@@ -278,7 +279,11 @@ export default function useCanchaSession(user) {
         setPlanned(pl);
         setPlantillas(plt);
         setEjerciciosMap(em);
-        dispatch({ type: 'HYDRATE_SESSIONS', sessions: sess });
+        // Rehidrata el PLAN DE SESIÓN de las sesiones reanudadas: el Promise.all ya
+        // trae las sesiones activas Y el mapa de drills, así que aquí se resuelve
+        // sin round-trips extra (v49). Sin ejercicios_ids persistidos → plantilla null.
+        const sessConPlan = sess.map((s) => ({ ...s, plantilla: rehidratarPlantilla(s, em) }));
+        dispatch({ type: 'HYDRATE_SESSIONS', sessions: sessConPlan });
         dispatch({ type: 'SET_PLANTILLAS', has: plt.length > 0 });
         setLoading(false);
       })

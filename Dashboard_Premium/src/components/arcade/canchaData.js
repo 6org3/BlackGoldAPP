@@ -20,6 +20,7 @@ import { insertarObservacion } from '../../api/observacionesService';
 import { otorgarXP } from '../../api/xpService';
 import { fetchSesionesPlanificadasHoy, fetchPlantillas, fetchEjercicios } from '../../api/sesionesService';
 import { xpBaseSesion, xpEvaluacion } from '../../../../packages/analytics-core/xp.js';
+import { getSubPilar, labelSubPilar, labelPilar } from '../../../../packages/analytics-core/taxonomia.js';
 
 // Eje Arcade → columna de observaciones_cancha + insignia (umbral 5★). El XP de
 // la evaluación lo calcula xpEvaluacion (analytics-core), no una tabla local (#7).
@@ -117,7 +118,38 @@ export function mapSession(s, present = 0) {
     hue: 'gold',
     evaluable: true,
     notas: s.notas || label,
+    // Crudos para rehidratar el PLAN DE SESIÓN al reanudar (v49). El título de la
+    // plantilla no se persiste → se deriva de pilar_objetivo (ver rehidratarPlantilla).
+    ejerciciosIds: Array.isArray(s.ejercicios_ids) && s.ejercicios_ids.length ? s.ejercicios_ids : null,
+    pilarObjetivo: s.pilar_objetivo || null,
   };
+}
+
+/**
+ * Título legible para el panel PLAN DE SESIÓN de una sesión REANUDADA: el título
+ * de la plantilla no se persiste (solo sus ids de drills), así que se deriva de
+ * `pilar_objetivo`. Éste guarda el sub_pilar de la plantilla cuando lo tiene, si
+ * no el pilar — por eso se prueba primero como sub-pilar y luego como pilar.
+ */
+function tituloPlantilla(pilarObjetivo) {
+  if (!pilarObjetivo) return 'Plan de sesión';
+  return getSubPilar(pilarObjetivo) ? labelSubPilar(pilarObjetivo) : labelPilar(pilarObjetivo);
+}
+
+/**
+ * Rehidrata la plantilla de una sesión reanudada (recarga de página u otro
+ * dispositivo): si su fila persistió `ejercicios_ids` (v49), arma
+ * `{ titulo, drills }` resolviendo los drills contra el mapa del catálogo. Sin
+ * ids, sin mapa, o con todos los drills huérfanos → null (PantallaActiva oculta
+ * el panel PLAN DE SESIÓN). Espeja el shape que la pantalla adjunta en vivo
+ * (titulo + drills es lo único que consume el panel).
+ */
+export function rehidratarPlantilla(session, map) {
+  const ids = session?.ejerciciosIds;
+  if (!Array.isArray(ids) || !ids.length || !map) return null;
+  const drills = resolveDrills(ids, map);
+  if (!drills.length) return null;
+  return { titulo: tituloPlantilla(session.pilarObjetivo), drills };
 }
 
 /**
@@ -233,6 +265,9 @@ export async function startSession({ user, classType, level, present, roster, fo
       tipo: tipoDB,
       pilar_objetivo: plantilla?.sub_pilar || plantilla?.pilar || null,
       pruebas_ids: null,
+      // Ids de los drills de la plantilla → rehidratan el PLAN DE SESIÓN al
+      // reanudar (v49). Solo si hay plantilla con drills; si no, null.
+      ejercicios_ids: plantilla?.ejerciciosIds?.length ? plantilla.ejerciciosIds : null,
       notas: notasStr,
     })
     .select()

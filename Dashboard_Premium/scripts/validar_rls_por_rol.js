@@ -85,6 +85,10 @@ async function limpiarQA() {
     .select('id, auth_user_id, cedula')
     .or(`cedula.like.QA_RLS_%,cedula.eq.PADRE_${QA.reg.telPadre},cedula.eq.PADRE_${QA.reg2.telPadre}`);
   const ids = (usuariosQA || []).map(u => u.id);
+  // v50: las sesiones GRUPALES sembradas (atleta_id NULL) no cuelgan de ningún
+  // atleta por CASCADE, y su coach_id es RESTRICT: se borran por marcador ANTES
+  // que los usuarios (el coach) y que sus grupos. Idempotente en el arranque.
+  await svc.from('sesiones_control').delete().like('objetivo_descripcion', 'QA_RLS%');
   if (ids.length) {
     // v40: varias columnas del módulo de pagos referencian usuarios(id) SIN
     // CASCADE (pago_transacciones.registrado_por, pago_comprobantes.subido_por
@@ -114,6 +118,9 @@ async function limpiarQA() {
     }
   }
   await svc.from('catalogo_sesiones').delete().like('titulo', 'QA_RLS_%');
+  // v50: los grupos sembrados, ya sin atletas que los referencien (atletas.grupo_id
+  // es NO ACTION, pero sus atletas se borraron arriba) ni sesiones (borradas ya).
+  await svc.from('grupos_entrenamiento').delete().like('nombre', 'QA_RLS_%');
   // Rastro del club ajeno (v40): las tablas de pago cuelgan del atleta por
   // CASCADE, pero el catálogo y la config del club van por su cuenta.
   await svc.from('catalogo_servicios').delete().eq('club', CLUB_AJENO);
@@ -187,6 +194,34 @@ async function setup() {
     q.atletaId = data.id;
   }
   await svc.from('padres_atletas').insert({ padre_id: QA.padre1.usuarioId, atleta_id: QA.atleta1.atletaId });
+
+  // ── v50: sesiones GRUPALES (atleta_id NULL) para probar que el padre ve las
+  // del grupo de SU hijo y no las de otro grupo. La pertenencia del hijo se
+  // refleja en atletas.grupo_id (la caché que lee grupos_de_mis_atletas()).
+  const { data: grupoHijo, error: eGrupoH } = await svc.from('grupos_entrenamiento')
+    .insert({ nombre: 'QA_RLS_GRUPO_HIJO', horario: 'L-V 17:00', club: CLUB }).select().single();
+  if (eGrupoH) throw new Error(`grupos_entrenamiento hijo: ${eGrupoH.message}`);
+  QA.grupoHijoId = grupoHijo.id;
+  await svc.from('atletas').update({ grupo_id: QA.grupoHijoId }).eq('id', QA.atleta1.atletaId);
+
+  const { data: grupoAjeno, error: eGrupoAj } = await svc.from('grupos_entrenamiento')
+    .insert({ nombre: 'QA_RLS_GRUPO_AJENO', horario: 'L-V 18:00', club: CLUB }).select().single();
+  if (eGrupoAj) throw new Error(`grupos_entrenamiento ajeno: ${eGrupoAj.message}`);
+  QA.grupoAjenoId = grupoAjeno.id;
+
+  const { data: sesG, error: eSesG } = await svc.from('sesiones_control').insert({
+    tipo: 'Grupal', grupo_id: QA.grupoHijoId, atleta_id: null, coach_id: QA.coach1.usuarioId,
+    objetivo_tipo: 'Físico', objetivo_descripcion: 'QA_RLS grupal del grupo del hijo',
+  }).select().single();
+  if (eSesG) throw new Error(`sesiones_control grupal hijo: ${eSesG.message}`);
+  QA.sesionGrupalId = sesG.id;
+
+  const { data: sesGA, error: eSesGA } = await svc.from('sesiones_control').insert({
+    tipo: 'Grupal', grupo_id: QA.grupoAjenoId, atleta_id: null, coach_id: QA.coach1.usuarioId,
+    objetivo_tipo: 'Físico', objetivo_descripcion: 'QA_RLS grupal de otro grupo',
+  }).select().single();
+  if (eSesGA) throw new Error(`sesiones_control grupal ajena: ${eSesGA.message}`);
+  QA.sesionGrupalAjenaId = sesGA.id;
 
   // ── El club ajeno, con datos que un staff de Black Gold pueda intentar tocar.
   await crearCuenta(QA.ownerAjeno, 'owner', CLUB_AJENO);
@@ -308,6 +343,16 @@ async function suitePadre() {
 
   const { error: ePagos } = await cli.from('pagos').select('id');
   check('padre consulta pagos sin error (solo los suyos)', !ePagos, ePagos?.message);
+
+  // v50: el padre ve las sesiones GRUPALES (atleta_id NULL) del grupo de su
+  // hijo — no solo las individuales — y NO las de un grupo ajeno. Requiere la
+  // migración v50 aplicada (ses_control_select_grupo_propio + grupos_de_mis_atletas).
+  const { data: sesPadre } = await cli.from('sesiones_control').select('id');
+  const idsSesPadre = (sesPadre || []).map(s => s.id);
+  check('padre SÍ ve la sesión grupal del grupo de su hijo (RLS v50)',
+    idsSesPadre.includes(QA.sesionGrupalId), `ve ${idsSesPadre.length} sesiones`);
+  check('padre NO ve una sesión grupal de otro grupo (RLS v50)',
+    !idsSesPadre.includes(QA.sesionGrupalAjenaId), 've la grupal de un grupo ajeno');
   await cli.auth.signOut();
 }
 

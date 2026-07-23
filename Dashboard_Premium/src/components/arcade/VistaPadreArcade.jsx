@@ -57,9 +57,9 @@ const MOCK = {
   historial: [{ m: 'Junio' }, { m: 'Mayo' }, { m: 'Abril' }],
   mision: { titulo: 'Pliometría N1', desc: '3×6 saltos al cajón', estadoLabel: 'EN REVISIÓN', xp: 50 },
   sesiones: [
-    { id: 's1', fecha: '2026-07-21', objetivoTipo: 'Físico', objetivo: 'Trabajo de fuerza de tren inferior', drills: ['Sentadilla goblet', 'Zancadas caminando'] },
-    { id: 's2', fecha: '2026-07-18', objetivoTipo: 'Técnico', objetivo: 'Fundamentos de tiro', drills: ['Tiro libre', 'Ejercicio eliminado'] },
-    { id: 's3', fecha: '2026-07-15', objetivoTipo: 'Táctico', objetivo: 'Lectura de bloqueo directo', drills: [] },
+    { id: 's1', fecha: '2026-07-21', objetivoTipo: 'Físico', objetivo: 'Trabajo de fuerza de tren inferior', drills: ['Sentadilla goblet', 'Zancadas caminando'], esGrupal: false, grupoNombre: null },
+    { id: 'sg', fecha: '2026-07-19', objetivoTipo: 'Táctico', objetivo: 'Sesión grupal de transiciones', drills: ['Contraataque 3v2', 'Salida de presión'], esGrupal: true, grupoNombre: 'Sub-13 Desarrollo' },
+    { id: 's2', fecha: '2026-07-18', objetivoTipo: 'Técnico', objetivo: 'Fundamentos de tiro', drills: ['Tiro libre', 'Ejercicio eliminado'], esGrupal: false, grupoNombre: null },
   ],
   comunicados: [
     { icon: '📣', titulo: 'Uniformes nuevos disponibles', sub: 'Retirar en secretaría · esta semana' },
@@ -403,7 +403,12 @@ export default function VistaPadreArcade() {
               {vm.sesiones.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                   {vm.sesiones.map((s) => (
-                    <div key={s.id} style={{ background: C.card, border: `1px solid ${BORDER.neutral}`, clipPath: cut(10), padding: 13 }}>
+                    <div key={s.id} style={{ background: C.card, border: `1px solid ${s.esGrupal ? BORDER.info : BORDER.neutral}`, clipPath: cut(10), padding: 13 }}>
+                      {s.esGrupal && (
+                        <span style={{ display: 'inline-block', marginBottom: 6, fontFamily: PIXEL, fontSize: 7.5, letterSpacing: '.04em', color: C.info, border: `1px solid ${BORDER.info}`, clipPath: cut(5), padding: '3px 7px' }}>
+                          GRUPAL · {s.grupoNombre}
+                        </span>
+                      )}
                       <MicroLabel color={C.text3} size={8} tracking="normal">{s.objetivoTipo} · {s.fecha}</MicroLabel>
                       <p style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.5 }}>{s.objetivo}</p>
                       {s.drills.length > 0 && (
