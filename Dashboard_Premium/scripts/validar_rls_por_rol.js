@@ -62,7 +62,7 @@ const QA = {
 // Reversiones que limpiarQA debe aplicar en el finally (y también al arrancar,
 // por si una corrida anterior murió a medias): datos REALES tocados por los
 // asserts de aislamiento cross-club (v40), no filas QA que se borren solas.
-const CLUB_CONFIG_BACKUP = { pendiente: false, cuenta_bancaria_texto: null };
+const CLUB_CONFIG_BACKUP = { pendiente: false, existia: true, cuenta_bancaria_texto: null };
 const PAGOS_FICTICIOS_ANIOS = [];
 
 const resultados = [];
@@ -148,9 +148,18 @@ async function limpiarQA() {
   // restauran aquí (finally + arranque) y no inline, para que sobrevivan a un
   // fallo a mitad de la suite.
   if (CLUB_CONFIG_BACKUP.pendiente) {
-    await svc.from('club_config')
-      .update({ cuenta_bancaria_texto: CLUB_CONFIG_BACKUP.cuenta_bancaria_texto })
-      .eq('club', CLUB);
+    // Si la fila NO existía antes del check (Black Gold puede no tenerla — ver
+    // nota junto al upsert de suiteAislamientoClubPagos), el upsert del test la
+    // creó: restaurar con UPDATE la dejaría huérfana para siempre con valores
+    // en null. Simétrico: sin fila previa, se borra; con fila previa, se
+    // restaura su valor.
+    if (CLUB_CONFIG_BACKUP.existia) {
+      await svc.from('club_config')
+        .update({ cuenta_bancaria_texto: CLUB_CONFIG_BACKUP.cuenta_bancaria_texto })
+        .eq('club', CLUB);
+    } else {
+      await svc.from('club_config').delete().eq('club', CLUB);
+    }
     CLUB_CONFIG_BACKUP.pendiente = false;
   }
   if (PAGOS_FICTICIOS_ANIOS.length) {
@@ -1015,12 +1024,18 @@ async function suiteAislamientoClubPagos() {
   // La config de CLUB es un dato real de la base: se respalda ANTES de tocarla
   // y limpiarQA (que corre en el finally, pase o falle la suite) la restaura —
   // un test no debe dejar el club con la cuenta bancaria de un QA a medias.
+  // `club_config` se sembró una vez desde grupos_entrenamiento en v27 y nada la
+  // mantiene (nota de v34) — "Black Gold" puede no tener fila (no la tiene tras
+  // el reset del 22-07). upsertClubConfig (pagosService.js) ya lo asume: hace
+  // upsert, no update. Este check replica ESE patrón real en vez de uno propio
+  // que solo funciona si la fila ya existe (existía = pasaba antes del reset).
   const { data: cfgAntes } = await svc.from('club_config')
     .select('cuenta_bancaria_texto').eq('club', CLUB).maybeSingle();
+  CLUB_CONFIG_BACKUP.existia = cfgAntes !== null;
   CLUB_CONFIG_BACKUP.cuenta_bancaria_texto = cfgAntes?.cuenta_bancaria_texto ?? null;
   CLUB_CONFIG_BACKUP.pendiente = true;
   const { error: ePropio } = await cliOwner.from('club_config')
-    .update({ cuenta_bancaria_texto: 'QA_RLS cuenta propia' }).eq('club', CLUB).select();
+    .upsert({ club: CLUB, cuenta_bancaria_texto: 'QA_RLS cuenta propia' }, { onConflict: 'club' }).select();
   const { data: cfgPropio } = await svc.from('club_config')
     .select('cuenta_bancaria_texto').eq('club', CLUB).maybeSingle();
   check('owner SÍ escribe la config de SU club (no se rompió v27)',
