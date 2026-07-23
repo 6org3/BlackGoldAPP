@@ -353,17 +353,17 @@ Cut-points by gender (age wildcard **"Todas"** — applies to all buckets). Unit
 
 **Protocol:** On a track or court with measured distance, run 600 m (ages 9–10, bucket **Sub12 only**) or 1000 m (ages 11–12, bucket **Sub15 only**) in the shortest possible time. Standing start, manual stopwatch. Record total time in **seconds** (less is better). The 600 m serves as field alternative to the Course Navette when no audio is available.
 
-**Sources:** Prueba nº5 of Vinueza's Ecuadorian physical talent-detection battery (Ecuadorian population norms — see the club's methodological guide).
+**Sources:** Batería ecuatoriana de detección de talento (E. Vinueza Tapia / **Romero Frómeta 2013, FEDENADOR**, Tablas No.4–7, N=1266). Manual original contrastado celda por celda (2026-07-22).
 
-> [!WARNING]
-> **PROVISIONAL cut-points.** The available summary of the Vinueza guide does not include the original time tables; these cortes are estimated from school athletics literature. Deferred pending item (P1.5): calibrate against Vinueza's original tables (and the club's first own data) before treating them as normative.
+> [!NOTE]
+> **Cut-points ratificados (2026-07-22).** La fuente quedó confirmada y contrastada contra el manual original. La columna **600 m femenina del manual resultó inservible** (dimorfismo invertido + tiempos imposibles — ver detalle abajo), así que `carrera_600m_vinueza` se **re-ancló**: Masculino a la Tabla 5 (600 m masculino, única columna plausible/monótona), Femenino = Masculino ×1.05 (dimorfismo Brown 2024, *EJSS* PMC11235854). `carrera_1000m_vinueza` se ratificó sin cambios. Detalle completo, tabla del manual y erratas tipográficas en **`docs/baremos_revision_2026.md` §Cierre definitivo del contraste celda por celda**. Ya aplicado en producción (`catalogo_ejercicios`).
 
-**600 m (Sub12 only, seconds — less is better):**
+**600 m (Sub12 only, seconds — less is better) — re-anclado (Fem = Masc ×1.05):**
 
 | Género | Micro | Desarrollo | Elite |
 |:---|:---:|:---:|:---:|
-| **Masculino** | [154, 171, 187, 209] | [140, 155, 170, 190] | [126, 140, 153, 171] |
-| **Femenino** | [165, 182, 198, 220] | [150, 165, 180, 200] | [135, 149, 162, 180] |
+| **Masculino** | [172, 186, 212, 236] | [158, 172, 186, 212] | [146, 158, 172, 186] |
+| **Femenino** | [181, 195, 223, 248] | [166, 181, 195, 223] | [153, 166, 181, 195] |
 
 **1000 m (Sub15 only, seconds — less is better):**
 
@@ -391,7 +391,7 @@ Cut-points by gender (age wildcard **"Todas"** — applies to all buckets). Unit
 10. FitnessGram / Healthy Fitness Zone — US school-based norms
 11. ACSM — Adult exercise testing guidelines
 12. NBA Draft Combine — Lane agility, vertical jump, bench press data (2000–present)
-13. Vinueza — Batería ecuatoriana de detección física (600 m / 1000 m; cortes provisionales pendientes de calibrar)
+13. Romero Frómeta / Vinueza Tapia 2013 (FEDENADOR) — Batería ecuatoriana de detección física (600 m / 1000 m; contrastada celda por celda con el manual original, 2026-07-22); Brown 2024 (*EJSS* PMC11235854) — dimorfismo de carrera 9-10a (base del re-anclaje femenino del 600 m)
 
 ### Professional / Coaching
 14. NoahBasketball.com — Shooting analytics across competition levels
