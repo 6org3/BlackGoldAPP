@@ -25,8 +25,9 @@
 // con las columnas nombre/tipo/descripcion/grupos_recomendados únicamente.
 //
 // Uso:
-//   node scripts/seed_ejercicios_catalogo.mjs             # inserta de verdad
+//   node scripts/seed_ejercicios_catalogo.mjs             # inserta lo que falte (idempotente por nombre)
 //   node scripts/seed_ejercicios_catalogo.mjs --dry-run    # valida + diff, no escribe
+//   node scripts/seed_ejercicios_catalogo.mjs --reset      # borra todo y re-siembra (tras renombrar drills)
 //
 // Requiere SUPABASE_SERVICE_ROLE_KEY en Dashboard_Premium/.env.local.
 
@@ -63,6 +64,12 @@ const TAMANO_LOTE = 50;
 const TAMANO_PAGINA = 1000; // PostgREST trunca a 1000 filas por request en silencio
 
 const DRY_RUN = process.argv.slice(2).includes('--dry-run');
+// --reset: borra TODAS las filas de la tabla antes de sembrar. Necesario cuando
+// se renombran drills durante la poda: la idempotencia es por `nombre`, así que
+// sin reset un nombre editado quedaría duplicado (la fila vieja no se toca).
+// Catálogo global de datos de prueba; el borrado no arrastra FK (ejercicios_ids
+// es un array JSONB sin constraint). --dry-run + --reset solo reporta el borrado.
+const RESET = process.argv.slice(2).includes('--reset');
 
 /** Valida el array completo del JSON. Devuelve la lista de errores (vacía = OK). */
 function validarEjercicios(ejercicios) {
@@ -174,7 +181,30 @@ async function run() {
   }
   console.log(`✅ Validación OK: ${ejercicios.length} ejercicio(s) en el JSON.\n`);
 
-  const existentes = await leerNombresExistentes();
+  if (RESET) {
+    const previas = await contarFilas();
+    if (DRY_RUN) {
+      console.log(`🧹 --reset (dry-run): se borrarían las ${previas ?? '?'} fila(s) actuales antes de sembrar.\n`);
+    } else {
+      console.log(`🧹 --reset: borrando las ${previas ?? '?'} fila(s) actuales de ejercicios_catalogo…`);
+      const { error } = await supabase
+        .from('ejercicios_catalogo')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // filtro obligatorio en supabase-js: matchea todo
+      if (error) {
+        console.error('❌ Error borrando ejercicios_catalogo:', error.message);
+        process.exit(1);
+      }
+      const restantes = await contarFilas();
+      if (restantes) {
+        console.error(`❌ Tras el reset quedan ${restantes} fila(s); se aborta sin insertar.`);
+        process.exit(1);
+      }
+      console.log('   ✔ Tabla vacía.\n');
+    }
+  }
+
+  const existentes = RESET && !DRY_RUN ? new Set() : await leerNombresExistentes();
 
   const nuevos = ejercicios.filter((e) => !existentes.has(e.nombre.trim()));
   const yaExisten = ejercicios.length - nuevos.length;
