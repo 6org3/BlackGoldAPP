@@ -51,16 +51,23 @@ describe('Catálogo de ejercicios — selector, historial y Modo Cancha', () => 
     // QA no tiene grupos → se ofrecen todos los drills del tipo, sin filtro de nivel.
     cy.contains(/Ejercicios \(\d+ disponibles\)/, { timeout: 20000 }).should('be.visible');
 
-    // Al menos un badge de nivel del catálogo real.
-    cy.contains(/⚡ Desarrollo|🌱 Micro|👑 Elite/, { timeout: 20000 }).should('be.visible');
+    // Al menos un badge de nivel del catálogo real. El primer match puede caer
+    // fuera del scroll visible de la lista (overflow-y-auto, max-h-48/64):
+    // scrollIntoView antes de pedir visibilidad.
+    cy.contains(/⚡ Desarrollo|🌱 Micro|👑 Elite/, { timeout: 20000 }).scrollIntoView().should('be.visible');
 
     // Expandir la descripción ("Ver más") NO debe togglear la selección del drill:
-    // el botón anidado hace stopPropagation. Se localiza el drill contenedor
-    // (button[aria-pressed]) desde su "Ver más" anidado.
-    cy.contains('button', 'Ver más', { timeout: 20000 }).first().as('verMas');
-    cy.get('@verMas').parents('button[aria-pressed]').first().as('drill');
-    cy.get('@drill').should('have.attr', 'aria-pressed', 'false');
-    cy.get('@verMas').click({ force: true });
+    // el botón anidado hace stopPropagation. Se apunta a un drill por NOMBRE EXACTO
+    // del catálogo real (no .first()/:contains genérico sobre "Ver más": con 32
+    // drills Técnico en la lista, el selector CSS :contains() y cy.contains()
+    // dentro de .within() resolvían el "primer" match de forma INCONSISTENTE entre
+    // sí — el clic terminaba togglenado un drill distinto al que se verificaba
+    // después. Un nombre exacto es determinista.
+    cy.contains('button[aria-pressed]', '5-10-5 pro agility', { timeout: 20000 }).as('drill');
+    cy.get('@drill').should('have.attr', 'aria-pressed', 'false').scrollIntoView();
+    cy.get('@drill').within(() => {
+      cy.contains('button', 'Ver más').click({ force: true });
+    });
     cy.get('@drill').should('have.attr', 'aria-pressed', 'false');
     cy.get('@drill').contains('Ver menos').should('exist');
 
@@ -70,12 +77,14 @@ describe('Catálogo de ejercicios — selector, historial y Modo Cancha', () => 
     cy.contains(/ejercicio\(s\) seleccionado\(s\)/i).should('be.visible');
 
     // Historial: la sesión sembrada con sus 2 drills reales + el chip de huérfano.
-    cy.contains('[QA] Historial con drills', { timeout: 20000 }).should('be.visible');
+    // scrollIntoView: es otra sección de la página, con su propio contenedor con
+    // overflow, y el scroll de la interacción con el selector no la deja a la vista.
+    cy.contains('[QA] Historial con drills', { timeout: 20000 }).scrollIntoView().should('be.visible');
     cy.then(() => {
-      cy.contains(drillsReales[0]).should('be.visible');
-      cy.contains(drillsReales[1]).should('be.visible');
+      cy.contains(drillsReales[0]).scrollIntoView().should('be.visible');
+      cy.contains(drillsReales[1]).scrollIntoView().should('be.visible');
     });
-    cy.contains('Ejercicio eliminado').should('be.visible');
+    cy.contains('Ejercicio eliminado').scrollIntoView().should('be.visible');
   });
 
   it('Modo Cancha — una plantilla [QA] guía la sesión (flujo completo con PLAN DE SESIÓN)', () => {
@@ -87,16 +96,44 @@ describe('Catálogo de ejercicios — selector, historial y Modo Cancha', () => 
     cy.viewport(412, 860);
     cy.intercept('POST', '**/rest/v1/sesiones_programadas*').as('insSesion');
     cy.intercept('POST', '**/rest/v1/asistencia*').as('insAsistencia');
-    cy.intercept('GET', '**/rest/v1/catalogo_sesiones*').as('getPlantillas');
 
     login(QA.coach);
     cy.visit('/dashboard');
     cy.get('.animate-spin', { timeout: 20000 }).should('not.exist');
-    cy.get('[aria-label="Abrir Modo Cancha"]', { timeout: 20000 }).click({ force: true });
 
-    // Esperar a que carguen las plantillas (SET_PLANTILLAS es async): si no,
-    // PICK_LEVEL podría auto-omitir el paso 'objetivo' por la carrera de carga.
-    cy.wait('@getPlantillas');
+    // Al abrir Modo Cancha, useCanchaSession dispara un Promise.all de 5 fetches
+    // (roster, sesiones activas, agenda de hoy, plantillas, mapa de drills);
+    // SET_PLANTILLAS solo se dispara cuando TODAS resuelven, no solo la de
+    // plantillas — por eso se espera a las 5, no una sola (si no, PICK_LEVEL
+    // puede leer hasPlantillas=false por la carrera y auto-omitir el paso).
+    // Los intercepts se registran recién aquí (no antes de visit) para no
+    // capturar la carga inicial del propio /dashboard (CoachHomePage también
+    // pide 'atletas').
+    cy.intercept('GET', '**/rest/v1/atletas*').as('getRoster');
+    cy.intercept('GET', '**/rest/v1/sesiones_programadas*').as('getSesionesActivas');
+    cy.intercept('GET', '**/rest/v1/sesiones_control*').as('getPlanificadasHoy');
+    cy.intercept('GET', '**/rest/v1/catalogo_sesiones*').as('getPlantillas');
+    cy.intercept('GET', '**/rest/v1/ejercicios_catalogo*').as('getEjerciciosMap');
+
+    cy.get('[aria-label="Abrir Modo Cancha"]', { timeout: 20000 }).click({ force: true });
+    // main.jsx monta en <StrictMode>: en dev, el useEffect del Promise.all se
+    // dispara DOS veces (monta→limpia→remonta); la 1ª ronda queda descartada por
+    // el guard `alive` y nunca dispara SET_PLANTILLAS. Esperar solo 1 ocurrencia
+    // de cada alias consumía esa ronda inútil y dejaba el test corriendo antes de
+    // que la ronda real (la 2ª) resolviera. Se esperan 2 de cada.
+    cy.wait([
+      '@getRoster', '@getRoster',
+      '@getSesionesActivas', '@getSesionesActivas',
+      '@getPlanificadasHoy', '@getPlanificadasHoy',
+      '@getPlantillas', '@getPlantillas',
+      '@getEjerciciosMap', '@getEjerciciosMap',
+    ], { timeout: 20000 });
+    // cy.wait() de red resuelve en cuanto el navegador VE la respuesta, no cuando
+    // React termina de procesar el .then() del Promise.all (parseo + 2 dispatches
+    // + render) que recién ahí deja state.hasPlantillas listo. Buffer corto y
+    // explícito para esa brecha framework, confirmada real: verificado a mano
+    // (fuera de Cypress) que el paso Objetivo SÍ aparece siempre correctamente.
+    cy.wait(400);
 
     cy.get('[aria-label="GRUPAL NIVELES"]', { timeout: 15000 }).click({ force: true });
     cy.get('[aria-label^="Bloque Desarrollo"]', { timeout: 15000 }).click({ force: true });
@@ -143,14 +180,38 @@ describe('Catálogo de ejercicios — selector, historial y Modo Cancha', () => 
     cy.viewport(412, 860);
     cy.intercept('POST', '**/rest/v1/sesiones_programadas*').as('insSesion');
     cy.intercept('POST', '**/rest/v1/asistencia*').as('insAsistencia');
-    cy.intercept('GET', '**/rest/v1/catalogo_sesiones*').as('getPlantillas');
 
     login(QA.coach);
     cy.visit('/dashboard');
     cy.get('.animate-spin', { timeout: 20000 }).should('not.exist');
-    cy.get('[aria-label="Abrir Modo Cancha"]', { timeout: 20000 }).click({ force: true });
 
-    cy.wait('@getPlantillas');
+    // Ver el comentario del it anterior: hay que esperar los 5 fetches del
+    // Promise.all de useCanchaSession, no solo el de plantillas.
+    cy.intercept('GET', '**/rest/v1/atletas*').as('getRoster');
+    cy.intercept('GET', '**/rest/v1/sesiones_programadas*').as('getSesionesActivas');
+    cy.intercept('GET', '**/rest/v1/sesiones_control*').as('getPlanificadasHoy');
+    cy.intercept('GET', '**/rest/v1/catalogo_sesiones*').as('getPlantillas');
+    cy.intercept('GET', '**/rest/v1/ejercicios_catalogo*').as('getEjerciciosMap');
+
+    cy.get('[aria-label="Abrir Modo Cancha"]', { timeout: 20000 }).click({ force: true });
+    // main.jsx monta en <StrictMode>: en dev, el useEffect del Promise.all se
+    // dispara DOS veces (monta→limpia→remonta); la 1ª ronda queda descartada por
+    // el guard `alive` y nunca dispara SET_PLANTILLAS. Esperar solo 1 ocurrencia
+    // de cada alias consumía esa ronda inútil y dejaba el test corriendo antes de
+    // que la ronda real (la 2ª) resolviera. Se esperan 2 de cada.
+    cy.wait([
+      '@getRoster', '@getRoster',
+      '@getSesionesActivas', '@getSesionesActivas',
+      '@getPlanificadasHoy', '@getPlanificadasHoy',
+      '@getPlantillas', '@getPlantillas',
+      '@getEjerciciosMap', '@getEjerciciosMap',
+    ], { timeout: 20000 });
+    // cy.wait() de red resuelve en cuanto el navegador VE la respuesta, no cuando
+    // React termina de procesar el .then() del Promise.all (parseo + 2 dispatches
+    // + render) que recién ahí deja state.hasPlantillas listo. Buffer corto y
+    // explícito para esa brecha framework, confirmada real: verificado a mano
+    // (fuera de Cypress) que el paso Objetivo SÍ aparece siempre correctamente.
+    cy.wait(400);
 
     cy.get('[aria-label="GRUPAL NIVELES"]', { timeout: 15000 }).click({ force: true });
     cy.get('[aria-label^="Bloque Desarrollo"]', { timeout: 15000 }).click({ force: true });
