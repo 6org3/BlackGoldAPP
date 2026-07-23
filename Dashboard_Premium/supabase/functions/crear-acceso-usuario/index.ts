@@ -44,7 +44,7 @@
 // producto (ver el PR de v41).
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { autenticar, jsonResponse, ROLES_STAFF } from "../_shared/brainAuth.ts";
+import { autenticar, jsonResponse, reintentarAuth, ROLES_STAFF } from "../_shared/brainAuth.ts";
 
 // Misma regla que resolver_email_login() (v19), el trigger de v24 y
 // registro-publico.
@@ -184,19 +184,19 @@ serve(async (req) => {
   // v41: rotar el acceso existente. La cuenta de Auth ya existe y ya está
   // vinculada, así que aquí solo se cambia la contraseña.
   if (regenerar) {
-    const { error: eRotar } = await admin!.auth.admin
-      .updateUserById(target.auth_user_id as string, { password });
+    const { error: eRotar } = await reintentarAuth(() => admin!.auth.admin
+      .updateUserById(target.auth_user_id as string, { password }));
     if (eRotar) {
       return jsonResponse({ error: 'No se pudo regenerar el acceso: ' + eRotar.message }, 409);
     }
     return jsonResponse({ success: true, regenerado: true, password_temporal: passwordTemporal }, 200);
   }
 
-  const { data: created, error: eAuth } = await admin!.auth.admin.createUser({
+  const { data: created, error: eAuth } = await reintentarAuth(() => admin!.auth.admin.createUser({
     email: emailParaAuth(target.correo as string | null, target.cedula as string),
     password,
     email_confirm: true,
-  });
+  }));
   if (eAuth) {
     return jsonResponse({ error: 'No se pudo crear la cuenta de acceso: ' + eAuth.message }, 409);
   }

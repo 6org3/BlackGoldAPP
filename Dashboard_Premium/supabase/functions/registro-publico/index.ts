@@ -16,6 +16,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { reintentarAuth } from "../_shared/brainAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,11 +66,11 @@ serve(async (req) => {
 
   // 2. Cuenta de acceso del atleta (password inicial = su cédula, como el
   //    login histórico). El trigger de v24 vincula auth_user_id.
-  const { error: eAuthAtleta } = await supabase.auth.admin.createUser({
+  const { error: eAuthAtleta } = await reintentarAuth(() => supabase.auth.admin.createUser({
     email: emailParaAuth(atleta.correo, atleta.cedula),
     password: atleta.cedula,
     email_confirm: true,
-  });
+  }));
   if (eAuthAtleta) {
     return jsonResponse({
       error: 'El perfil se creó pero no se pudo generar la cuenta de acceso: ' + eAuthAtleta.message,
@@ -81,11 +82,11 @@ serve(async (req) => {
   //    (si ya existía conserva su cuenta y contraseña). Password inicial:
   //    la cédula de este hijo. Best-effort: no bloquea el registro.
   if (reg?.padre_id && !reg?.padre_existente && reg?.padre_cedula) {
-    const { error: eAuthPadre } = await supabase.auth.admin.createUser({
+    const { error: eAuthPadre } = await reintentarAuth(() => supabase.auth.admin.createUser({
       email: emailParaAuth(padre?.correo, reg.padre_cedula),
       password: atleta.cedula,
       email_confirm: true,
-    });
+    }));
     if (eAuthPadre) console.error('Cuenta del representante no creada:', eAuthPadre.message);
   }
 

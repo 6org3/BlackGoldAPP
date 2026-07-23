@@ -20,7 +20,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { autenticar, jsonResponse } from "../_shared/brainAuth.ts";
+import { autenticar, jsonResponse, reintentarAuth } from "../_shared/brainAuth.ts";
 
 serve(async (req) => {
   const { error, caller, admin } = await autenticar(req);
@@ -61,7 +61,7 @@ serve(async (req) => {
   // tenía (puede ser null: un rechazo puede haber llegado antes de que se le
   // creara acceso, aunque en la práctica registrar_publico siempre lo crea).
   if (purga?.auth_user_id) {
-    const { error: eAuth } = await admin!.auth.admin.deleteUser(purga.auth_user_id as string);
+    const { error: eAuth } = await reintentarAuth(() => admin!.auth.admin.deleteUser(purga.auth_user_id as string));
     if (eAuth) {
       return jsonResponse({
         error: 'Se liberó la cédula pero no se pudo borrar la cuenta de acceso: ' + eAuth.message,
