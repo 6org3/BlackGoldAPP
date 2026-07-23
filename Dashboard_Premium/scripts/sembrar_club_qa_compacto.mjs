@@ -69,6 +69,20 @@ function tierDe(tipo, cortes, valor) {
 // Banda media (tier average, cortes[1]..cortes[2]) — vale para ambos tipos de prueba.
 function valorMedio(cortes) { const [, t2, t3] = cortes; return randFloat(t2, t3); }
 
+// Busca en auth.users (paginado) cuentas con un email exacto. Usado cuando
+// createUser falla porque el email ya existe: típicamente un reset previo
+// borró la fila `usuarios` pero no la cuenta Auth asociada.
+async function buscarAuthUsersPorEmail(email) {
+  const coincidencias = [];
+  for (let page = 1; ; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error(`listUsers: ${error.message}`);
+    coincidencias.push(...data.users.filter((u) => u.email?.toLowerCase() === email.toLowerCase()));
+    if (data.users.length < 1000) break;
+  }
+  return coincidencias;
+}
+
 async function ensureUsuarioConAuth({ cedula, nombre, rol, fecha_nacimiento = null, genero = null, conAuth = true }) {
   const { data: ex } = await supabase.from('usuarios').select('id, auth_user_id').eq('cedula', cedula).maybeSingle();
   if (!EJECUTAR) { console.log(`  · usuario${conAuth ? '+auth' : ''} [${rol}] ${cedula}` + (ex ? ' (ya existe)' : '')); return { id: ex?.id || null }; }
@@ -84,9 +98,20 @@ async function ensureUsuarioConAuth({ cedula, nombre, rol, fecha_nacimiento = nu
     // script imprime sus credenciales al final). En el producto ya no ocurre
     // para coach/owner. Re-correr esto deshace la rotación de
     // scripts/rotar_passwords_staff.mjs para este club.
-    const { data: a, error: e } = await supabase.auth.admin.createUser({ email: emailInterno(cedula), password: cedula, email_confirm: true, user_metadata: { usuario_id: id, demo: true } });
-    if (!e && a?.user) await supabase.from('usuarios').update({ auth_user_id: a.user.id }).eq('id', id);
-    else console.warn(`  ⚠️  auth ${cedula}: ${e?.message || 'sin user'}`);
+    const email = emailInterno(cedula);
+    const { data: a, error: e } = await supabase.auth.admin.createUser({ email, password: cedula, email_confirm: true, user_metadata: { usuario_id: id, demo: true } });
+    if (!e && a?.user) {
+      await supabase.from('usuarios').update({ auth_user_id: a.user.id }).eq('id', id);
+    } else {
+      console.warn(`  ⚠️  auth ${cedula}: ${e?.message || 'sin user'} (buscando cuenta existente por email)`);
+      const candidatos = await buscarAuthUsersPorEmail(email);
+      if (candidatos.length === 1) {
+        await supabase.from('usuarios').update({ auth_user_id: candidatos[0].id }).eq('id', id);
+        console.log(`  🔗 ${cedula}: re-vinculado a auth_user_id existente (${candidatos[0].id}).`);
+      } else {
+        console.warn(`  ⚠️  ${cedula}: ${candidatos.length} candidatos en auth.users para ${email}; no se re-vincula automáticamente.`);
+      }
+    }
   }
   return { id };
 }

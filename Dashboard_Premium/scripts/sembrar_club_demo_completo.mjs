@@ -82,6 +82,20 @@ async function ensureUsuarioConAuth({ cedula, nombre, rol, fecha_nacimiento = nu
   return { id: usuarioId, cedula };
 }
 
+// ── Helper: buscar en auth.users (paginado) cuentas con un email exacto ──
+// Usado cuando createUser falla porque el email ya existe: típicamente un
+// reset previo borró la fila `usuarios` pero no la cuenta Auth asociada.
+async function buscarAuthUsersPorEmail(email) {
+  const coincidencias = [];
+  for (let page = 1; ; page++) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error(`listUsers: ${error.message}`);
+    coincidencias.push(...data.users.filter((u) => u.email?.toLowerCase() === email.toLowerCase()));
+    if (data.users.length < 1000) break;
+  }
+  return coincidencias;
+}
+
 // ── Helper: crear+vincular cuenta Auth para una fila usuarios ya existente ──
 // v41: `password = cédula` se conserva aquí a propósito (club demo, este script
 // imprime sus credenciales al final). En el producto ya no ocurre para
@@ -97,8 +111,17 @@ async function ensureAuth({ id, cedula, auth_user_id }) {
     email, password: cedula, email_confirm: true, user_metadata: { usuario_id: id, demo: true },
   });
   if (errAuth || !authData?.user) {
-    // Puede fallar si el email ya existe en auth.users (rerun) → intentar re-vincular.
-    console.warn(`⚠️  createUser ${cedula}: ${errAuth?.message || 'sin user'} (se intentará continuar)`);
+    // Puede fallar si el email ya existe en auth.users (rerun tras un reset
+    // que borró la fila `usuarios` pero no la cuenta Auth) → buscar y re-vincular.
+    console.warn(`⚠️  createUser ${cedula}: ${errAuth?.message || 'sin user'} (buscando cuenta existente por email)`);
+    const candidatos = await buscarAuthUsersPorEmail(email);
+    if (candidatos.length === 1) {
+      const { error: errLink } = await supabase.from('usuarios').update({ auth_user_id: candidatos[0].id }).eq('id', id);
+      if (errLink) throw new Error(`re-vincular auth ${cedula}: ${errLink.message}`);
+      console.log(`  🔗 ${cedula}: re-vinculado a auth_user_id existente (${candidatos[0].id}).`);
+    } else {
+      console.warn(`  ⚠️  ${cedula}: ${candidatos.length} candidatos en auth.users para ${email}; no se re-vincula automáticamente.`);
+    }
     return;
   }
   const { error: errLink } = await supabase.from('usuarios').update({ auth_user_id: authData.user.id }).eq('id', id);
