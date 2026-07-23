@@ -23,6 +23,7 @@ import {
   conceptoCorto,
   misionActual,
   estadoMision,
+  ultimasSesiones,
   responderRSVP,
   subirComprobante,
   linkWhatsApp,
@@ -55,6 +56,11 @@ const MOCK = {
   pago: { titulo: 'Julio 2026', monto: 35, estadoLabel: '⚠ PENDIENTE · VENCE 5 JUL', vencido: true },
   historial: [{ m: 'Junio' }, { m: 'Mayo' }, { m: 'Abril' }],
   mision: { titulo: 'Pliometría N1', desc: '3×6 saltos al cajón', estadoLabel: 'EN REVISIÓN', xp: 50 },
+  sesiones: [
+    { id: 's1', fecha: '2026-07-21', objetivoTipo: 'Físico', objetivo: 'Trabajo de fuerza de tren inferior', drills: ['Sentadilla goblet', 'Zancadas caminando'] },
+    { id: 's2', fecha: '2026-07-18', objetivoTipo: 'Técnico', objetivo: 'Fundamentos de tiro', drills: ['Tiro libre', 'Ejercicio eliminado'] },
+    { id: 's3', fecha: '2026-07-15', objetivoTipo: 'Táctico', objetivo: 'Lectura de bloqueo directo', drills: [] },
+  ],
   comunicados: [
     { icon: '📣', titulo: 'Uniformes nuevos disponibles', sub: 'Retirar en secretaría · esta semana' },
     { icon: '💧', titulo: 'Traer botella de agua', sub: 'Recomendación del staff físico' },
@@ -76,7 +82,7 @@ function fechaEventoLine(ev) {
   return [fecha, (ev.hora_inicio || '').slice(0, 5), ev.sede].filter(Boolean).join(' · ');
 }
 
-function buildVM(hijo, detalle, user) {
+function buildVM(hijo, detalle, user, sesiones, catalogoEjercicios) {
   const xp = xpInfo(hijo);
   const radar = radarPilares(hijo);
   const simples = palabrasSimples(radar);
@@ -121,6 +127,7 @@ function buildVM(hijo, detalle, user) {
       : null,
     historial,
     mision: mision ? { titulo: mision.titulo, desc: mision.descripcion, estadoLabel: em.label, xp: mision.xpRecompensa || 0 } : null,
+    sesiones: ultimasSesiones(sesiones, hijo, catalogoEjercicios, 3),
     comunicados: anuncios,
   };
 }
@@ -129,6 +136,8 @@ export default function VistaPadreArcade() {
   const { user } = useAuth();
   const esPadre = user && user.rol === 'padre';
   const [hijos, setHijos] = useState([]);
+  const [sesiones, setSesiones] = useState([]);
+  const [catalogoEjercicios, setCatalogoEjercicios] = useState([]);
   const [idx, setIdx] = useState(0);
   const [detalle, setDetalle] = useState(null); // { atletaId, data }
   const [acciones, setAcciones] = useState({}); // { [key]: { confirmado, pagado } }
@@ -138,8 +147,12 @@ export default function VistaPadreArcade() {
   useEffect(() => {
     if (!esPadre) return undefined;
     let alive = true;
-    fetchPadrePanel(user).then(({ hijos: hs }) => {
-      if (alive) setHijos(hs);
+    fetchPadrePanel(user).then(({ hijos: hs, sesiones: ss, ejercicios: ej }) => {
+      if (alive) {
+        setHijos(hs);
+        setSesiones(ss);
+        setCatalogoEjercicios(ej);
+      }
     });
     return () => {
       alive = false;
@@ -162,7 +175,7 @@ export default function VistaPadreArcade() {
   // `detalle` keyed por atletaId: si no coincide con el hijo actual, sigue cargando.
   const dt = detalle && hijo && detalle.atletaId === hijo.atleta_id ? detalle.data : null;
   const cargando = esPadre && (!hijo || !dt);
-  const vm = !esPadre ? MOCK : hijo && dt ? buildVM(hijo, dt, user) : null;
+  const vm = !esPadre ? MOCK : hijo && dt ? buildVM(hijo, dt, user, sesiones, catalogoEjercicios) : null;
 
   const accKey = hijo?.atleta_id || 'demo';
   const acc = acciones[accKey] || {};
@@ -382,6 +395,26 @@ export default function VistaPadreArcade() {
               ) : (
                 <div id="padre-misiones" style={{ background: C.card, border: `1px dashed ${BORDER.neutralSoft}`, clipPath: cut(12), padding: 15, marginBottom: 14 }}>
                   <p style={{ margin: 0, fontSize: 12, color: C.text3 }}>Sin misión asignada.</p>
+                </div>
+              )}
+
+              {/* Últimas sesiones registradas por el coach, con sus ejercicios resueltos */}
+              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">ÚLTIMAS SESIONES</MicroLabel>
+              {vm.sesiones.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                  {vm.sesiones.map((s) => (
+                    <div key={s.id} style={{ background: C.card, border: `1px solid ${BORDER.neutral}`, clipPath: cut(10), padding: 13 }}>
+                      <MicroLabel color={C.text3} size={8} tracking="normal">{s.objetivoTipo} · {s.fecha}</MicroLabel>
+                      <p style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.5 }}>{s.objetivo}</p>
+                      {s.drills.length > 0 && (
+                        <p style={{ margin: '6px 0 0', fontSize: 11, color: C.text3 }}>🏋️ {s.drills.join(' · ')}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ background: C.card, border: `1px dashed ${BORDER.neutralSoft}`, clipPath: cut(12), padding: 15, marginBottom: 14 }}>
+                  <p style={{ margin: 0, fontSize: 12, color: C.text3 }}>Sin sesiones registradas todavía.</p>
                 </div>
               )}
 

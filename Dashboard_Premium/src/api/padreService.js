@@ -63,7 +63,7 @@ export const fetchPadreData = async (padreId) => {
   const { data: sesiones } = await supabase
     .from('sesiones_control')
     .select(`
-      id, fecha, tipo, objetivo_tipo, objetivo_descripcion, ejercicios_notas, notas_evaluacion, se_logro, atleta_id,
+      id, fecha, tipo, objetivo_tipo, objetivo_descripcion, ejercicios_ids, ejercicios_notas, notas_evaluacion, se_logro, atleta_id,
       coach_id,
       usuarios!sesiones_control_coach_id_fkey(nombre)
     `)

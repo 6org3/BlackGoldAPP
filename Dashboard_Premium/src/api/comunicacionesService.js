@@ -170,10 +170,19 @@ export function generarMensajeRecordatorioPago(atleta, monto, mes) {
 }
 
 // @deprecated Usar renderPlantilla('resumen_sesion', ...) de src/lib/plantillasWhatsApp.js.
-export function generarMensajeSesion(grupo, objetivo, logrado, notas) {
+// `drillNombres`: nombres ya resueltos (ver resolverNombresEjercicios en
+// src/lib/ejerciciosCatalogo.js) — el call-site filtra los huérfanos antes de
+// pasarlos aquí. Se muestran hasta 6, con sufijo "(+N más)" si hay más.
+export function generarMensajeSesion(grupo, objetivo, logrado, notas, drillNombres = []) {
   const emoji = logrado === 'Sí' ? '✅' : logrado === 'Parcial' ? '⚡' : '❌';
+  const lista = (drillNombres || []).slice(0, 6);
+  const restantes = (drillNombres || []).length - lista.length;
+  const bloqueEjercicios = lista.length
+    ? `\n🏋️ Ejercicios: ${lista.join(', ')}${restantes > 0 ? ` (+${restantes} más)` : ''}`
+    : '';
   return renderPlantilla('resumen_sesion', {
     grupo: grupo ?? '', objetivo: objetivo ?? '', emoji, logrado: logrado ?? '',
-    bloque_notas: notas ? `📝 Notas: ${notas}` : '',
+    bloque_ejercicios: bloqueEjercicios,
+    bloque_notas: notas ? `\n📝 Notas: ${notas}` : '',
   });
 }

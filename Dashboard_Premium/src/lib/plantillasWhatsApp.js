@@ -117,16 +117,18 @@ Al completar el pago se registra automáticamente. ✅`,
 de {nombre_atleta} en la app, para su verificación. ¡Gracias!`,
   },
 
-  // Migrada de generarMensajeSesion (comunicacionesService.js) sin cambio de texto.
+  // Migrada de generarMensajeSesion (comunicacionesService.js). `bloque_ejercicios`
+  // y `bloque_notas` llevan su propio salto de línea inicial (se arman así en el
+  // call-site) para que, si vienen vacíos, no dejen una línea en blanco fea —
+  // en vez del salto de línea fijo que antes precedía a {bloque_notas}.
   resumen_sesion: {
     proposito: 'comunicado',
-    variables: ['grupo', 'objetivo', 'emoji', 'logrado', 'bloque_notas'],
+    variables: ['grupo', 'objetivo', 'emoji', 'logrado', 'bloque_ejercicios', 'bloque_notas'],
     cuerpo: `*Black Gold Basketball — Resumen de Sesión*
 
 📋 Grupo: {grupo}
 🎯 Objetivo: {objetivo}
-{emoji} Resultado: {logrado}
-{bloque_notas}`,
+{emoji} Resultado: {logrado}{bloque_ejercicios}{bloque_notas}`,
   },
 };
 

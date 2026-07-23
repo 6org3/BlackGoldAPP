@@ -18,7 +18,7 @@ import { upsertAsistencia } from '../../api/asistenciaService';
 import { crearSesionEntrenamiento } from '../../api/sesionesEntrenamientoService';
 import { insertarObservacion } from '../../api/observacionesService';
 import { otorgarXP } from '../../api/xpService';
-import { fetchSesionesPlanificadasHoy } from '../../api/sesionesService';
+import { fetchSesionesPlanificadasHoy, fetchPlantillas, fetchEjercicios } from '../../api/sesionesService';
 import { xpBaseSesion, xpEvaluacion } from '../../../../packages/analytics-core/xp.js';
 
 // Eje Arcade → columna de observaciones_cancha + insignia (umbral 5★). El XP de
@@ -149,6 +149,50 @@ export async function fetchPlannedToday(user) {
   });
 }
 
+/**
+ * Plantillas de sesión (catalogo_sesiones) para el paso "Objetivo" de Modo
+ * Cancha. NO se filtra por club: la RLS v24 ya scopea las filas del club, y las
+ * 8 semillas globales tienen club_id NULL — un .eq('club_id', …) las ocultaría.
+ * `ejercicios_ids` es jsonb → llega como array JS (sin JSON.parse).
+ */
+export async function fetchPlantillasCancha() {
+  const rows = await fetchPlantillas();
+  return (rows || []).map((p) => ({
+    id: p.id,
+    titulo: p.titulo,
+    pilar: p.pilar,
+    sub_pilar: p.sub_pilar,
+    enfoque: p.enfoque_principal,
+    ejerciciosIds: p.ejercicios_ids || [],
+  }));
+}
+
+/** Mapa id → { nombre, tipo } del catálogo de drills (ejercicios_catalogo). */
+export async function fetchEjerciciosMap() {
+  const ejercicios = await fetchEjercicios();
+  return new Map((ejercicios || []).map((e) => [e.id, { nombre: e.nombre, tipo: e.tipo }]));
+}
+
+/**
+ * Resuelve una lista de ids de ejercicios contra el mapa del catálogo →
+ * [{ nombre, tipo }]. Filtra ids huérfanos (que ya no existen en el catálogo).
+ */
+export function resolveDrills(ejerciciosIds, map) {
+  if (!Array.isArray(ejerciciosIds) || !map) return [];
+  return ejerciciosIds.map((id) => map.get(id)).filter(Boolean);
+}
+
+/** Agrupa drills resueltos por `tipo` → [[tipo, drills[]], …] (para la UI). */
+export function agruparDrillsPorTipo(drills) {
+  const grupos = new Map();
+  (drills || []).forEach((d) => {
+    const key = d.tipo || 'Otros';
+    if (!grupos.has(key)) grupos.set(key, []);
+    grupos.get(key).push(d);
+  });
+  return [...grupos.entries()];
+}
+
 // Etiqueta legible del tipo (para notas — la columna `tipo` solo acepta Grupal|Individual).
 function labelTipo(classType, level) {
   if (classType === '1v1') return 'Privada 1v1';
@@ -162,7 +206,7 @@ function labelTipo(classType, level) {
  * (upsert por atleta marcado) + historial (crearSesionEntrenamiento por
  * presente). Devuelve la sesión Arcade lista para enfocar.
  */
-export async function startSession({ user, classType, level, present, roster, focusName }) {
+export async function startSession({ user, classType, level, present, roster, focusName, plantilla = null }) {
   const ahora = new Date();
   const horaStr = ahora.toTimeString().split(' ')[0]; // HH:MM:SS (local)
   // Fecha en hora LOCAL (Ecuador UTC-5), no UTC: cerca de medianoche toISOString
@@ -187,7 +231,7 @@ export async function startSession({ user, classType, level, present, roster, fo
       hora_fin: horaStr,
       estado: 'Programada',
       tipo: tipoDB,
-      pilar_objetivo: null,
+      pilar_objetivo: plantilla?.sub_pilar || plantilla?.pilar || null,
       pruebas_ids: null,
       notas: notasStr,
     })
@@ -232,6 +276,7 @@ export async function startSession({ user, classType, level, present, roster, fo
     hue: 'gold',
     evaluable: true,
     notas: notasStr,
+    plantilla: plantilla || null, // con drills ya resueltos (los resuelve la pantalla al elegir)
   };
 }
 
