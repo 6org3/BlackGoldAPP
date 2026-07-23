@@ -58,6 +58,17 @@ describe('Arcade HUD — escrituras reales (fase 5)', () => {
     // 2. Bloque de nivel → Desarrollo (nivel del atleta QA).
     cy.get('[aria-label^="Bloque Desarrollo"]', { timeout: 15000 }).click({ force: true });
 
+    // 2b. Paso "Objetivo de la sesión" (opcional): aparece cuando el coach QA ve
+    // plantillas en catalogo_sesiones (hay semillas globales, y el seed de
+    // catalogo_ejercicios.cy.js agrega plantillas del club → hasPlantillas=true).
+    // Este spec no evalúa ese paso: si aparece, se sigue sin plantilla. Sin este
+    // guard, el flujo quedaría atascado antes de "Pasar lista".
+    cy.get('body').then(($b) => {
+      if (/Objetivo de la sesión/i.test($b.text())) {
+        cy.contains('button', /CONTINUAR SIN PLANTILLA|^CONTINUAR$/i).click({ force: true });
+      }
+    });
+
     // 3. Pasar lista → esperar el roster real y marcar presente al atleta
     //    (con su toggle P directo — más robusto que "Todos" ante el clip-path).
     cy.contains('PRESENTES', { timeout: 15000 }).should('be.visible');
