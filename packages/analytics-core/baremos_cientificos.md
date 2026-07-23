@@ -47,6 +47,14 @@ citable, ahora autorables vía las tools del MCP (`generar_catalogo_pruebas` /
 poblacional. El punto 3 quedó con fallback técnico documentado (género ausente → primer
 género definido en el umbral), pendiente de decisión de producto.
 
+**Actualización (2026-07-22, fase "baremos por sexo"):** el punto 2 (contenido) quedó
+**resuelto para 8 pruebas físicas** (cmj_salto, pushups_30s, pushups_max, dominadas,
+sentadilla_rel, press_banca_rel, sit_reach, lane_agility), separadas por sexo desde Sub15 con
+umbrales femeninos citables y verificación adversarial independiente. 5 pruebas (cadera_ri,
+cadera_re, hombro_re, hombro_ri, zigzag_balon) quedaron unisex porque su dimorfismo por sexo no
+sobrevivió la verificación (ROM: ambigüedad de protocolo; zigzag: sin test estandarizado). Detalle
+completo y fuentes en `docs/baremos_por_sexo_2026.md`.
+
 ## 2. Umbrales idénticos en las 4 categorías de edad — revisar
 
 `dorsiflexion`, `cadera_ri`, `cadera_re`, `hombro_re`, `hombro_ri` repiten exactamente
