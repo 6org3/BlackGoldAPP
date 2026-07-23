@@ -117,7 +117,28 @@ export function mapSession(s, present = 0) {
     hue: 'gold',
     evaluable: true,
     notas: s.notas || label,
+    // Crudos de la plantilla persistida (v49) — la plantilla resuelta (título +
+    // drills) la reconstruye el hook, que tiene el ejerciciosMap + índice vivos.
+    ejerciciosIds: Array.isArray(s.ejercicios_ids) ? s.ejercicios_ids : null,
+    plantillaId: s.plantilla_id || null,
   };
+}
+
+/**
+ * Reconstruye la plantilla de una sesión reanudada a partir de sus crudos
+ * persistidos (v49) → { id, titulo, drills } | null. Los drills salen del
+ * SNAPSHOT `ejerciciosIds` (inmutable) resuelto contra el catálogo vivo; el
+ * título se busca en el índice de plantillas actuales y cae a genérico si la
+ * plantilla fue editada/borrada. Sin ids o sin drills resolubles → null (el
+ * panel PLAN DE SESIÓN simplemente no se pinta).
+ */
+export function reconstruirPlantillaSesion(sess, plantillasIndex, ejerciciosMap) {
+  const ids = sess?.ejerciciosIds;
+  if (!Array.isArray(ids) || !ids.length) return null;
+  const drills = resolveDrills(ids, ejerciciosMap);
+  if (!drills.length) return null;
+  const titulo = plantillasIndex?.get?.(sess.plantillaId)?.titulo || 'Plan de sesión';
+  return { id: sess.plantillaId || null, titulo, drills };
 }
 
 /**
@@ -233,6 +254,10 @@ export async function startSession({ user, classType, level, present, roster, fo
       tipo: tipoDB,
       pilar_objetivo: plantilla?.sub_pilar || plantilla?.pilar || null,
       pruebas_ids: null,
+      // Persistimos la plantilla (v49) para que el panel PLAN DE SESIÓN
+      // reaparezca al reanudar: snapshot de drills + referencia para el título.
+      ejercicios_ids: plantilla?.ejerciciosIds?.length ? plantilla.ejerciciosIds : null,
+      plantilla_id: plantilla?.id || null,
       notas: notasStr,
     })
     .select()

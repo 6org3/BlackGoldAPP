@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../api/supabaseClient', () => ({ supabase: {} }));
 
 import { reducer, initialState } from './useCanchaSession';
-import { resolveDrills } from './canchaData';
+import { resolveDrills, reconstruirPlantillaSesion } from './canchaData';
 
 const base = (over = {}) => ({ ...initialState(), ...over });
 const P = (over = {}) => ({
@@ -136,5 +136,42 @@ describe('resolveDrills', () => {
     expect(resolveDrills(null, map)).toEqual([]);
     expect(resolveDrills(undefined, map)).toEqual([]);
     expect(resolveDrills(['a'], null)).toEqual([]);
+  });
+});
+
+describe('reconstruirPlantillaSesion · reanudar con plantilla persistida (v49)', () => {
+  const map = new Map([
+    ['a', { nombre: 'Sentadilla', tipo: 'Físico' }],
+    ['b', { nombre: 'Dominadas', tipo: 'Físico' }],
+  ]);
+  const idx = new Map([['pl1', { id: 'pl1', titulo: 'Físico - Fuerza' }]]);
+
+  it('reconstruye { id, titulo, drills } desde los crudos persistidos', () => {
+    const sess = { id: 's1', ejerciciosIds: ['a', 'b'], plantillaId: 'pl1' };
+    expect(reconstruirPlantillaSesion(sess, idx, map)).toEqual({
+      id: 'pl1',
+      titulo: 'Físico - Fuerza',
+      drills: [
+        { nombre: 'Sentadilla', tipo: 'Físico' },
+        { nombre: 'Dominadas', tipo: 'Físico' },
+      ],
+    });
+  });
+
+  it('plantilla borrada/no-indexada → título genérico, conserva drills del snapshot', () => {
+    const sess = { id: 's1', ejerciciosIds: ['a'], plantillaId: 'borrada' };
+    const r = reconstruirPlantillaSesion(sess, idx, map);
+    expect(r.titulo).toBe('Plan de sesión');
+    expect(r.drills).toEqual([{ nombre: 'Sentadilla', tipo: 'Físico' }]);
+  });
+
+  it('sin ids persistidos (sesión sin plantilla) → null', () => {
+    expect(reconstruirPlantillaSesion({ id: 's1', ejerciciosIds: null, plantillaId: null }, idx, map)).toBeNull();
+    expect(reconstruirPlantillaSesion({ id: 's1' }, idx, map)).toBeNull();
+  });
+
+  it('ids que ya no existen en el catálogo (todos huérfanos) → null', () => {
+    const sess = { id: 's1', ejerciciosIds: ['zzz'], plantillaId: 'pl1' };
+    expect(reconstruirPlantillaSesion(sess, idx, map)).toBeNull();
   });
 });

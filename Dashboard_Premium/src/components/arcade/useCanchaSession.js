@@ -7,6 +7,7 @@ import {
   fetchSessionAttendance,
   fetchPlantillasCancha,
   fetchEjerciciosMap,
+  reconstruirPlantillaSesion,
   startSession,
   saveSubjectiveEval,
   closeClass,
@@ -278,7 +279,12 @@ export default function useCanchaSession(user) {
         setPlanned(pl);
         setPlantillas(plt);
         setEjerciciosMap(em);
-        dispatch({ type: 'HYDRATE_SESSIONS', sessions: sess });
+        // Reanudar: cada sesión activa recupera su plantilla persistida (v49)
+        // resolviendo su snapshot de drills contra el catálogo ya cargado, para
+        // que el panel PLAN DE SESIÓN reaparezca sin re-elegir la plantilla.
+        const plantillasIndex = new Map(plt.map((p) => [p.id, p]));
+        const sessConPlan = sess.map((s) => ({ ...s, plantilla: reconstruirPlantillaSesion(s, plantillasIndex, em) }));
+        dispatch({ type: 'HYDRATE_SESSIONS', sessions: sessConPlan });
         dispatch({ type: 'SET_PLANTILLAS', has: plt.length > 0 });
         setLoading(false);
       })

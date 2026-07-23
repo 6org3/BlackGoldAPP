@@ -34,8 +34,9 @@ export default function PantallaActiva({ focused, others, actions }) {
         </div>
       </div>
 
-      {/* Plan de sesión (drills de la plantilla elegida). Ausente en sesiones sin
-          plantilla o reanudadas (que no cargan su plantilla). */}
+      {/* Plan de sesión (drills de la plantilla elegida). Presente también al
+          reanudar: la plantilla se persiste (v49) y se reconstruye al cargar.
+          Ausente solo en sesiones iniciadas sin plantilla. */}
       {focused.plantilla?.drills?.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <MicroLabel color={C.text3} size={9.5} style={{ margin: '2px 0 8px' }}>
