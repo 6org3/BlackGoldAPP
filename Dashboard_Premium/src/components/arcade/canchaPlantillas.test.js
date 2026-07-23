@@ -1,14 +1,27 @@
 // Integración de plantillas (catalogo_sesiones) + drills (ejercicios_catalogo)
 // en Modo Cancha: gating/auto-omisión del paso 'objetivo', toggle de plantilla,
-// navegación BACK, adjunción a la sesión creada, RESET, y resolución de drills.
+// navegación BACK, adjunción a la sesión creada, RESET, resolución de drills, y
+// persistencia/rehidratación del PLAN DE SESIÓN al reanudar (v49).
 import { describe, it, expect, vi } from 'vitest';
 
 // useCanchaSession → canchaData → supabaseClient (createClient lanza sin env en
-// node); se mockea para poder importar el reducer puro y resolveDrills.
-vi.mock('../../api/supabaseClient', () => ({ supabase: {} }));
+// node); se mockea para poder importar el reducer puro y las funciones puras.
+// El `from().insert()` captura su payload para verificar lo que startSession
+// escribe en sesiones_programadas.
+const supa = vi.hoisted(() => ({ insertPayload: null }));
+vi.mock('../../api/supabaseClient', () => ({
+  supabase: {
+    from: () => ({
+      insert: (payload) => {
+        supa.insertPayload = payload;
+        return { select: () => ({ single: () => Promise.resolve({ data: { id: 'sess-1' }, error: null }) }) };
+      },
+    }),
+  },
+}));
 
 import { reducer, initialState } from './useCanchaSession';
-import { resolveDrills } from './canchaData';
+import { resolveDrills, mapSession, rehidratarPlantilla, startSession } from './canchaData';
 
 const base = (over = {}) => ({ ...initialState(), ...over });
 const P = (over = {}) => ({
@@ -136,5 +149,106 @@ describe('resolveDrills', () => {
     expect(resolveDrills(null, map)).toEqual([]);
     expect(resolveDrills(undefined, map)).toEqual([]);
     expect(resolveDrills(['a'], null)).toEqual([]);
+  });
+});
+
+describe('mapSession · crudos para rehidratar (v49)', () => {
+  const row = (over = {}) => ({
+    id: 's1',
+    fecha: '2026-07-23',
+    hora_inicio: '10:00:00',
+    notas: '[EN_CURSO] Grupal (Niveles) - Micro',
+    tipo: 'Grupal',
+    pilar_objetivo: 'fuerza',
+    ejercicios_ids: ['a', 'b'],
+    ...over,
+  });
+
+  it('expone ejerciciosIds y pilarObjetivo desde la fila', () => {
+    const s = mapSession(row());
+    expect(s.ejerciciosIds).toEqual(['a', 'b']);
+    expect(s.pilarObjetivo).toBe('fuerza');
+  });
+
+  it('ejercicios_ids null/[] → ejerciciosIds null', () => {
+    expect(mapSession(row({ ejercicios_ids: null })).ejerciciosIds).toBeNull();
+    expect(mapSession(row({ ejercicios_ids: [] })).ejerciciosIds).toBeNull();
+  });
+
+  it('pilar_objetivo ausente → pilarObjetivo null', () => {
+    expect(mapSession(row({ pilar_objetivo: null })).pilarObjetivo).toBeNull();
+  });
+});
+
+describe('rehidratarPlantilla · reanudar el PLAN DE SESIÓN (v49)', () => {
+  const map = new Map([
+    ['a', { nombre: 'Sentadilla', tipo: 'Físico' }],
+    ['b', { nombre: 'Dominadas', tipo: 'Físico' }],
+  ]);
+
+  it('fila con ejercicios_ids → plantilla con drills resueltos y título del sub-pilar', () => {
+    const pl = rehidratarPlantilla({ ejerciciosIds: ['a', 'b'], pilarObjetivo: 'fuerza' }, map);
+    expect(pl).toEqual({
+      titulo: 'Fuerza',
+      drills: [
+        { nombre: 'Sentadilla', tipo: 'Físico' },
+        { nombre: 'Dominadas', tipo: 'Físico' },
+      ],
+    });
+  });
+
+  it('filtra drills huérfanos y titula por pilar cuando pilar_objetivo es un pilar', () => {
+    const pl = rehidratarPlantilla({ ejerciciosIds: ['a', 'zzz', 'b'], pilarObjetivo: 'fisico' }, map);
+    expect(pl.drills).toHaveLength(2);
+    expect(pl.titulo).toBe('Físico-Atlético');
+  });
+
+  it('sin pilar_objetivo → título genérico', () => {
+    expect(rehidratarPlantilla({ ejerciciosIds: ['a'], pilarObjetivo: null }, map).titulo).toBe('Plan de sesión');
+  });
+
+  it('ejerciciosIds null/[] → null (panel oculto)', () => {
+    expect(rehidratarPlantilla({ ejerciciosIds: null }, map)).toBeNull();
+    expect(rehidratarPlantilla({ ejerciciosIds: [] }, map)).toBeNull();
+  });
+
+  it('sin mapa → null', () => {
+    expect(rehidratarPlantilla({ ejerciciosIds: ['a'] }, null)).toBeNull();
+  });
+
+  it('todos los drills huérfanos → null (no plantilla vacía)', () => {
+    expect(rehidratarPlantilla({ ejerciciosIds: ['zzz', 'qqq'] }, map)).toBeNull();
+  });
+
+  it('extremo a extremo: mapSession(fila) → rehidratarPlantilla', () => {
+    const s = mapSession({ id: 's1', fecha: '2026-07-23', hora_inicio: '10:00:00', notas: '[EN_CURSO] X', tipo: 'Grupal', pilar_objetivo: 'fuerza', ejercicios_ids: ['a'] });
+    const pl = rehidratarPlantilla(s, map);
+    expect(pl.titulo).toBe('Fuerza');
+    expect(pl.drills).toEqual([{ nombre: 'Sentadilla', tipo: 'Físico' }]);
+  });
+});
+
+describe('startSession · persiste ejercicios_ids en el INSERT (v49)', () => {
+  const user = { id: 'coach-1' };
+  const call = (plantilla) =>
+    startSession({ user, classType: 'grupal', level: 'Micro', present: {}, roster: [], plantilla });
+
+  it('incluye ejercicios_ids solo cuando la plantilla trae drills', async () => {
+    supa.insertPayload = null;
+    await call({ sub_pilar: 'fuerza', ejerciciosIds: ['a', 'b'] });
+    expect(supa.insertPayload.ejercicios_ids).toEqual(['a', 'b']);
+    expect(supa.insertPayload.pilar_objetivo).toBe('fuerza');
+  });
+
+  it('ejercicios_ids null sin plantilla', async () => {
+    supa.insertPayload = null;
+    await call(undefined);
+    expect(supa.insertPayload.ejercicios_ids).toBeNull();
+  });
+
+  it('ejercicios_ids null con plantilla sin drills', async () => {
+    supa.insertPayload = null;
+    await call({ sub_pilar: 'fuerza', ejerciciosIds: [] });
+    expect(supa.insertPayload.ejercicios_ids).toBeNull();
   });
 });
