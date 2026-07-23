@@ -376,8 +376,14 @@ async function suiteCoach() {
   console.log('\n— COACH (QA_RLS_COACH1) —');
   const cli = await loginComo(QA.coach1.cedula, QA.coach1.cedula);
 
+  // Comparado contra la fuente de verdad (service_role, sin RLS) en vez de un
+  // umbral fijo: "Black Gold" solo tiene los 6 QA de este setup desde el reset
+  // del 22-07 (antes tenía decenas de usuarios reales, de ahí el `> 10`
+  // original — un umbral fijo revive frágil cada vez que cambia el volumen
+  // real del club). La aserción que importa es "todo el club, ni más ni menos".
   const { count } = await cli.from('usuarios').select('id', { count: 'exact', head: true });
-  check('coach ve el club entero en usuarios', (count || 0) > 10, `count=${count}`);
+  const { count: countReal } = await svc.from('usuarios').select('id', { count: 'exact', head: true }).eq('club', CLUB);
+  check('coach ve el club entero en usuarios', count === countReal && (count || 0) > 0, `ve ${count}, club tiene ${countReal}`);
 
   const { data: plantilla, error: ePl } = await cli.from('catalogo_sesiones')
     .insert({ titulo: 'QA_RLS_PLANTILLA', enfoque_principal: 'tiro', club_id: 'Black Gold' }).select().single();
