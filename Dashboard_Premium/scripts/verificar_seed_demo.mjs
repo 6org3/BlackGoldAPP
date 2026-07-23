@@ -60,15 +60,25 @@ async function conteosClub(club) {
   console.log(`  club_config: ${await cnt('club_config', { club })}`);
 }
 
-// Smoke de login: usa el mismo flujo del app (resolver_email_login → signInWithPassword).
+// Smoke de login: usa el mismo flujo del app (resolver_email_login →
+// signInWithPassword → join usuarios.auth_user_id, igual que
+// fetchUsuarioPorAuthId en src/api/authService.js). Un signInWithPassword
+// exitoso NO basta: si la fila de usuarios no está vinculada, la app real
+// revienta con "No se encontró un perfil de usuario vinculado a esta cuenta."
 async function smokeLogin(cedula) {
   const pub = createClient(url, anon, { auth: { persistSession: false } });
   const { data: email, error: e1 } = await pub.rpc('resolver_email_login', { p_identificador: cedula });
   if (e1) return `resolver falló (${e1.message})`;
   const { data, error } = await pub.auth.signInWithPassword({ email, password: cedula });
   if (error) return `❌ ${error.message}`;
+  const authUserId = data?.user?.id;
+  if (!authUserId) { await pub.auth.signOut(); return '❌ sin user'; }
+  const { data: perfil, error: e2 } = await pub
+    .from('usuarios').select('id, rol').eq('auth_user_id', authUserId).maybeSingle();
   await pub.auth.signOut();
-  return data?.user ? '✅ OK' : '❌ sin user';
+  if (e2) return `❌ join usuarios falló (${e2.message})`;
+  if (!perfil) return `❌ auth OK pero SIN perfil usuarios vinculado (auth_user_id=${authUserId})`;
+  return '✅ OK';
 }
 
 async function run() {
