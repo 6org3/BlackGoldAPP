@@ -1,6 +1,7 @@
 import { defineConfig } from "cypress";
 import { sembrarSesionActivaQA } from "./scripts/sembrar_sesion_activa_qa.js";
 import { sembrarReadinessHoyQA } from "./scripts/sembrar_readiness_qa.js";
+import { sembrarPlantillasCanchaQA, sembrarSesionControlHistorialQA } from "./scripts/sembrar_catalogo_sesiones_qa.js";
 
 export default defineConfig({
   e2e: {
@@ -19,6 +20,16 @@ export default defineConfig({
         // el modal de readiness (#89) y su overlay tapa el HUD: los specs que solo
         // pasan por el portal para otra cosa se ponían rojos al cambiar el día.
         sembrarReadinessHoyQA: () => sembrarReadinessHoyQA(),
+
+        // Deja 2 plantillas [QA] en catalogo_sesiones (con drills reales) para que
+        // el paso "Objetivo de la sesión" del Modo Cancha se ejecute en navegador.
+        // Idempotente (borra las [QA] previas del club antes de insertar).
+        sembrarPlantillasCanchaQA: () => sembrarPlantillasCanchaQA(),
+
+        // Deja una sesión de historial [QA] en sesiones_control con 2 drills reales
+        // + un id huérfano, para el selector/historial de AdminSesiones (chips de
+        // drills y "Ejercicio eliminado"). Idempotente.
+        sembrarSesionControlHistorialQA: () => sembrarSesionControlHistorialQA(),
       });
     },
   },
