@@ -25,6 +25,38 @@ export const jsonResponse = (body: unknown, status: number) =>
     status,
   });
 
+// Fallo TRANSITORIO de validación de JWT en el endpoint de Auth. Durante (y un
+// tiempo después de) habilitar las asymmetric JWT signing keys del proyecto,
+// algunas instancias de GoTrue rechazan intermitentemente el token con
+// "unrecognized JWT kid <nil> for algorithm ES256" / "token is unverifiable",
+// aunque el JWKS del proyecto ya sea ES256-only. Es del lado servidor y por
+// instancia (a veces atiende una con el JWKS ya propagado, a veces no): NO es un
+// bug de estas funciones — la misma llamada acierta la mayoría de las veces.
+export const esErrorJwtTransitorio = (msg?: string | null): boolean =>
+  !!msg && /unrecognized JWT kid|token is unverifiable|invalid JWT/i.test(msg);
+
+// Reintenta una operación de Auth ante ESE fallo transitorio (hasta `intentos`
+// veces, con backoff corto). Solo para operaciones cuyo rechazo por este error
+// no deja efecto: ocurre en la fase de autenticación de la request, ANTES de
+// crear/mutar/borrar, así que reintentar es seguro (createUser no llega a
+// insertar, deleteUser no llega a borrar). No reintenta ningún otro error
+// (duplicados, validaciones, permisos): esos se devuelven tal cual al primer
+// intento. Deliberadamente NO se usa en llamadas PostgREST con efecto (rpc,
+// insert), que no son idempotentes.
+export async function reintentarAuth<T extends { error: unknown }>(
+  op: () => Promise<T>,
+  intentos = 3,
+): Promise<T> {
+  let ultimo = await op();
+  for (let i = 1; i < intentos; i++) {
+    const err = ultimo.error as { message?: string } | null;
+    if (!esErrorJwtTransitorio(err?.message)) break;
+    await new Promise((r) => setTimeout(r, 200 * i));
+    ultimo = await op();
+  }
+  return ultimo;
+}
+
 export const ROLES_STAFF = new Set(['superadmin', 'owner', 'coach']);
 
 export type Caller = {
@@ -61,7 +93,9 @@ export async function autenticar(req: Request): Promise<{ error?: Response; call
     Deno.env.get('SUPABASE_ANON_KEY')!,
     { global: { headers: { Authorization: authHeader } } },
   );
-  const { data: { user }, error: eUser } = await supabaseAuth.auth.getUser();
+  // getUser valida el JWT del caller contra Auth → sujeto al mismo fallo
+  // transitorio de signing keys; reintento (lectura pura, seguro de repetir).
+  const { data: { user }, error: eUser } = await reintentarAuth(() => supabaseAuth.auth.getUser());
   if (eUser || !user) return { error: jsonResponse({ error: 'Sesión inválida o expirada.' }, 401) };
 
   const admin = createClient(

@@ -71,10 +71,26 @@ const check = (nombre, ok, detalle = '') => {
   console.log(`${ok ? '  ✅' : '  ❌'} ${nombre}${detalle && !ok ? ` — ${detalle}` : ''}`);
 };
 
+// Fallo TRANSITORIO de validación de JWT en Auth durante la rotación de signing
+// keys del proyecto ("unrecognized JWT kid <nil> for algorithm ES256"): del lado
+// servidor e intermitente (una instancia de GoTrue con el JWKS aún sin propagar).
+// Reintenta SOLO ese error, con backoff corto — mismo criterio que reintentarAuth()
+// de las Edge Functions (supabase/functions/_shared/brainAuth.ts). Sin esto, un
+// createUser/signIn del setup revienta y tira la suite entera por un hipo de infra.
+const esJwtTransitorio = (msg) => !!msg && /unrecognized JWT kid|token is unverifiable|invalid JWT/i.test(msg);
+async function reintentarAuth(op, intentos = 4) {
+  let r = await op();
+  for (let i = 1; i < intentos && esJwtTransitorio(r.error?.message); i++) {
+    await new Promise((res) => setTimeout(res, 250 * i));
+    r = await op();
+  }
+  return r;
+}
+
 async function loginComo(cedula, password) {
   const cli = anon();
   const { data: email } = await cli.rpc('resolver_email_login', { p_identificador: cedula });
-  const { data, error } = await cli.auth.signInWithPassword({ email, password });
+  const { data, error } = await reintentarAuth(() => cli.auth.signInWithPassword({ email, password }));
   if (error || !data.session) throw new Error(`login ${cedula}: ${error?.message}`);
   return cli;
 }
@@ -152,7 +168,7 @@ async function limpiarQA() {
   // email directo en Auth, no por `usuarios`.
   let page = 1;
   while (true) {
-    const { data, error } = await svc.auth.admin.listUsers({ page, perPage: 200 });
+    const { data, error } = await reintentarAuth(() => svc.auth.admin.listUsers({ page, perPage: 200 }));
     if (error || !data.users.length) break;
     const huerfanos = data.users.filter(u => (u.email || '').toLowerCase().includes('qa_rls'));
     for (const u of huerfanos) await svc.auth.admin.deleteUser(u.id).catch(() => {});
@@ -164,11 +180,11 @@ async function limpiarQA() {
 
 // ---------- setup ----------
 async function crearCuenta(q, rol, club = CLUB) {
-  const { data: au, error: e1 } = await svc.auth.admin.createUser({
+  const { data: au, error: e1 } = await reintentarAuth(() => svc.auth.admin.createUser({
     email: `${q.cedula}${EMAIL_DOM}`.toLowerCase(),
     password: q.cedula,
     email_confirm: true,
-  });
+  }));
   if (e1) throw new Error(`auth ${q.cedula}: ${e1.message}`);
   const { data: fila, error: e2 } = await svc.from('usuarios').insert({
     cedula: q.cedula, nombre: q.nombre, rol, club,
