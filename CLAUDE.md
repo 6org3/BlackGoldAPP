@@ -8,9 +8,10 @@ Black Gold — un ecosistema de club de baloncesto para el club en Sucumbíos (E
 
 - `Dashboard_Premium/` — la app principal. React + Vite (PWA), backend en Supabase. Aquí ocurre el desarrollo activo.
 - `blackgold-mcp/` — servidor MCP del proyecto (proceso Node por stdio que se conecta a Supabase y expone herramientas analíticas como `analyze_athlete_pillars`). Consume `packages/analytics-core` para la categoría FEB (ver abajo) y `packages/brain-core` — la **lógica analítica compartida de las tools** (rack, diagnóstico de pilares, readiness; las tools del MCP son wrappers finos sobre esas funciones puras) — y fundamenta sus tools en el **rack documental deportivo** (`packages/brain-core/rack.js` + `knowledge/` + docs deportivos del repo declarados en `knowledge/rack.config.json`, índice BM25 local): tools `consultar_rack`/`listar_rack`, smoke con `npm run rack`. Documentación nueva del deporte → `knowledge/` (ver su README), no hardcodearla en `src/index.js`.
+- `blackgold-negocio-mcp/` — servidor MCP hermano, mismo patrón (proceso Node por stdio, `@modelcontextprotocol/sdk`) pero de **negocio** (leads, cobranza, KPIs de dirección, gastos) en vez de analítica deportiva. Detalle de estado en la sección dedicada más abajo.
 - `packages/analytics-core/` — **capa de analítica compartida**: baremos científicos, categoría FEB y agregación de pilares/radar, consumidos tanto por `Dashboard_Premium` como por `blackgold-mcp`. No es un paquete npm publicado ni un workspace: ambos lo importan por ruta relativa (ver `packages/analytics-core/README.md`). `Dashboard_Premium/src/lib/baremosEngine.js`, `radarCalc.js` y `src/api/utilsAtletas.js` son shims que reexportan desde aquí — no reintroducir esa lógica en esos archivos.
 - `docs/` — notas de metodología y estrategia del club (entrenamiento, táctica, mentalidad, corporativo, comunicaciones, redes sociales) más los documentos de estado del proyecto (`evaluacion_ingenieria_producto.md`, `plan_remediacion_seguridad.md`, `pendientes_post_beta.md`). En español.
-- `Dashboard_Premium/supabase/migrations/` — migraciones SQL versionadas con la convención de Supabase CLI (`<timestamp>_descripcion.sql`), consolidadas ahí desde julio 2026 (antes vivían sueltas en la raíz del repo y de `Dashboard_Premium/`). 55 archivos a la fecha; última con número de versión: **v50** (`20260723120000_v50_padre_ve_sesiones_grupales.sql`), seguida el mismo día de un parche sin número (`revierte_plantilla_id_duplicado.sql`, revierte un diseño descartado de un PR paralelo). Ver detalle más abajo.
+- `Dashboard_Premium/supabase/migrations/` — migraciones SQL versionadas con la convención de Supabase CLI (`<timestamp>_descripcion.sql`), consolidadas ahí desde julio 2026 (antes vivían sueltas en la raíz del repo y de `Dashboard_Premium/`). 57 archivos a la fecha; última con número de versión: **v51** (`20260726120000_v51_gastos_contabilidad_gestion.sql`, tabla `gastos` para `blackgold-negocio-mcp` — **escrita, todavía NO aplicada**, ver sección del MCP de negocio más abajo), precedida por **v50** (`20260723120000_v50_padre_ve_sesiones_grupales.sql`) y por un parche sin número entre ambas (`revierte_plantilla_id_duplicado.sql`, revierte un diseño descartado de un PR paralelo). Ver detalle más abajo.
 
 ## Estado de seguridad — LOS P0 YA ESTÁN CERRADOS
 
@@ -42,17 +43,19 @@ Versiones reales de `Dashboard_Premium/package.json` (no asumir versiones anteri
 
 - **Vitest**: 21 archivos de spec bajo `Dashboard_Premium/src/` (`**/*.test.js`), sobre todo en `src/lib/` (motor de baremos, radar, readiness, XP, taxonomía, tendencias, clasificador de contexto) y `src/components/` (incl. `src/components/arcade/`). Correr con `npm run test` (una vez) o `npm run test:watch`.
 - **Cypress**: 14 specs e2e bajo `Dashboard_Premium/cypress/e2e/*.cy.js` (login/roles, asistencia por grupo, arcade, consola de dueño, membresía, catálogo de ejercicios, QA visual/mobile). Usan cuentas QA fijas (`cypress.env.json`, gitignored — plantilla en `cypress.env.json.example`). No confundir con `cypress/screenshots/`, que solo contiene capturas generadas, no specs.
-- Ambos suites se corren manualmente hoy; no hay ejecución automática en CI (ver sección siguiente).
+- Vitest corre automático en CI en cada push/PR a `main` (ver sección siguiente); Cypress sigue siendo manual — no está en el pipeline.
 
-## CI/CD — no hay pipeline de CI
+## CI/CD
 
-**No existe `.github/workflows/` en el repo** (ni en la raíz ni en `Dashboard_Premium/`). No hay GitHub Actions corriendo lint/tests/build en cada PR. Lo que sí existe, según `CONTRIBUTING.md`:
+`.github/workflows/ci.yml` (job `dashboard`, dispara en push/PR a `main` + `workflow_dispatch`) corre dentro de `Dashboard_Premium/`: `npm ci` + lint (**informativo**, `continue-on-error: true` — el repo arrastra ~163 problemas de lint preexistentes, no bloquea hasta limpiarlos) + `npm test` (Vitest, **bloqueante**) + `npm run build` (**bloqueante**), con `VITE_SUPABASE_*` de relleno (no son secretos reales; los specs que necesitan Supabase ya mockean el cliente). **Cypress queda fuera a propósito** (documentado en el propio yml): las 14 specs e2e necesitan una base Supabase real + credenciales y son mucho más lentas — el siguiente paso natural es un proyecto Supabase de pruebas dedicado. `blackgold-mcp/` y `blackgold-negocio-mcp/` tampoco tienen job: ninguno de los dos define script de test en su `package.json`.
+
+Lo que además existe, según `CONTRIBUTING.md`:
 
 - `main` está protegida (force-push y borrado bloqueados, PR obligatorio con 0 approvals requeridos, conversaciones deben resolverse) y auto-despliega a producción vía Vercel al mergear.
-- Cada PR genera un preview deployment de Vercel — es la única verificación automática que existe (compila y despliega, no corre tests).
-- `enforce_admins` está desactivado a propósito (guardarraíl gradual, no estricto): un admin todavía puede pushear directo a `main` sin pasar por PR.
+- Cada PR genera además un preview deployment de Vercel.
+- `enforce_admins` está desactivado a propósito (guardarraíl gradual, no estricto): un admin todavía puede pushear directo a `main` sin pasar por PR ni CI.
 
-**Consecuencia práctica:** nada impide mergear código que rompe `npm run test` o los specs de Cypress si quien mergea no los corrió a mano antes. Correr `npm run test` y (si el cambio toca flujos críticos) los specs de Cypress relevantes antes de abrir/mergear un PR, no asumir que "pasó CI" porque no hay CI que lo bloquee.
+**Consecuencia práctica:** el CI ya bloquea tests/build rotos, pero no cubre Cypress ni bloquea por lint — correr los specs de Cypress relevantes a mano si el cambio toca flujos críticos, no asumir que "pasó CI" cubre el E2E.
 
 ## Convenciones
 
@@ -64,11 +67,13 @@ Versiones reales de `Dashboard_Premium/package.json` (no asumir versiones anteri
 - Desde v27 (módulo de pagos) el rango v28→v50 fue sobre todo: endurecimiento de pagos y multi-club (v28/v28b generación de pagos del mes, v29/v40/v40b/v44 aislamiento por club, v30 auditoría de pagos), catálogo de clubes/membresías administradas por superadmin y solicitudes de registro (v33-v39), y una cola de fixes puntuales más recientes (v42-v50: mensualidad sin fallback de 30 días, octavo pilar de resistencia, purga de usuarios rechazados, media cuota en alta día 15, origen automático de readiness, becas, ids de ejercicios en sesiones programadas, padre viendo sesiones grupales). Para el detalle de cualquier migración puntual, el encabezado en comentario del propio archivo `.sql` documenta el porqué (varias citan auditorías adversariales o decisiones explícitas del dueño con fecha).
 - El esquema real de las tablas base está capturado en `supabase/migrations/00000000000000_baseline.sql` (dump de 2026-07; incluye las 29 tablas y el estado de RLS previo a v24). Si el esquema en producción vuelve a divergir por cambios a mano, regenerarlo con `npx supabase db dump --schema public`.
 
-## MCP del proyecto (`blackgold-mcp`) — sin tools de negocio
+## MCPs del proyecto (`blackgold-mcp` + `blackgold-negocio-mcp`)
 
-`blackgold-mcp` expone **18 tools** (`server.tool(...)` en `blackgold-mcp/src/index.js`): `analyze_athlete_pillars`, `generate_custom_mission`, `suggest_next_test`, `analyze_athlete_readiness`, `generar_catalogo_misiones`, `insertar_misiones_catalogo`, `insertar_misiones_recuperacion`, `consultar_metodologia_iniciacion`, `consultar_rack`, `listar_rack`, `mapa_conocimiento`, `generar_catalogo_pruebas`, `insertar_pruebas_evaluacion`, `generar_descripciones_pruebas`, `actualizar_descripciones_pruebas`, `auditar_misiones`, `actualizar_misiones`, `eliminar_misiones_basura`.
+`blackgold-mcp` expone **18 tools** (`server.tool(...)` en `blackgold-mcp/src/index.js`): `analyze_athlete_pillars`, `generate_custom_mission`, `suggest_next_test`, `analyze_athlete_readiness`, `generar_catalogo_misiones`, `insertar_misiones_catalogo`, `insertar_misiones_recuperacion`, `consultar_metodologia_iniciacion`, `consultar_rack`, `listar_rack`, `mapa_conocimiento`, `generar_catalogo_pruebas`, `insertar_pruebas_evaluacion`, `generar_descripciones_pruebas`, `actualizar_descripciones_pruebas`, `auditar_misiones`, `actualizar_misiones`, `eliminar_misiones_basura` — **las 18 de analítica/metodología deportiva** (pilares, misiones, pruebas físicas, rack de conocimiento). Cero tools de negocio ahí a propósito: ese dominio vive en el MCP hermano.
 
-**Las 18 son de analítica/metodología deportiva** (pilares, misiones, pruebas físicas, rack de conocimiento). **Cero tools de negocio**: no hay ninguna para leads, cobranza/pagos o gastos, aunque `Dashboard_Premium` sí tiene ese dominio implementado en la app (`pagosService.js`, `AdminPagosPage.jsx`, migraciones v27-v50, `docs/pagos_diseno.md`). Si se necesita que un agente opere sobre pagos/cobranza/clientes vía MCP, esas tools no existen todavía — hay que construirlas, no asumir que ya están cubiertas por `blackgold-mcp`.
+`blackgold-negocio-mcp` (nuevo, **v0.1**) es el hermano de negocio: **8 tools** (`server.tool(...)` en `blackgold-negocio-mcp/src/index.js`) sobre leads, cobranza, KPIs de dirección y gastos, reusando las consultas/reglas ya existentes en `Dashboard_Premium/src/api/*Service.js` (sobre todo `pagosService`, `solicitudesService`, `retencionService`) en vez de inventar cálculos nuevos. **6 tools de lectura funcionan hoy** contra el esquema real; `registrar_gasto` y `resumen_gastos` dependen de la tabla `gastos` (migración v51 — **escrita, todavía NO aplicada**; aplicar con `cd Dashboard_Premium && npx supabase db push`) y hasta entonces fallan con un error legible que lo explica. Corre con la `service_role` key (con RLS v24 la `anon` key no lee ni escribe ninguna tabla) — variables solo en `.env` (plantilla en `.env.example`), nunca hardcodeadas ni commiteadas.
+
+Si se necesita que un agente opere sobre algo que ninguno de los dos MCP cubre todavía, no asumir que ya está — construirlo.
 
 ## Secretos
 
@@ -78,9 +83,10 @@ Versiones reales de `Dashboard_Premium/package.json` (no asumir versiones anteri
 
 - **El repo ya no vive en OneDrive** (vive en `~/dev/BlackGoldAPP`). Sigue pudiendo aparecer un `index.lock` stale en `.git` cuando git se ejecuta desde herramientas en sandbox; si no hay ningún proceso git corriendo, es seguro borrar ese archivo y reintentar.
 - Los scripts operativos de un solo uso viven en `Dashboard_Premium/scripts/` (no en la raíz de `Dashboard_Premium/`), leen credenciales solo de `.env` (nunca hardcodeadas) y varios escriben/borran datos reales — revisar cada uno antes de ejecutarlo, especialmente `limpiar_base_datos.js`.
-- No hay CI (ver sección dedicada arriba): un PR mergeado no garantiza que los tests pasaron.
+- `Dashboard_Premium/simulacion/` — motor de simulación de un club "vivo" día a día (altas, asistencia, evaluaciones, misiones/XP, pagos, eventos, comunicaciones) con semilla fija y carga creciente; corre invariantes (categoría FEB, cuadre de pagos, integridad referencial, RLS) tras cada tramo y cierra el ciclo con un smoke de UI en Cypress. Dry-run por defecto, `SIM_REAL=1` para escribir, `SIM_STAGING_URL` como guardarraíl anti-producción. Ver `Dashboard_Premium/simulacion/README.md`.
+- El CI (ver sección dedicada arriba) no cubre Cypress ni bloquea por lint: un PR mergeado garantiza que Vitest y el build pasaron, no que los specs E2E lo hicieron.
 - `pagos_staff` sin aislamiento por club es deuda de seguridad declarada (no un P0 abierto, sino un límite conocido) — relevante solo si se activa un segundo club real.
-- El MCP no tiene tools de negocio (ver sección dedicada arriba).
+- `blackgold-negocio-mcp` está en v0.1: 2 de sus 8 tools dependen de la migración v51, todavía sin aplicar (ver sección dedicada arriba).
 - La convención `*Page.jsx` no está unificada (wrappers delgados vs. páginas completas conviven) — cambio de bajo riesgo pendiente, dejado fuera a propósito de refactors anteriores para no ampliar su radio de cambio.
 
 ## Documentos de diseño
@@ -91,6 +97,7 @@ Versiones reales de `Dashboard_Premium/package.json` (no asumir versiones anteri
 - `docs/evaluacion_ingenieria_producto.md` — evaluación de ingeniería del producto (2026-07-01): arquitectura, seguridad, calidad de código y roadmap P0/P1/P2. **Fecha de redacción anterior a v19/v24/v25/v27+** — leerla como diagnóstico histórico, no como estado actual de los P0 de seguridad (ya cerrados, ver sección dedicada arriba).
 - `docs/plan_remediacion_seguridad.md` — plan de remediación fase por fase derivado de la evaluación anterior. Mismo aviso: describe varias fases P0 como "pendiente aplicar/desplegar" con fecha de julio; los archivos de migración correspondientes (v19, v24, v25) ya existen en el repo. Sigue siendo útil para el detalle técnico de cómo se resolvió cada hallazgo.
 - `docs/pendientes_post_beta.md` (2026-07-04) — lista de pendientes post-lanzamiento de la beta; varios puntos P0 de seguridad que ahí figuran como abiertos ya se cerraron después (v19/v24/v25). Los puntos P1/P2 de producto y ciencia de los baremos (diferenciación por género, umbrales de movilidad, mapeo categoría→bucket) siguen siendo la referencia vigente para ese trabajo.
+- `docs/spec_h1_autonomia_resultados.md` (2026-07-16) — spec de la fase H1: loop autónomo con auditoría por excepción, reporte de resultado al padre, y un agente de conciliación de cobros **read-only** (nunca ejecuta dinero). **Estado: Propuesta — pendiente de decisiones del owner**, no implementado; su prerrequisito H1-D1 exige verificar el estado real de RLS por tabla antes de dar a cualquier agente permiso de escritura.
 - `docs/redes_sociales.md` y `docs/estrategia_contenidos_IA.md` — estrategia y calendario de contenidos para redes sociales del club (tono motivacional, no técnico); no tienen relación con el código de `Dashboard_Premium` ni con `blackgold-mcp`.
 - `docs/gestion_corporativa.md` — cultura organizacional y estructura de gobierno del club (documento de negocio, no técnico).
 
@@ -99,4 +106,4 @@ Versiones reales de `Dashboard_Premium/package.json` (no asumir versiones anteri
 Corpus de ciencia del deporte del club, indexado con BM25 por `blackgold-mcp/src/rack.js`. Detalle completo (fuentes, inventario de docs, cómo nutrirlo) en [`blackgold-mcp/CLAUDE.md`](blackgold-mcp/CLAUDE.md) y la skill `add-rack-doc`. **Regla dura: el conocimiento del deporte vive en el rack, nunca hardcodeado en `src/index.js`.**
 
 ---
-Última actualización: 2026-07-24.
+Última actualización: 2026-07-26.
