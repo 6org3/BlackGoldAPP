@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:rls": "node scripts/validar_rls_por_rol.js",
     "functions:sync": "node scripts/sync_edge_shared.mjs",
     "functions:deploy": "npm run functions:sync && npx supabase functions deploy generar-misiones-ia",
     "functions:deploy:brain": "npm run functions:sync && npx supabase functions deploy brain-gateway",
