@@ -29,13 +29,25 @@ Copiar `.env.example` a `.env` y rellenar:
 2. **`resumen_conversion_leads`** — Tasa de conversión (aprobados / total) y tiempo promedio de aprobación en un rango de fechas. El tiempo de aprobación es una **aproximación**: `usuarios` no tiene `updated_at`, así que se usa `atletas.fecha_alta` como proxy del momento en que se aprobó.
 3. **`estado_cobranza`** — Totales de cobranza de un mes (recaudado / por cobrar / vencidos / becados), desglosado por grupo y por categoría FEB. Mismo criterio de agregación que `duenoData.js` (panel del dueño).
 4. **`comprobantes_por_validar`** — Comprobantes de transferencia subidos por familias, pendientes de revisión por el staff.
-5. **`alertas_vencidos`** — Pagos en estado `Vencido`, ordenados por antigüedad, con el contacto del representante de pagos.
+5. **`alertas_vencidos`** — Pagos en estado `Vencido`, ordenados por antigüedad. **No devuelve teléfonos en bloque**: el contacto se resuelve solo para UN caso, pasando su `pago_id` junto con `incluir_contacto: true`. Exige acotar el club (o pedir `todos_los_clubes: true` a sabiendas) y excluye por defecto a las familias con `recordatorios_pausados`. Ver "Datos de contacto" abajo.
 6. **`kpis_direccion`** — Ingresos del mes + atletas activos + retención (réplica en JS de `fn_retencion_club`, v31) + solicitudes pendientes. **No incluye ocupación de cancha** en v0.1 (ver "Limitación conocida" abajo).
 
 ### Escritura (una sola, con cuidado)
 
 7. **`registrar_gasto`** — Registra un gasto de gestión. Valida: `monto` (número positivo), `categoria` (lista cerrada de 10 valores, debe coincidir con el `CHECK` de la migración), `descripcion` (obligatoria, no vacía). Devuelve el registro creado para que el agente lo confirme. **No permite editar ni borrar nada.**
 8. **`resumen_gastos`** — Totales de gastos por categoría en un rango de fechas, comparados con la cobranza real recibida (`pago_transacciones`) en el mismo periodo.
+
+## Datos de contacto: por qué `alertas_vencidos` no vuelca teléfonos
+
+Revisión de seguridad del 2026-07-26. La primera versión de esta tool devolvía, en una sola llamada, hasta 300 filas con el nombre y el teléfono del representante de pagos de cada familia. Tres problemas, y sus tres reglas:
+
+**1. Los teléfonos no salen en bloque.** Un agente que hace seguimiento necesita un contacto: el del caso que está atendiendo. Una lista con los teléfonos de todas las familias morosas no tiene uso legítimo para un agente, y pegada en un grupo de WhatsApp publica datos de contacto de padres de menores. Ahora el teléfono solo se resuelve si se pasan **las dos cosas**: un `pago_id` concreto y `incluir_contacto: true`. Si la consulta con `pago_id` no devuelve exactamente una fila, no se resuelve ningún contacto y la salida lo dice.
+
+**2. `recordatorios_pausados` se respeta.** Es la bandera de "esta familia pidió que no la molesten". La app ya la honra: `ColaRecordatorios.jsx` excluye esas filas de la cola de envío y `AdminPagos.jsx` las marca. La versión anterior de la tool devolvía el campo pero no filtraba por él, así que un agente podía perfectamente escribirle a quien había pedido lo contrario. Ahora se excluyen por defecto y la salida avisa cuántas quedaron fuera; para verlas hay que pedir `incluir_pausados: true`.
+
+**3. El club es explícito.** Este servidor usa la `service_role` key, así que **se salta entera** la RLS por club de la v24: aquí no hay barrera de aislamiento. Sin acotar, la tool devolvía los morosos de todos los clubes a la vez. Ahora es un error llamarla sin `club`, salvo que se pida `todos_los_clubes: true` a propósito (y en ese caso la salida lleva un aviso de no compartirla fuera de dirección).
+
+Y la regla que no se puede codificar dentro de la tool: **este servidor MCP no gana nunca una tool de envío.** Consulta y registro de gastos, nada más. El envío de mensajes vive en el canal de WhatsApp de OpenClaw y, de momento, solo hacia el grupo de dirección — mensajería en frío desde el número del club es la vía rápida a que Meta lo banee. La app ya cubre el envío a familias con el flujo semiautomático de `plantillasWhatsApp.js`, donde el humano pulsa enviar.
 
 ## Limitación conocida: ocupación de cancha
 

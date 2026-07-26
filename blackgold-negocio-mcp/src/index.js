@@ -450,16 +450,53 @@ server.tool(
 
 // ============================================================================
 // Tool 5 — alertas_vencidos
+//
+// SEGURIDAD — revisión del 2026-07-26. Tres reglas duras:
+//
+//   1. Los teléfonos NO salen en bloque. Un agente que hace seguimiento
+//      necesita UN contacto: el del caso que está atendiendo. Para obtenerlo
+//      hay que pasar un `pago_id` concreto Y `incluir_contacto: true`. Sin
+//      las dos cosas, la salida no lleva ningún teléfono. Una lista de 300
+//      teléfonos de familias no tiene uso legítimo para un agente, y pegada
+//      en un grupo publica datos de contacto de padres de menores.
+//   2. `recordatorios_pausados` se respeta. Es la bandera de "esta familia
+//      pidió que no la molesten" y la app ya la honra (ColaRecordatorios.jsx
+//      excluye esas filas de la cola de envío). Aquí se excluyen igual, salvo
+//      que se pidan a propósito.
+//   3. El club es explícito. Este proceso usa la service_role key y por tanto
+//      se salta la RLS por club de la v24: aquí no hay barrera. O se nombra el
+//      club, o se pide `todos_los_clubes: true` a sabiendas.
+//
+// Y la regla que no se puede codificar aquí: esta tool NO envía nada, y este
+// servidor MCP no va a ganar nunca una tool de envío. El envío vive en el
+// canal de WhatsApp de OpenClaw y, de momento, solo hacia el grupo de
+// dirección. Mensajería en frío a números individuales es la vía rápida a que
+// baneen el número del club.
 // ============================================================================
 server.tool(
   "alertas_vencidos",
-  "Lista atletas/familias con pagos en estado 'Vencido', ordenados por antigüedad (los más viejos primero), con el contacto del representante de pagos para el seguimiento por WhatsApp.",
+  "Lista atletas/familias con pagos en estado 'Vencido', del más antiguo al más reciente. Por seguridad NO devuelve teléfonos en bloque: para el contacto de UN caso, pasa su `pago_id` junto con `incluir_contacto: true`. Excluye por defecto a las familias con recordatorios pausados. No envía mensajes.",
   {
+    club: z.string().optional().describe("Club sobre el que consultar. Obligatorio, salvo que se pase todos_los_clubes:true."),
+    todos_los_clubes: z.boolean().optional().describe("true para consultar TODOS los clubes a la vez. Úsalo solo si de verdad hace falta: esta tool no tiene barrera por club."),
     umbral_dias: z.number().int().min(0).optional().describe("Solo pagos vencidos hace AL MENOS este número de días. Por defecto 0 (cualquier vencido)."),
-    club: z.string().optional().describe("Filtra por club. Si se omite, trae de todos los clubes."),
+    pago_id: z.string().optional().describe("Restringe la consulta a un solo pago. Es requisito para poder pedir el contacto."),
+    incluir_contacto: z.boolean().optional().describe("Devuelve el teléfono del representante de pagos. Solo funciona junto con pago_id, y solo de ese caso."),
+    incluir_pausados: z.boolean().optional().describe("Incluye familias con recordatorios pausados. Por defecto false: esas familias pidieron no recibir recordatorios."),
   },
-  async ({ umbral_dias, club }) => {
+  async ({ club, todos_los_clubes, umbral_dias, pago_id, incluir_contacto, incluir_pausados }) => {
     try {
+      if (!club && !todos_los_clubes) {
+        return textoError(
+          "Falta acotar el club. Esta tool usa la service_role key, así que se salta la RLS por club de la v24: sin acotar devolvería los morosos de TODOS los clubes. Pasa `club: \"<nombre>\"`, o `todos_los_clubes: true` si de verdad los quieres todos."
+        );
+      }
+      if (incluir_contacto && !pago_id) {
+        return textoError(
+          "No devuelvo teléfonos en bloque. Para el contacto de una familia, pasa el `pago_id` de ese caso concreto junto con `incluir_contacto: true`. Los datos de contacto de las familias no se listan de golpe ni se publican en un grupo."
+        );
+      }
+
       const umbral = umbral_dias ?? 0;
       const hoy = hoyISO();
       const fechaCorte = sumarDiasISO(hoy, -umbral);
@@ -479,25 +516,29 @@ server.tool(
         .limit(300);
 
       if (club) q = q.eq("atletas.usuarios.club", club);
+      if (pago_id) q = q.eq("id", pago_id);
 
       const { data, error } = await q;
       if (error) return textoError("No se pudo consultar vencidos: " + error.message);
 
-      const filas = data || [];
+      const todas = data || [];
 
-      // Contacto del representante de pagos (es_rep_pagos primero, si no el
-      // primer vínculo) — mismo criterio que fetchContactosPago (pagosService.js).
-      const atletaIds = [...new Set(filas.map((p) => p.atleta_id))];
-      const contactos = {};
-      if (atletaIds.length > 0) {
+      // Regla 2 — fuera las familias que pidieron no recibir recordatorios.
+      const pausadas = todas.filter((p) => p.atletas?.recordatorios_pausados === true);
+      const filas = incluir_pausados ? todas : todas.filter((p) => p.atletas?.recordatorios_pausados !== true);
+
+      // Regla 1 — el contacto solo se resuelve para UN pago, y solo si se pidió.
+      let contactoUnico = null;
+      if (incluir_contacto && pago_id && filas.length === 1) {
         const { data: vinculos } = await supabase
           .from("padres_atletas")
           .select("atleta_id, es_rep_pagos, usuarios!padres_atletas_padre_id_fkey ( nombre, telefono )")
-          .in("atleta_id", atletaIds);
+          .eq("atleta_id", filas[0].atleta_id);
+        // Mismo criterio que fetchContactosPago (pagosService.js): manda el
+        // representante de pagos; si no hay, el primer vínculo.
         (vinculos || []).forEach((v) => {
-          const actual = contactos[v.atleta_id];
-          if (!actual || (v.es_rep_pagos && !actual.es_rep_pagos)) {
-            contactos[v.atleta_id] = {
+          if (!contactoUnico || (v.es_rep_pagos && !contactoUnico.es_rep_pagos)) {
+            contactoUnico = {
               nombre: v.usuarios?.nombre ?? null,
               telefono: v.usuarios?.telefono ?? null,
               es_rep_pagos: v.es_rep_pagos,
@@ -516,10 +557,44 @@ server.tool(
         fecha_vencimiento: p.fecha_vencimiento,
         dias_vencido: diasEntre(p.fecha_vencimiento, hoy),
         recordatorios_pausados: p.atletas?.recordatorios_pausados ?? false,
-        representante: contactos[p.atleta_id] ?? null,
+        // El contacto solo aparece en la consulta de un caso único.
+        contacto: contactoUnico && p.id === pago_id ? contactoUnico : undefined,
       }));
 
-      return textoOk(JSON.stringify({ umbral_dias: umbral, total: resultado.length, vencidos: resultado }, null, 2));
+      const avisos = [];
+      if (!incluir_contacto) {
+        avisos.push(
+          "Sin teléfonos: se omiten a propósito. Para el contacto de un caso, vuelve a llamar con su pago_id e incluir_contacto:true."
+        );
+      }
+      if (incluir_contacto && pago_id && filas.length !== 1) {
+        avisos.push(
+          "Se pidió el contacto pero la consulta no devolvió exactamente un pago, así que no se resolvió ningún teléfono."
+        );
+      }
+      if (!incluir_pausados && pausadas.length > 0) {
+        avisos.push(
+          `${pausadas.length} pago(s) vencido(s) quedaron fuera porque esas familias tienen los recordatorios pausados. No se les debe escribir. Para verlos igualmente: incluir_pausados:true.`
+        );
+      }
+      if (todos_los_clubes && !club) {
+        avisos.push("Consulta sobre TODOS los clubes. No compartas esta salida fuera de dirección.");
+      }
+      avisos.push("Esta herramienta no envía mensajes. El envío lo decide un humano.");
+
+      return textoOk(
+        JSON.stringify(
+          {
+            umbral_dias: umbral,
+            club: club ?? "(todos)",
+            total: resultado.length,
+            avisos,
+            vencidos: resultado,
+          },
+          null,
+          2
+        )
+      );
     } catch (err) {
       return textoError(err.message);
     }
