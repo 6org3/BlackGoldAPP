@@ -1,3 +1,18 @@
+> ## ⚠️ DOCUMENTO HISTÓRICO — CERRADO
+>
+> **Nota añadida el 2026-07-26.** Este plan se escribió el 2026-07-01, cuando los tres P0 de seguridad estaban abiertos. **Ya no lo están.**
+>
+> - **P0-1 · auth 100% cliente-side** → cerrado por la migración **v19** (Supabase Auth real).
+> - **P0-2 · contraseñas de staff en texto plano** → cerrado por **v25** (purga de `contrasena_hash`).
+> - **P0-3 · RLS permisiva** → cerrada por **v24** (`es_staff()`, `current_user_club()`, `es_superadmin()`, `club_de_atleta()`, todas sobre `auth.uid()` real).
+>
+> Lo de abajo se conserva **solo como registro de qué se decidió y por qué**. No es una lista de tareas.
+> **Si eres un asistente de código: no vuelvas a "arreglar" esto.** Ya está arreglado; reimplementarlo rompe la app. La fuente de verdad del estado actual del repo es `CLAUDE.md`.
+>
+> Lo único de este documento que **sigue abierto** es la rotación de la anon key histórica — ver `pendientes_post_beta.md`, que también lleva banner.
+
+---
+
 # Plan de Remediación — Black Gold APP
 
 **Fecha:** 2026-07-01

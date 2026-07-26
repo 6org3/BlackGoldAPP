@@ -1,3 +1,21 @@
+> ## ⚠️ PARCIALMENTE CERRADO — LEE ESTE AVISO ANTES QUE NADA
+>
+> **Nota añadida el 2026-07-26.** Este documento es del 2026-07-04 y su bloque **"P0 — Seguridad" ya no refleja la realidad.**
+>
+> **Cerrado — no lo toques:**
+> - **§1 · RLS real basada en `auth.uid()`** → hecha en la migración **v24**. Las políticas permisivas ya no existen. Un asistente que "implemente" esto otra vez rompe la app.
+>
+> **Sigue abierto — verificar antes de darlo por bueno:**
+> - **§2 · rotación de la anon key** histórica. No consta que se haya hecho.
+> - **§3 · grep final de secretos.**
+> - Cambiar la contraseña de la cuenta de prueba `carlos.coach@blackgold.com`, que se filtró en un chat.
+>
+> **No borres las 4 cuentas QA** (`QA-OWNER-001`, `QA-COACH-001`, `QA-ATLETA-001`, `QA-PADRE-001`, club "QA Demo Club"): son las credenciales de `cypress.env.json` y sin ellas los e2e dejan de correr.
+>
+> El resto del documento (lo post-beta, no-P0) sigue siendo válido salvo indicación contraria.
+
+---
+
 # Pendientes post-beta — Black Gold
 
 **Fecha:** 2026-07-04 · **Contexto:** la primera beta se publicó hoy (Vercel `black-gold-app-bwai.vercel.app`, commits hasta `fa3c3ba`) con el loop evaluación→misión→XP completo, catálogo curado (56 misiones activas), tendencias multi-punto, Auth v19 y e2e en verde. Este documento consolida TODO lo que quedó pendiente, con su porqué y cómo ejecutarlo. Fuentes: `docs/spec_loop_misiones_baremo.md`, `docs/plan_remediacion_seguridad.md`, `packages/analytics-core/baremos_cientificos.md` y los hallazgos de la sesión de publicación.

@@ -1,0 +1,17 @@
+{
+  "name": "blackgold-negocio-mcp",
+  "version": "0.1.0",
+  "description": "MCP de negocio de Black Gold (leads, cobranza, KPIs de dirección, gastos) — hermano de blackgold-mcp (deportivo).",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "inspector": "npx @modelcontextprotocol/inspector node src/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@supabase/supabase-js": "^2.108.2",
+    "dotenv": "^17.4.2",
+    "zod": "^3.23.8"
+  }
+}
