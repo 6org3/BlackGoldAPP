@@ -134,6 +134,11 @@ async function limpiarQA() {
     }
   }
   await svc.from('catalogo_sesiones').delete().like('titulo', 'QA_RLS_%');
+  // v51: los gastos QA no cuelgan de ningún usuario ni atleta (registrado_por
+  // es texto libre, no una FK), así que ningún CASCADE los barre. Se borran por
+  // marca en la descripción. Si la v51 aún no está aplicada esto falla en
+  // silencio, que es justo lo que se quiere: no hay nada que limpiar.
+  await svc.from('gastos').delete().like('descripcion', 'QA_RLS%');
   // v50: los grupos sembrados, ya sin atletas que los referencien (atletas.grupo_id
   // es NO ACTION, pero sus atletas se borraron arriba) ni sesiones (borradas ya).
   await svc.from('grupos_entrenamiento').delete().like('nombre', 'QA_RLS_%');
@@ -1191,6 +1196,146 @@ async function suiteCorreoStaffSinAcceso() {
   await svc.from('usuarios').delete().eq('id', pendiente.id);
 }
 
+// La v51 abre `gastos`: dinero que SALE del club (nómina, arriendo, marketing).
+// Es el dato más sensible del esquema después de las credenciales, y la RLS que
+// lo protege es la más estricta que hay — ni siquiera el coach, que es staff,
+// debe verlo. Ojo con el alcance real de estos asserts: blackgold-negocio-mcp
+// escribe esta tabla con la service_role key, que se salta la RLS entera. Lo
+// que se prueba aquí es la barrera del día que la app gane una UI de gastos, no
+// la del MCP (esa vive en las guardas de sus tools).
+async function suiteGastos() {
+  console.log('\n— GASTOS: CONTABILIDAD DE GESTIÓN (v51) —');
+
+  // Semilla con service_role: un gasto en cada club. Si la tabla no existe, la
+  // migración no está aplicada y no tiene sentido seguir: se reporta en rojo y
+  // se sale, en vez de encadenar quince fallos que dicen todos lo mismo.
+  const { data: gastoPropio, error: eSemilla } = await svc.from('gastos').insert({
+    club: CLUB, monto: 100.00, categoria: 'Marketing y publicidad',
+    descripcion: 'QA_RLS gasto de Black Gold', registrado_por: 'QA_RLS',
+  }).select().single();
+  if (eSemilla) {
+    check('la tabla `gastos` existe (v51 aplicada)', false,
+      `${eSemilla.message} — falta aplicar 20260726120000_v51_gastos_contabilidad_gestion.sql`);
+    return;
+  }
+  QA.gastoPropioId = gastoPropio.id;
+
+  const { data: gastoAjeno, error: eSemAjeno } = await svc.from('gastos').insert({
+    club: CLUB_AJENO, monto: 250.00, categoria: 'Nómina',
+    descripcion: 'QA_RLS gasto del club ajeno', registrado_por: 'QA_RLS',
+  }).select().single();
+  if (eSemAjeno) throw new Error(`setup gastos ajeno: ${eSemAjeno.message}`);
+  QA.gastoAjenoId = gastoAjeno.id;
+
+  // 1. El coach es staff y ve media app, pero la nómina no es asunto suyo:
+  // sabría lo que cobran sus compañeros. La policy pide rol owner/superadmin.
+  const cliCoach = await loginComo(QA.coach1.cedula, QA.coach1.cedula);
+  const { data: coachVe } = await cliCoach.from('gastos').select('id');
+  check('coach NO ve gastos, ni los de su propio club (v51)',
+    (coachVe || []).length === 0, `ve ${(coachVe || []).length}`);
+
+  const { error: eCoachIns } = await cliCoach.from('gastos').insert({
+    club: CLUB, monto: 1, categoria: 'Otro',
+    descripcion: 'QA_RLS coach intenta registrar', registrado_por: 'QA_RLS',
+  }).select();
+  check('coach NO registra gastos (v51)',
+    eCoachIns?.code === '42501', eCoachIns?.message || 'lo dejó insertar');
+  await cliCoach.auth.signOut();
+
+  // 2. El atleta, ni de lejos.
+  const cliAtleta = await loginComo(QA.atleta1.cedula, QA.atleta1.cedula);
+  const { data: atletaVe } = await cliAtleta.from('gastos').select('id');
+  check('atleta NO ve gastos (v51)', (atletaVe || []).length === 0, `ve ${(atletaVe || []).length}`);
+  await cliAtleta.auth.signOut();
+
+  // 3. El anónimo: las policies son TO authenticated, así que la tabla no
+  // existe para quien no ha iniciado sesión.
+  const { data: anonVe } = await anon().from('gastos').select('id');
+  check('anónimo NO ve gastos (v51)', (anonVe || []).length === 0, `ve ${(anonVe || []).length}`);
+
+  // 4. El owner: los suyos sí, los del club de al lado no. Mismo vector que v40.
+  const cliOwner = await loginComo(QA.owner1.cedula, QA.owner1.cedula);
+  const { data: ownerVe } = await cliOwner.from('gastos').select('id, club');
+  const idsOwner = (ownerVe || []).map(g => g.id);
+  check('owner SÍ ve los gastos de SU club (v51)',
+    idsOwner.includes(QA.gastoPropioId), `ve ${idsOwner.length} gastos y el suyo no está`);
+  check('owner NO ve los gastos de otro club (v51)',
+    !idsOwner.includes(QA.gastoAjenoId), 'le aparece el gasto del club ajeno');
+
+  const { error: eOwnerIns } = await cliOwner.from('gastos').insert({
+    club: CLUB, monto: 42.50, categoria: 'Insumos y suministros',
+    descripcion: 'QA_RLS owner registra en su club', registrado_por: 'QA_RLS',
+  }).select();
+  check('owner SÍ registra un gasto en SU club (no se rompió el caso legítimo)',
+    !eOwnerIns, eOwnerIns?.message);
+
+  // El WITH CHECK, que es lo que de verdad importa: ser owner no basta, el club
+  // de la fila tiene que ser el suyo. Sin esta cláusula, un owner escribiría
+  // gastos en la contabilidad de cualquier club con solo cambiar un campo.
+  const { error: eOwnerAjeno } = await cliOwner.from('gastos').insert({
+    club: CLUB_AJENO, monto: 999, categoria: 'Otro',
+    descripcion: 'QA_RLS owner inyecta en club ajeno', registrado_por: 'QA_RLS',
+  }).select();
+  const { count: nInyectados } = await svc.from('gastos')
+    .select('id', { count: 'exact', head: true })
+    .eq('club', CLUB_AJENO).like('descripcion', 'QA_RLS owner inyecta%');
+  check('owner NO inyecta un gasto en la contabilidad de otro club (WITH CHECK v51)',
+    eOwnerAjeno?.code === '42501' && (nInyectados || 0) === 0,
+    eOwnerAjeno?.message || `se crearon ${nInyectados}`);
+
+  const { error: eOwnerUpd } = await cliOwner.from('gastos')
+    .update({ monto: 1 }).eq('id', QA.gastoAjenoId).select();
+  const { data: ajenoReal } = await svc.from('gastos')
+    .select('monto').eq('id', QA.gastoAjenoId).single();
+  check('owner NO reescribe el monto de un gasto de otro club (v51)',
+    Number(ajenoReal?.monto) === 250,
+    `quedó en ${ajenoReal?.monto} (error: ${eOwnerUpd?.message || 'ninguno'})`);
+
+  // DELETE también cae bajo el FOR ALL. Igual que en Storage (v40b), un delete
+  // bloqueado por RLS no siempre devuelve error — filtra filas en vez de lanzar.
+  // La prueba real es que la fila siga ahí, mirada con el cliente de servicio.
+  await cliOwner.from('gastos').delete().eq('id', QA.gastoAjenoId);
+  const { data: sigueAhi } = await svc.from('gastos')
+    .select('id').eq('id', QA.gastoAjenoId).maybeSingle();
+  check('owner NO borra un gasto de otro club (v51)',
+    sigueAhi !== null, 'el gasto del club ajeno desapareció');
+  await cliOwner.auth.signOut();
+
+  // 5. El superadmin sí cruza clubes: es el único que debe, y si esto se rompe
+  // la consolidación de toda la plataforma deja de funcionar.
+  const cliSuper = await loginComo(QA.super1.cedula, QA.super1.cedula);
+  const { data: superVe } = await cliSuper.from('gastos').select('id');
+  const idsSuper = (superVe || []).map(g => g.id);
+  check('superadmin SÍ ve los gastos de ambos clubes (v51)',
+    idsSuper.includes(QA.gastoPropioId) && idsSuper.includes(QA.gastoAjenoId),
+    `ve ${idsSuper.length} gastos`);
+  await cliSuper.auth.signOut();
+
+  // 6. Los CHECK de la tabla son la otra mitad de la barrera, y esta sí aplica
+  // al MCP: la service_role key se salta la RLS, pero no las restricciones de
+  // integridad. Es lo único que impide que una tool escriba basura en la
+  // contabilidad. La lista de categorías tiene que seguir en sincronía con
+  // CATEGORIAS_GASTO de blackgold-negocio-mcp/src/index.js.
+  const { error: eCat } = await svc.from('gastos').insert({
+    club: CLUB, monto: 10, categoria: 'Categoria inventada',
+    descripcion: 'QA_RLS categoria invalida', registrado_por: 'QA_RLS',
+  }).select();
+  check('una categoría fuera de la lista cerrada es rechazada, incluso con service_role (CHECK v51)',
+    !!eCat, 'la base la aceptó');
+
+  const { error: eMonto } = await svc.from('gastos').insert({
+    club: CLUB, monto: -5, categoria: 'Otro',
+    descripcion: 'QA_RLS monto negativo', registrado_por: 'QA_RLS',
+  }).select();
+  check('un monto negativo es rechazado (CHECK v51)', !!eMonto, 'la base lo aceptó');
+
+  const { error: eDesc } = await svc.from('gastos').insert({
+    club: CLUB, monto: 10, categoria: 'Otro',
+    descripcion: '   ', registrado_por: 'QA_RLS',
+  }).select();
+  check('una descripción en blanco es rechazada (CHECK v51)', !!eDesc, 'la base la aceptó');
+}
+
 (async () => {
   console.log(`Validación RLS v24 por rol — ${URL_}\n`);
   const previos = await limpiarQA();
@@ -1210,6 +1355,7 @@ async function suiteCorreoStaffSinAcceso() {
     await suiteCoDuenos();
     await suiteAislamientoClubPagos();
     await suiteCorreoStaffSinAcceso();
+    await suiteGastos();
   } catch (err) {
     fallo = err;
     console.error(`\n💥 Error de infraestructura de la suite: ${err.message}`);

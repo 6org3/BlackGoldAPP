@@ -1,0 +1,109 @@
+name: CI
+
+# Se dispara en push/PR contra la rama principal (main) y también se puede
+# lanzar a mano desde la pestaña Actions (workflow_dispatch).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Permiso mínimo: este workflow solo necesita leer el código, no escribir nada.
+permissions:
+  contents: read
+
+# Cancela ejecuciones anteriores del mismo PR/rama cuando llega un push nuevo,
+# para no acumular runs redundantes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Variables de relleno (NO son secretos reales) solo para que `vite build`
+# no truene al leer import.meta.env.VITE_SUPABASE_*. Los tests de Vitest ya
+# mockean el cliente de Supabase (vi.mock('.../supabaseClient', ...)) en los
+# specs que lo necesitan, así que no hace falta nada más para que corran.
+# NUNCA reemplaces esto por claves reales ni por un secret: el build no
+# ejecuta llamadas de red a Supabase, solo necesita que las variables existan
+# para que `createClient(url, key)` no reciba `undefined`.
+env:
+  VITE_SUPABASE_URL: https://placeholder-ci.supabase.co
+  VITE_SUPABASE_ANON_KEY: placeholder-anon-key-solo-para-build-ci
+
+jobs:
+  dashboard:
+    name: Dashboard_Premium (lint + tests + build)
+    runs-on: ubuntu-latest
+    # Todos los pasos de este job corren dentro de Dashboard_Premium/, que es
+    # donde vive el package.json de la app (no en la raíz del repo).
+    defaults:
+      run:
+        working-directory: Dashboard_Premium
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          # El repo no fija versión de Node (no hay "engines" en package.json
+          # ni .nvmrc). Node 22 es la que usa la máquina de desarrollo y
+          # cumple de sobra lo que pide Vite 8. Si en algún momento se agrega
+          # un .nvmrc o "engines", ajustar esto para que coincida.
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Dashboard_Premium/package-lock.json
+
+      - name: Instalar dependencias (npm ci, desde package-lock.json)
+        run: npm ci
+
+      - name: Lint (informativo, no bloquea el pipeline)
+        # El repo ya tiene ~163 problemas de lint preexistentes (153 errores,
+        # 10 warnings) sin relación con este cambio. Si este paso bloqueara el
+        # pipeline, el CI saldría en rojo desde el primer día por deuda vieja,
+        # no por el cambio que se está revisando. Se deja el paso para tener
+        # visibilidad, pero con continue-on-error hasta limpiar esa deuda.
+        # Cuando el lint esté en verde, quitar la línea continue-on-error.
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Tests (Vitest, modo run — no watch)
+        # El script "test" del package.json ya es `vitest run` (no queda
+        # colgado esperando cambios de archivos como haría `vitest` a secas).
+        run: npm test
+
+      - name: Build de producción (vite build)
+        run: npm run build
+
+  # ------------------------------------------------------------------------
+  # Cypress (end-to-end) queda FUERA de esta primera versión del CI a
+  # propósito: las 14 specs en Dashboard_Premium/cypress/e2e necesitan una
+  # base de datos Supabase real y credenciales (ver cypress.env.json.example),
+  # y son mucho más lentas que Vitest. Meterlas ahora habría hecho el CI
+  # inestable desde el día uno. Siguiente paso natural: un proyecto Supabase
+  # de pruebas dedicado + job separado tipo:
+  #
+  # cypress:
+  #   name: Dashboard_Premium (Cypress e2e)
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: Dashboard_Premium
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with: { node-version: '22', cache: npm, cache-dependency-path: Dashboard_Premium/package-lock.json }
+  #     - run: npm ci
+  #     - uses: cypress-io/github-action@v6
+  #       with: { working-directory: Dashboard_Premium, start: npm run dev, wait-on: 'http://localhost:5173' }
+  #       env:
+  #         CYPRESS_baseUrl: http://localhost:5173
+  #         # + variables de cypress.env.json apuntando a un Supabase de pruebas
+  # ------------------------------------------------------------------------
+
+  # ------------------------------------------------------------------------
+  # blackgold-mcp/ (el servidor MCP hermano) NO tiene ningún script de test
+  # en su package.json (solo "start", "inspector" y "rack"). No se monta un
+  # job de test aquí porque no hay nada que correr todavía; agregarlo en
+  # cuanto ese paquete tenga tests reales.
+  # ------------------------------------------------------------------------
