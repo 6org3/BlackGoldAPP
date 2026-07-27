@@ -5,6 +5,10 @@
 **/.gstack/
 .gstack/
 
+# Grafo de conocimiento generado por la skill graphify (regenerable con
+# `graphify --update`, no se versiona)
+graphify-out/
+
 # Archivos de entorno y credenciales
 **/.env
 **/.env.local
