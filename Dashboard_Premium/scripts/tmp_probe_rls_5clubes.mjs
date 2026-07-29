@@ -16,8 +16,14 @@ process.loadEnvFile(path.join(__dirname, '..', '.env.local'));
 const URL_ = process.env.VITE_SUPABASE_URL;
 const ANON = process.env.VITE_SUPABASE_ANON_KEY;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Nunca literal: este repo es público y el script apunta al proyecto real.
+const CAS_OWNER_PASSWORD = process.env.QA_CAS_OWNER_PASSWORD;
 if (!URL_ || !ANON || !SERVICE) {
   console.error('Faltan VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
+if (!CAS_OWNER_PASSWORD) {
+  console.error('Falta QA_CAS_OWNER_PASSWORD en .env.local');
   process.exit(1);
 }
 
@@ -114,10 +120,10 @@ async function main() {
   // ===== a) CAS-OWNER: aislamiento de lectura y escritura cross-club =====
   console.log('\n== (a) CAS-OWNER (owner de Cascabel BC) ==');
   {
-    const prov = await ensureAuth('CAS-OWNER', 'CAS-OWNER#2026');
+    const prov = await ensureAuth('CAS-OWNER', CAS_OWNER_PASSWORD);
     if (prov.creado) console.log('  [seed] CAS-OWNER no tenía cuenta de Auth; se aprovisionó para poder probar (hueco de seed reportado)');
     const cli = anon();
-    await loginComo(cli, 'CAS-OWNER', 'CAS-OWNER#2026');
+    await loginComo(cli, 'CAS-OWNER', CAS_OWNER_PASSWORD);
 
     // usuarios: no debe ver NINGUNA fila de NLB
     const { data: uVis } = await cli.from('usuarios').select('id, club').limit(2000);

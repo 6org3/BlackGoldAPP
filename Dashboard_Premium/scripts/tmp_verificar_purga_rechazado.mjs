@@ -45,8 +45,14 @@ const anon = () => createClient(URL_, ANON, opts);
 // Club real ya sembrado (credenciales_5clubes.json) — evita crear un owner
 // QA de usar y tirar solo para esta verificación puntual.
 const CLUB = 'Nueva Loja Basket';
-const OWNER = { cedula: 'NLB-OWNER', password: 'NLB-OWNER#2026' };
-const SUPERADMIN = { cedula: 'BG-SUPERADMIN', password: 'BG-SUPERADMIN#2026' };
+// Las contraseñas vienen del entorno, nunca literales: este repo es público y
+// estos scripts apuntan al proyecto Supabase real.
+const OWNER = { cedula: 'NLB-OWNER', password: process.env.QA_OWNER_PASSWORD };
+const SUPERADMIN = { cedula: 'BG-SUPERADMIN', password: process.env.QA_SUPERADMIN_PASSWORD };
+if (!OWNER.password || !SUPERADMIN.password) {
+  console.error('Faltan QA_OWNER_PASSWORD / QA_SUPERADMIN_PASSWORD en .env.local');
+  process.exit(1);
+}
 const QA_ATLETA = { cedula: 'QA_PURGA_REJ1', nombre: 'QA Purga Rechazado', nac: '2013-04-12' };
 
 const resultados = [];

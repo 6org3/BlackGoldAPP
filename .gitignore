@@ -51,3 +51,16 @@ lerna-debug.log*
 **/.agents/
 **/.claude/skills/
 **/skills-lock.json
+
+# Secretos y credenciales. Este repositorio es PÚBLICO y apunta al proyecto
+# Supabase real: cualquier archivo con contraseñas o claves que se cuele aquí
+# queda publicado en internet y hay que rotar, no solo borrar.
+.env.production
+**/.env.production
+credenciales*.json
+**/credenciales*.json
+
+# Estado local del CLI de Supabase (project ref, versiones de la instancia,
+# URL del pooler). Es material de reconocimiento sobre producción y se
+# regenera solo con `npx supabase link`.
+**/supabase/.temp/
