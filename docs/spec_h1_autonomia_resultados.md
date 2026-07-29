@@ -13,7 +13,7 @@
 **Transversal**
 
 - **H1-D1** (prerrequisito, bloqueante) — Aclarar la contradicción de RLS antes de dar a cualquier agente permiso de escritura. `pendientes_post_beta.md` #1 (2026-07-04) marca RLS como P0 sin resolver (4 tablas v18 `FOR ALL USING (true)`), pero `blackgold-mcp/src/index.js` y `pagos_diseno.md` §7.2 asumen "RLS v24" vigente con helpers (`es_staff()`, `current_user_rol()`, `mis_atletas()`, `current_user_club()`, `es_superadmin()`). Se verifica el estado real, por tabla, de cada tabla que un agente H1 toca (`progreso_misiones`, `misiones`, `pagos`, `pago_transacciones`, `pago_comprobantes`, `comunicaciones`) y no se activa autonomía hasta tener esa verificación escrita.
-- **H1-D2** — Regla estadística **n<3** como función pura nueva `confianzaSubPilar(pruebas) → { n, nivel: 'firme'|'provisional' }` en `packages/analytics-core` (deriva `n` de `pruebas.length`, el mismo array que `detectarDebilidades` ya agrega por `sub_pilar`). Se recrea el doc de rack `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` — **NO existe en el checkout actual** aunque registros del proyecto dicen que se creó el 2026-07-10; hay que verificar si se perdió o vive en otra ruta antes de recrearlo. La regla vive en el rack (conocimiento del deporte) y en la función pura (cálculo), nunca hardcodeada en `src/index.js`.
+- **H1-D2** — Regla estadística **n<3** como función pura nueva `confianzaSubPilar(pruebas) → { n, nivel: 'firme'|'provisional' }` en `packages/analytics-core` (deriva `n` de `pruebas.length`, el mismo array que `detectarDebilidades` ya agrega por `sub_pilar`). El doc de rack `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` **ya existe** (recreado el 2026-07-29). Se verificó que nunca llegó a entrar a git — `git log --all -S "sesgo_muestra"` solo devuelve los commits que lo *mencionan* (este spec y el del MCP de negocio), ninguno que lo añada — así que no se perdió: no se había creado. Cabo cerrado. La regla vive en el rack (conocimiento del deporte) y en la función pura (cálculo), nunca hardcodeada en `src/index.js`.
 - **H1-D3** — **Kill-switch por feature** en `club_config`: columnas booleanas nuevas `autonomia_misiones`, `reporte_padre_auto`, `conciliador_activo` (nueva), **default `false`** (OFF). Cada feature H1 verifica su flag antes de actuar; apagar una no apaga las otras.
 
 **F1 — Loop autónomo con auditoría por excepción**
@@ -84,7 +84,7 @@ El loop de misiones y el ciclo de cobros funcionan, pero **frenan siempre en un 
 | `misiones` (catálogo) | Fase 1: `nivel_objetivo, categoria_bucket, justificacion, complejidad (general/especifica), activa`; v26: `contexto, fase_temporada`; `is_ai_generated` separa catálogo curado vs generación bajo demanda. 56 misiones activas curadas (2026-07-04). |
 | Flujo de aprobación (D4) | `complejidad='general'`→`pendiente` (auto); `complejidad='especifica'`→`pendiente_aprobacion`; `sinCobertura`→IA `origen='ia'`, siempre `pendiente_aprobacion`. Cola "Asignaciones Propuestas" en "Gestionar Misiones". **Badge #8 no implementado.** |
 | Señal de confianza `n` | **No existe explícita.** Derivable de `pruebas.length` en `detectarDebilidades`. Regla `n<3` **no implementada** en `analytics-core` ni en el MCP. |
-| `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` | **NO existe en el checkout.** Registros previos dicen creado el 2026-07-10 — verificar si se perdió o vive en otra ruta. |
+| `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` | **Existe** (recreado 2026-07-29). Se verificó que nunca estuvo en git: no se perdió, no se había creado. Fundamenta la regla n<3 (firme vs. provisional); la función pura `confianzaSubPilar` sigue pendiente. |
 | `analytics-core/tendencias.js` | `calcularDelta(antes, después)→[{sub_pilar, antes, despues, delta}]` (granularidad sub-pilar) y `agregarDebilidadesGrupo(...)` **ya existen**; panel grupal del coach ya las consume. Falta exponer al padre (#10a) y al owner (#10b). |
 | Canales al padre | Portal `PadreDashboard.jsx` (patrón "Estado de Cuenta" `pagos_diseno.md` §7.2); `src/lib/plantillasWhatsApp.js` con `PLANTILLAS` (12 claves) + `renderPlantilla`/`linkWhatsApp`. **No hay plantilla de progreso/delta.** Todo envío registra fila en `comunicaciones.proposito`; `resolver_audiencia()` (v18) segmenta. |
 | Ciclo de cobro (v27) | `pagos` (estados `Pagado/Pendiente/Vencido/Becado/Por Verificar/Abonado/Anulado`), `pago_transacciones` (trigger recalcula `pagos.monto_pagado`/`estado`), `pago_comprobantes` (RPC `resolver_comprobante` SECURITY DEFINER, solo `es_staff()`). |
@@ -101,7 +101,7 @@ El loop de misiones y el ciclo de cobros funcionan, pero **frenan siempre en un 
 ### Fase 0 — Prerrequisitos transversales (P0, bloqueante de F1/F3)
 
 - **P0 (H1-D1)** — **Verificación de RLS real.** Documento corto por tabla que un agente H1 escribe (`progreso_misiones`, `comunicaciones`, `cola_recordatorios` nueva) o lee sensible (`pagos`, `pago_transacciones`, `pago_comprobantes`): ¿qué policy aplica hoy, con qué helper, con qué filtro por club? Cerrar la contradicción #1 vs v24. **Sin este cierre no se activa ningún flag de autonomía de escritura.**
-- **P0 (H1-D2)** — Función pura `confianzaSubPilar(pruebas)` (nueva) en `packages/analytics-core` + recrear/relocalizar `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` (verificar primero si se perdió).
+- **P0 (H1-D2)** — Función pura `confianzaSubPilar(pruebas)` (nueva) en `packages/analytics-core`. *(La mitad documental ya está hecha: `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` existe desde el 2026-07-29 y fundamenta el umbral n≥3.)*
 
 ```js
 // packages/analytics-core/recomendaciones.js — ILUSTRATIVO, función pura (nueva)
@@ -337,7 +337,7 @@ WHERE t.forma_pago = 'Efectivo' AND t.comprobante_id IS NULL;
 - **Q2** — ¿El atleta ve la misión auto-aprobada **al instante**, o con un **delay de cortesía de 24h** para dar ventana de reversión al coach? Afecta cómo se muestra en `MisionesPanel` y la percepción de "el sistema decide solo".
 - **Q3** — ¿Digest de morosidad **semanal o quincenal**? Semanal da más control; quincenal reduce ruido para el owner.
 - **Q4** — ¿Dónde vive el agente F3: **Edge Function con pg_cron** (patrón `enviar-whatsapp` de W3) o **tool del MCP** invocada por un agente externo (OpenClaw)? Define dónde se acota el `SECURITY DEFINER` y quién dispara.
-- **Q5** — Confirmar el **estado real de RLS v24** (H1-D1) y si `sesgo_muestra_pequena.md` se perdió o vive en otra ruta. Bloqueante de toda escritura autónoma.
+- **Q5** — Confirmar el **estado real de RLS v24** (H1-D1). Bloqueante de toda escritura autónoma. *(La parte de `sesgo_muestra_pequena.md` quedó resuelta el 2026-07-29: nunca estuvo en git, ya está recreado.)*
 - **Q6** — ¿Cuál es la fila **usuario sistema** para `asignado_por` en auto-aprobaciones (centinela en `usuarios`) y cómo la trata la RLS?
 
 ## 9. Plan y dependencias
