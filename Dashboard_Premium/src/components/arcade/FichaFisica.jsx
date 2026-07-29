@@ -32,7 +32,9 @@ export default function FichaFisica({ fisico, accent = C.gold, emptyText = 'Aún
                 {it.label}
               </MicroLabel>
               <p style={{ margin: '4px 0 0', fontFamily: PIXEL, fontSize: 13, color: accent }}>{it.val}</p>
-              <p style={{ margin: '2px 0 0', fontSize: 8.5, color: C.text4 }}>{it.unidad}</p>
+              {/* text3, no text4: la unidad da sentido al número (kg vs cm) y
+                  text4 no llega a 4.5:1 sobre esta superficie. */}
+              <p style={{ margin: '2px 0 0', fontSize: 8.5, color: C.text3 }}>{it.unidad}</p>
             </div>
           ))}
         </div>

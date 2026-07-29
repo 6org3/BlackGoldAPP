@@ -44,7 +44,8 @@ export default function VistaAtletaArcade() {
               type="button"
               onClick={ctx.onBack}
               aria-label="Atrás"
-              style={{ width: 34, height: 34, flex: 'none', display: 'grid', placeItems: 'center', background: 'transparent', border: '1px solid rgba(255,255,255,.12)', clipPath: cut(7), color: C.text2, cursor: 'pointer' }}
+              // 44x44: objetivo táctil por defecto del DS (ROW_H). Estaba en 34.
+              style={{ width: 44, height: 44, flex: 'none', display: 'grid', placeItems: 'center', background: 'transparent', border: '1px solid rgba(255,255,255,.12)', clipPath: cut(7), color: C.text2, cursor: 'pointer' }}
             >
               <ChevronLeft size={16} strokeWidth={2.4} />
             </button>
@@ -56,8 +57,10 @@ export default function VistaAtletaArcade() {
           </div>
         )}
 
-        {/* Área de scroll con la pantalla activa */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: scrollPad, WebkitOverflowScrolling: 'touch' }}>
+        {/* Área de scroll con la pantalla activa. <main>: es el landmark de
+            contenido del portal — sin él, un lector de pantalla no ofrece el
+            salto al contenido y recorre el header en cada cambio de pantalla. */}
+        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: scrollPad, WebkitOverflowScrolling: 'touch' }}>
           {!ctx || loading ? (
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
               <MicroLabel color={C.text3} size={9} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
@@ -73,7 +76,7 @@ export default function VistaAtletaArcade() {
           ) : ctx.isEventos ? (
             <PantallaAtletaEventos ctx={ctx} />
           ) : null}
-        </div>
+        </main>
 
         {/* Footer CTA (detalle) */}
         {ctx?.showFooter && ctx.footer && (

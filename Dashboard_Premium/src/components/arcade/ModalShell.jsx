@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { C, BORDER, GRAD, OVERLAY, cut } from './arcadeTokens';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
+import bloquearFondo from './inertFondo';
 
 /**
  * ModalShell — cascarón de diálogo del lenguaje Arcade para modales con cuerpo
@@ -40,6 +41,7 @@ export default function ModalShell({ onClose, title, titleClassName = '', icon: 
     triggerRef.current = document.activeElement;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    const liberarFondo = bloquearFondo();
     const t = setTimeout(() => closeRef.current?.focus(), 0);
     const onKey = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return; }
@@ -58,6 +60,9 @@ export default function ModalShell({ onClose, title, titleClassName = '', icon: 
       clearTimeout(t);
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
+      // Liberar el fondo ANTES de devolver el foco: sobre un árbol inerte,
+      // .focus() no tiene efecto y el disparador se quedaría sin foco.
+      liberarFondo();
       const el = triggerRef.current;
       if (el && typeof el.focus === 'function' && document.contains(el)) el.focus();
     };

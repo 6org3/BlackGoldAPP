@@ -4,12 +4,16 @@ import MicroLabel from './MicroLabel';
 import RadarChart from './RadarChart';
 import FichaFisica from './FichaFisica';
 
+// El estado `locked` usa text3 y no text4: sobre las superficies de esta
+// pantalla text4 se queda en 2.3-2.7:1, y el rango que todavía no alcanzas es
+// precisamente la información que motiva. El bloqueo se lee por el tamaño del
+// hexágono y por el conector apagado, no por volver ilegible su nombre.
 const NODE = {
   done: { size: 40, bg: 'rgba(34,211,238,.16)', color: C.cyan, glow: 'none' },
   current: { size: 48, bg: GRAD.goldHex, color: C.ink, glow: 'drop-shadow(0 0 12px rgba(255,215,0,.5))' },
-  locked: { size: 40, bg: 'rgba(255,255,255,.05)', color: C.text4, glow: 'none' },
+  locked: { size: 40, bg: 'rgba(255,255,255,.05)', color: C.text3, glow: 'none' },
 };
-const LABEL_COLOR = { done: C.cyan, current: C.gold, locked: C.text4 };
+const LABEL_COLOR = { done: C.cyan, current: C.gold, locked: C.text3 };
 
 function Rango({ r, extra }) {
   const s = NODE[r.state];
@@ -69,10 +73,15 @@ export default function PantallaAtletaProgreso({ ctx }) {
             key={p.key}
             type="button"
             onClick={p.onPick}
+            // Las celdas son una barra pintada: sin nombre accesible el lector
+            // solo anunciaría "botón". El valor va en el nombre porque el
+            // control ES la fila del pilar, no un progressbar independiente.
+            aria-label={`${p.label}: ${p.valLabel}`}
+            aria-pressed={p.isSel}
             style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 10, textAlign: 'left', cursor: 'pointer', background: C.card, border: `1px solid ${p.isSel ? BORDER.goldStrong : 'rgba(255,255,255,.07)'}`, clipPath: cut(8), padding: '10px 12px' }}
           >
             <span style={{ width: 92, flex: 'none', fontFamily: PIXEL, fontSize: 8, letterSpacing: '.04em', color: p.isSel ? C.gold : C.text2 }}>{p.label}</span>
-            <div style={{ flex: 1, display: 'flex', gap: 2 }}>
+            <div aria-hidden="true" style={{ flex: 1, display: 'flex', gap: 2 }}>
               {p.cells.map((c, i) => (
                 <span key={i} style={{ flex: 1, height: 9, background: c }} />
               ))}
@@ -102,7 +111,7 @@ export default function PantallaAtletaProgreso({ ctx }) {
                   <div key={j} style={{ height: 7, flex: 'none', background: c, clipPath: cut(2) }} />
                 ))}
               </div>
-              <p style={{ margin: '6px 0 0', fontFamily: PIXEL, fontSize: 7, color: C.text4 }}>{w.label}</p>
+              <p style={{ margin: '6px 0 0', fontFamily: PIXEL, fontSize: 7, color: C.text3 }}>{w.label}</p>
             </div>
           ))}
         </div>

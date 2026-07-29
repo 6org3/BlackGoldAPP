@@ -41,13 +41,17 @@ export default function Badge({ icon, name, unlocked = false, pop = true, glow =
           letterSpacing: '.02em',
           lineHeight: 1.35,
           whiteSpace: 'pre-line',
-          color: unlocked ? C.gold : C.text4,
+          // Bloqueada usa text3, no text4: text4 queda en 2.7:1 sobre el fondo
+          // del HUD y el nombre de la insignia que AÚN NO tienes es justo lo que
+          // hay que poder leer. El bloqueo ya lo comunica el hexágono (grayscale
+          // + opacity .4), no hace falta apagar también el texto.
+          color: unlocked ? C.gold : C.text3,
         }}
       >
         {name}
       </p>
       {countLabel != null && (
-        <p style={{ margin: '3px 0 0', fontFamily: PIXEL, fontSize: 8, color: unlocked ? C.text : C.text4 }}>
+        <p style={{ margin: '3px 0 0', fontFamily: PIXEL, fontSize: 8, color: unlocked ? C.text : C.text3 }}>
           {countLabel}
         </p>
       )}
