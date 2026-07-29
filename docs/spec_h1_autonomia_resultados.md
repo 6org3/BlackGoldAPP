@@ -83,7 +83,7 @@ El loop de misiones y el ciclo de cobros funcionan, pero **frenan siempre en un 
 | `progreso_misiones` | `atleta_id, mision_id, completada, estado (pendiente/pendiente_aprobacion/aprobada/rechazada), fecha_completada, asignado_por, tipo_asignacion, fecha_asignacion, origen (coach/auto_baremo/ia), sub_pilar_objetivo, evaluacion_id`. Sin auditoría propia. |
 | `misiones` (catálogo) | Fase 1: `nivel_objetivo, categoria_bucket, justificacion, complejidad (general/especifica), activa`; v26: `contexto, fase_temporada`; `is_ai_generated` separa catálogo curado vs generación bajo demanda. 56 misiones activas curadas (2026-07-04). |
 | Flujo de aprobación (D4) | `complejidad='general'`→`pendiente` (auto); `complejidad='especifica'`→`pendiente_aprobacion`; `sinCobertura`→IA `origen='ia'`, siempre `pendiente_aprobacion`. Cola "Asignaciones Propuestas" en "Gestionar Misiones". **Badge #8 no implementado.** |
-| Señal de confianza `n` | **No existe explícita.** Derivable de `pruebas.length` en `detectarDebilidades`. Regla `n<3` **no implementada** en `analytics-core` ni en el MCP. |
+| Señal de confianza `n` | **Existe** desde el 2026-07-29: `confianzaSubPilar(pruebas)` en `packages/analytics-core/recomendaciones.js` (reexportada por `index.js` y sincronizada a las Edge Functions). Ningún consumidor la usa todavía — F1 y F2 siguen pendientes de ratificación. |
 | `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` | **Existe** (recreado 2026-07-29). Se verificó que nunca estuvo en git: no se perdió, no se había creado. Fundamenta la regla n<3 (firme vs. provisional); la función pura `confianzaSubPilar` sigue pendiente. |
 | `analytics-core/tendencias.js` | `calcularDelta(antes, después)→[{sub_pilar, antes, despues, delta}]` (granularidad sub-pilar) y `agregarDebilidadesGrupo(...)` **ya existen**; panel grupal del coach ya las consume. Falta exponer al padre (#10a) y al owner (#10b). |
 | Canales al padre | Portal `PadreDashboard.jsx` (patrón "Estado de Cuenta" `pagos_diseno.md` §7.2); `src/lib/plantillasWhatsApp.js` con `PLANTILLAS` (12 claves) + `renderPlantilla`/`linkWhatsApp`. **No hay plantilla de progreso/delta.** Todo envío registra fila en `comunicaciones.proposito`; `resolver_audiencia()` (v18) segmenta. |
@@ -101,16 +101,19 @@ El loop de misiones y el ciclo de cobros funcionan, pero **frenan siempre en un 
 ### Fase 0 — Prerrequisitos transversales (P0, bloqueante de F1/F3)
 
 - **P0 (H1-D1)** — **Verificación de RLS real.** Documento corto por tabla que un agente H1 escribe (`progreso_misiones`, `comunicaciones`, `cola_recordatorios` nueva) o lee sensible (`pagos`, `pago_transacciones`, `pago_comprobantes`): ¿qué policy aplica hoy, con qué helper, con qué filtro por club? Cerrar la contradicción #1 vs v24. **Sin este cierre no se activa ningún flag de autonomía de escritura.**
-- **P0 (H1-D2)** — Función pura `confianzaSubPilar(pruebas)` (nueva) en `packages/analytics-core`. *(La mitad documental ya está hecha: `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` existe desde el 2026-07-29 y fundamenta el umbral n≥3.)*
+- **P0 (H1-D2)** — ✅ **HECHO (2026-07-29).** Las dos mitades están en `main`: el fundamento deportivo en `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` y la función pura `confianzaSubPilar(pruebas, { umbral })` en `packages/analytics-core/recomendaciones.js`, con el umbral exportado como `UMBRAL_CONFIANZA_FIRME` (un solo valor que cambiar cuando se ratifique Q1) y 9 tests en `Dashboard_Premium/src/lib/recomendaciones.test.js`.
 
 ```js
-// packages/analytics-core/recomendaciones.js — ILUSTRATIVO, función pura (nueva)
-// `pruebas` es el mismo array que detectarDebilidades ya agrega por sub_pilar.
-export function confianzaSubPilar(pruebas = []) {
-  const n = Array.isArray(pruebas) ? pruebas.length : 0;
-  return { n, nivel: n >= 3 ? 'firme' : 'provisional' }; // umbral n≥3 (ratificable, ver Q1)
+// packages/analytics-core/recomendaciones.js — IMPLEMENTADO
+export const UMBRAL_CONFIANZA_FIRME = 3; // ratificable, ver Q1
+
+export function confianzaSubPilar(pruebas = [], { umbral = UMBRAL_CONFIANZA_FIRME } = {}) {
+  const n = Array.isArray(pruebas) ? pruebas.filter(Boolean).length : 0;
+  return { n, nivel: n >= umbral ? 'firme' : 'provisional' };
 }
 ```
+
+> **Precisión de semántica que el spec no explicitaba:** `n` cuenta pruebas **distintas** que miden el sub-pilar (amplitud), no mediciones repetidas en el tiempo. Es consecuencia de la entrada elegida: la lista `pruebas` de `detectarDebilidades` viene de `ultimasPorPrueba`, que ya se queda con la última fila de cada `prueba_tipo`. Un atleta con tres sentadillas en tres fechas da **n=1**, no 3. Para F2 (delta trimestral al padre, H1-D11) eso es lo que se quiere — el delta se calcula sobre una ventana, no sobre historial —, pero **la confianza de una tendencia (cuántos puntos hacen creíble una pendiente) sigue sin resolver**: `tendencias.js` construye las series pero ninguna función declara ese umbral.
 
 - **P0 (H1-D3)** — Kill-switch por feature en `club_config` (columnas nuevas, default OFF).
 
