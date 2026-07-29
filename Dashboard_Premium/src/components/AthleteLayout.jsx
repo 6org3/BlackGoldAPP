@@ -74,7 +74,9 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
     };
   }, [showMobileMenu, closeMobileMenu, repositionMobileMenu]);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  // await antes de navegar: sin él, en red lenta PrivateRoute todavía ve la
+  // sesión viva y rebota al portal.
+  const handleLogout = async () => { await logout(); navigate('/login', { replace: true }); };
 
   const handleTabChange = (id) => {
     setVisitedTabs(prev => (prev.has(id) ? prev : new Set(prev).add(id)));

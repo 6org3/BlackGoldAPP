@@ -50,7 +50,9 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  // await antes de navegar: sin él, en red lenta PrivateRoute todavía ve la
+  // sesión viva y rebota a /dashboard.
+  const handleLogout = async () => { await logout(); navigate('/login', { replace: true }); };
 
   if (user.rol === 'atleta') return <VistaAtleta user={user} />;
 

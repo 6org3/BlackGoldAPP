@@ -9,6 +9,7 @@ import Login from './components/Login.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import InstallPrompt from './components/InstallPrompt.jsx'
 import PageLoader from './components/PageLoader.jsx'
+import { ToastProvider } from './components/Toast.jsx'
 
 // En Android, beforeinstallprompt suele dispararse justo tras el load (antes
 // de que el usuario termine el login). Se captura a nivel módulo para que
@@ -149,6 +150,10 @@ createRoot(document.getElementById('root')).render(
           conservan). El CSS global ya lo hace en index.css — esto cubre las
           animaciones JS (VARIANTS/MOTION de designTokens.js). */}
       <MotionConfig reducedMotion="user">
+      {/* ToastProvider quedaba definido pero sin montar, así que los avisos de
+          error del panel del dueño (dar de baja, reactivar) nunca llegaban a
+          verse: useDueno lee el contexto y salía null. */}
+      <ToastProvider>
       <AuthProvider>
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
@@ -225,7 +230,11 @@ createRoot(document.getElementById('root')).render(
           <Route
             path="/admin/pagos"
             element={
-              <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
+              /* Sin 'coach': el dueño descartó el "modo cobro" del §7.4 el
+                 2026-07-22 (docs/pagos_diseno.md §10.4, "Pagos es solo-owner").
+                 La RLS lo respalda desde v52; esto evita que el coach llegue a
+                 una pantalla que ya no puede usar. */
+              <PrivateRoute roles={['superadmin', 'owner']}>
                 <AdminPagosPage />
               </PrivateRoute>
             }
@@ -311,6 +320,7 @@ createRoot(document.getElementById('root')).render(
         <InstallPrompt />
       </BrowserRouter>
       </AuthProvider>
+      </ToastProvider>
       </MotionConfig>
     </ErrorBoundary>
   </StrictMode>,

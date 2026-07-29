@@ -14,8 +14,10 @@
    nunca a mock disfrazado de real; coaches/retención aún caen a mock (TODO);
    ante excepción total, al DUENO_MOCK completo (badge DEMO).
 
-   Nota de meses: el prototipo asume may/jun/jul. Como hoy es julio 2026 eso
-   calza con los últimos 3 meses; TODO: etiquetas de mes dinámicas fuera de julio.
+   Meses: las claves son relativas (m0 = mes en curso, m1 = anterior, m2 = el
+   previo) y `mesesMeta` lleva la etiqueta real derivada de la fecha. Antes eran
+   literales may/jun/jul, que a partir de agosto rotulaban cada bucket con el mes
+   equivocado — el dueño leía "JULIO" sobre recaudación de agosto.
    ============================================================ */
 import { supabase } from '../../api/supabaseClient';
 import { fetchTodosLosAtletas } from '../../api/atletasService';
@@ -69,9 +71,11 @@ function derivePagos(pagos, metaReal = null) {
   };
 }
 
-// Mes/año N meses atrás (1..).
+// Mes/año N meses atrás (0 = mes en curso). setMonth con día > 28 desborda
+// (31 de marzo − 1 mes = 3 de marzo), así que se ancla al día 1 antes de restar.
 function mesAtras(n) {
   const d = new Date();
+  d.setDate(1);
   d.setMonth(d.getMonth() - n);
   return { m: d.getMonth() + 1, y: d.getFullYear() };
 }
@@ -190,15 +194,16 @@ export async function fetchDuenoPanel(user) {
     const allIds = list.map((a) => a.atleta_id).filter(Boolean);
 
     const now = new Date();
+    const p0 = mesAtras(0);
     const p1 = mesAtras(1);
     const p2 = mesAtras(2);
 
-    const [asisAll, asis14, asis16, asis18, pJul, pJun, pMay, clubConfig, coachRows, retClub, realHeat, nSolicitudes, agendaHoy] = await Promise.all([
+    const [asisAll, asis14, asis16, asis18, pM0, pM1, pM2, clubConfig, coachRows, retClub, realHeat, nSolicitudes, agendaHoy] = await Promise.all([
       fetchAsistenciaPct(allIds, 30),
       fetchAsistenciaPct(idsCat(list, '14'), 30),
       fetchAsistenciaPct(idsCat(list, '16'), 30),
       fetchAsistenciaPct(idsCat(list, '18'), 30),
-      fetchPagosMes(now.getMonth() + 1, now.getFullYear()).catch(() => []),
+      fetchPagosMes(p0.m, p0.y).catch(() => []),
       fetchPagosMes(p1.m, p1.y).catch(() => []),
       fetchPagosMes(p2.m, p2.y).catch(() => []),
       fetchClubConfig(user.club).catch(() => null),
@@ -212,9 +217,16 @@ export async function fetchDuenoPanel(user) {
     // Meta real del donut de Finanzas (club_config.meta_recaudacion_mensual, v31);
     // null (columna ausente / sin config) → meta derivada (recaudado + por cobrar).
     const metaReal = Number(clubConfig?.meta_recaudacion_mensual) || null;
-    const finanzas = { may: derivePagos(pMay, metaReal), jun: derivePagos(pJun, metaReal), jul: derivePagos(pJul, metaReal) };
-    const julF = finanzas.jul;
-    const pctMeta = julF.meta ? Math.round((100 * julF.recaudado) / julF.meta) : 0;
+    // m0 = mes en curso, m1 = anterior, m2 = el previo. Las etiquetas viajan en
+    // `mesesMeta` (orden cronológico ascendente, como las lee el selector).
+    const finanzas = { m0: derivePagos(pM0, metaReal), m1: derivePagos(pM1, metaReal), m2: derivePagos(pM2, metaReal) };
+    const mesesMeta = [
+      { k: 'm2', label: MESES_UP[p2.m - 1] },
+      { k: 'm1', label: MESES_UP[p1.m - 1] },
+      { k: 'm0', label: MESES_UP[p0.m - 1] },
+    ];
+    const mesActualF = finanzas.m0;
+    const pctMeta = mesActualF.meta ? Math.round((100 * mesActualF.recaudado) / mesActualF.meta) : 0;
     // "Atletas activos" y "en riesgo" cuentan solo membresías activas, para no
     // seguir sumando a quien ya fue dado de baja (cuadra con el gauge de Retención).
     const activos = list.filter(esActivo);
@@ -228,7 +240,7 @@ export async function fetchDuenoPanel(user) {
     const netoMes = abNow ? (Number(abNow.altas) || 0) - (Number(abNow.bajas) || 0) : null;
     const base = DUENO_MOCK.kpis;
     const kpis = [
-      { ...base[0], label: `RECAUDADO · ${MESES_UP[now.getMonth()]}`, val: money(julF.recaudado), sub: `${pctMeta}% de la meta` },
+      { ...base[0], label: `RECAUDADO · ${MESES_UP[p0.m - 1]}`, val: money(mesActualF.recaudado), sub: `${pctMeta}% de la meta` },
       { ...base[1], val: `${asisAll}%`, sub: 'Promedio 30 días' },
       { ...base[2], val: String(activos.length), sub: netoMes == null ? 'membresías activas' : `${netoMes >= 0 ? '+' : ''}${netoMes} este mes` },
       { ...base[3], val: String(enRiesgo), sub: enRiesgo > 0 ? 'con señales de recuperación' : 'sin señales hoy' },
@@ -270,7 +282,7 @@ export async function fetchDuenoPanel(user) {
 
     // D2 · Filas de acción reales del mes en curso: comprobantes por verificar
     // y vencidos/mora, desde los mismos pagos ya traídos (fetchPagosMes).
-    const pagosVerificar = (pJul || []).filter((p) => p.estado === 'Por Verificar');
+    const pagosVerificar = (pM0 || []).filter((p) => p.estado === 'Por Verificar');
     const verificar = pagosVerificar.map((p) => {
       const nombre = p.atletas?.usuarios?.nombre || 'Atleta';
       return {
@@ -282,7 +294,7 @@ export async function fetchDuenoPanel(user) {
         monto: money((p.monto_final || 0) - (p.monto_pagado || 0)),
       };
     }).slice(0, 6);
-    const vencidos = (pJul || []).filter((p) => p.estado === 'Vencido').map((p) => {
+    const vencidos = (pM0 || []).filter((p) => p.estado === 'Vencido').map((p) => {
       const nombre = p.atletas?.usuarios?.nombre || 'Atleta';
       const dias = p.fecha_vencimiento ? Math.max(Math.ceil((now - new Date(p.fecha_vencimiento)) / 86400000), 1) : null;
       return {
@@ -310,10 +322,10 @@ export async function fetchDuenoPanel(user) {
         href: '/admin/atletas',
       });
     }
-    if (julF.vencCount > 0) {
+    if (mesActualF.vencCount > 0) {
       alertas.push({
         icon: '💳',
-        text: `${julF.vencCount} ${julF.vencCount === 1 ? 'pago vencido' : 'pagos vencidos'} · $${julF.vencMonto} en mora`,
+        text: `${mesActualF.vencCount} ${mesActualF.vencCount === 1 ? 'pago vencido' : 'pagos vencidos'} · $${mesActualF.vencMonto} en mora`,
         cta: 'FINANZAS ►',
         color: C.danger,
         border: 'rgba(239,68,68,.3)',
@@ -349,6 +361,7 @@ export async function fetchDuenoPanel(user) {
       clubNombre: user.club || '', // título del RESUMEN (club real, no 'Black Gold')
       kpis,
       finanzas,
+      mesesMeta,
       asistencia,
       catRows,
       coaches,

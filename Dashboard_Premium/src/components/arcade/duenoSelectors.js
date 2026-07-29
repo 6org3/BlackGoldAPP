@@ -42,9 +42,11 @@ function ctxResumen(data, actions) {
 
 // ---------- D2 · Finanzas ----------
 function ctxFinanzas(state, data, actions) {
-  const mes = state.dMes || 'jul';
-  const d = data.finanzas[mes] || data.finanzas.jul;
-  const MESES = [{ k: 'may', label: 'MAYO' }, { k: 'jun', label: 'JUNIO' }, { k: 'jul', label: 'JULIO' }];
+  const mes = state.dMes || 'm0';
+  const d = data.finanzas[mes] || data.finanzas.m0;
+  // Etiquetas derivadas de la fecha real (duenoData.mesesMeta); el fallback solo
+  // cubre un `data` viejo sin el campo, y usa las mismas claves relativas.
+  const MESES = data.mesesMeta || [{ k: 'm2', label: '—' }, { k: 'm1', label: '—' }, { k: 'm0', label: 'MES ACTUAL' }];
   const pct = d.meta ? Math.round((100 * d.recaudado) / d.meta) : 0;
 
   const verificados = state.dVerificados || {};

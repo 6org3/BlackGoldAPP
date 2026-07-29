@@ -78,10 +78,12 @@ export default function ArcadePerfilMenu({
     };
   }, [open, close, reposition]);
 
-  const handleLogout = () => {
+  // await antes de navegar: sin él, en red lenta PrivateRoute todavía ve la
+  // sesión viva y rebota al portal.
+  const handleLogout = async () => {
     close();
-    logout();
-    navigate('/login');
+    await logout();
+    navigate('/login', { replace: true });
   };
 
   const handleEditar = () => {

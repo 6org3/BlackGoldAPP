@@ -15,7 +15,7 @@ import { ToastContext } from '../../hooks/useToast';
  */
 const initialState = {
   dTab: 'resumen', // 'resumen'|'finanzas'|'asistencia'|'equipo'|'retencion'
-  dMes: 'jul', // 'may'|'jun'|'jul'
+  dMes: 'm0', // 'm0' mes en curso | 'm1' anterior | 'm2' el previo
   dCat: 'todas', // 'todas'|'s14'|'s16'|'s18'
   dSort: 'asist', // 'asist'|'ses'|'xp'
   dHeat: '0-2', // "díaIdx-franjaIdx"

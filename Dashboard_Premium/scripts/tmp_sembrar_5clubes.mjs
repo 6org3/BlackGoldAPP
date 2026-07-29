@@ -19,6 +19,7 @@
 import { createClient } from '@supabase/supabase-js';
 import path from 'path';
 import fs from 'fs';
+import { randomBytes } from 'crypto';
 import { fileURLToPath } from 'url';
 import { BAREMOS, calcularOverall } from '../../packages/analytics-core/baremos.js';
 import { calcularCategoriaFEB } from '../../packages/analytics-core/categoriaFEB.js';
@@ -116,6 +117,12 @@ const PERFILES = [
 const credenciales = [];
 const cred = (club, rol, cedula, password) => credenciales.push({ club, rol, identificador: cedula, password });
 
+// Contraseña aleatoria por cuenta. Antes se derivaba de la cédula (`${cedula}#2026`):
+// como este repo es PÚBLICO, publicar el algoritmo equivalía a publicar la
+// contraseña de todo el staff sembrado, incluido el superadmin global. Las
+// credenciales generadas se siguen guardando en CRED_PATH, fuera del repo.
+const passAleatoria = () => `${randomBytes(12).toString('base64url')}#Bg`;
+
 async function crearAuth(usuarioId, cedula, password) {
   const { data, error } = await supabase.auth.admin.createUser({
     email: emailInterno(cedula), password, email_confirm: true, user_metadata: { usuario_id: usuarioId, demo: true },
@@ -159,7 +166,7 @@ async function sembrarClub(P) {
   const mkStaff = async (cedula, nombre, rol) => {
     const { data, error } = await supabase.from('usuarios').insert({ cedula, nombre, rol, club: P.club, correo: null, telefono: null, estado: 'activo' }).select('id').single();
     if (error) throw new Error(`usuarios ${cedula}: ${error.message}`);
-    const pass = `${cedula}#2026`; // v41: password de staff ≠ cédula
+    const pass = passAleatoria(); // v41: password de staff ≠ cédula
     await crearAuth(data.id, cedula, pass);
     cred(P.club, rol, cedula, pass);
     staff.push({ id: data.id, cedula, rol });
@@ -438,8 +445,9 @@ async function run() {
     if (!ya) {
       const { data, error } = await supabase.from('usuarios').insert({ cedula: 'BG-SUPERADMIN', nombre: 'Superadmin Plataforma', rol: 'superadmin', club: 'Global', correo: null, estado: 'activo' }).select('id').single();
       if (error) throw new Error(`superadmin: ${error.message}`);
-      await crearAuth(data.id, 'BG-SUPERADMIN', 'BG-SUPERADMIN#2026');
-      cred('(global)', 'superadmin', 'BG-SUPERADMIN', 'BG-SUPERADMIN#2026');
+      const passSA = passAleatoria();
+      await crearAuth(data.id, 'BG-SUPERADMIN', passSA);
+      cred('(global)', 'superadmin', 'BG-SUPERADMIN', passSA);
     }
   } else console.log('  [dry] superadmin global BG-SUPERADMIN');
 

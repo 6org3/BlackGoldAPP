@@ -25,7 +25,7 @@ Copiar `.env.example` a `.env` y rellenar:
 
 ### Lectura (nunca escriben)
 
-1. **`listar_leads_pipeline`** — Lista leads (`usuarios` con `rol='atleta'`), filtrable por `estado` (`pendiente`/`activo`/`rechazado`), `club` y rango de fechas de registro. Incluye el representante vinculado si el registro lo trajo.
+1. **`listar_leads_pipeline`** — Lista leads (`usuarios` con `rol='atleta'`), filtrable por `estado` (`pendiente`/`activo`/`rechazado`), `club` y rango de fechas de registro. Incluye el nombre del representante vinculado si el registro lo trajo. **No devuelve datos de contacto en bloque**: cédula, correo y teléfono (y el teléfono del representante) se resuelven solo para UN caso, pasando su `usuario_id` junto con `incluir_contacto: true`. Exige acotar el club (o pedir `todos_los_clubes: true` a sabiendas). Mismas reglas que `alertas_vencidos`, y por el mismo motivo: son datos personales de menores. Ver "Datos de contacto" abajo.
 2. **`resumen_conversion_leads`** — Tasa de conversión (aprobados / total) y tiempo promedio de aprobación en un rango de fechas. El tiempo de aprobación es una **aproximación**: `usuarios` no tiene `updated_at`, así que se usa `atletas.fecha_alta` como proxy del momento en que se aprobó.
 3. **`estado_cobranza`** — Totales de cobranza de un mes (recaudado / por cobrar / vencidos / becados), desglosado por grupo y por categoría FEB. Mismo criterio de agregación que `duenoData.js` (panel del dueño).
 4. **`comprobantes_por_validar`** — Comprobantes de transferencia subidos por familias, pendientes de revisión por el staff.

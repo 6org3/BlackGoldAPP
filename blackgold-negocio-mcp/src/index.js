@@ -202,21 +202,45 @@ function agregarCobranza(pagos) {
 // `usuarios` directo, generalizando fetchSolicitudesPendientes (solicitudes-
 // Service.js) para aceptar cualquier estado, no solo 'pendiente' — así sirve
 // para ver el pipeline completo, no solo la bandeja de pendientes.
+// SEGURIDAD — revisión del 2026-07-29. Esta tool devolvía en bloque cédula,
+// correo, teléfono, fecha de nacimiento y género de atletas MENORES, más el
+// nombre y teléfono del representante, y con `club` opcional agregaba los cinco
+// clubes por defecto. Violaba las tres reglas que este mismo archivo se impone
+// en `alertas_vencidos` (ver el bloque de arriba), sobre datos todavía más
+// sensibles. Se aplican aquí las mismas tres:
+//   1. Los datos de contacto NO salen en bloque: hacen falta `usuario_id`
+//      concreto Y `incluir_contacto: true`.
+//   2. fecha_nacimiento y genero se dejan de pedir: no los usaba nadie (el
+//      mapeo ya los descartaba) y eran superficie inútil.
+//   3. El club es explícito: o se nombra, o se pide `todos_los_clubes: true` a
+//      sabiendas, porque con service_role no hay RLS que acote.
 server.tool(
   "listar_leads_pipeline",
-  "Lista leads (registros de atletas) del pipeline de ingreso: pendientes de aprobación, activos ya aprobados o rechazados. Un 'lead' es una fila de usuarios con rol='atleta' — no existe una tabla de solicitudes separada.",
+  "Lista leads (registros de atletas) del pipeline de ingreso: pendientes de aprobación, activos ya aprobados o rechazados. Un 'lead' es una fila de usuarios con rol='atleta' — no existe una tabla de solicitudes separada. Por seguridad NO devuelve datos de contacto en bloque: para los de UN caso, pasa su `usuario_id` junto con `incluir_contacto: true`. Exige nombrar el club o pedir `todos_los_clubes: true`.",
   {
     estado: z.enum(ESTADOS_LEAD).optional().describe("Filtra por estado de la cuenta: 'pendiente' (recién registrado, sin aprobar), 'activo' (aprobado) o 'rechazado'. Si se omite, trae los tres."),
-    club: z.string().optional().describe("Filtra por club (texto exacto, ej. 'Black Gold'). Si se omite, trae de todos los clubes."),
+    club: z.string().optional().describe("Filtra por club (texto exacto, ej. 'Black Gold'). Obligatorio salvo que pases todos_los_clubes: true."),
+    todos_los_clubes: z.boolean().optional().describe("Ponlo en true para agregar TODOS los clubes a sabiendas. Sin esto y sin `club`, la tool no devuelve nada."),
     desde: z.string().optional().describe("Fecha ISO (YYYY-MM-DD): solo leads registrados desde esta fecha."),
     hasta: z.string().optional().describe("Fecha ISO (YYYY-MM-DD): solo leads registrados hasta esta fecha."),
+    usuario_id: z.string().optional().describe("UUID de UN lead concreto. Necesario, junto con incluir_contacto, para obtener sus datos de contacto."),
+    incluir_contacto: z.boolean().optional().describe("Solo con `usuario_id`: añade cédula, correo y teléfono de ESE lead y el teléfono de su representante."),
   },
-  async ({ estado, club, desde, hasta }) => {
+  async ({ estado, club, todos_los_clubes, desde, hasta, usuario_id, incluir_contacto }) => {
     try {
+      if (!club && !todos_los_clubes && !usuario_id) {
+        return textoError(
+          "Falta acotar el club. Estos son datos personales de menores: pasa `club: '<nombre>'`, " +
+          "o `todos_los_clubes: true` si de verdad necesitas agregar todos los clubes."
+        );
+      }
+      // El contacto sale de a uno, nunca en lista.
+      const contactoDeUno = !!(usuario_id && incluir_contacto);
+
       let q = supabase
         .from("usuarios")
         .select(`
-          id, cedula, nombre, correo, telefono, fecha_nacimiento, genero, club, estado, created_at,
+          id, cedula, nombre, correo, telefono, club, estado, created_at,
           atletas!atletas_usuario_id_fkey ( id, posicion, estado_membresia, fecha_alta )
         `)
         .eq("rol", "atleta")
@@ -227,27 +251,33 @@ server.tool(
       if (club) q = q.eq("club", club);
       if (desde) q = q.gte("created_at", desde);
       if (hasta) q = q.lte("created_at", hasta);
+      if (usuario_id) q = q.eq("id", usuario_id);
 
       const { data, error } = await q;
       if (error) return textoError("No se pudo consultar el pipeline de leads: " + error.message);
 
-      const filas = (data || []).map((u) => ({
-        usuario_id: u.id,
-        cedula: u.cedula,
-        nombre: u.nombre,
-        correo: u.correo,
-        telefono: u.telefono,
-        club: u.club,
-        estado: u.estado,
-        registrado_en: u.created_at,
-        atleta_id: u.atletas?.[0]?.id ?? null,
-        posicion: u.atletas?.[0]?.posicion ?? null,
-        estado_membresia: u.atletas?.[0]?.estado_membresia ?? null,
-        fecha_aprobacion: u.atletas?.[0]?.fecha_alta ?? null,
-      }));
+      const filas = (data || []).map((u) => {
+        const fila = {
+          usuario_id: u.id,
+          nombre: u.nombre,
+          club: u.club,
+          estado: u.estado,
+          registrado_en: u.created_at,
+          atleta_id: u.atletas?.[0]?.id ?? null,
+          posicion: u.atletas?.[0]?.posicion ?? null,
+          estado_membresia: u.atletas?.[0]?.estado_membresia ?? null,
+          fecha_aprobacion: u.atletas?.[0]?.fecha_alta ?? null,
+        };
+        if (contactoDeUno) {
+          fila.cedula = u.cedula;
+          fila.correo = u.correo;
+          fila.telefono = u.telefono;
+        }
+        return fila;
+      });
 
       // Representante vinculado (si el registro lo incluyó) — mismo patrón
-      // que fetchSolicitudesPendientes.
+      // que fetchSolicitudesPendientes. Solo el nombre, salvo contacto de uno.
       const atletaIds = filas.map((f) => f.atleta_id).filter(Boolean);
       if (atletaIds.length > 0) {
         const { data: vinculos } = await supabase
@@ -258,10 +288,20 @@ server.tool(
         (vinculos || []).forEach((v) => {
           if (v.usuarios && !padrePorAtleta[v.atleta_id]) padrePorAtleta[v.atleta_id] = v.usuarios;
         });
-        filas.forEach((f) => { f.representante = padrePorAtleta[f.atleta_id] ?? null; });
+        filas.forEach((f) => {
+          const p = padrePorAtleta[f.atleta_id];
+          if (!p) { f.representante = null; return; }
+          f.representante = contactoDeUno
+            ? { nombre: p.nombre, telefono: p.telefono, estado: p.estado }
+            : { nombre: p.nombre, estado: p.estado };
+        });
       }
 
-      return textoOk(JSON.stringify({ total: filas.length, leads: filas }, null, 2));
+      return textoOk(JSON.stringify({
+        total: filas.length,
+        contacto_incluido: contactoDeUno,
+        leads: filas,
+      }, null, 2));
     } catch (err) {
       return textoError(err.message);
     }
