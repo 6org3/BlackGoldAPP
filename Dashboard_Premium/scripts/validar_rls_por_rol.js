@@ -63,6 +63,16 @@ const QA = {
 // por si una corrida anterior murió a medias): datos REALES tocados por los
 // asserts de aislamiento cross-club (v40), no filas QA que se borren solas.
 const CLUB_CONFIG_BACKUP = { pendiente: false, existia: true, cuenta_bancaria_texto: null };
+
+// Misión de catálogo sembrada por suiteTablasEscrituraH1. El catálogo `misiones`
+// no cuelga de ningún usuario QA, así que el borrado en cascada por usuario no la
+// alcanza: hay que limpiarla por id.
+const H1_SEMILLA = { misionId: null };
+
+// Se enciende cuando el control de abuso de v54 (429) impide crear el registro
+// público de la corrida. Las suites que dependen de esa cuenta se omiten en vez
+// de encadenar rojos que no hablan de RLS.
+const REGISTRO_OMITIDO = { valor: false };
 const PAGOS_FICTICIOS_ANIOS = [];
 
 const resultados = [];
@@ -121,6 +131,10 @@ async function limpiarQA() {
     await svc.from('pagos_auditoria').delete().in('actor_id', ids);
     await svc.from('pagos').delete().in('registrado_por', ids);
     await svc.from('pagos').delete().in('verificado_por', ids);
+    // Mismo motivo que los pagos: `comunicaciones.autor_id` es FK a usuarios y no
+    // tiene CASCADE, así que una comunicación QA (suiteTablasEscrituraH1) bloquea
+    // el borrado de TODOS los usuarios QA, no solo de su autor.
+    await svc.from('comunicaciones').delete().in('autor_id', ids);
 
     const { data: atletasQA } = await svc.from('atletas').select('id').in('usuario_id', ids);
     const atletaIds = (atletasQA || []).map(a => a.id);
@@ -166,6 +180,14 @@ async function limpiarQA() {
       await svc.from('club_config').delete().eq('club', CLUB);
     }
     CLUB_CONFIG_BACKUP.pendiente = false;
+  }
+  // Misión de catálogo de suiteTablasEscrituraH1: primero sus asignaciones (FK),
+  // después la fila del catálogo. Por id y no por prefijo, para no rozar nunca
+  // una misión real del club.
+  if (H1_SEMILLA.misionId) {
+    await svc.from('progreso_misiones').delete().eq('mision_id', H1_SEMILLA.misionId);
+    await svc.from('misiones').delete().eq('id', H1_SEMILLA.misionId);
+    H1_SEMILLA.misionId = null;
   }
   if (PAGOS_FICTICIOS_ANIOS.length) {
     await svc.from('pagos').delete().in('anio', PAGOS_FICTICIOS_ANIOS);
@@ -904,6 +926,22 @@ async function suiteRegistroPublico() {
     }),
   });
   const cuerpo = await res.json().catch(() => ({}));
+
+  // v54 (control de abuso del registro público) limita los intentos por IP y hora.
+  // La suite crea un registro real en cada corrida, así que a partir de la segunda
+  // corrida dentro de la ventana el 429 es la RESPUESTA CORRECTA del sistema, no un
+  // fallo de RLS. Si se contara como rojo, además, se arrastrarían en cascada las
+  // suites siguientes (que dependen de QA.reg) y la corrida entera quedaría inútil.
+  // Se reporta como omitida, con el aviso bien visible: la única lectura válida de
+  // esta suite es la de una corrida con la ventana limpia.
+  if (res.status === 429) {
+    console.log('  ⏭️  OMITIDA: el control de abuso de v54 rechazó el registro (HTTP 429).');
+    console.log('      No es un fallo de RLS — es el limitador por IP/hora haciendo su trabajo.');
+    console.log('      Reintentar con la ventana de una hora ya vencida para validar esta suite.');
+    REGISTRO_OMITIDO.valor = true;
+    return;
+  }
+
   check('Edge Function registra atleta + representante (HTTP 200)', res.status === 200 && cuerpo?.success,
     `HTTP ${res.status} ${cuerpo?.error || ''}`);
 
@@ -928,6 +966,13 @@ async function suiteRegistroPublico() {
 
 async function suiteSolicitudes() {
   console.log('\n— SOLICITUDES DE REGISTRO (v33: club validado + aprobación solo-owner) —');
+
+  // Depende de la cuenta que crea suiteRegistroPublico: sin ella no hay solicitud
+  // que aprobar ni rechazar (ver la nota del 429 de v54 en esa suite).
+  if (REGISTRO_OMITIDO.valor) {
+    console.log('  ⏭️  OMITIDA: depende del registro público, que el limitador de v54 bloqueó.');
+    return;
+  }
 
   // Lista pública de clubes para el selector del registro (único read de anon).
   const cli = anon();
@@ -1203,6 +1248,136 @@ async function suiteCorreoStaffSinAcceso() {
 // escribe esta tabla con la service_role key, que se salta la RLS entera. Lo
 // que se prueba aquí es la barrera del día que la app gane una UI de gastos, no
 // la del MCP (esa vive en las guardas de sus tools).
+// ───────────────────────────────────────────────────────────────────────────
+// H1-D1: las tablas que un agente autónomo ESCRIBIRÍA.
+//
+// El prerrequisito H1-D1 (docs/spec_h1_autonomia_resultados.md) exige verificar
+// el estado real de RLS de las tablas que toca un agente H1 antes de darle
+// permiso de escritura. La verificación del 2026-07-29 encontró que esta suite
+// cubría a fondo las tablas de LECTURA sensible (pagos, pago_transacciones,
+// pago_comprobantes) pero tenía CERO asserts sobre las tres de ESCRITURA:
+// progreso_misiones, comunicaciones y misiones. Es decir: justo las que el loop
+// autónomo (F1) y el reporte al padre (F2) mutarían.
+//
+// El riesgo que cubren estos asserts no es teórico: si un atleta pudiera
+// insertar en progreso_misiones se auto-asignaría misiones y se auto-otorgaría
+// XP; si un coach pudiera hacerlo sobre un atleta de otro club, la autonomía
+// cruzaría la frontera de club que v29/v40/v44 levantaron para todo lo demás.
+// ───────────────────────────────────────────────────────────────────────────
+async function suiteTablasEscrituraH1() {
+  console.log('\n— TABLAS DE ESCRITURA DE UN AGENTE H1 (progreso_misiones, comunicaciones, misiones) —');
+
+  // Semilla: una misión de catálogo QA para poder asignarla. Con service_role,
+  // porque el sujeto de prueba es la ASIGNACIÓN, no la creación del catálogo.
+  const { data: misionQA, error: eMision } = await svc.from('misiones').insert({
+    titulo: 'QA_RLS mision de prueba', descripcion: 'QA_RLS', pilar: 'fuerza',
+    xp_recompensa: 10, activa: false,
+  }).select().single();
+  if (eMision) {
+    check('se puede sembrar una misión de catálogo para la prueba', false, eMision.message);
+    return;
+  }
+  H1_SEMILLA.misionId = misionQA.id;
+
+  const cliAtleta = await loginComo(QA.atleta1.cedula, QA.atleta1.cedula);
+  const cliCoach = await loginComo(QA.coach1.cedula, QA.coach1.cedula);
+
+  // ── progreso_misiones ────────────────────────────────────────────────────
+  // El assert más importante de todo H1: sin policy de INSERT para atleta, la
+  // única escritura que le queda es el UPDATE de su propio progreso.
+  const { error: eAutoAsigna } = await cliAtleta.from('progreso_misiones').insert({
+    atleta_id: QA.atleta1.atletaId, mision_id: misionQA.id, estado: 'aprobada',
+  }).select();
+  const { count: nAuto } = await svc.from('progreso_misiones')
+    .select('id', { count: 'exact', head: true })
+    .eq('atleta_id', QA.atleta1.atletaId).eq('mision_id', misionQA.id);
+  check('atleta NO se auto-asigna una misión (no habría cómo auto-otorgarse XP)',
+    !!eAutoAsigna && nAuto === 0, `insertó ${nAuto} fila(s); error: ${eAutoAsigna?.message || 'ninguno'}`);
+
+  // Caso legítimo: el coach asigna dentro de su club (policy progreso_staff, v53).
+  const { data: asignada, error: eAsigna } = await cliCoach.from('progreso_misiones').insert({
+    atleta_id: QA.atleta1.atletaId, mision_id: misionQA.id, estado: 'pendiente',
+    origen: 'coach', sub_pilar_objetivo: 'fuerza',
+  }).select().single();
+  check('coach SÍ asigna una misión a un atleta de SU club (no se rompió el loop)',
+    !eAsigna && !!asignada, eAsigna?.message);
+
+  // El aislamiento por club sobre la tabla que el agente escribiría.
+  const { error: eAjeno } = await cliCoach.from('progreso_misiones').insert({
+    atleta_id: QA.atletaAjeno.atletaId, mision_id: misionQA.id, estado: 'pendiente',
+  }).select();
+  const { count: nAjeno } = await svc.from('progreso_misiones')
+    .select('id', { count: 'exact', head: true })
+    .eq('atleta_id', QA.atletaAjeno.atletaId).eq('mision_id', misionQA.id);
+  check('coach NO asigna misiones a un atleta de OTRO club (aislamiento v53)',
+    !!eAjeno && nAjeno === 0, `insertó ${nAjeno} fila(s); error: ${eAjeno?.message || 'ninguno'}`);
+
+  // Lectura: cada quien la suya.
+  const { data: verPropio } = await cliAtleta.from('progreso_misiones')
+    .select('id').eq('atleta_id', QA.atleta1.atletaId);
+  check('atleta SÍ lee su propio progreso de misiones', (verPropio?.length || 0) > 0);
+
+  const { data: verAjeno } = await cliAtleta.from('progreso_misiones')
+    .select('id').eq('atleta_id', QA.atletaAjeno.atletaId);
+  check('atleta NO lee el progreso de otro atleta', (verAjeno?.length || 0) === 0,
+    `devolvió ${verAjeno?.length} fila(s)`);
+
+  const { data: coachAjeno } = await cliCoach.from('progreso_misiones')
+    .select('id').eq('atleta_id', QA.atletaAjeno.atletaId);
+  check('coach NO lee el progreso de un atleta de otro club',
+    (coachAjeno?.length || 0) === 0, `devolvió ${coachAjeno?.length} fila(s)`);
+
+  const { data: anonProg } = await anon().from('progreso_misiones').select('id').limit(1);
+  check('anónimo NO ve progreso de misiones', (anonProg?.length || 0) === 0);
+
+  // ── comunicaciones ───────────────────────────────────────────────────────
+  // Un agente que redacta mensajes al padre escribe aquí (F2/F3).
+  const { error: eComAtleta } = await cliAtleta.from('comunicaciones').insert({
+    autor_id: QA.atleta1.usuarioId, tipo: 'Anuncio', titulo: 'QA_RLS',
+    mensaje: 'QA_RLS intento de atleta', proposito: 'comunicado',
+  }).select();
+  check('atleta NO redacta comunicaciones (solo staff)', !!eComAtleta,
+    eComAtleta ? '' : 'la insertó');
+
+  const { data: comCoach, error: eComCoach } = await cliCoach.from('comunicaciones').insert({
+    autor_id: QA.coach1.usuarioId, tipo: 'Anuncio', titulo: 'QA_RLS',
+    mensaje: 'QA_RLS comunicado legítimo', proposito: 'comunicado',
+  }).select().single();
+  check('coach SÍ redacta una comunicación en su club (no se rompió v18)',
+    !eComCoach && !!comCoach, eComCoach?.message);
+
+  // Suplantar la autoría de un usuario del club ajeno (WITH CHECK de v29/v44).
+  const { error: eComSuplanta } = await cliCoach.from('comunicaciones').insert({
+    autor_id: QA.ownerAjeno.usuarioId, tipo: 'Anuncio', titulo: 'QA_RLS',
+    mensaje: 'QA_RLS suplantación', proposito: 'comunicado',
+  }).select();
+  const { count: nSuplanta } = await svc.from('comunicaciones')
+    .select('id', { count: 'exact', head: true })
+    .eq('autor_id', QA.ownerAjeno.usuarioId).eq('titulo', 'QA_RLS');
+  check('coach NO firma una comunicación como usuario de otro club (v44)',
+    !!eComSuplanta && nSuplanta === 0,
+    `insertó ${nSuplanta} fila(s); error: ${eComSuplanta?.message || 'ninguno'}`);
+
+  // ── misiones (catálogo) ──────────────────────────────────────────────────
+  const { error: eCatAtleta } = await cliAtleta.from('misiones').insert({
+    titulo: 'QA_RLS mision de atleta', pilar: 'fuerza', xp_recompensa: 9999, activa: true,
+  }).select();
+  check('atleta NO agrega misiones al catálogo (ni con XP inflado)', !!eCatAtleta,
+    eCatAtleta ? '' : 'la insertó');
+
+  const { error: eCatBorra } = await cliAtleta.from('misiones').delete().eq('id', misionQA.id).select();
+  const { data: sigueViva } = await svc.from('misiones').select('id').eq('id', misionQA.id).maybeSingle();
+  check('atleta NO borra misiones del catálogo', !!sigueViva,
+    `error: ${eCatBorra?.message || 'ninguno'}`);
+
+  // Lectura global del catálogo: es DELIBERADA (misiones_select USING true, v24).
+  // El catálogo es conocimiento compartido del club, no dato personal; se deja
+  // asentado como decisión verificada y no como hallazgo.
+  const { data: catalogo } = await cliAtleta.from('misiones').select('id').limit(5);
+  check('atleta SÍ lee el catálogo de misiones (global a propósito, v24)',
+    (catalogo?.length || 0) > 0);
+}
+
 async function suiteGastos() {
   console.log('\n— GASTOS: CONTABILIDAD DE GESTIÓN (v51) —');
 
@@ -1356,6 +1531,7 @@ async function suiteGastos() {
     await suiteAislamientoClubPagos();
     await suiteCorreoStaffSinAcceso();
     await suiteGastos();
+    await suiteTablasEscrituraH1();
   } catch (err) {
     fallo = err;
     console.error(`\n💥 Error de infraestructura de la suite: ${err.message}`);

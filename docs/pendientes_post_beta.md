@@ -24,8 +24,11 @@
 
 ## P0 — Seguridad (el bloque diferido conscientemente para poder lanzar)
 
-### 1. RLS real basada en `auth.uid()`
-**Qué:** las políticas de Row Level Security siguen siendo permisivas: 4 tablas de v18 tienen `FOR ALL USING (true)` y las tablas base (`usuarios`, `atletas`, `evaluaciones_pruebas`, `padres_atletas`, `asistencia`, `pagos`, `misiones`, `recompensas`) no tienen RLS documentada.
+### 1. RLS real basada en `auth.uid()` — ✅ CERRADO (v24; verificado por tabla el 2026-07-29)
+
+> **Este punto ya no describe la realidad.** Lo cerró **v24** (`20260707113000_v24_rls_real_auth_uid.sql`), que borró en bloque todas las policies del esquema y las recreó por rol/`auth.uid()`. La verificación por tabla está en [`verificacion_rls_h1_d1.md`](verificacion_rls_h1_d1.md): **ninguna** de las 4 tablas de v18 conserva `FOR ALL USING (true)` (son `eventos`, `evento_convocados`, `evento_recordatorios` y `atleta_grupo` — este documento nunca las nombró), las tablas base sí tienen RLS, y `migration list` confirma 59/59 en paridad con producción. Evidencia conductual: 124/124 asserts de `npm run test:rls` contra la base real. **No volver a "implementar" esto.** El texto original queda abajo como registro histórico.
+
+**Qué (texto original, 2026-07-04 — ya no vigente):** las políticas de Row Level Security siguen siendo permisivas: 4 tablas de v18 tienen `FOR ALL USING (true)` y las tablas base (`usuarios`, `atletas`, `evaluaciones_pruebas`, `padres_atletas`, `asistencia`, `pagos`, `misiones`, `recompensas`) no tienen RLS documentada.
 **Por qué importa:** cualquiera con la anon key (pública por diseño, embebida en el bundle) puede leer/escribir datos de menores (cédulas, fechas de nacimiento, contactos de padres, pagos). Es el riesgo legal más serio del proyecto. Se difirió por decisión explícita para lanzar la beta con usuarios de confianza.
 **Cómo:** (a) capturar el baseline del esquema (punto 6, prerequisito); (b) diseñar el modelo: función `SECURITY DEFINER` tipo `current_user_rol()`/`current_user_club()` para usar en policies sin recursión; (c) migración que reemplaza las políticas permisivas y agrega las de tablas base; (d) validar por rol: coach NO lee otro club, padre solo ve sus hijos, atleta solo lo suyo, anon key bloqueada. **Ojo:** `blackgold-mcp` usa la anon key — necesitará una policy propia o pasar a service role. Diseño de referencia: `docs/plan_remediacion_seguridad.md` §Fase 2.
 
