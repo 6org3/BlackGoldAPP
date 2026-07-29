@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { C, BORDER, GRAD, TINT, cut } from './arcadeTokens';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
+import bloquearFondo from './inertFondo';
 
 /**
  * Modal-HUD — el diálogo del lenguaje Arcade. Reemplaza `window.prompt` /
@@ -103,6 +104,7 @@ export default function ModalHUD({
     triggerRef.current = document.activeElement;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    const liberarFondo = bloquearFondo();
     const t = setTimeout(() => {
       if (variant === 'prompt' && inputRef.current) {
         inputRef.current.focus();
@@ -135,6 +137,9 @@ export default function ModalHUD({
       clearTimeout(t);
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
+      // Liberar el fondo ANTES de devolver el foco: sobre un árbol inerte,
+      // .focus() no tiene efecto y el disparador se quedaría sin foco.
+      liberarFondo();
       const el = triggerRef.current;
       if (el && typeof el.focus === 'function' && document.contains(el)) el.focus();
     };

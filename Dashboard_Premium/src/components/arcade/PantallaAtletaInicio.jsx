@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Activity } from 'lucide-react';
-import { C, BORDER, GRAD, TINT, cut, HEX, PIXEL } from './arcadeTokens';
+import { C, BORDER, GRAD, TINT, ROW_H, cut, HEX, PIXEL } from './arcadeTokens';
 import ArcadePerfilMenu from './ArcadePerfilMenu';
 import MicroLabel from './MicroLabel';
 import XPCells from './XPCells';
@@ -49,7 +49,7 @@ function TarjetaCheckin({ checkin }) {
           type="button"
           data-testid="btn-abrir-checkin"
           onClick={checkin.onOpen}
-          style={{ width: '100%', marginTop: 12, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9, letterSpacing: '.04em' }}
+          style={{ width: '100%', marginTop: 12, minHeight: ROW_H, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9, letterSpacing: '.04em' }}
         >
           {checkin.ctaLabel}
         </button>
@@ -168,7 +168,7 @@ export default function PantallaAtletaInicio({ ctx }) {
             <button
               type="button"
               onClick={ctx.misionDestacada.onOpen}
-              style={{ width: '100%', marginTop: 12, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9, letterSpacing: '.04em' }}
+              style={{ width: '100%', marginTop: 12, minHeight: ROW_H, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9, letterSpacing: '.04em' }}
             >
               {ctx.misionDestacada.ctaLabel}
             </button>

@@ -1,4 +1,4 @@
-import { C, GRAD, cut, PIXEL } from './arcadeTokens';
+import { C, GRAD, ROW_H, cut, PIXEL } from './arcadeTokens';
 import MicroLabel from './MicroLabel';
 import Pill from './Pill';
 
@@ -48,6 +48,7 @@ export default function PantallaAtletaMisiones({ ctx }) {
                 style={{
                   width: '100%',
                   marginTop: 12,
+                  minHeight: ROW_H,
                   padding: 13,
                   cursor: 'pointer',
                   clipPath: cut(10),
