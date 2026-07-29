@@ -316,8 +316,27 @@ export default function AdminMisiones() {
       confirmLabel: 'Eliminar',
       onConfirm: async () => {
         setDialogo(null);
-        await supabase.from('progreso_misiones').delete().eq('mision_id', mision.id);
-        await supabase.from('misiones').delete().eq('id', mision.id);
+        // Se borra SOLO la misión: la FK de progreso_misiones es ON DELETE
+        // CASCADE, así que el progreso se va con ella. Borrarlo antes a mano
+        // era redundante y, sobre todo, peligroso: RLS no lanza en un DELETE
+        // que no alcanza filas, así que si el borrado de la misión quedaba
+        // bloqueado (las del catálogo compartido entre clubes no son borrables
+        // desde la app), el progreso de los atletas ya se había perdido y la
+        // misión seguía en pantalla.
+        const { error } = await supabase.from('misiones').delete().eq('id', mision.id);
+        if (error) {
+          console.error('No se pudo eliminar la misión:', error);
+          setDialogo({
+            tone: 'danger',
+            icon: Trash2,
+            eyebrow: 'No se pudo eliminar',
+            title: 'La misión sigue ahí',
+            message: 'No se pudo eliminar esta misión. Si es del catálogo compartido entre clubes, no se borra desde aquí.',
+            confirmLabel: 'Entendido',
+            onConfirm: () => setDialogo(null),
+          });
+          return;
+        }
         setMisiones(prev => prev.filter(m => m.id !== mision.id));
         setTotalMisiones(prev => Math.max(0, prev - 1));
         setPendientes(prev => prev.filter(p => p.mision_id !== mision.id));

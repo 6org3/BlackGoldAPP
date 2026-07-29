@@ -19,6 +19,14 @@ export const calculateRank = (atleta) => {
 // AUTENTICACIÓN (Supabase Auth)
 // ============================
 
+// Un ÚNICO mensaje para todo fallo de credenciales. Distinguir "no encontrado"
+// de "contraseña incorrecta" convertía el login en un oráculo de existencia
+// sobre cédulas y teléfonos de menores: bastaba probar identificadores y leer
+// cuál de los dos mensajes salía. v52 §4 lo cerró en la base (resolver_email_login
+// ya no devuelve NULL); esto lo cierra también en el cliente, para que no
+// dependa de que esa migración siga aplicada.
+const CREDENCIALES_INVALIDAS = 'Correo, teléfono, cédula o contraseña incorrectos.';
+
 export const loginUsuario = async (identificador, password) => {
   const cleanId = identificador.trim();
 
@@ -28,17 +36,26 @@ export const loginUsuario = async (identificador, password) => {
   const { data: email, error: errResolver } = await supabase
     .rpc('resolver_email_login', { p_identificador: cleanId });
 
-  if (errResolver || !email) {
-    throw new Error('Credenciales (correo, teléfono o cédula) no encontradas en el sistema.');
+  if (errResolver) {
+    // Un fallo de transporte NO depende del identificador, así que no delata
+    // nada y merece mensaje propio. En 3G/4G rural, mandar a un padre a revisar
+    // su cédula cuando lo que falló fue la red es el error caro.
+    throw new Error('No pudimos verificar tus datos ahora mismo. Revisa tu conexión e inténtalo de nuevo.');
   }
 
+  // Espejo de v52 §4: si la RPC no devuelve correo (base sin v52 aplicada),
+  // se sintetiza uno con la MISMA forma y se sigue hasta signInWithPassword.
+  // Sin esto quedaría un oráculo de TIEMPO: un identificador desconocido
+  // respondería en un round-trip y uno conocido en dos, medible con un reloj.
+  const emailLogin = email || `${cleanId}@sinacceso.blackgoldapp.internal`;
+
   const { data: authData, error: errAuth } = await supabase.auth.signInWithPassword({
-    email,
+    email: emailLogin,
     password,
   });
 
   if (errAuth || !authData.user) {
-    throw new Error('Contraseña incorrecta.');
+    throw new Error(CREDENCIALES_INVALIDAS);
   }
 
   return fetchUsuarioPorAuthId(authData.user.id);
