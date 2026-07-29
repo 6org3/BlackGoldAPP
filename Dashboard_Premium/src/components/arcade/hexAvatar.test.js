@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolverContenidoAvatar } from './HexAvatar';
+import { resolverContenidoAvatar } from './hexAvatarContenido';
 
 // Solo la decisión de qué se pinta: el entorno de Vitest del repo es `node`,
 // sin jsdom, así que el useState que alimenta `fallo` se cubre en Cypress.

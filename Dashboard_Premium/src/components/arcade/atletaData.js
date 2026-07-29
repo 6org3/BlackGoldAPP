@@ -259,6 +259,7 @@ export async function fetchAtletaPanel(user) {
       nombre: user.nombre || 'Atleta',
       inicial: (user.nombre || '?').charAt(0),
       fotoPath: user.foto_path || null,
+      atletaId: user.atleta_id || null,
       categoria: (user.categoria || '').toUpperCase(),
       fechaLine: null,
       pwr: user.overall_score || 0,

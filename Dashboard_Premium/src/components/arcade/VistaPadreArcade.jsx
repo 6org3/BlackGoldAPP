@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../AuthContext';
 import { C, BORDER, GRAD, RADAR_FILL_INFO, ROW_H, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
 import ArcadePerfilMenu from './ArcadePerfilMenu';
-import HexAvatar from './HexAvatar';
+import AvatarAtleta from '../AvatarAtleta';
 import MicroLabel from './MicroLabel';
 import RadarChart from './RadarChart';
 import FichaFisica from './FichaFisica';
@@ -339,7 +339,21 @@ export default function VistaPadreArcade() {
               {/* Card del hijo */}
               <div style={{ background: GRAD.heroInfo, border: `1px solid ${BORDER.info}`, clipPath: cut(14), padding: 16, marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <HexAvatar size={66} initial={vm.inicial} background={GRAD.infoAvatar} color={C.ink} style={{ filter: 'drop-shadow(0 0 14px rgba(96,165,250,.5))', fontSize: 24 }} />
+                  {/* Editable: tocas la cara de tu hijo para cambiarla. Es la
+                      apertura mínima para el padre — no se le da "Editar
+                      perfil", que edita al padre y no al atleta. El selector de
+                      hijos de arriba hace que funcione con varios. */}
+                  <AvatarAtleta
+                    size={66}
+                    nombre={vm.hijoNombre}
+                    initial={vm.inicial}
+                    fotoPath={vm.fotoPath}
+                    editable
+                    atletaId={vm.hijoId}
+                    background={GRAD.infoAvatar}
+                    color={C.ink}
+                    style={{ filter: 'drop-shadow(0 0 14px rgba(96,165,250,.5))', fontSize: 24 }}
+                  />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <p style={{ margin: 0, fontSize: 20, fontWeight: 900, letterSpacing: '-.02em' }}>{vm.hijoNombre}</p>
                     <MicroLabel color={C.info} size={11} tracking="normal" style={{ marginTop: 4 }}>{vm.rangoLine}</MicroLabel>

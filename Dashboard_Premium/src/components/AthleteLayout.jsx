@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import {
   Home, Target, Calendar, BarChart2, TrendingUp,
-  LogOut, User, Shield, Eye, EyeOff
+  LogOut, User, Shield, Eye, EyeOff, Camera
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,9 @@ import RadarChartComp from './RadarChartComp';
 import EventosAtleta from './EventosAtleta';
 import HistorialPruebas from './HistorialPruebas';
 import EditarPerfilModal from './EditarPerfilModal';
+import AvatarAtleta from './AvatarAtleta';
+import FotoAtletaModal from './FotoAtletaModal';
+import { puedeEditarFoto } from '../lib/fotoAtleta';
 import CardDiagnosticoIA from './CardDiagnosticoIA';
 import Gauge from './Gauge';
 import { evaluarDeficits } from '../lib/didacticEngine';
@@ -40,6 +43,7 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
   // refetchear todo su contenido en cada cambio de pestaña.
   const [visitedTabs, setVisitedTabs] = useState(() => new Set(['inicio']));
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showFotoModal, setShowFotoModal] = useState(false);
   // null = cerrado; si no, el getBoundingClientRect() del disparador. El menú se
   // porta a document.body (ver render más abajo) porque el backdrop-blur del
   // header sticky ancestro crea un containing block para `fixed` y lo re-ancla
@@ -109,11 +113,15 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
         <div className="px-5 py-5 border-b border-white/5">
           {/* Avatar */}
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-white/5 border border-white/20 flex items-center justify-center shrink-0">
-              <span className="text-xl font-black text-white/60 uppercase">
-                {atleta.nombre?.charAt(0)}
-              </span>
-            </div>
+            {/* Hexagonal como el resto del HUD: el círculo suelto era deuda de
+                convergencia ya señalada en la auditoría Arcade. */}
+            <AvatarAtleta
+              size={48}
+              nombre={atleta.nombre}
+              fotoPath={atleta.foto_path}
+              editable={puedeEditarFoto(user, atleta)}
+              atletaId={atleta.atleta_id}
+            />
             <div className="min-w-0">
               <p className="font-black text-sm leading-tight text-white truncate">{atleta.nombre}</p>
               <p className="text-2xs text-fg-muted font-bold uppercase tracking-widest truncate">
@@ -240,9 +248,18 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
                         overflowY: 'auto',
                       }}
                     >
+                      {puedeEditarFoto(user, atleta) && (
+                        <button
+                          onClick={() => { closeMobileMenu(); setShowFotoModal(true); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-white/5 transition-colors"
+                        >
+                          <Camera size={16} className="text-fg-muted" />
+                          <span className="text-[11px] font-black uppercase tracking-widest">Cambiar Foto</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => { closeMobileMenu(); setShowEditProfile(true); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-white/5 transition-colors"
+                        className="w-full flex items-center gap-3 px-4 py-3 min-h-11 text-left text-fg-secondary hover:bg-white/5 transition-colors border-t border-white/5"
                       >
                         <User size={16} className="text-fg-muted" />
                         <span className="text-[11px] font-black uppercase tracking-widest">Editar Perfil</span>
@@ -305,6 +322,15 @@ export default function AthleteLayout({ atleta, todosLosAtletas }) {
         <EditarPerfilModal
           onClose={() => setShowEditProfile(false)}
           onRefresh={() => window.location.reload()}
+        />
+      )}
+      {showFotoModal && (
+        <FotoAtletaModal
+          atletaId={atleta.atleta_id}
+          nombre={atleta.nombre}
+          fotoPath={atleta.foto_path}
+          onClose={() => setShowFotoModal(false)}
+          onGuardada={() => window.location.reload()}
         />
       )}
     </div>

@@ -98,6 +98,7 @@ function ctxInicio(state, data, actions) {
     racha: p.racha,
     heroInicial: p.inicial,
     heroFoto: p.fotoPath || null,
+    heroAtletaId: p.atletaId || null,
     heroNombre: p.nombre,
     heroAccent: nivel.color,
     nivelLine: `${(p.nivelDesarrollo || '').toUpperCase()} ${nivel.emoji}`,

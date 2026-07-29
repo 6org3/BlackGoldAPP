@@ -1,19 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { HEX, C, hueBg, hueFg, GLOW } from './arcadeTokens';
-
-/**
- * Qué se pinta dentro del hexágono. Extraída como función pura para poder
- * testearla: el entorno de Vitest del repo es `node`, sin jsdom.
- *
- * Precedencia `children` > `src` > `initial`: los ~25 call sites que pasan un
- * icono lucide como children (ModalShell, ModalHUD, cabeceras Admin*) no son
- * atletas y deben quedar intactos aunque algún día reciban un src por error.
- */
-export function resolverContenidoAvatar({ src, fallo, children, initial }) {
-  if (children != null) return 'children';
-  if (src && !fallo) return 'foto';
-  return initial != null ? 'initial' : 'vacio';
-}
+import { resolverContenidoAvatar } from './hexAvatarContenido';
 
 /**
  * Avatar/badge hexagonal con inicial, icono o foto. Tamaños del prototipo:
@@ -39,11 +26,19 @@ export default function HexAvatar({
   alt = '',
   onErrorFoto,
 }) {
-  // Se reinicia al cambiar src: una firma caducada que falló no debe dejar el
-  // avatar en modo inicial para siempre cuando llegue la URL renovada.
   const [fallo, setFallo] = useState(false);
   const [cargada, setCargada] = useState(false);
-  useEffect(() => { setFallo(false); setCargada(false); }, [src]);
+
+  // Se reinicia al cambiar src: una firma caducada que falló no debe dejar el
+  // avatar en modo inicial para siempre cuando llegue la URL renovada. Se
+  // ajusta durante el render (patrón de React para estado derivado de props) y
+  // no en un efecto, que provocaría un render en cascada con un parpadeo.
+  const [srcPrevio, setSrcPrevio] = useState(src);
+  if (srcPrevio !== src) {
+    setSrcPrevio(src);
+    setFallo(false);
+    setCargada(false);
+  }
 
   const bg = background || (hue ? hueBg(hue) : 'rgba(255,255,255,.06)');
   const fg = color || (hue ? hueFg(hue) : C.text);

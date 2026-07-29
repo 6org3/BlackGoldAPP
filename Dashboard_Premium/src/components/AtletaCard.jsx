@@ -16,6 +16,7 @@ import HistorialFisicoChart from './HistorialFisicoChart';
 import ProgresoNivelModal from './ProgresoNivelModal';
 import { tieneDatosAntropometricos } from '../api/utilsAtletas';
 import AvatarAtleta from './AvatarAtleta';
+import { puedeEditarFoto } from '../lib/fotoAtleta';
 import { C, cut } from './arcade/arcadeTokens';
 
 // Hue del avatar hexagonal por estado de readiness (la luz es información):
@@ -62,7 +63,14 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 relative z-10 gap-4">
         <div className="flex items-start space-x-4">
           {/* Avatar hexagonal — color por readiness */}
-          <AvatarAtleta size={64} hue={avatarHue} nombre={atleta.nombre} fotoPath={atleta.foto_path} />
+          <AvatarAtleta
+            size={64}
+            hue={avatarHue}
+            nombre={atleta.nombre}
+            fotoPath={atleta.foto_path}
+            editable={puedeEditarFoto(user, atleta)}
+            atletaId={atleta.atleta_id}
+          />
 
           <div>
             <h3 className="text-2xl font-black text-white tracking-tight leading-none mb-3 drop-shadow-md">{atleta.nombre}</h3>

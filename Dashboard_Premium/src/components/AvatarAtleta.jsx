@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Camera } from 'lucide-react';
 import HexAvatar from './arcade/HexAvatar';
 import { C, GRAD } from './arcade/arcadeTokens';
@@ -29,8 +29,13 @@ export default function AvatarAtleta({
 }) {
   // El path se mantiene también en local para que la foto recién subida se vea
   // al instante sin obligar a recargar la lista entera que contiene al avatar.
+  // Se resincroniza durante el render, no en un efecto.
   const [pathLocal, setPathLocal] = useState(fotoPath);
-  useEffect(() => { setPathLocal(fotoPath); }, [fotoPath]);
+  const [pathPrevio, setPathPrevio] = useState(fotoPath);
+  if (pathPrevio !== fotoPath) {
+    setPathPrevio(fotoPath);
+    setPathLocal(fotoPath);
+  }
 
   const { url, alFallar } = useFotoUrl(pathLocal);
   const [abierto, setAbierto] = useState(false);

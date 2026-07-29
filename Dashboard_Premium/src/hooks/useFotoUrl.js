@@ -15,11 +15,16 @@ import { getFotoUrl, invalidarFotoUrl } from '../api/fotosAtletasService';
 export function useFotoUrl(fotoPath) {
   const [url, setUrl] = useState(null);
 
+  // Al cambiar de foto se olvida la URL anterior durante el render, no en un
+  // efecto: así el avatar nunca llega a pintar la cara del atleta anterior.
+  const [pathPrevio, setPathPrevio] = useState(fotoPath);
+  if (pathPrevio !== fotoPath) {
+    setPathPrevio(fotoPath);
+    setUrl(null);
+  }
+
   useEffect(() => {
-    if (!fotoPath) {
-      setUrl(null);
-      return undefined;
-    }
+    if (!fotoPath) return undefined;
 
     let vivo = true;
     const resolver = () => {
