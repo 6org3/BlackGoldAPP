@@ -28,14 +28,19 @@ Si una versión anterior de este documento (o cualquier doc de `docs/plan_remedi
 
 ### Auditoría pre-producción del 2026-07-29 — lo que sigue abierto
 
-Auditoría completa (RLS, Edge Functions, MCPs, secretos, despliegue) con verificación adversarial de cada hallazgo. Resultado en el PR #143. **Lo cerrado en código está en ese PR; lo que sigue abierto y NO puede hacerse desde el repositorio:**
+Auditoría completa (RLS, Edge Functions, MCPs, secretos, despliegue) con verificación adversarial de cada hallazgo. PRs #143 y #146, ambos mergeados. **v52 y v53 están aplicadas a producción y las cuatro Edge Functions modificadas, desplegadas** (2026-07-29), verificado por sonda contra la API real: `club_de_usuario`, `club_de_atleta` y `marcar_pagos_vencidos` devuelven `42501 permission denied` para `anon`, y `generar-misiones-ia` con solo la anon key devuelve 401 donde antes devolvía 200 con datos de salud de un menor.
 
-1. **Rotar credenciales expuestas** (solo el dueño, dashboard de Supabase). El repo es público y tuvo trackeados el password del superadmin global, el del owner de NLB y el algoritmo que genera el de todo el staff sembrado. El código ya está limpio, pero los valores siguen en el historial: hay que rotar, no basta con borrar. Igual la anon key legacy expuesta desde `da5f5c1` — usar el formato `sb_publishable_*` en `.env.local` **no** prueba que las legacy estén desactivadas, siguen vivas hasta desactivarlas explícitamente.
-2. **Aplicar v54** con `npx supabase db push` (v52 y v53 ya están aplicadas, ver abajo).
-3. **Desplegar `generar-misiones-ia`** con `npm run functions:deploy` (era la única Edge Function sin autenticación).
-4. **Desplegar `registro-publico`** con `npm run functions:deploy:registro` — **solo DESPUÉS del punto 2**. El control de abuso anota cada intento en `registro_intentos` y es *fail-closed*: si esa tabla no existe, la función responde 503 a **todo** registro. Migración primero, función después.
+**v52, v53 y v54 están las tres APLICADAS en producción, y las seis Edge Functions desplegadas** — comprobado el 2026-07-29 con `npx supabase migration list` (las tres con versión remota) y por sonda contra la API real. Si otra parte de este documento dice que alguna está "escrita pero no aplicada", está desactualizada.
 
-**v52 y v53 YA ESTÁN APLICADAS** en producción — verificado el 2026-07-29 con `npx supabase migration list` (ambas aparecen con versión remota). Si otra parte de este documento dice que están "escritas pero no aplicadas", está desactualizada. La única sin aplicar es **v54**.
+**Lo único que sigue abierto y NO puede hacerse desde el repositorio: rotar las credenciales expuestas** (solo el dueño, dashboard de Supabase). El repo es público y tuvo trackeados el password del superadmin global, el del owner de NLB y el algoritmo que genera el de todo el staff sembrado. El código ya está limpio, pero los valores siguen en el historial: hay que rotar, no basta con borrar. Igual la anon key legacy expuesta desde `da5f5c1` — usar el formato `sb_publishable_*` en `.env.local` **no** prueba que las legacy estén desactivadas, siguen vivas hasta desactivarlas explícitamente.
+
+Orden que hay que respetar si alguna vez se rehace este despliegue desde cero: **v54 antes que `registro-publico`**. Su control de abuso anota cada intento en `registro_intentos` y es *fail-closed*, así que desplegar la función sin la tabla devuelve 503 a **todo** registro. Migración primero, función después.
+
+Tres fricciones que dejó este trabajo, y que muerden en cuanto alguien clona o crea un worktree:
+
+- **`supabase/.temp/` está destrackeado** (era material de reconocimiento sobre producción), así que un checkout nuevo no está vinculado y `db push` falla con `LegacyProjectNotLinkedError` hasta correr `npx supabase link`.
+- **Los valores de `.env.local` van entrecomillados**: extraerlos con `cut -d=` sin quitar las comillas produce URLs inválidas y errores de red engañosos.
+- **`npm run functions:deploy` despliega TODAS las funciones** desde el PR #154. Antes llevaba el nombre de una incrustado y subía solo `generar-misiones-ia`, así que quien tocaba varias y corría el comando documentado dejaba el resto sin desplegar, en silencio. Para una sola: `npm run functions:deploy -- <nombre>`. Detalle en `Dashboard_Premium/supabase/functions/README.md`.
 
 Los P2 se abordaron en el PR #146 (v53 + fuentes propias + paginación de PostgREST + guardarraíles). Lo que **queda abierto** de ese lote:
 
