@@ -31,7 +31,7 @@ const clamp = (v) => Math.max(0, Math.min(100, Number(v) || 0));
 const dataPoints = (axes, n) => axes.map((p, i) => fmt(vertex(i, n, clamp(p.value) / 100))).join(' ');
 
 /** Posición de la etiqueta del eje i: mismo ángulo del vértice a radio 98,
-    clampeada al viewBox (+2 de baseline) y con anclaje según el lado. */
+    clampeada al área útil (+2 de baseline) y con anclaje según el lado. */
 function labelPos(i, n) {
   const cos = Math.cos(angulo(i, n));
   return {
@@ -40,6 +40,15 @@ function labelPos(i, n) {
     anchor: Math.abs(cos) < 0.35 ? 'middle' : cos > 0 ? 'start' : 'end',
   };
 }
+
+/* El lienzo se extiende más allá del cuadro 260×215 de la geometría: las
+   etiquetas se anclan en el borde y se extienden HACIA AFUERA, así que con el
+   viewBox justo la del extremo quedaba recortada al subirlas a tamaño legible.
+   El margen no mueve el polígono — solo deja aire para el texto. */
+const PAD_X = 34;
+const PAD_Y = 8;
+const VB_W = 260 + PAD_X * 2;
+const VB_H = 215 + PAD_Y * 2;
 
 export default function RadarChart({
   axes = [],
@@ -56,7 +65,7 @@ export default function RadarChart({
   const selIdx = axes.findIndex((a) => a.key === selectedKey);
   const sel = selIdx >= 0 ? vertex(selIdx, n, clamp(axes[selIdx].value) / 100) : null;
   return (
-    <svg viewBox="0 0 260 215" width="82%" style={{ margin: '0 auto' }} role="img" aria-label={`Radar de ${axes.length} pilares`}>
+    <svg viewBox={`${-PAD_X} ${-PAD_Y} ${VB_W} ${VB_H}`} width="100%" style={{ margin: '0 auto' }} role="img" aria-label={`Radar de ${axes.length} pilares`}>
       {rings.map((f) => (
         <polygon key={f} points={ring(f, n)} fill="none" stroke="rgba(255,255,255,.07)" />
       ))}
@@ -72,7 +81,10 @@ export default function RadarChart({
             y={lp.y}
             fill={p.key === selectedKey ? accent : C.text2}
             textAnchor={lp.anchor}
-            style={{ fontFamily: PIXEL, fontSize: 7 }}
+            // 11.5 unidades de viewBox ≈ 11px reales (TEXT_MIN) con el lienzo
+            // ampliado a 328u pintado a ancho completo. Estas etiquetas dicen
+            // QUÉ se está midiendo en cada eje: son texto funcional, no adorno.
+            style={{ fontFamily: PIXEL, fontSize: 11.5 }}
           >
             {p.label}
           </text>

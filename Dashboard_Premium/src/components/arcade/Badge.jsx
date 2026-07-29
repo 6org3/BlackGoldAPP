@@ -37,7 +37,7 @@ export default function Badge({ icon, name, unlocked = false, pop = true, glow =
         style={{
           margin: '7px 0 0',
           fontFamily: PIXEL,
-          fontSize: 7,
+          fontSize: 11,
           letterSpacing: '.02em',
           lineHeight: 1.35,
           whiteSpace: 'pre-line',
@@ -51,7 +51,7 @@ export default function Badge({ icon, name, unlocked = false, pop = true, glow =
         {name}
       </p>
       {countLabel != null && (
-        <p style={{ margin: '3px 0 0', fontFamily: PIXEL, fontSize: 8, color: unlocked ? C.text : C.text3 }}>
+        <p style={{ margin: '3px 0 0', fontFamily: PIXEL, fontSize: 11, color: unlocked ? C.text : C.text3 }}>
           {countLabel}
         </p>
       )}

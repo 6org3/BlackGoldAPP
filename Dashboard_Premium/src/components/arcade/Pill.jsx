@@ -1,4 +1,4 @@
-import { PIXEL, C, BORDER, ROW_H, cut as cutPath } from './arcadeTokens';
+import { PIXEL, C, BORDER, ROW_H, TEXT_MIN, cut as cutPath } from './arcadeTokens';
 
 /**
  * Chip de filtro/segmento genérico del HUD (misiones · finanzas · asistencia).
@@ -10,7 +10,7 @@ import { PIXEL, C, BORDER, ROW_H, cut as cutPath } from './arcadeTokens';
  * densas de staff lo bajan a ROW_H_DENSE por `style` — es lo que ya hace
  * FilterBar con su prop `dense`.
  */
-export default function Pill({ label, active = false, onClick, accent = C.gold, cut = 7, size = 8.5, style }) {
+export default function Pill({ label, active = false, onClick, accent = C.gold, cut = 7, size = TEXT_MIN, style }) {
   return (
     <button
       type="button"

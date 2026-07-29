@@ -68,7 +68,13 @@ export default function ProgresoNivelModal({ isOpen, onClose, atleta }) {
           </span>
         </div>
         <div className="h-3 overflow-hidden" style={{ clipPath: cut(4), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}` }}>
-          <div className="h-full transition-[width] duration-1000" style={{ width: `${Math.min(100, Math.max(0, progress.percentage))}%`, background: GRAD.goldCTA }} />
+          {/* scaleX en vez de animar `width`: width es una propiedad de layout y
+              animarla fuerza reflow en cada frame. El origen a la izquierda deja
+              el mismo relleno de barra. */}
+          <div
+            className="h-full origin-left transition-transform duration-1000"
+            style={{ width: '100%', transform: `scaleX(${Math.min(100, Math.max(0, progress.percentage)) / 100})`, background: GRAD.goldCTA }}
+          />
         </div>
       </div>
 

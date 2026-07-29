@@ -22,7 +22,7 @@ function Rango({ r, extra }) {
       <div style={{ width: s.size, height: s.size, margin: '0 auto', clipPath: HEX, background: s.bg, display: 'grid', placeItems: 'center', color: s.color, fontFamily: PIXEL, fontSize: r.state === 'current' ? 13 : 12, filter: s.glow }}>
         {r.tier}
       </div>
-      <MicroLabel color={LABEL_COLOR[r.state]} size={7} tracking="normal" style={{ marginTop: 6 }}>
+      <MicroLabel color={LABEL_COLOR[r.state]} size={11} tracking="normal" style={{ marginTop: 6 }}>
         {r.state === 'done' ? `${r.label} ✓` : extra ? `${r.label} · ${extra}` : r.label}
       </MicroLabel>
     </div>
@@ -37,7 +37,7 @@ export default function PantallaAtletaProgreso({ ctx }) {
     <div>
       <div style={{ marginBottom: 14 }}>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: '-.03em' }}>Progreso</h1>
-        <MicroLabel color={C.text3} size={8.5} tracking=".06em" style={{ marginTop: 5 }}>{ctx.resumenLine}</MicroLabel>
+        <MicroLabel color={C.text3} size={11} tracking=".06em" style={{ marginTop: 5 }}>{ctx.resumenLine}</MicroLabel>
       </div>
 
       {/* Rangos */}
@@ -53,15 +53,15 @@ export default function PantallaAtletaProgreso({ ctx }) {
       </div>
 
       {/* Ficha física — los datos "de verdad" que registra el coach */}
-      <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }}>MI FICHA FÍSICA</MicroLabel>
+      <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }}>MI FICHA FÍSICA</MicroLabel>
       <FichaFisica fisico={ctx.fisico} />
 
       {/* Radar táctil */}
-      <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }}>{`MIS ${ctx.radar.length} PILARES · TOCA UNO`}</MicroLabel>
+      <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }}>{`MIS ${ctx.radar.length} PILARES · TOCA UNO`}</MicroLabel>
       <div style={{ background: C.card, border: `1px solid ${BORDER.gold}`, clipPath: cut(12), padding: '10px 14px 12px', marginBottom: 14, textAlign: 'center' }}>
         <RadarChart axes={ctx.radar} selectedKey={ctx.selKey} onSelect={ctx.onPilarPick} accent={C.gold} />
         <div style={{ textAlign: 'left', background: 'rgba(255,215,0,.05)', border: `1px solid rgba(255,215,0,.2)`, clipPath: cut(8), padding: '11px 12px', marginTop: 4 }}>
-          <MicroLabel color={C.ai} size={8} tracking=".06em" style={{ marginBottom: 5 }}>✦ {ctx.pilarTipTitle}</MicroLabel>
+          <MicroLabel color={C.ai} size={11} tracking=".06em" style={{ marginBottom: 5 }}>✦ {ctx.pilarTipTitle}</MicroLabel>
           <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55 }}>{ctx.pilarTipText}</p>
         </div>
       </div>
@@ -80,19 +80,19 @@ export default function PantallaAtletaProgreso({ ctx }) {
             aria-pressed={p.isSel}
             style={{ display: 'flex', alignItems: 'center', minHeight: 44, gap: 10, textAlign: 'left', cursor: 'pointer', background: C.card, border: `1px solid ${p.isSel ? BORDER.goldStrong : 'rgba(255,255,255,.07)'}`, clipPath: cut(8), padding: '10px 12px' }}
           >
-            <span style={{ width: 92, flex: 'none', fontFamily: PIXEL, fontSize: 8, letterSpacing: '.04em', color: p.isSel ? C.gold : C.text2 }}>{p.label}</span>
+            <span style={{ width: 92, flex: 'none', fontFamily: PIXEL, fontSize: 11, letterSpacing: '.04em', color: p.isSel ? C.gold : C.text2 }}>{p.label}</span>
             <div aria-hidden="true" style={{ flex: 1, display: 'flex', gap: 2 }}>
               {p.cells.map((c, i) => (
                 <span key={i} style={{ flex: 1, height: 9, background: c }} />
               ))}
             </div>
-            <span style={{ flex: 'none', width: 26, textAlign: 'right', fontFamily: PIXEL, fontSize: 10, color: p.isSel ? C.gold : C.text2 }}>{p.valLabel}</span>
+            <span style={{ flex: 'none', width: 26, textAlign: 'right', fontFamily: PIXEL, fontSize: 11, color: p.isSel ? C.gold : C.text2 }}>{p.valLabel}</span>
           </button>
         ))}
       </div>
 
       {/* Insignias */}
-      <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 10px' }}>MIS INSIGNIAS</MicroLabel>
+      <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 10px' }}>MIS INSIGNIAS</MicroLabel>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {ctx.insignias.map((b, i) => (
           <Badge key={i} icon={b.icon} name={b.name} unlocked={b.unlocked} pop={false} glow={GLOW.hexGoldMid} countLabel={b.countLabel} />
@@ -100,18 +100,18 @@ export default function PantallaAtletaProgreso({ ctx }) {
       </div>
 
       {/* XP semanal */}
-      <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 10px' }}>XP · ÚLTIMAS 6 SEMANAS</MicroLabel>
+      <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 10px' }}>XP · ÚLTIMAS 6 SEMANAS</MicroLabel>
       <div style={{ background: C.card, border: `1px solid ${BORDER.neutral}`, clipPath: cut(12), padding: '14px 16px 12px' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
           {ctx.weeks.map((w, i) => (
             <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-              <p style={{ margin: '0 0 5px', fontFamily: PIXEL, fontSize: 8, color: w.last ? C.gold : C.text3 }}>{w.xp}</p>
+              <p style={{ margin: '0 0 5px', fontFamily: PIXEL, fontSize: 11, color: w.last ? C.gold : C.text3 }}>{w.xp}</p>
               <div style={{ display: 'flex', flexDirection: 'column-reverse', gap: 2, height: 56 }}>
                 {w.cells.map((c, j) => (
                   <div key={j} style={{ height: 7, flex: 'none', background: c, clipPath: cut(2) }} />
                 ))}
               </div>
-              <p style={{ margin: '6px 0 0', fontFamily: PIXEL, fontSize: 7, color: C.text3 }}>{w.label}</p>
+              <p style={{ margin: '6px 0 0', fontFamily: PIXEL, fontSize: 11, color: C.text3 }}>{w.label}</p>
             </div>
           ))}
         </div>

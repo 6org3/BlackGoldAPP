@@ -40,8 +40,8 @@ function EscalaSlider({ icon: Icon, label, accent, value, onChange, minLabel, ma
         style={{ width: '100%', height: 44, accentColor: accent, cursor: 'pointer' }}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <MicroLabel color={C.text3} size={8.5} tracking=".06em">{minLabel}</MicroLabel>
-        <MicroLabel color={C.text3} size={8.5} tracking=".06em">{maxLabel}</MicroLabel>
+        <MicroLabel color={C.text3} size={11} tracking=".06em">{minLabel}</MicroLabel>
+        <MicroLabel color={C.text3} size={11} tracking=".06em">{maxLabel}</MicroLabel>
       </div>
     </div>
   );
@@ -92,7 +92,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
     >
       {error && (
         <div style={{ background: TINT.danger, border: `1px solid ${BORDER.danger}`, clipPath: cut(8), padding: '10px 12px', marginBottom: 16 }}>
-          <MicroLabel color={C.danger} size={9} tracking=".06em" style={{ textAlign: 'center' }}>{error}</MicroLabel>
+          <MicroLabel color={C.danger} size={11} tracking=".06em" style={{ textAlign: 'center' }}>{error}</MicroLabel>
         </div>
       )}
 
@@ -156,7 +156,7 @@ export default function ReadinessModal({ atletaId, onClose, onComplete }) {
               />
             ))}
           </div>
-          <MicroLabel color={C.gold} size={9} tracking=".06em" style={{ marginTop: 10, textAlign: 'center' }}>
+          <MicroLabel color={C.gold} size={11} tracking=".06em" style={{ marginTop: 10, textAlign: 'center' }}>
             {URINE_COLORS.find((c) => c.value === colorOrina)?.label}
           </MicroLabel>
         </div>
