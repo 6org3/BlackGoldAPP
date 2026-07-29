@@ -97,13 +97,24 @@ serve(async (req) => {
 
   const { data: target, error: eTarget } = await admin!
     .from('usuarios')
-    .select('id, cedula, correo, club, rol, auth_user_id')
+    .select('id, cedula, correo, club, rol, estado, auth_user_id')
     .eq('id', usuarioId)
     .single();
   if (eTarget || !target) return jsonResponse({ error: 'Usuario no encontrado.' }, 404);
 
   if (caller!.rol !== 'superadmin' && target.club !== caller!.club) {
     return jsonResponse({ error: 'El usuario no pertenece a tu club.' }, 403);
+  }
+  // Emitir acceso a una cuenta rechazada o retirada le daba credenciales
+  // funcionales: PrivateRoute la manda a CuentaEnRevision, pero la sesión de
+  // Auth es real y sirve para llamar a la API por fuera de la app. Se
+  // comprueba por exclusión, no por lista, para que un estado nuevo cierre la
+  // puerta por defecto en vez de abrirla por olvido. (Estado ausente = activo:
+  // la columna es NOT NULL DEFAULT 'activo'.)
+  if (target.estado && target.estado !== 'activo') {
+    return jsonResponse({
+      error: `No se puede dar acceso a una cuenta en estado "${target.estado}". Apruébala primero.`,
+    }, 409);
   }
   if (target.auth_user_id && !regenerar) {
     return jsonResponse({ success: true, ya_existia: true }, 200);
@@ -187,7 +198,10 @@ serve(async (req) => {
     const { error: eRotar } = await reintentarAuth(() => admin!.auth.admin
       .updateUserById(target.auth_user_id as string, { password }));
     if (eRotar) {
-      return jsonResponse({ error: 'No se pudo regenerar el acceso: ' + eRotar.message }, 409);
+      // El mensaje de GoTrue va al log, no al cliente. Esta pantalla la usa el
+      // staff, pero el detalle igual delata el estado interno de Auth.
+      console.error('[crear-acceso-usuario] rotar:', eRotar.message);
+      return jsonResponse({ error: 'No se pudo regenerar el acceso. Reintenta en un momento.' }, 409);
     }
     return jsonResponse({ success: true, regenerado: true, password_temporal: passwordTemporal }, 200);
   }
@@ -198,7 +212,8 @@ serve(async (req) => {
     email_confirm: true,
   }));
   if (eAuth) {
-    return jsonResponse({ error: 'No se pudo crear la cuenta de acceso: ' + eAuth.message }, 409);
+    console.error('[crear-acceso-usuario] createUser:', eAuth.message);
+    return jsonResponse({ error: 'No se pudo crear la cuenta de acceso. Reintenta en un momento.' }, 409);
   }
 
   // El trigger trg_vincular_auth_usuario (v24) vincula por email; este update

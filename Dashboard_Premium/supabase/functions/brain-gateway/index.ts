@@ -84,7 +84,12 @@ async function manejarDiagnostico(
     .eq('atleta_id', target.id)
     .order('created_at', { ascending: false })
     .limit(20);
-  if (eEval) return jsonResponse({ error: 'Error al obtener evaluaciones: ' + eEval.message }, 500);
+  if (eEval) {
+    // El detalle de PostgREST va al log, no al cliente: delata tablas,
+    // columnas y políticas. Mismo criterio que copiloto.
+    console.error('[brain-gateway] evaluaciones:', eEval.message);
+    return jsonResponse({ error: 'No se pudieron obtener las evaluaciones. Reintenta en un momento.' }, 500);
+  }
 
   // El mismo cerebro que el MCP, en JSON estructurado para las cards.
   const { categoria, pilarStats, notasSubjetivas, debiles } = analizarPilares({
