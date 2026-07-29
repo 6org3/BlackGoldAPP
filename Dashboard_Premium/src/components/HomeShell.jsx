@@ -6,7 +6,7 @@ import BottomNav from './BottomNav';
 import { CopilotoProvider } from './CopilotoLauncher';
 import { useAuth } from '../AuthContext';
 import { BOTTOM_NAV_POR_ROL } from '../lib/bottomNavConfig';
-import { C, BORDER, GRAD, TINT, cut, PIXEL } from './arcade/arcadeTokens';
+import { C, BORDER, GRAD, TINT, TEXT_MIN, cut, PIXEL } from './arcade/arcadeTokens';
 import MicroLabel from './arcade/MicroLabel';
 import HexAvatar from './arcade/HexAvatar';
 import KpiTile from './arcade/KpiTile';
@@ -63,7 +63,7 @@ export default function HomeShell({ eyebrow, titulo, contexto, children }) {
       >
         <header className="flex items-start justify-between gap-4 mb-2 relative z-10">
           <div className="min-w-0">
-            <MicroLabel as="p" color={C.goldDeep} size={9.5} tracking=".12em" style={{ marginBottom: 6 }}>
+            <MicroLabel as="p" color={C.goldDeep} size={11} tracking=".12em" style={{ marginBottom: 6 }}>
               {eyebrow}
             </MicroLabel>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter leading-tight">{titulo}</h1>
@@ -132,11 +132,11 @@ export function SectionEyebrow({ children, pill, pillTono = 'brand' }) {
   const t = CHIP_TONOS[pillTono] || CHIP_TONOS.brand;
   return (
     <div className="flex items-center gap-2 mt-6 mb-3">
-      <MicroLabel as="span" color={C.text3} size={9.5} tracking=".14em">{children}</MicroLabel>
+      <MicroLabel as="span" color={C.text3} size={11} tracking=".14em">{children}</MicroLabel>
       {pill && (
         <span
           style={{
-            marginLeft: 'auto', fontFamily: PIXEL, fontSize: 9.5, letterSpacing: '.06em',
+            marginLeft: 'auto', fontFamily: PIXEL, fontSize: 11, letterSpacing: '.06em',
             textTransform: 'uppercase', padding: '3px 8px', clipPath: cut(7),
             border: '1px solid', ...t,
           }}
@@ -158,5 +158,5 @@ const TONO_KPI = {
 /** Stat-card: delega en la primitiva canónica KpiTile (Ola 0). API intacta.
  *  labelSize 9: piso pixel desktop (§6.1) — los homes viven fuera del marco 480px. */
 export function StatCard({ valor, label, tonoTexto = 'text-white' }) {
-  return <KpiTile label={label} val={valor} color={TONO_KPI[tonoTexto] || C.text} labelSize={9} />;
+  return <KpiTile label={label} val={valor} color={TONO_KPI[tonoTexto] || C.text} labelSize={TEXT_MIN} />;
 }

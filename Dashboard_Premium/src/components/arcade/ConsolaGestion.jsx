@@ -85,7 +85,7 @@ export default function ConsolaGestion({ onClose }) {
     <ModalShell onClose={onClose} title="Consola de gestión" eyebrow="DUEÑO" icon={LayoutGrid} maxWidth="max-w-md">
       {BLOQUES.map((b, i) => (
         <div key={b.eyebrow} style={{ marginTop: i === 0 ? 0 : 18 }}>
-          <MicroLabel as="p" color={C.text3} size={8.5} tracking=".14em" style={{ margin: '0 0 8px' }}>
+          <MicroLabel as="p" color={C.text3} size={11} tracking=".14em" style={{ margin: '0 0 8px' }}>
             {b.eyebrow}
           </MicroLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -123,7 +123,7 @@ function Tile({ label, Icon, onGo }) {
     >
       <Icon size={19} strokeWidth={2} style={{ flex: 'none', color: C.gold }} />
       {/* Etiquetas de dos palabras (COMUNICACIONES) parten sin desbordar el tile. */}
-      <span style={{ fontFamily: PIXEL, fontSize: 8, letterSpacing: '.04em', textAlign: 'center', lineHeight: 1.4 }}>
+      <span style={{ fontFamily: PIXEL, fontSize: 11, letterSpacing: '.04em', textAlign: 'center', lineHeight: 1.4 }}>
         {label}
       </span>
     </button>

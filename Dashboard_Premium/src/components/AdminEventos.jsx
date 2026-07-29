@@ -89,9 +89,9 @@ export default function AdminEventos({ user, atletas = [] }) {
             <CalendarDays size={22} strokeWidth={2.5} />
           </HexAvatar>
           <div>
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
               Even<span style={{ color: C.gold }}>tos</span>
-            </h2>
+            </h1>
             <MicroLabel style={{ marginTop: 4 }}>Convocatorias · Confirmaciones</MicroLabel>
           </div>
         </div>

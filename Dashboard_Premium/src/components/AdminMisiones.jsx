@@ -416,9 +416,9 @@ export default function AdminMisiones() {
             <Play size={20} strokeWidth={2.5} />
           </HexAvatar>
           <div>
-            <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+            <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
               Gestionar <span style={{ color: C.gold }}>Misiones</span>
-            </h2>
+            </h1>
             <MicroLabel style={{ marginTop: 4 }}>Catálogo · Aprobaciones · Asignación</MicroLabel>
           </div>
         </div>

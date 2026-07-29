@@ -27,7 +27,7 @@ import MicroLabel from './arcade/MicroLabel';
 import KpiTile from './arcade/KpiTile';
 import KpiGrid from './arcade/KpiGrid';
 import ModalHUD from './arcade/ModalHUD';
-import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
+import { C, BORDER, GRAD, TINT, TEXT_MIN, cut } from './arcade/arcadeTokens';
 
 const MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -276,9 +276,9 @@ export default function AdminPagos({ user, atletas = [] }) {
               <DollarSign size={22} strokeWidth={2.5} />
             </HexAvatar>
             <div>
-              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
                 Control de <span style={{ color: C.gold }}>Pagos</span>
-              </h2>
+              </h1>
               <MicroLabel style={{ marginTop: 4 }}>Mensualidades · Sesiones Individuales</MicroLabel>
             </div>
           </div>
@@ -429,11 +429,11 @@ export default function AdminPagos({ user, atletas = [] }) {
 
       {/* Stats Bar */}
       <KpiGrid min={160} gap={12} style={{ marginBottom: 32 }}>
-        <KpiTile label="Recaudado" val={`$${recaudado.toFixed(0)}`} color={C.ok} sub={`${pagados} pagos completos`} labelSize={9} border={BORDER.ok} />
-        <KpiTile label="Por Cobrar" val={`$${porCobrar.toFixed(0)}`} color={C.gold} sub={subPorCobrar} labelSize={9} border={BORDER.gold16} />
-        <KpiTile label="Vencidos" val={vencidos} color={C.danger} sub="requieren atención" labelSize={9} border={BORDER.danger} />
-        <KpiTile label="Sin Plan" val={sinPlan} color={C.warn} sub="falta asignar grupo" labelSize={9} border={BORDER.warn} />
-        <KpiTile label="Becados" val={becados} color={C.ai} sub="del grupo" labelSize={9} border={BORDER.ai} />
+        <KpiTile label="Recaudado" val={`$${recaudado.toFixed(0)}`} color={C.ok} sub={`${pagados} pagos completos`} labelSize={TEXT_MIN} border={BORDER.ok} />
+        <KpiTile label="Por Cobrar" val={`$${porCobrar.toFixed(0)}`} color={C.gold} sub={subPorCobrar} labelSize={TEXT_MIN} border={BORDER.gold16} />
+        <KpiTile label="Vencidos" val={vencidos} color={C.danger} sub="requieren atención" labelSize={TEXT_MIN} border={BORDER.danger} />
+        <KpiTile label="Sin Plan" val={sinPlan} color={C.warn} sub="falta asignar grupo" labelSize={TEXT_MIN} border={BORDER.warn} />
+        <KpiTile label="Becados" val={becados} color={C.ai} sub="del grupo" labelSize={TEXT_MIN} border={BORDER.ai} />
       </KpiGrid>
 
       {/* Tabla de Pagos (cards apiladas en móvil, grid en md+) */}

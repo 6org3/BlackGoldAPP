@@ -84,7 +84,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             <Sparkles size={20} strokeWidth={2.5} />
           </HexAvatar>
           <div>
-            <h1 className="text-2xl font-black tracking-tight uppercase leading-none" style={{ color: C.text }}>Black Gold</h1>
+            {/* La marca del sidebar NO es el h1 del documento: competía con el
+                título de página de HomeShell y dejaba dos h1 por pantalla. El
+                encabezado de nivel 1 debe ser el de la página, no el logo. */}
+            <p className="text-2xl font-black tracking-tight uppercase leading-none" style={{ color: C.text }}>Black Gold</p>
             <MicroLabel style={{ marginTop: 4, color: C.gold }}>Intelligence</MicroLabel>
           </div>
         </div>

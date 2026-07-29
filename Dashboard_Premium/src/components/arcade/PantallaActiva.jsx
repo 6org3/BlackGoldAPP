@@ -20,7 +20,7 @@ export default function PantallaActiva({ focused, others, actions }) {
           marginBottom: 14,
         }}
       >
-        <MicroLabel color={C.ok} size={9.5} tracking="normal" style={{ marginBottom: 12 }}>
+        <MicroLabel color={C.ok} size={11} tracking="normal" style={{ marginBottom: 12 }}>
           <span aria-hidden="true" style={{ animation: 'bg-blink 1.3s infinite' }}>●</span> SESIÓN EN FOCO
         </MicroLabel>
         <div style={{ textAlign: 'center', padding: '6px 0 10px' }}>
@@ -38,13 +38,13 @@ export default function PantallaActiva({ focused, others, actions }) {
           plantilla o reanudadas (que no cargan su plantilla). */}
       {focused.plantilla?.drills?.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <MicroLabel color={C.text3} size={9.5} style={{ margin: '2px 0 8px' }}>
+          <MicroLabel color={C.text3} size={11} style={{ margin: '2px 0 8px' }}>
             PLAN DE SESIÓN · {focused.plantilla.titulo}
           </MicroLabel>
           <div style={{ background: C.card, border: `1px solid ${BORDER.neutral}`, clipPath: cut(12), padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {agruparDrillsPorTipo(focused.plantilla.drills).map(([tipo, ds]) => (
               <div key={tipo}>
-                <MicroLabel color={C.goldDeep} size={8} tracking=".08em" style={{ marginBottom: 5 }}>{tipo}</MicroLabel>
+                <MicroLabel color={C.goldDeep} size={11} tracking=".08em" style={{ marginBottom: 5 }}>{tipo}</MicroLabel>
                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                   {ds.map((d, i) => (
                     <li key={i} style={{ fontSize: 12, color: C.text2, lineHeight: 1.6 }}>{d.nombre}</li>
@@ -60,8 +60,8 @@ export default function PantallaActiva({ focused, others, actions }) {
       {others.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '2px 0 8px' }}>
-            <MicroLabel color={C.text3} size={9.5}>OTRAS SESIONES ACTIVAS · {others.length}</MicroLabel>
-            <MicroLabel color={C.text4} size={8} tracking="normal">TOCA PARA CAMBIAR</MicroLabel>
+            <MicroLabel color={C.text3} size={11}>OTRAS SESIONES ACTIVAS · {others.length}</MicroLabel>
+            <MicroLabel color={C.text4} size={11} tracking="normal">TOCA PARA CAMBIAR</MicroLabel>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
             {others.map((o) => (
@@ -75,7 +75,7 @@ export default function PantallaActiva({ focused, others, actions }) {
                 <LiveDot color={hueFg(o.hue)} speed="1.6s" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{o.label}</p>
-                  <p style={{ margin: '1px 0 0', fontSize: 10, color: C.text3 }}>
+                  <p style={{ margin: '1px 0 0', fontSize: 11, color: C.text3 }}>
                     {o.block} · {o.present} pres.
                   </p>
                 </div>

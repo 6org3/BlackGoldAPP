@@ -77,7 +77,7 @@ export default function RadarChartComp({ atleta, todosLosAtletas, showCategoria 
           
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: 700, letterSpacing: '0.5px' }}
+            tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 700, letterSpacing: '0.5px' }}
             tickLine={false}
             tickFormatter={(v) => (esMovil ? ETIQUETAS_CORTAS[v] || v : v)}
           />

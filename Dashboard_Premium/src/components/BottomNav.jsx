@@ -27,7 +27,7 @@ export default function BottomNav({ items, activo, onSelect }) {
               type="button"
               onClick={() => onSelect(item.key)}
               aria-current={active ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 text-[9.5px] font-bold uppercase tracking-wide transition-colors ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 text-3xs font-bold uppercase tracking-wide transition-colors ${
                 active ? 'text-brand' : 'text-fg-muted'
               }`}
             >

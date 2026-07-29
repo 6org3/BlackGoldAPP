@@ -147,8 +147,53 @@ Resultado remedido en el navegador:
 
 `all-caps-body` sobre 32 caracteres en Eventos: al inspeccionarlo, ese texto es `"{n} PRÓXIMOS · TU EQUIPO TE ESPERA"`, la línea de resumen bajo el `h1`, del mismo patrón que en las otras cuatro pantallas ("0 ACTIVAS · 0 EN REVISIÓN", "MICRO · 267 XP TOTAL · PWR 45"). No es texto de lectura corrida, y quitarle las mayúsculas solo a Eventos rompería la consistencia entre pantallas. No se aplica.
 
-## Siguientes pasos
+---
 
-1. **[P2] Extender el piloto.** El portal del **padre** (`/padre`) comparte primitivas y el mismo lenguaje de micro-etiquetas; ya se beneficia de lo aplicado a las primitivas compartidas, pero sus pantallas propias no se han medido. Los portales de staff (coach/owner/superadmin) son data-densos y usan `ROW_H_DENSE = 36`, así que merecen su propio criterio — empezando por la nav del dueño.
-2. **[P3] Deuda documentada, no tocada en esta pasada:** doble superficie viva del rol atleta (`/atleta` y `/dashboard` → `AthleteLayout`), triplicación de las fuentes de tokens (`tokens.css` / `designTokens.js` / `arcadeTokens.js`) y `AdminPlanificacionPage.jsx` sin ruta que lo monte.
-3. **Suite E2E.** `arcade_escrituras`, `arcade_cerrar_sesion` y `qa_roles` tienen fallos preexistentes (verificado corriéndolos en `main`): 3, 2 y 1 respectivamente. No los causa esta auditoría, pero conviene atenderlos — Cypress no está en CI y esos specs cubren escrituras reales.
+# Segunda vuelta: padre, coach, dueño y superadmin
+
+**Fecha:** 2026-07-28. Mismo método, extendido a los portales restantes. Medido a **360×780** (el viewport más estrecho realista, peor caso de desborde) sobre 9 pantallas: padre, coach home, `/admin/asistencia`, `/admin/atletas`, los 4 paneles del dueño y `/admin/pagos`.
+
+## El hallazgo del atleta era sistémico
+
+Lo que en el piloto parecía un problema de la pantalla Progreso resultó ser **un token repetido en las tres capas**:
+
+| capa | símbolo | valor |
+|---|---|---|
+| `arcade/arcadeTokens.js` | `C.text4` | `#4B5563` |
+| `styles/tokens.css` | `--color-fg-faint`, `--color-tier-sindatos` | `#4B5563` |
+| `lib/designTokens.js` | `faint`, tier `sinDatos` | `#4B5563` |
+
+Entre 2,32:1 y 2,69:1 sobre las superficies del HUD. **243 de los 267 fallos de contraste** medidos en los cuatro portales salían de ahí. El comentario de `--color-fg-faint` decía *"solo decorativo, nunca información"* mientras rotulaba "Sin datos", "15 /100" y los conteos de filtros. Las tres capas pasan a `#7B8593`, que cumple AA en todo fondo del HUD (4,69:1 el peor caso) y se sigue leyendo por debajo de `text3`.
+
+Un cuarto gris, `#374151` (1,78:1), estaba hardcodeado fuera de la capa de tokens en `duenoSelectors.js` para la celda libre del heatmap.
+
+## Resultado
+
+| | antes | después |
+|---|---|---|
+| nodos que fallan contraste AA | 267 | **0** |
+| nodos de texto bajo 11px | 544 de 3244 | **0** |
+| objetivos táctiles < 44px | 30 | **0 de 1350** |
+| pantallas sin `<main>` | 8 de 10 | **0** |
+| pantallas sin `<h1>` | 4 (todo el portal del padre) | **0** |
+| pantallas con dos `<h1>` | 1 (coach) | **0** |
+| desbordes de texto / scroll horizontal | 1 / 0 | **0 / 0** |
+
+## Decisiones que exigió el piso de 11px
+
+- **Escala tipográfica.** `--text-3xs` (9px) y `--text-2xs` (10px), usadas en 57 archivos, estaban por debajo del piso y entre las dos rotulaban cientos de nodos de dato real. Ambas suben a 11px, con lo que **colapsan en el mismo valor**: se conservan los dos nombres para no reescribir 57 archivos, pero ya no son una escala, son el mismo suelo de legibilidad.
+- **Nav del dueño.** A 360px cada zona mide 72px y "ASISTENCIA" ocupa 77px al piso. En vez de encoger el texto, se acorta la **etiqueta visible** (`ASIST.`, `RETEN.`) y el nombre completo se conserva en `aria-label`: el lector de pantalla sigue anunciando "Asistencia".
+- **Heatmap del dueño.** Seis columnas de 44px no caben en una pantalla de 360px. El contenedor pasa a tener scroll horizontal propio con `minWidth` calculado, en vez de encoger las celdas a 40px — la respuesta correcta a una rejilla densa en pantalla estrecha es desplazarla, no volverla impulsable.
+- **Encabezados.** El logo del `Sidebar` dejaba dos `h1` por pantalla en el coach. Al quitarle el `h1`, los 10 módulos `/admin/*` se habrían quedado sin encabezado de nivel 1 (todos usaban `<h2>` apoyándose en el del Sidebar), así que su título pasa a `<h1>`.
+
+## Superadmin: auditado por código, no medido
+
+`/sistema` **no pudo medirse en navegador**: `SMOKE_TEST_USER` resultó ser owner (la ruta rebota a `/club`) y `cypress.env.json` no tiene cuenta de superadmin. Revisión estática de `SistemaHomePage.jsx` y sus 8 primitivas (`HomeShell`, `Plantel`, `CutCard`, `KpiGrid`, `TablaHUD`, `Donut`, `HexAvatar`, `MicroLabel`): **0 tamaños bajo el piso, 0 hex hardcodeados, 0 alturas fijas por debajo de 44px**, y hereda `<main>`/`<h1>` de `HomeShell`. Se beneficia además de todos los cambios de token y de escala.
+
+Conclusión razonable pero **no verificada por medición**: para cerrarlo hace falta una cuenta QA de superadmin en `QA_ROLES` (`scripts/crear_cuentas_prueba.js` las crea).
+
+## Pendiente
+
+- **Medir `/sistema`** cuando haya credenciales.
+- **Deuda ya documentada, no tocada:** doble superficie viva del rol atleta (`/atleta` y `/dashboard` → `AthleteLayout`), la triplicación de fuentes de tokens (que esta vuelta hizo visible: el mismo gris había que arreglarlo en tres sitios) y `AdminPlanificacionPage.jsx` sin ruta que lo monte.
+- **Suite E2E.** `arcade_escrituras`, `arcade_cerrar_sesion`, `qa_roles` y un caso de `dueno_consola_gestion` fallan por causas **preexistentes** — verificado corriéndolos sin estos cambios. Cypress no está en CI y esos specs cubren escrituras reales.

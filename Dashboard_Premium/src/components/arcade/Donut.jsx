@@ -23,7 +23,7 @@ export default function Donut({ pct = 0, color = C.gold, centerTop, centerLabel,
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 17, color }}>{centerTop}</p>
-          {centerLabel && <p style={{ margin: '4px 0 0', fontFamily: PIXEL, fontSize: 6.5, color: C.text3, letterSpacing: '.06em' }}>{centerLabel}</p>}
+          {centerLabel && <p style={{ margin: '4px 0 0', fontFamily: PIXEL, fontSize: 11, color: C.text3, letterSpacing: '.06em' }}>{centerLabel}</p>}
         </div>
       </div>
     </div>

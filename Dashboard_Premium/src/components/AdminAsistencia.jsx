@@ -9,7 +9,7 @@ import BotonVolver from './arcade/BotonVolver';
 import MicroLabel from './arcade/MicroLabel';
 import KpiTile from './arcade/KpiTile';
 import KpiGrid from './arcade/KpiGrid';
-import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
+import { C, BORDER, GRAD, TINT, TEXT_MIN, cut } from './arcade/arcadeTokens';
 
 // El pase de lista se acota por GRUPO de entrenamiento, no por categoría FEB:
 // quien está en la cancha a una hora dada es el grupo (que tiene horario), y un
@@ -182,9 +182,9 @@ export default function AdminAsistencia({ user, atletas = [] }) {
             <ClipboardList size={22} strokeWidth={2.5} />
           </HexAvatar>
           <div>
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
               Control de <span style={{ color: C.gold }}>Asistencia</span>
-            </h2>
+            </h1>
             <MicroLabel style={{ marginTop: 4 }}>{nombreGrupoActivo} · {total} atletas</MicroLabel>
           </div>
         </div>
@@ -258,10 +258,10 @@ export default function AdminAsistencia({ user, atletas = [] }) {
 
       {/* Stats Bar */}
       <KpiGrid min={160} gap={12} style={{ marginBottom: 32 }}>
-        <KpiTile label="Total Grupo" val={total} color={C.text} sub="atletas" labelSize={9} />
-        <KpiTile label="Presentes" val={`${pctPresentes}%`} color={C.ok} sub={`${presentes} chicos`} labelSize={9} border={BORDER.ok} />
-        <KpiTile label="Ausentes" val={`${pctAusentes}%`} color={C.danger} sub={`${ausentes} chicos`} labelSize={9} border={BORDER.danger} />
-        <KpiTile label="Justif. + Lesión" val={`${pctOtros}%`} color={C.warn} sub={`${otros} chicos`} labelSize={9} border={BORDER.warn} />
+        <KpiTile label="Total Grupo" val={total} color={C.text} sub="atletas" labelSize={TEXT_MIN} />
+        <KpiTile label="Presentes" val={`${pctPresentes}%`} color={C.ok} sub={`${presentes} chicos`} labelSize={TEXT_MIN} border={BORDER.ok} />
+        <KpiTile label="Ausentes" val={`${pctAusentes}%`} color={C.danger} sub={`${ausentes} chicos`} labelSize={TEXT_MIN} border={BORDER.danger} />
+        <KpiTile label="Justif. + Lesión" val={`${pctOtros}%`} color={C.warn} sub={`${otros} chicos`} labelSize={TEXT_MIN} border={BORDER.warn} />
       </KpiGrid>
 
       {/* Lista de Atletas (Tabla-HUD) */}

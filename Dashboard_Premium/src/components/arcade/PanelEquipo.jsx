@@ -9,9 +9,9 @@ export default function PanelEquipo({ ctx }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        <MicroLabel as="span" color={C.text3} size={8} tracking=".06em" style={{ marginRight: 2 }}>ORDENAR:</MicroLabel>
+        <MicroLabel as="span" color={C.text3} size={11} tracking=".06em" style={{ marginRight: 2 }}>ORDENAR:</MicroLabel>
         {ctx.sorts.map((so) => (
-          <Pill key={so.label} label={so.label} active={so.active} onClick={so.onPick} cut={6} size={8} />
+          <Pill key={so.label} label={so.label} active={so.active} onClick={so.onPick} cut={6} size={11} />
         ))}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>

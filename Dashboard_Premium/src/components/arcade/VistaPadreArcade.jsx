@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../AuthContext';
-import { C, BORDER, GRAD, RADAR_FILL_INFO, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
+import { C, BORDER, GRAD, RADAR_FILL_INFO, ROW_H, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
 import ArcadePerfilMenu from './ArcadePerfilMenu';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
@@ -234,17 +234,23 @@ export default function VistaPadreArcade() {
           VistaDuenoArcade — sin ellos el scroll se iba al body en vez del
           contenedor interno (scroller sin cota de altura). */}
       <div style={{ position: 'relative', width: '100%', maxWidth: 480, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 96px', WebkitOverflowScrolling: 'touch' }}>
+        {/* <main>: landmark de contenido del portal — no lo tenía, igual que el
+            del atleta antes de la auditoría. */}
+        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 96px', WebkitOverflowScrolling: 'touch' }}>
           {/* Cabecera */}
           <div id="padre-base" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
             <div>
-              <MicroLabel color={C.text3} size={8.5} tracking=".08em" style={{ marginBottom: 4 }}>MI REPRESENTADO</MicroLabel>
-              <p style={{ margin: 0, fontSize: 12, color: C.text2 }}>{vm?.parentLine || (user?.nombre ?? '…')}</p>
+              <MicroLabel color={C.text3} size={11} tracking=".08em" style={{ marginBottom: 4 }}>MI REPRESENTADO</MicroLabel>
+              {/* h1: el portal del padre no tenía NINGÚN encabezado de nivel 1.
+                  El nombre del representado es lo que identifica esta página;
+                  se conserva su tamaño — un h1 no tiene por qué ser el texto
+                  más grande, solo el que encabeza el documento. */}
+              <h1 style={{ margin: 0, fontSize: 12, fontWeight: 400, color: C.text2 }}>{vm?.parentLine || (user?.nombre ?? '…')}</h1>
             </div>
             {/* Avatar del representante = menú de perfil (la salida de sesión del
                 portal). Ocupa el hueco del hex decorativo de campana, que no
                 enrutaba a ninguna bandeja de notificaciones. */}
-            <ArcadePerfilMenu size={34} initial={(user?.nombre || '?').charAt(0).toUpperCase()} />
+            <ArcadePerfilMenu size={44} initial={(user?.nombre || '?').charAt(0).toUpperCase()} />
           </div>
 
           {/* Selector de hijos (si hay varios) */}
@@ -256,10 +262,11 @@ export default function VistaPadreArcade() {
                   type="button"
                   onClick={() => setIdx(i)}
                   style={{
+                    minHeight: ROW_H,
                     padding: '7px 12px',
                     clipPath: cut(7),
                     fontFamily: PIXEL,
-                    fontSize: 9,
+                    fontSize: 11,
                     cursor: 'pointer',
                     background: i === idx ? 'rgba(96,165,250,.14)' : 'transparent',
                     border: `1px solid ${i === idx ? BORDER.info : BORDER.neutral}`,
@@ -274,7 +281,7 @@ export default function VistaPadreArcade() {
 
           {cargando ? (
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
-              <MicroLabel color={C.text3} size={9} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
+              <MicroLabel color={C.text3} size={11} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
             </div>
           ) : (
             <>
@@ -284,27 +291,27 @@ export default function VistaPadreArcade() {
                   <HexAvatar size={66} initial={vm.inicial} background={GRAD.infoAvatar} color={C.ink} style={{ filter: 'drop-shadow(0 0 14px rgba(96,165,250,.5))', fontSize: 24 }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <p style={{ margin: 0, fontSize: 20, fontWeight: 900, letterSpacing: '-.02em' }}>{vm.hijoNombre}</p>
-                    <MicroLabel color={C.info} size={9} tracking="normal" style={{ marginTop: 4 }}>{vm.rangoLine}</MicroLabel>
+                    <MicroLabel color={C.info} size={11} tracking="normal" style={{ marginTop: 4 }}>{vm.rangoLine}</MicroLabel>
                   </div>
                   <div style={{ textAlign: 'center', flex: 'none' }}>
                     <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 26, color: C.gold }}>{vm.pwr}</p>
-                    <MicroLabel color={C.text3} size={8} tracking="normal" style={{ marginTop: 2 }}>PWR</MicroLabel>
+                    <MicroLabel color={C.text3} size={11} tracking="normal" style={{ marginTop: 2 }}>PWR</MicroLabel>
                   </div>
                 </div>
                 <div style={{ marginTop: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <MicroLabel color={C.text3} size={8.5} tracking="normal">XP {vm.xp.current.toLocaleString()} / {vm.xp.required.toLocaleString()}</MicroLabel>
-                    <MicroLabel color={C.gold} size={8.5} tracking="normal">{vm.xp.percentage}%</MicroLabel>
+                    <MicroLabel color={C.text3} size={11} tracking="normal">XP {vm.xp.current.toLocaleString()} / {vm.xp.required.toLocaleString()}</MicroLabel>
+                    <MicroLabel color={C.gold} size={11} tracking="normal">{vm.xp.percentage}%</MicroLabel>
                   </div>
                   <XPCells filled={vm.xp.filled} label="Progreso de XP" />
-                  <MicroLabel color={C.text3} size={8.5} tracking="normal" style={{ margin: '6px 0 0', textAlign: 'right' }}>
+                  <MicroLabel color={C.text3} size={11} tracking="normal" style={{ margin: '6px 0 0', textAlign: 'right' }}>
                     {vm.xp.esMax ? 'NIVEL MÁXIMO ⭐' : `FALTAN ${vm.xp.faltan.toLocaleString()} XP → ${(vm.xp.nextLevelName || '').toUpperCase()} ⭐`}
                   </MicroLabel>
                 </div>
               </div>
 
               {/* Próximo evento */}
-              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">PRÓXIMO EVENTO</MicroLabel>
+              <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">PRÓXIMO EVENTO</MicroLabel>
               {vm.evento ? (
                 <div id="padre-eventos" style={{ background: C.card, border: `1px solid ${confirmado ? BORDER.okSoft : BORDER.neutral}`, clipPath: cut(12), padding: 15, marginBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -325,18 +332,18 @@ export default function VistaPadreArcade() {
               )}
 
               {/* Pagos */}
-              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">PAGOS · MENSUALIDAD</MicroLabel>
+              <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">PAGOS · MENSUALIDAD</MicroLabel>
               {vm.pago ? (
                 <div id="padre-pagos" style={{ background: C.card, border: `1px solid ${pagado ? 'rgba(52,211,153,.3)' : BORDER.warn}`, clipPath: cut(12), padding: 15, marginBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                     <div>
                       <p style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>{vm.pago.titulo}</p>
-                      <MicroLabel color={pagado ? C.ok : C.warn} size={9} tracking=".04em" style={{ marginTop: 3 }}>
+                      <MicroLabel color={pagado ? C.ok : C.warn} size={11} tracking=".04em" style={{ marginTop: 3 }}>
                         {pagado ? 'ENVIADO · POR VERIFICAR' : vm.pago.estadoLabel}
                       </MicroLabel>
                       {/* Descuento aplicado (hermanos/beca): precio base tachado + etiqueta de las notas */}
                       {vm.pago.descuento && (
-                        <p style={{ margin: '4px 0 0', fontSize: 10.5, color: C.text3 }}>
+                        <p style={{ margin: '4px 0 0', fontSize: 11, color: C.text3 }}>
                           <span style={{ textDecoration: 'line-through' }}>{fmtUSD(vm.pago.descuento.base)}</span>{' '}
                           <b style={{ color: C.ok, fontWeight: 700 }}>{vm.pago.descuento.etiqueta}</b>
                         </p>
@@ -346,15 +353,15 @@ export default function VistaPadreArcade() {
                   </div>
                   {!pagado ? (
                     <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                      <button type="button" onClick={onPagar} style={{ flex: 1, padding: 13, background: GRAD.goldText, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9.5, cursor: 'pointer' }}>
+                      <button type="button" onClick={onPagar} style={{ flex: 1, minHeight: ROW_H, padding: 13, background: GRAD.goldText, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 11, cursor: 'pointer' }}>
                         💳 PAGAR {fmtUSD(vm.pago.monto)}
                       </button>
-                      <button type="button" onClick={onWhatsApp} style={{ flex: 1, padding: 13, background: 'transparent', border: `1px solid rgba(37,211,102,.45)`, color: C.whatsapp, clipPath: cut(10), fontFamily: PIXEL, fontSize: 9.5, cursor: 'pointer' }}>
+                      <button type="button" onClick={onWhatsApp} style={{ flex: 1, minHeight: ROW_H, padding: 13, background: 'transparent', border: `1px solid rgba(37,211,102,.45)`, color: C.whatsapp, clipPath: cut(10), fontFamily: PIXEL, fontSize: 11, cursor: 'pointer' }}>
                         WHATSAPP
                       </button>
                     </div>
                   ) : (
-                    <div style={{ marginTop: 14, textAlign: 'center', padding: 13, background: 'rgba(52,211,153,.12)', border: `1px solid ${BORDER.okSoft}`, color: C.ok, clipPath: cut(10), fontFamily: PIXEL, fontSize: 10, animation: 'bg-pop .4s ease-out' }}>
+                    <div style={{ marginTop: 14, textAlign: 'center', padding: 13, background: 'rgba(52,211,153,.12)', border: `1px solid ${BORDER.okSoft}`, color: C.ok, clipPath: cut(10), fontFamily: PIXEL, fontSize: 11, animation: 'bg-pop .4s ease-out' }}>
                       ✓ PAGO ENVIADO · POR VERIFICAR
                     </div>
                   )}
@@ -363,7 +370,7 @@ export default function VistaPadreArcade() {
                       {vm.historial.map((p, i) => (
                         <div key={i}>
                           <p style={{ margin: 0, fontSize: 11, color: C.ok, fontWeight: 700 }}>✓ {p.m}</p>
-                          <p style={{ margin: '2px 0 0', fontSize: 9.5, color: C.text3 }}>{p.detalle || 'Pagado'}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 11, color: C.text3 }}>{p.detalle || 'Pagado'}</p>
                         </div>
                       ))}
                     </div>
@@ -371,12 +378,12 @@ export default function VistaPadreArcade() {
                 </div>
               ) : (
                 <div id="padre-pagos" style={{ background: C.card, border: `1px solid rgba(52,211,153,.3)`, clipPath: cut(12), padding: 15, marginBottom: 14 }}>
-                  <MicroLabel color={C.ok} size={10} tracking=".04em">✓ AL DÍA · SIN PAGOS PENDIENTES</MicroLabel>
+                  <MicroLabel color={C.ok} size={11} tracking=".04em">✓ AL DÍA · SIN PAGOS PENDIENTES</MicroLabel>
                 </div>
               )}
 
               {/* Misión actual */}
-              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">SU MISIÓN ACTUAL</MicroLabel>
+              <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">SU MISIÓN ACTUAL</MicroLabel>
               {vm.mision ? (
                 <div id="padre-misiones" style={{ background: C.card, border: `1px solid ${BORDER.ai}`, clipPath: cut(12), padding: 15, marginBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -384,7 +391,7 @@ export default function VistaPadreArcade() {
                       <p style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>{vm.mision.titulo}</p>
                       {vm.mision.desc && <p style={{ margin: '3px 0 0', fontSize: 11, color: C.text2 }}>{vm.mision.desc}</p>}
                     </div>
-                    <span style={{ fontFamily: PIXEL, fontSize: 9, color: C.ai, border: `1px solid rgba(168,85,247,.4)`, padding: '6px 9px', flex: 'none' }}>{vm.mision.estadoLabel}</span>
+                    <span style={{ fontFamily: PIXEL, fontSize: 11, color: C.ai, border: `1px solid rgba(168,85,247,.4)`, padding: '6px 9px', flex: 'none' }}>{vm.mision.estadoLabel}</span>
                   </div>
                   {vm.mision.xp > 0 && (
                     <p style={{ margin: '10px 0 0', fontSize: 11, color: C.text2 }}>
@@ -399,17 +406,17 @@ export default function VistaPadreArcade() {
               )}
 
               {/* Últimas sesiones registradas por el coach, con sus ejercicios resueltos */}
-              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">ÚLTIMAS SESIONES</MicroLabel>
+              <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">ÚLTIMAS SESIONES</MicroLabel>
               {vm.sesiones.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
                   {vm.sesiones.map((s) => (
                     <div key={s.id} style={{ background: C.card, border: `1px solid ${s.esGrupal ? BORDER.info : BORDER.neutral}`, clipPath: cut(10), padding: 13 }}>
                       {s.esGrupal && (
-                        <span style={{ display: 'inline-block', marginBottom: 6, fontFamily: PIXEL, fontSize: 7.5, letterSpacing: '.04em', color: C.info, border: `1px solid ${BORDER.info}`, clipPath: cut(5), padding: '3px 7px' }}>
+                        <span style={{ display: 'inline-block', marginBottom: 6, fontFamily: PIXEL, fontSize: 11, letterSpacing: '.04em', color: C.info, border: `1px solid ${BORDER.info}`, clipPath: cut(5), padding: '3px 7px' }}>
                           GRUPAL · {s.grupoNombre}
                         </span>
                       )}
-                      <MicroLabel color={C.text3} size={8} tracking="normal">{s.objetivoTipo} · {s.fecha}</MicroLabel>
+                      <MicroLabel color={C.text3} size={11} tracking="normal">{s.objetivoTipo} · {s.fecha}</MicroLabel>
                       <p style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.5 }}>{s.objetivo}</p>
                       {s.drills.length > 0 && (
                         <p style={{ margin: '6px 0 0', fontSize: 11, color: C.text3 }}>🏋️ {s.drills.join(' · ')}</p>
@@ -424,12 +431,12 @@ export default function VistaPadreArcade() {
               )}
 
               {/* Pilares (radar de N ejes según el view-model) */}
-              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">{`SUS ${vm.radar.length} PILARES`}</MicroLabel>
+              <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">{`SUS ${vm.radar.length} PILARES`}</MicroLabel>
               <div style={{ background: C.card, border: `1px solid ${BORDER.gold}`, clipPath: cut(12), padding: '10px 14px 4px', marginBottom: 14, textAlign: 'center' }}>
                 <RadarChart axes={vm.radar} accent={C.info} fill={RADAR_FILL_INFO} rings={[0.4, 0.7]} />
                 {vm.simples && (
                   <div style={{ textAlign: 'left', background: 'rgba(96,165,250,.06)', border: `1px solid rgba(96,165,250,.2)`, clipPath: cut(8), padding: '11px 12px', margin: '2px 0 12px' }}>
-                    <MicroLabel color={C.ai} size={8} tracking=".06em" style={{ marginBottom: 5 }}>✦ EN PALABRAS SIMPLES</MicroLabel>
+                    <MicroLabel color={C.ai} size={11} tracking=".06em" style={{ marginBottom: 5 }}>✦ EN PALABRAS SIMPLES</MicroLabel>
                     <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55 }}>
                       Lo que mejor va: <b style={{ color: C.ok }}>{nombrePilar(vm.simples.mejor.key)}</b>. A mejorar:{' '}
                       <b style={{ color: C.warn }}>{nombrePilar(vm.simples.peor.key)}</b>.
@@ -439,7 +446,7 @@ export default function VistaPadreArcade() {
               </div>
 
               {/* Ficha física del hijo — los datos que registra el coach */}
-              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">SU FICHA FÍSICA</MicroLabel>
+              <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">SU FICHA FÍSICA</MicroLabel>
               <FichaFisica
                 fisico={vm.fisico}
                 accent={C.info}
@@ -447,7 +454,7 @@ export default function VistaPadreArcade() {
               />
 
               {/* Comunicados */}
-              <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }} as="p">COMUNICADOS DEL CLUB</MicroLabel>
+              <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">COMUNICADOS DEL CLUB</MicroLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {vm.comunicados.length ? (
                   vm.comunicados.map((c, i) => (
@@ -455,7 +462,7 @@ export default function VistaPadreArcade() {
                       <span style={{ fontSize: 16, flex: 'none' }} aria-hidden="true">{c.icon}</span>
                       <div>
                         <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700 }}>{c.titulo}</p>
-                        {c.sub && <p style={{ margin: '2px 0 0', fontSize: 10.5, color: C.text3 }}>{c.sub}</p>}
+                        {c.sub && <p style={{ margin: '2px 0 0', fontSize: 11, color: C.text3 }}>{c.sub}</p>}
                       </div>
                     </div>
                   ))
@@ -465,7 +472,7 @@ export default function VistaPadreArcade() {
               </div>
             </>
           )}
-        </div>
+        </main>
 
         <ArcadeBottomNav variant="padre" active={nav} onNavigate={goSection} />
       </div>

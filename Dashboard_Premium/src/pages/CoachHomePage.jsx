@@ -9,7 +9,7 @@ import ModoCanchaArcade from '../components/arcade/ModoCanchaArcade';
 import CutCard from '../components/arcade/CutCard';
 import HexAvatar from '../components/arcade/HexAvatar';
 import MicroLabel from '../components/arcade/MicroLabel';
-import { C, BORDER, GRAD, TINT, cut, PIXEL } from '../components/arcade/arcadeTokens';
+import { C, BORDER, GRAD, TINT, ROW_H, cut, PIXEL } from '../components/arcade/arcadeTokens';
 import { recoveryPill } from '../lib/recoveryPill';
 import { tieneSenal } from '../lib/senalesAtleta';
 import { fetchTodosLosAtletas } from '../api/atletasService';
@@ -164,7 +164,7 @@ export default function CoachHomePage() {
           <div style={{ padding: '16px 16px 4px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ minWidth: 0 }}>
-                <MicroLabel color={C.goldDeep} size={9.5} tracking=".12em">
+                <MicroLabel color={C.goldDeep} size={11} tracking=".12em">
                   <span aria-hidden="true">▸</span> Hoy{heroHoy ? ` · ${heroHoy.modalidad}` : ''}
                 </MicroLabel>
                 <h2 style={{ margin: '6px 0 0', fontSize: 19, fontWeight: 900, letterSpacing: '-.01em', color: C.text }}>
@@ -184,7 +184,7 @@ export default function CoachHomePage() {
                 {chipCfg && (
                   <span style={{
                     marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5,
-                    fontFamily: PIXEL, fontSize: 9, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase',
+                    fontFamily: PIXEL, fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase',
                     padding: '3px 8px', clipPath: cut(5),
                     color: chipCfg.color, border: `1px solid ${chipCfg.border}`, background: chipCfg.tint,
                   }}>
@@ -196,7 +196,7 @@ export default function CoachHomePage() {
               {activasCount > 0 && (
                 <div style={{ textAlign: 'center', flex: 'none' }}>
                   <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 24, color: C.gold }}>{activasCount}</p>
-                  <MicroLabel color={C.text3} size={9} tracking=".08em">{activasCount === 1 ? 'en curso' : 'activas'}</MicroLabel>
+                  <MicroLabel color={C.text3} size={11} tracking=".08em">{activasCount === 1 ? 'en curso' : 'activas'}</MicroLabel>
                 </div>
               )}
             </div>
@@ -204,13 +204,13 @@ export default function CoachHomePage() {
             {/* También hoy: resto de sesiones del día con su modalidad */}
             {agendaResto.length > 0 && (
               <div style={{ marginTop: 12, paddingTop: 6, borderTop: `1px solid ${BORDER.gold}` }}>
-                <MicroLabel color={C.text3} size={9.5} tracking=".1em" style={{ marginBottom: 2 }}>También hoy</MicroLabel>
+                <MicroLabel color={C.text3} size={11} tracking=".1em" style={{ marginBottom: 2 }}>También hoy</MicroLabel>
                 {agendaResto.map((item) => (
                   <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 0', borderTop: `1px solid ${BORDER.neutral06}` }}>
-                    <span style={{ fontFamily: PIXEL, fontSize: 10, color: item.color, width: 14, textAlign: 'center', flex: 'none' }} aria-hidden="true">{item.marker}</span>
+                    <span style={{ fontFamily: PIXEL, fontSize: 11, color: item.color, width: 14, textAlign: 'center', flex: 'none' }} aria-hidden="true">{item.marker}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.titulo}</p>
-                      <MicroLabel color={C.text3} size={9} tracking=".06em">{item.sub}</MicroLabel>
+                      <MicroLabel color={C.text3} size={11} tracking=".06em">{item.sub}</MicroLabel>
                     </div>
                   </div>
                 ))}
@@ -235,7 +235,7 @@ export default function CoachHomePage() {
               onClick={() => navigate('/admin/sesiones')}
               className="cut-focus"
               style={{
-                width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', marginTop: 8, minHeight: ROW_H, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 padding: '10px', clipPath: cut(8), background: 'transparent', color: C.text2,
                 fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer',
                 border: `1px solid ${BORDER.neutralSoft}`,

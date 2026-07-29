@@ -26,7 +26,7 @@ export const COLORS = {
     primary:   '#EDEDED',
     secondary: '#9CA3AF',
     muted:     '#828997', // muted accesible (AA 4.5:1) — espejo de --color-fg-muted
-    faint:     '#4B5563',
+    faint:     '#7B8593', // espejo de --color-fg-faint (AA); era #4B5563 a 2.5:1
     inverse:   '#0A0A0C',
   },
   feedback: {
@@ -65,7 +65,7 @@ export const BAREMO_UI = [
   { id: 'muyBueno',  nombre: 'Muy Bueno', min: 61, hex: '#FFD700', color: 'text-tier-muybueno',  bg: 'bg-tier-muybueno' },
   { id: 'bueno',     nombre: 'Bueno',     min: 41, hex: '#22D3EE', color: 'text-tier-bueno',     bg: 'bg-tier-bueno' },
   { id: 'regular',   nombre: 'Regular',   min: 21, hex: '#FB923C', color: 'text-tier-regular',   bg: 'bg-tier-regular' },
-  { id: 'sinDatos',  nombre: 'Sin datos', min: 0,  hex: '#4B5563', color: 'text-tier-sindatos',  bg: 'bg-tier-sindatos' },
+  { id: 'sinDatos',  nombre: 'Sin datos', min: 0,  hex: '#7B8593', color: 'text-tier-sindatos',  bg: 'bg-tier-sindatos' },
 ];
 
 /** Nivel de baremo para una puntuación 0–100: {id, nombre, color, bg, hex}. */

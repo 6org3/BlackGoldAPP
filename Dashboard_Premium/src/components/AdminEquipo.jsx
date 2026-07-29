@@ -147,9 +147,9 @@ export default function AdminEquipo({ user }) {
             <UserCog size={20} strokeWidth={2.5} />
           </HexAvatar>
           <div className="min-w-0">
-            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
               Equipo <span style={{ color: C.gold }}>Técnico</span>
-            </h2>
+            </h1>
             <MicroLabel style={{ marginTop: 3 }}>
               {activos.length - duenos.length} coach{activos.length - duenos.length === 1 ? '' : 'es'}
               {duenos.length > 0 && ` · ${duenos.length} dueño${duenos.length === 1 ? '' : 's'}`}

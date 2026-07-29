@@ -43,11 +43,12 @@ export default function VistaDuenoArcade() {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: C.bgApp }}>
       <div style={{ position: 'relative', width: '100%', maxWidth: 480, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 26px', WebkitOverflowScrolling: 'touch' }}>
+        {/* <main>: landmark de contenido del portal — no lo tenía. */}
+        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 26px', WebkitOverflowScrolling: 'touch' }}>
           {/* Header por panel */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
             <div>
-              <MicroLabel color={C.goldDeep} size={9} tracking=".1em" style={{ marginBottom: 6 }}>{fechaHoy()}</MicroLabel>
+              <MicroLabel color={C.goldDeep} size={11} tracking=".1em" style={{ marginBottom: 6 }}>{fechaHoy()}</MicroLabel>
               <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.05 }}>{ctx ? ctx.panelTitle : 'Black Gold'}</h1>
             </div>
             <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -71,7 +72,7 @@ export default function VistaDuenoArcade() {
 
           {!ctx || loading ? (
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
-              <MicroLabel color={C.text3} size={9} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
+              <MicroLabel color={C.text3} size={11} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
             </div>
           ) : ctx.isResumen ? (
             <PanelResumen ctx={ctx} />
@@ -84,7 +85,7 @@ export default function VistaDuenoArcade() {
           ) : ctx.isRetencion ? (
             <PanelRetencion ctx={ctx} />
           ) : null}
-        </div>
+        </main>
 
         <ArcadeBottomNav variant="dueno" active={ctx ? ctx.navActive : 'resumen'} onNavigate={actions.goTab} />
       </div>

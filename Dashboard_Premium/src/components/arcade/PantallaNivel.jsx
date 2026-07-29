@@ -39,7 +39,7 @@ export default function PantallaNivel({ actions, levels = [] }) {
               </div>
               <div style={{ textAlign: 'right', flex: 'none' }}>
                 <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 17, color: t.icf }}>{lv.count}</p>
-                <MicroLabel color={C.text3} size={8} tracking="normal" style={{ margin: '2px 0 0' }}>ATLETAS</MicroLabel>
+                <MicroLabel color={C.text3} size={11} tracking="normal" style={{ margin: '2px 0 0' }}>ATLETAS</MicroLabel>
               </div>
             </CutCard>
           );

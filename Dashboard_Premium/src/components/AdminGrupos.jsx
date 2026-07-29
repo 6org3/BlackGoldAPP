@@ -23,7 +23,7 @@ import { C, BORDER, TINT, GRAD, cut } from './arcade/arcadeTokens';
 
 const chip = (bg, border, color) => ({
   clipPath: cut(4), background: bg, border: `1px solid ${border}`, color,
-  fontSize: 9, fontWeight: 900, letterSpacing: '.08em', padding: '3px 7px', textTransform: 'uppercase',
+  fontSize: 11, fontWeight: 900, letterSpacing: '.08em', padding: '3px 7px', textTransform: 'uppercase',
 });
 
 function Ocupacion({ inscritos, cupo }) {
@@ -172,9 +172,9 @@ export default function AdminGrupos({ user }) {
             <Boxes size={20} strokeWidth={2.5} />
           </HexAvatar>
           <div className="min-w-0">
-            <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
               Grupos de <span style={{ color: C.gold }}>Entrenamiento</span>
-            </h2>
+            </h1>
             <MicroLabel style={{ marginTop: 3 }}>
               {principales.length}/3 principales · {extra.length} extra
               {archivados.length > 0 && ` · ${archivados.length} archivado${archivados.length === 1 ? '' : 's'}`}

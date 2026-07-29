@@ -265,9 +265,9 @@ export default function HistorialPruebas({ atletaId }) {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={serieDePrueba} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                    <XAxis dataKey="fechaCorta" stroke="rgba(255,255,255,0.15)" fontSize={9} tickMargin={8} tick={{ fill: CHART.axis }} />
-                    <YAxis yAxisId="score" domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }} ticks={[0, 25, 50, 75, 100]} />
-                    <YAxis yAxisId="crudo" orientation="right" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.pilares.antropometrico }} width={40} />
+                    <XAxis dataKey="fechaCorta" stroke="rgba(255,255,255,0.15)" fontSize={11} tickMargin={8} tick={{ fill: CHART.axis }} />
+                    <YAxis yAxisId="score" domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={11} tick={{ fill: CHART.axis }} ticks={[0, 25, 50, 75, 100]} />
+                    <YAxis yAxisId="crudo" orientation="right" stroke="rgba(255,255,255,0.15)" fontSize={11} tick={{ fill: CHART.pilares.antropometrico }} width={40} />
                     <Tooltip
                       contentStyle={{ backgroundColor: CHART.tooltip.background, border: `1px solid ${pilarSeleccionado?.color}33`, borderRadius: '12px', fontSize: '11px' }}
                       labelStyle={{ color: CHART.label, fontSize: '10px', marginBottom: '4px' }}
@@ -308,18 +308,18 @@ export default function HistorialPruebas({ atletaId }) {
                 <XAxis
                   dataKey="fecha"
                   stroke="rgba(255,255,255,0.15)"
-                  fontSize={9}
+                  fontSize={11}
                   tickMargin={8}
                   tick={{ fill: CHART.axis }}
                 />
                 <YAxis
                   domain={[0, 100]}
                   stroke="rgba(255,255,255,0.15)"
-                  fontSize={9}
+                  fontSize={11}
                   tick={{ fill: CHART.axis }}
                   ticks={[0, 25, 50, 75, 100]}
                 />
-                <ReferenceLine y={60} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 4" label={{ value: 'Meta', fill: COLORS.fg.faint, fontSize: 9, position: 'right' }} />
+                <ReferenceLine y={60} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 4" label={{ value: 'Meta', fill: COLORS.fg.faint, fontSize: 11, position: 'right' }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: CHART.tooltip.background,

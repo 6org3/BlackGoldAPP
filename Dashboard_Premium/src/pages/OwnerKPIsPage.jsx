@@ -244,7 +244,7 @@ export default function OwnerKPIsPage() {
                       margin={esMovil ? { top: 0, right: 12, left: 0, bottom: 0 } : { top: 0, right: 30, left: 20, bottom: 0 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                      <XAxis type="number" domain={[0, 100]} tick={{ fill: CHART.axis, fontSize: 10 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fill: CHART.axis, fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} />
                       <YAxis
                         dataKey="name"
                         type="category"

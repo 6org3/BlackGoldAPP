@@ -30,7 +30,7 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
       {/* Cabecera */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
         <div>
-          <MicroLabel color={C.goldDeep} tracking=".1em" size={9} style={{ marginBottom: 6 }}>
+          <MicroLabel color={C.goldDeep} tracking=".1em" size={11} style={{ marginBottom: 6 }}>
             {fechaHoy()}
           </MicroLabel>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.05 }}>
@@ -68,10 +68,10 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
       {hasActive ? (
         <div style={{ marginBottom: 18 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 }}>
-            <MicroLabel color={C.ok} size={9} tracking=".08em">
+            <MicroLabel color={C.ok} size={11} tracking=".08em">
               <span aria-hidden="true" style={{ animation: 'bg-blink 1.3s infinite' }}>●</span> {sessions.length} SESIONES ACTIVAS
             </MicroLabel>
-            <MicroLabel color={C.text3} size={8} tracking="normal">TOCA PARA ENTRAR</MicroLabel>
+            <MicroLabel color={C.text3} size={11} tracking="normal">TOCA PARA ENTRAR</MicroLabel>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {sessions.map((ss) => (
@@ -87,7 +87,7 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
                 <LiveDot color={hueFg(ss.hue)} speed="1.6s" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{ss.label}</p>
-                  <p style={{ margin: '1px 0 0', fontSize: 10, color: C.text3 }}>
+                  <p style={{ margin: '1px 0 0', fontSize: 11, color: C.text3 }}>
                     {ss.block} · {ss.present} pres.
                   </p>
                 </div>
@@ -110,13 +110,13 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
           }}
         >
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.text4, flex: 'none' }} />
-          <MicroLabel color={C.text3} size={9} tracking=".06em">SIN SESIÓN ACTIVA</MicroLabel>
+          <MicroLabel color={C.text3} size={11} tracking=".06em">SIN SESIÓN ACTIVA</MicroLabel>
           <span style={{ marginLeft: 'auto', fontSize: 12, color: C.text2 }}>Elige un tipo para empezar</span>
         </div>
       )}
 
       {/* Tipos de clase */}
-      <MicroLabel color={C.text3} size={9.5} style={{ marginBottom: 10 }}>► NUEVA CLASE · TIPO</MicroLabel>
+      <MicroLabel color={C.text3} size={11} style={{ marginBottom: 10 }}>► NUEVA CLASE · TIPO</MicroLabel>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
         {TIPOS.map((t) => (
           <CutCard
@@ -129,10 +129,10 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
             padding="16px 14px"
           >
             <p style={{ margin: '0 0 10px', fontSize: 24 }} aria-hidden="true">{t.emoji}</p>
-            <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 10, lineHeight: 1.4, whiteSpace: 'pre-line', color: t.hero ? C.gold : C.text }}>
+            <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 11, lineHeight: 1.4, whiteSpace: 'pre-line', color: t.hero ? C.gold : C.text }}>
               {t.name}
             </p>
-            <p style={{ margin: '6px 0 0', fontSize: 10.5, color: t.hero ? C.text2 : C.text3 }}>{t.sub}</p>
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: t.hero ? C.text2 : C.text3 }}>{t.sub}</p>
           </CutCard>
         ))}
       </div>
@@ -140,7 +140,7 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
       {/* Programadas hoy — demo (ilustrativas) o agenda real (sesiones_control). */}
       {demo ? (
         <>
-          <MicroLabel color={C.text3} size={9.5} style={{ marginBottom: 8 }}>PROGRAMADAS HOY</MicroLabel>
+          <MicroLabel color={C.text3} size={11} style={{ marginBottom: 8 }}>PROGRAMADAS HOY</MicroLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <CutCard
               onClick={() => actions.pickType('grupal')}
@@ -149,9 +149,9 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
             >
               <div>
                 <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>16:00 · Sub-16 · Físico</p>
-                <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>12 convocados · Prof. Andrade</p>
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: C.text3 }}>12 convocados · Prof. Andrade</p>
               </div>
-              <span style={{ fontFamily: PIXEL, fontSize: 9.5, color: C.gold }}>INICIAR ►</span>
+              <span style={{ fontFamily: PIXEL, fontSize: 11, color: C.gold }}>INICIAR ►</span>
             </CutCard>
             <div
               style={{
@@ -167,15 +167,15 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
             >
               <div>
                 <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>18:00 · Sub-14 · Técnico</p>
-                <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>Manejo de balón N2</p>
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: C.text3 }}>Manejo de balón N2</p>
               </div>
-              <span style={{ fontFamily: PIXEL, fontSize: 9.5, color: C.text4 }}>18:00</span>
+              <span style={{ fontFamily: PIXEL, fontSize: 11, color: C.text4 }}>18:00</span>
             </div>
           </div>
         </>
       ) : planned.length > 0 ? (
         <>
-          <MicroLabel color={C.text3} size={9.5} style={{ marginBottom: 8 }}>PROGRAMADAS HOY</MicroLabel>
+          <MicroLabel color={C.text3} size={11} style={{ marginBottom: 8 }}>PROGRAMADAS HOY</MicroLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {planned.map((p) => (
               <CutCard
@@ -186,9 +186,9 @@ export default function PantallaCancha({ state, actions, onClose, demo = true, c
               >
                 <div style={{ minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>{p.label}</p>
-                  {p.sub && <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>{p.sub}</p>}
+                  {p.sub && <p style={{ margin: '2px 0 0', fontSize: 11, color: C.text3 }}>{p.sub}</p>}
                 </div>
-                <span style={{ fontFamily: PIXEL, fontSize: 9.5, color: C.gold }}>INICIAR ►</span>
+                <span style={{ fontFamily: PIXEL, fontSize: 11, color: C.gold }}>INICIAR ►</span>
               </CutCard>
             ))}
           </div>

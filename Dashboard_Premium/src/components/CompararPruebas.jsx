@@ -541,18 +541,18 @@ export default function CompararPruebas({ user }) {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={serieHistorico} margin={{ top: 6, right: 10, left: -12, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
-                        <XAxis dataKey="fechaCorta" stroke="rgba(255,255,255,0.15)" fontSize={9} tickMargin={8} tick={{ fill: CHART.axis }} />
-                        <YAxis domain={dominioY} stroke="rgba(255,255,255,0.15)" fontSize={9} width={46} tick={{ fill: CHART.axis }} />
+                        <XAxis dataKey="fechaCorta" stroke="rgba(255,255,255,0.15)" fontSize={11} tickMargin={8} tick={{ fill: CHART.axis }} />
+                        <YAxis domain={dominioY} stroke="rgba(255,255,255,0.15)" fontSize={11} width={46} tick={{ fill: CHART.axis }} />
                         {mediaCategoria != null && (
                           <ReferenceLine
                             y={mediaCategoria} stroke={COLORS.gold[600]} strokeDasharray="4 3"
-                            label={{ value: 'media cat', fill: COLORS.gold[600], fontSize: 9, position: 'insideTopRight' }}
+                            label={{ value: 'media cat', fill: COLORS.gold[600], fontSize: 11, position: 'insideTopRight' }}
                           />
                         )}
                         {mediaClub != null && (
                           <ReferenceLine
                             y={mediaClub} stroke={LINEA_CLUB} strokeDasharray="4 3"
-                            label={{ value: 'club', fill: CHART.label, fontSize: 9, position: 'insideBottomRight' }}
+                            label={{ value: 'club', fill: CHART.label, fontSize: 11, position: 'insideBottomRight' }}
                           />
                         )}
                         <Tooltip

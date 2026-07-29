@@ -137,9 +137,9 @@ export default function AdminPlanificacion() {
       <div className="flex items-center space-x-4 mb-10">
         <BotonVolver />
         <div>
-          <h2 className="text-3xl font-black uppercase tracking-tight">
+          <h1 className="text-3xl font-black uppercase tracking-tight">
             Planificación <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-strong">Científica</span>
-          </h2>
+          </h1>
           <p className="text-2xs text-fg-muted font-bold uppercase tracking-eyebrow mt-1">Motor de Reglas · Hollmann · Harre · Milo</p>
         </div>
       </div>

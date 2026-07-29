@@ -103,7 +103,7 @@ export default function ArcadePerfilMenu({
     textAlign: 'left',
     color: C.text2,
     fontFamily: PIXEL,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: '.04em',
   };
 
@@ -156,7 +156,7 @@ export default function ArcadePerfilMenu({
             >
               {/* Identidad de quien está dentro de la sesión */}
               <div style={{ padding: '13px 13px 11px', borderBottom: `1px solid ${BORDER.neutralFaint}` }}>
-                <MicroLabel color={C.goldDeep} size={8} tracking=".1em">{(user?.rol || 'SESIÓN').toUpperCase()}</MicroLabel>
+                <MicroLabel color={C.goldDeep} size={11} tracking=".1em">{(user?.rol || 'SESIÓN').toUpperCase()}</MicroLabel>
                 <p style={{ margin: '4px 0 0', fontSize: 12.5, fontWeight: 800, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user?.nombre || '—'}
                 </p>

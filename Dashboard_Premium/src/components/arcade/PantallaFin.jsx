@@ -45,7 +45,7 @@ export default function PantallaFin({ state, actions, roster = [] }) {
           {presentCount} presente{presentCount === 1 ? '' : 's'} · {destacadoCount} destacado{destacadoCount === 1 ? '' : 's'}
         </p>
         {base > 0 && (
-          <p style={{ margin: '3px 0 0', fontSize: 10.5, color: C.text3 }}>
+          <p style={{ margin: '3px 0 0', fontSize: 11, color: C.text3 }}>
             incluye +{base} XP base de asistencia
           </p>
         )}
@@ -75,7 +75,7 @@ export default function PantallaFin({ state, actions, roster = [] }) {
               <HexAvatar size={34} hue={a.hue} initial={(a.name || '?').charAt(0)} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{a.name}</p>
-                <p style={{ margin: '1px 0 0', fontSize: 9.5, color: C.text3 }}>{note}</p>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: C.text3 }}>{note}</p>
               </div>
               <span style={{ fontFamily: PIXEL, fontSize: 12, color: xpA > 0 ? C.gold : C.text3 }}>+{xpA}</span>
             </div>
@@ -95,7 +95,7 @@ export default function PantallaFin({ state, actions, roster = [] }) {
           color: C.gold,
           clipPath: cut(10),
           fontFamily: PIXEL,
-          fontSize: 10,
+          fontSize: 11,
           letterSpacing: '.04em',
           cursor: 'pointer',
         }}
