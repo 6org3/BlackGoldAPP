@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useCallback, useMemo } from 'react';
 import { loginUsuario, fetchUsuarioPorAuthId } from './api/authService';
 import { supabase } from './api/supabaseClient';
+import { purgarSesionLocal } from './lib/sesionLocal';
 import PageLoader from './components/PageLoader.jsx';
 
 const AuthContext = createContext(null);
@@ -63,9 +64,27 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Cerrar sesión tiene que dejar el dispositivo limpio SIEMPRE, también sin
+  // red. supabase-js no lo garantiza: en GoTrueClient._signOut, si el POST a
+  // /auth/v1/logout falla por algo que no sea 401/403/404, hay un return
+  // anticipado ANTES de _removeSession(), así que el token se queda en
+  // localStorage y al recargar la sesión revive. Y no lanza —devuelve
+  // { error }—, así que un try/catch alrededor tampoco lo captura.
+  // Importa aquí más que en otras apps: en el club, padres y atletas comparten
+  // teléfono, y la conexión es 3G/4G rural.
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.warn('Cierre de sesión remoto falló; se purga la sesión local.', error);
+        purgarSesionLocal();
+      }
+    } catch (error) {
+      console.warn('Cierre de sesión lanzó; se purga la sesión local.', error);
+      purgarSesionLocal();
+    } finally {
+      setUser(null);
+    }
   }, []);
 
   const value = useMemo(

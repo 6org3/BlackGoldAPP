@@ -52,7 +52,9 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
     return () => { document.body.style.overflow = previo; };
   }, [isMobileMenuOpen]);
 
-  const handleLogout = () => { logout(); navigate('/login'); };
+  // await antes de navegar: sin él, en red lenta PrivateRoute todavía ve la
+  // sesión viva y rebota al panel.
+  const handleLogout = async () => { await logout(); navigate('/login', { replace: true }); };
 
   const esStaff = user.rol === 'coach' || user.rol === 'owner' || user.rol === 'superadmin';
 
