@@ -140,6 +140,9 @@ export default function VistaPadreArcade() {
   const [catalogoEjercicios, setCatalogoEjercicios] = useState([]);
   const [idx, setIdx] = useState(0);
   const [detalle, setDetalle] = useState(null); // { atletaId, data }
+  const [error, setError] = useState(null);
+  const [baseLista, setBaseLista] = useState(false); // la carga base ya respondió
+  const [reintento, setReintento] = useState(0);
   const [acciones, setAcciones] = useState({}); // { [key]: { confirmado, pagado } }
   const [nav, setNav] = useState('base');
   const fileRef = useRef(null);
@@ -147,34 +150,47 @@ export default function VistaPadreArcade() {
   useEffect(() => {
     if (!esPadre) return undefined;
     let alive = true;
-    fetchPadrePanel(user).then(({ hijos: hs, sesiones: ss, ejercicios: ej }) => {
-      if (alive) {
+    // El error se limpia en el botón de reintentar, no aquí: hacerlo en el
+    // cuerpo del efecto dispara un render en cascada.
+    fetchPadrePanel(user)
+      .then(({ hijos: hs, sesiones: ss, ejercicios: ej }) => {
+        if (!alive) return;
         setHijos(hs);
         setSesiones(ss);
         setCatalogoEjercicios(ej);
-      }
-    });
+        setBaseLista(true);
+      })
+      .catch((e) => {
+        if (alive) setError(e?.message || 'No se pudo cargar la información de tu hijo.');
+      });
     return () => {
       alive = false;
     };
-  }, [esPadre, user]);
+  }, [esPadre, user, reintento]);
 
   const hijo = hijos[idx];
 
   useEffect(() => {
     if (!esPadre || !hijo) return undefined;
     let alive = true;
-    fetchHijoDetalle(user, hijo).then((d) => {
-      if (alive) setDetalle({ atletaId: hijo.atleta_id, data: d });
-    });
+    fetchHijoDetalle(user, hijo)
+      .then((d) => {
+        if (alive) setDetalle({ atletaId: hijo.atleta_id, data: d });
+      })
+      .catch((e) => {
+        if (alive) setError(e?.message || 'No se pudo cargar el detalle de tu hijo.');
+      });
     return () => {
       alive = false;
     };
-  }, [esPadre, user, hijo]);
+  }, [esPadre, user, hijo, reintento]);
 
   // `detalle` keyed por atletaId: si no coincide con el hijo actual, sigue cargando.
   const dt = detalle && hijo && detalle.atletaId === hijo.atleta_id ? detalle.data : null;
-  const cargando = esPadre && (!hijo || !dt);
+  // Sin hijos aprobados NO es carga: la lista ya llegó y vino vacía (hijo
+  // pendiente de aprobación). Antes caía en `!hijo` y giraba para siempre.
+  const sinHijos = esPadre && baseLista && hijos.length === 0;
+  const cargando = esPadre && !error && !sinHijos && (!hijo || !dt);
   const vm = !esPadre ? MOCK : hijo && dt ? buildVM(hijo, dt, user, sesiones, catalogoEjercicios) : null;
 
   const accKey = hijo?.atleta_id || 'demo';
@@ -279,7 +295,30 @@ export default function VistaPadreArcade() {
             </div>
           )}
 
-          {cargando ? (
+          {error ? (
+            <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 900, color: C.danger }}>Sin conexión con el club</p>
+              <p style={{ margin: '0 0 18px', fontSize: 13, color: C.text2, lineHeight: 1.5 }}>{error}</p>
+              <button
+                type="button"
+                onClick={() => { setError(null); setReintento((n) => n + 1); }}
+                style={{
+                  minHeight: 44, padding: '0 22px', cursor: 'pointer', color: C.ink,
+                  background: C.gold, border: 'none', clipPath: cut(10),
+                  fontSize: 12, fontWeight: 900, letterSpacing: '.1em',
+                }}
+              >
+                REINTENTAR
+              </button>
+            </div>
+          ) : sinHijos ? (
+            <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 900 }}>Aún no hay ningún hijo vinculado</p>
+              <p style={{ margin: 0, fontSize: 13, color: C.text2, lineHeight: 1.5 }}>
+                Cuando el club apruebe la inscripción, su ficha aparecerá aquí.
+              </p>
+            </div>
+          ) : cargando ? (
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
               <MicroLabel color={C.text3} size={11} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
             </div>
