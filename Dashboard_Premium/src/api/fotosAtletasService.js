@@ -133,12 +133,17 @@ export function limpiarCacheFotos() {
  * apuntando a un objeto inexistente) es un avatar roto para todo el que vea a
  * ese atleta.
  *
+ * `opciones.preparada` permite pasar el resultado de prepararImagen cuando ya
+ * se procesó para la vista previa: reprocesar una foto de 8 MB por segunda vez
+ * en un móvil es medio segundo regalado.
+ *
  * @returns {Promise<{path: string, signedUrl: string|null}>}
  */
 export async function subirFotoAtleta(atletaId, file, opciones = {}) {
   if (!atletaId) throw new Error('Falta el atleta.');
 
-  const { blob, ext } = await prepararImagen(file, opciones);
+  const { preparada = null, ...opcionesImagen } = opciones;
+  const { blob, ext } = preparada || await prepararImagen(file, opcionesImagen);
   const path = `${atletaId}/${Date.now()}-${sufijoAleatorio()}.${ext}`;
 
   const { error: eUp } = await supabase.storage

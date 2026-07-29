@@ -5,6 +5,7 @@ import { POSICIONES } from './AdminAtletasConstants';
 import InputField from './AdminAtletasInputField';
 import SelectField from './AdminAtletasSelectField';
 import HexAvatar from './arcade/HexAvatar';
+import AvatarAtleta from './AvatarAtleta';
 import MicroLabel from './arcade/MicroLabel';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
 
@@ -55,6 +56,35 @@ export default function AdminAtletasForm({
           style={{ color: C.text3, clipPath: cut(5) }}>
           <X size={18} />
         </button>
+      </div>
+
+      {/* Foto de identificación. Solo en edición: el path del bucket cuelga de
+          atletas.id, que todavía no existe mientras se da de alta. */}
+      <MicroLabel style={{ marginBottom: 12 }}>Foto de Identificación</MicroLabel>
+      <div className="flex items-center gap-4 mb-6">
+        {editingId ? (
+          <>
+            <AvatarAtleta
+              size={64}
+              nombre={form.nombre}
+              fotoPath={form.foto_path || null}
+              editable
+              atletaId={editingId}
+              onCambio={(path) => handleChange('foto_path', path || '')}
+            />
+            <p className="text-2xs" style={{ color: C.text3 }}>
+              Toca la foto para tomarla o elegirla. Se guarda al instante, sin
+              esperar a Actualizar.
+            </p>
+          </>
+        ) : (
+          <>
+            <HexAvatar size={64} initial={form.nombre?.charAt(0)?.toUpperCase() || '?'} />
+            <p className="text-2xs" style={{ color: C.text3 }}>
+              Guarda el atleta primero y luego podrás añadir su foto.
+            </p>
+          </>
+        )}
       </div>
 
       {/* Datos personales */}

@@ -27,7 +27,9 @@ function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropome
       <CutCard cut={12} padding="20px" style={deBaja ? { opacity: 0.72 } : undefined}>
         {/* Top: Avatar + Identidad */}
         <div className="flex items-center gap-3 mb-4">
-          <AvatarAtleta size={44} nombre={atleta.nombre} fotoPath={atleta.foto_path} />
+          {/* Editable: /admin/atletas es solo-staff y la lista ya viene acotada
+              al club por fetchTodosLosAtletas, igual que autoriza la RPC. */}
+          <AvatarAtleta size={44} nombre={atleta.nombre} fotoPath={atleta.foto_path} editable atletaId={atleta.atleta_id} />
           <div className="min-w-0 flex-1">
             <p className="font-bold truncate text-sm" style={{ color: C.text }}>{atleta.nombre}</p>
             <p className="text-2xs truncate" style={{ color: C.text3 }}>

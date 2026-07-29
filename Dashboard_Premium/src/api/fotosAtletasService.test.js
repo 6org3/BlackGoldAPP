@@ -149,6 +149,15 @@ describe('subirFotoAtleta', () => {
     expect(remove).toHaveBeenCalledWith(['a-1/vieja.webp']);
   });
 
+  it('reutiliza la imagen ya preparada para la vista previa', async () => {
+    // Reprocesar una foto de 8 MB por segunda vez en un móvil es medio segundo
+    // regalado; el modal pasa el blob que ya generó.
+    const { path } = await subirFotoAtleta('11111111-1111-1111-1111-111111111111', null, {
+      preparada: { blob: { type: 'image/jpeg', size: 42 }, ext: 'jpg' },
+    });
+    expect(path).toMatch(/\.jpg$/);
+  });
+
   it('exige un atleta', async () => {
     await expect(subirFotoAtleta(null, {})).rejects.toThrow(/Falta el atleta/);
   });
