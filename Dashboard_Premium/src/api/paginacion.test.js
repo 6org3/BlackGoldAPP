@@ -3,7 +3,7 @@
 // `.range()` explícito no trae "todo", trae "hasta 1000". `traerTodo` pagina
 // hasta agotar; estos casos fijan su contrato de corte.
 import { describe, it, expect } from 'vitest';
-import { traerTodo } from './atletasService';
+import { traerTodo } from './paginacion';
 
 const PAGINA = 1000;
 
