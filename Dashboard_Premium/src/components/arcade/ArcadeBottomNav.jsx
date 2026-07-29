@@ -1,5 +1,5 @@
 import { Home, Users, TrendingUp, Briefcase, Target, Calendar, MapPin, Zap, Activity, RotateCcw, DollarSign } from 'lucide-react';
-import { HEX, C, GRAD, PIXEL } from './arcadeTokens';
+import { HEX, C, GRAD, PIXEL, TEXT_MIN } from './arcadeTokens';
 
 const COACH = [
   { key: 'inicio', label: 'INICIO', Icon: Home },
@@ -34,11 +34,17 @@ const DUENO = [
   { key: 'retencion', label: 'RETENCIÓN', Icon: RotateCcw },
 ];
 
+/* `labelSize`: los ítems de nav son texto funcional y su piso es TEXT_MIN
+   (11px). La variante `dueno` es la excepción — medido a 360px de viewport, su
+   zona es de 72px y a 11px "ASISTENCIA" ocupa 77px y "RETENCIÓN" 73px, así que
+   se desbordarían. Esa nav necesita etiquetas más cortas o menos zonas, que es
+   una decisión del portal del dueño; hasta que se audite, se queda en 8px.
+   Ver docs/auditoria_impeccable_portal_atleta.md. */
 const VARIANTS = {
-  coach: { items: COACH, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: Zap, centerFill: true },
-  padre: { items: PADRE, accent: C.info, border: 'rgba(96,165,250,.2)' },
-  atleta: { items: ATLETA, accent: C.gold, border: 'rgba(255,215,0,.16)' },
-  dueno: { items: DUENO, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: DollarSign, centerFill: false },
+  coach: { items: COACH, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: Zap, centerFill: true, labelSize: TEXT_MIN },
+  padre: { items: PADRE, accent: C.info, border: 'rgba(96,165,250,.2)', labelSize: TEXT_MIN },
+  atleta: { items: ATLETA, accent: C.gold, border: 'rgba(255,215,0,.16)', labelSize: TEXT_MIN },
+  dueno: { items: DUENO, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: DollarSign, centerFill: false, labelSize: 8 },
 };
 
 /**
@@ -51,6 +57,7 @@ export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate 
   const items = v.items;
   const accent = v.accent;
   const CenterIcon = v.CenterIcon || Zap;
+  const labelSize = v.labelSize || TEXT_MIN;
 
   return (
     <nav
@@ -106,7 +113,7 @@ export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate 
                   right: 0,
                   textAlign: 'center',
                   fontFamily: PIXEL,
-                  fontSize: 8,
+                  fontSize: labelSize,
                   letterSpacing: '.04em',
                   color: accent,
                 }}
@@ -139,7 +146,7 @@ export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate 
             }}
           >
             <Icon size={19} strokeWidth={2} />
-            <span style={{ fontFamily: PIXEL, fontSize: 8, letterSpacing: '.04em' }}>{it.label}</span>
+            <span style={{ fontFamily: PIXEL, fontSize: labelSize, letterSpacing: '.04em' }}>{it.label}</span>
           </button>
         );
       })}

@@ -28,13 +28,13 @@ export default function FichaFisica({ fisico, accent = C.gold, emptyText = 'Aún
         <div style={{ display: 'flex', gap: 8 }}>
           {items.map((it) => (
             <div key={it.label} style={{ flex: 1, textAlign: 'center', background: 'rgba(255,255,255,.03)', border: `1px solid ${BORDER.neutralFaint}`, clipPath: cut(7), padding: '9px 4px 8px' }}>
-              <MicroLabel color={C.text3} size={7.5} tracking=".08em" as="span" style={{ display: 'block' }}>
+              <MicroLabel color={C.text3} size={11} tracking=".08em" as="span" style={{ display: 'block' }}>
                 {it.label}
               </MicroLabel>
               <p style={{ margin: '4px 0 0', fontFamily: PIXEL, fontSize: 13, color: accent }}>{it.val}</p>
               {/* text3, no text4: la unidad da sentido al número (kg vs cm) y
                   text4 no llega a 4.5:1 sobre esta superficie. */}
-              <p style={{ margin: '2px 0 0', fontSize: 8.5, color: C.text3 }}>{it.unidad}</p>
+              <p style={{ margin: '2px 0 0', fontSize: 11, color: C.text3 }}>{it.unidad}</p>
             </div>
           ))}
         </div>

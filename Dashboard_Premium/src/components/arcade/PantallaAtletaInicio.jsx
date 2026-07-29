@@ -28,7 +28,7 @@ function TarjetaCheckin({ checkin }) {
           <Activity size={18} strokeWidth={2.5} style={{ color: accent }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <MicroLabel color={accent} size={9} tracking=".06em">
+          <MicroLabel color={accent} size={11} tracking=".06em">
             {hecho ? `${checkin.titulo} ✓` : checkin.titulo}
           </MicroLabel>
           {hecho ? (
@@ -36,7 +36,7 @@ function TarjetaCheckin({ checkin }) {
               {checkin.scoreLabel && (
                 <p style={{ margin: '5px 0 0', fontFamily: PIXEL, fontSize: 13, color: C.text }}>{checkin.scoreLabel}</p>
               )}
-              <MicroLabel color={C.text3} size={8.5} tracking=".04em" style={{ marginTop: 4 }}>{checkin.resumen}</MicroLabel>
+              <MicroLabel color={C.text3} size={11} tracking=".04em" style={{ marginTop: 4 }}>{checkin.resumen}</MicroLabel>
             </>
           ) : (
             <p style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.45, color: bloqueado ? C.text3 : C.text2 }}>{checkin.texto}</p>
@@ -49,7 +49,7 @@ function TarjetaCheckin({ checkin }) {
           type="button"
           data-testid="btn-abrir-checkin"
           onClick={checkin.onOpen}
-          style={{ width: '100%', marginTop: 12, minHeight: ROW_H, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9, letterSpacing: '.04em' }}
+          style={{ width: '100%', marginTop: 12, minHeight: ROW_H, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 11, letterSpacing: '.04em' }}
         >
           {checkin.ctaLabel}
         </button>
@@ -70,7 +70,7 @@ export default function PantallaAtletaInicio({ ctx }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <div>
-          <MicroLabel color={C.goldDeep} size={9} tracking=".1em" style={{ marginBottom: 6 }}>{ctx.fechaLine}</MicroLabel>
+          <MicroLabel color={C.goldDeep} size={11} tracking=".1em" style={{ marginBottom: 6 }}>{ctx.fechaLine}</MicroLabel>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.05 }}>
             Mi{' '}
             <span style={{ background: GRAD.goldText, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>Base</span>
@@ -79,7 +79,7 @@ export default function PantallaAtletaInicio({ ctx }) {
         {ctx.racha ? (
           <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 7, padding: '8px 12px', border: `1px solid ${BORDER.warn}`, clipPath: cut(8) }}>
             <span aria-hidden="true" style={{ fontSize: 14 }}>🔥</span>
-            <span style={{ fontFamily: PIXEL, fontSize: 9, color: C.warn }}>RACHA {ctx.racha}</span>
+            <span style={{ fontFamily: PIXEL, fontSize: 11, color: C.warn }}>RACHA {ctx.racha}</span>
           </div>
         ) : null}
       </div>
@@ -98,20 +98,20 @@ export default function PantallaAtletaInicio({ ctx }) {
           />
           <div style={{ minWidth: 0, flex: 1 }}>
             <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 15, color: C.text }}>{(ctx.heroNombre || '').toUpperCase()}</p>
-            <MicroLabel color={ctx.heroAccent} size={9.5} tracking="normal" style={{ marginTop: 4 }}>{ctx.nivelLine}</MicroLabel>
+            <MicroLabel color={ctx.heroAccent} size={11} tracking="normal" style={{ marginTop: 4 }}>{ctx.nivelLine}</MicroLabel>
           </div>
           <div style={{ textAlign: 'center', flex: 'none' }}>
             <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 22, color: C.gold }}>{ctx.pwr}</p>
-            <MicroLabel color={C.text3} size={8} tracking=".04em" style={{ marginTop: 2 }}>PWR</MicroLabel>
+            <MicroLabel color={C.text3} size={11} tracking=".04em" style={{ marginTop: 2 }}>PWR</MicroLabel>
           </div>
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <MicroLabel color={C.text3} size={8.5} tracking="normal">XP {ctx.xp.current.toLocaleString()} / {ctx.xp.required.toLocaleString()}</MicroLabel>
-            <MicroLabel color={C.gold} size={8.5} tracking="normal">{ctx.xp.percentage}%</MicroLabel>
+            <MicroLabel color={C.text3} size={11} tracking="normal">XP {ctx.xp.current.toLocaleString()} / {ctx.xp.required.toLocaleString()}</MicroLabel>
+            <MicroLabel color={C.gold} size={11} tracking="normal">{ctx.xp.percentage}%</MicroLabel>
           </div>
           <XPCells filled={ctx.xp.filled} label="Progreso de XP" />
-          <MicroLabel color={C.text3} size={8.5} tracking="normal" style={{ margin: '6px 0 0', textAlign: 'right' }}>
+          <MicroLabel color={C.text3} size={11} tracking="normal" style={{ margin: '6px 0 0', textAlign: 'right' }}>
             {ctx.xp.esMax ? 'NIVEL MÁXIMO ⭐' : `FALTAN ${ctx.xp.faltan.toLocaleString()} XP → ${(ctx.xp.nextLevelName || '').toUpperCase()} ⭐`}
           </MicroLabel>
         </div>
@@ -123,7 +123,7 @@ export default function PantallaAtletaInicio({ ctx }) {
       {/* Hoy entrenas */}
       {ctx.hoyEntrenas && (
         <>
-          <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }}>HOY ENTRENAS</MicroLabel>
+          <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }}>HOY ENTRENAS</MicroLabel>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: C.card, border: `1px solid ${BORDER.goldMid}`, clipPath: cut(12), padding: '13px 14px', marginBottom: 14 }}>
             <div style={{ width: 44, height: 44, clipPath: HEX, background: 'rgba(255,215,0,.16)', display: 'grid', placeItems: 'center', fontSize: 19, flex: 'none' }} aria-hidden="true">🏀</div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -131,7 +131,7 @@ export default function PantallaAtletaInicio({ ctx }) {
               {ctx.hoyEntrenas.sub && <p style={{ margin: '2px 0 0', fontSize: 11, color: C.text2 }}>{ctx.hoyEntrenas.sub}</p>}
             </div>
             {ctx.hoyEntrenas.chip && (
-              <span style={{ flex: 'none', fontFamily: PIXEL, fontSize: 9, color: C.cyan, border: `1px solid rgba(34,211,238,.35)`, padding: '7px 9px' }}>{ctx.hoyEntrenas.chip}</span>
+              <span style={{ flex: 'none', fontFamily: PIXEL, fontSize: 11, color: C.cyan, border: `1px solid rgba(34,211,238,.35)`, padding: '7px 9px' }}>{ctx.hoyEntrenas.chip}</span>
             )}
           </div>
         </>
@@ -142,7 +142,7 @@ export default function PantallaAtletaInicio({ ctx }) {
         <div style={{ display: 'flex', gap: 11, background: 'rgba(34,211,238,.06)', border: `1px solid rgba(34,211,238,.25)`, clipPath: cut(10), padding: '12px 13px', marginBottom: 14 }}>
           <span aria-hidden="true" style={{ fontSize: 16, flex: 'none' }}>💧</span>
           <div>
-            <MicroLabel color={C.cyan} size={8} tracking=".06em">TU ALERTA IA</MicroLabel>
+            <MicroLabel color={C.cyan} size={11} tracking=".06em">TU ALERTA IA</MicroLabel>
             <p style={{ margin: '4px 0 0', fontSize: 12.5, lineHeight: 1.5, color: C.text }}>{ctx.alertaIA.text}</p>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function PantallaAtletaInicio({ ctx }) {
       {/* Misión destacada */}
       {ctx.misionDestacada && (
         <>
-          <MicroLabel color={C.ai} size={9.5} style={{ margin: '0 0 8px' }}>► MISIÓN DESTACADA</MicroLabel>
+          <MicroLabel color={C.ai} size={11} style={{ margin: '0 0 8px' }}>► MISIÓN DESTACADA</MicroLabel>
           <div style={{ background: C.card, border: `1px solid ${BORDER.ai}`, clipPath: cut(12), padding: 14, marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
               <div>
@@ -168,7 +168,7 @@ export default function PantallaAtletaInicio({ ctx }) {
             <button
               type="button"
               onClick={ctx.misionDestacada.onOpen}
-              style={{ width: '100%', marginTop: 12, minHeight: ROW_H, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9, letterSpacing: '.04em' }}
+              style={{ width: '100%', marginTop: 12, minHeight: ROW_H, padding: 14, cursor: 'pointer', background: GRAD.goldCTA, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 11, letterSpacing: '.04em' }}
             >
               {ctx.misionDestacada.ctaLabel}
             </button>
@@ -179,11 +179,11 @@ export default function PantallaAtletaInicio({ ctx }) {
       {/* Próximo evento */}
       {ctx.evento && (
         <>
-          <MicroLabel color={C.text3} size={9.5} style={{ margin: '0 0 8px' }}>PRÓXIMO EVENTO</MicroLabel>
+          <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }}>PRÓXIMO EVENTO</MicroLabel>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: C.card, border: `1px solid ${BORDER.neutral}`, clipPath: cut(10), padding: '12px 14px' }}>
             <div>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>🏀 {ctx.evento.titulo}</p>
-              {ctx.evento.sub && <p style={{ margin: '2px 0 0', fontSize: 10, color: C.text3 }}>{ctx.evento.sub}</p>}
+              {ctx.evento.sub && <p style={{ margin: '2px 0 0', fontSize: 11, color: C.text3 }}>{ctx.evento.sub}</p>}
             </div>
             <button
               type="button"
@@ -196,7 +196,7 @@ export default function PantallaAtletaInicio({ ctx }) {
                 justifyContent: 'center',
                 flex: 'none',
                 fontFamily: PIXEL,
-                fontSize: 9.5,
+                fontSize: 11,
                 padding: '9px 12px',
                 background: ctx.evento.voyOn ? 'rgba(16,185,129,.15)' : 'transparent',
                 border: `1px solid ${ctx.evento.voyOn ? 'rgba(16,185,129,.4)' : 'rgba(255,255,255,.14)'}`,

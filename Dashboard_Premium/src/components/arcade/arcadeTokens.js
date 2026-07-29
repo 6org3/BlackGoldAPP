@@ -175,6 +175,14 @@ export const ROW_H = 44; // fila/control táctil — móvil y por defecto (atlet
 export const ROW_H_DENSE = 36; // fila/control denso — coach/owner/staff en desktop
 export const BODY_MIN = 9; // piso de cuerpo fuera del marco 480px (px)
 
+/** Piso de TEXTO FUNCIONAL (px) — labels, valores, filas, ítems de navegación.
+ *  Auditoría del portal del atleta (2026-07-28): el 73% del texto estaba por
+ *  debajo de 11px y 9 nodos llegaban a 7px, por debajo incluso de BODY_MIN.
+ *  Texto que nombra un dato o una zona se lee o no se lee; el carácter pixel
+ *  del HUD lo aporta Silkscreen, no el achicar. Solo queda exento el texto
+ *  puramente decorativo. Ver docs/auditoria_impeccable_portal_atleta.md. */
+export const TEXT_MIN = 11;
+
 /** Retícula dorada a ancho completo (paneles/tablas desktop): paso 44px y halo
  *  superior más ancho que el marco de teléfono; mismos alfas tenues que
  *  `gridBackground`. Es el "campo de juego" de las superficies data-densas. */

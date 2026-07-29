@@ -50,7 +50,7 @@ export default function VistaAtletaArcade() {
               <ChevronLeft size={16} strokeWidth={2.4} />
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <MicroLabel color={C.goldDeep} size={8.5} tracking=".12em">{ctx.flowStepLabel}</MicroLabel>
+              <MicroLabel color={C.goldDeep} size={11} tracking=".12em">{ctx.flowStepLabel}</MicroLabel>
               <p style={{ margin: '3px 0 0', fontSize: 17, fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1.05 }}>{ctx.flowTitle}</p>
             </div>
             <div style={{ flex: 'none', fontFamily: PIXEL, fontSize: 12, color: C.gold }}>{ctx.headerRight}</div>
@@ -63,7 +63,7 @@ export default function VistaAtletaArcade() {
         <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: scrollPad, WebkitOverflowScrolling: 'touch' }}>
           {!ctx || loading ? (
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
-              <MicroLabel color={C.text3} size={9} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
+              <MicroLabel color={C.text3} size={11} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
             </div>
           ) : ctx.isInicio ? (
             <PantallaAtletaInicio ctx={ctx} />

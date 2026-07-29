@@ -122,9 +122,33 @@ El piloto también servía para medir el ruido de la herramienta contra un desig
 
 ---
 
+## Qué se aplicó
+
+**PR A — accesibilidad** (`a11y/portal-atleta-piloto-impeccable`): landmark `<main>`, `C.text4` → `C.text3` en contenido informativo, `aria-label` con valor en las filas de pilares, `inert` en el fondo del modal, objetivos táctiles a 44px.
+
+**PR B — piso tipográfico** (`ux/piso-tipografico-portal-atleta`): nuevo token `TEXT_MIN = 11` en `arcadeTokens.js` y 60 tamaños elevados en las 5 pantallas y sus primitivas (`MicroLabel`, `Pill`, `Badge`, `FichaFisica`, `ArcadeBottomNav`, `RadarChart`). Incluye el cambio de `transition-[width]` a `transform: scaleX()` en `ProgresoNivelModal`.
+
+Resultado remedido en el navegador:
+
+| | antes | después |
+|---|---|---|
+| nodos bajo 11px (de 161) | 118 (73%) | **0** |
+| nodos fallando contraste AA | 21 | **0** |
+| objetivos táctiles < 44px | 2 | **0** |
+| pantallas con `<main>` | 0/5 | **5/5** |
+| pantallas con scroll horizontal | 0/7 | **0/7** |
+
+### Dos excepciones que aparecieron al aplicarlo
+
+- **Nav del dueño.** Subir los ítems de nav a 11px desborda la variante `dueno`: a 360px de viewport su zona mide 72px y "ASISTENCIA" ocupa 77px, "RETENCIÓN" 73px. Se queda en 8px mediante `labelSize` por variante. Esa nav necesita etiquetas más cortas o menos zonas — decisión del portal del dueño, no de este piloto. Las variantes de atleta, padre y coach sí caben y están a 11px.
+- **Lienzo del radar.** Las etiquetas de los 8 ejes se anclan en el borde y crecen hacia afuera, así que a tamaño legible la del extremo quedaba recortada. Se amplió el `viewBox` del SVG con margen (sin mover el polígono) y se pinta a ancho completo: 11,3px reales, sin solapes ni recortes.
+
+### Un hallazgo descartado
+
+`all-caps-body` sobre 32 caracteres en Eventos: al inspeccionarlo, ese texto es `"{n} PRÓXIMOS · TU EQUIPO TE ESPERA"`, la línea de resumen bajo el `h1`, del mismo patrón que en las otras cuatro pantallas ("0 ACTIVAS · 0 EN REVISIÓN", "MICRO · 267 XP TOTAL · PWR 45"). No es texto de lectura corrida, y quitarle las mayúsculas solo a Eventos rompería la consistencia entre pantallas. No se aplica.
+
 ## Siguientes pasos
 
-1. **[P1] PR A — accesibilidad, sin decisiones de producto:** landmark `<main>`, `C.text4` → `C.text3` en contenido informativo, `role="progressbar"` con `aria-value*`, `inert` en el fondo del modal, objetivos táctiles a 44px.
-2. **[P1] Decisión del dueño — piso tipográfico.** Subir el texto funcional de 7–10px a un piso de 11px afecta a 118 nodos y cambia la densidad visual del HUD. Es la mejora de mayor impacto para el usuario real y también el cambio estético más grande. No se aplica sin ratificación.
-3. **[P2] Extender el piloto.** El portal del **padre** (`/padre`) comparte primitivas, `ArcadeBottomNav` y el mismo lenguaje de micro-etiquetas: casi con seguridad arrastra los mismos dos P1. Los portales de staff (coach/owner/superadmin) son data-densos y usan `ROW_H_DENSE = 36`, así que merecen su propio criterio.
-4. **[P3] Deuda documentada, no tocada en esta pasada:** doble superficie viva del rol atleta (`/atleta` y `/dashboard` → `AthleteLayout`), triplicación de las fuentes de tokens (`tokens.css` / `designTokens.js` / `arcadeTokens.js`) y `AdminPlanificacionPage.jsx` sin ruta que lo monte.
+1. **[P2] Extender el piloto.** El portal del **padre** (`/padre`) comparte primitivas y el mismo lenguaje de micro-etiquetas; ya se beneficia de lo aplicado a las primitivas compartidas, pero sus pantallas propias no se han medido. Los portales de staff (coach/owner/superadmin) son data-densos y usan `ROW_H_DENSE = 36`, así que merecen su propio criterio — empezando por la nav del dueño.
+2. **[P3] Deuda documentada, no tocada en esta pasada:** doble superficie viva del rol atleta (`/atleta` y `/dashboard` → `AthleteLayout`), triplicación de las fuentes de tokens (`tokens.css` / `designTokens.js` / `arcadeTokens.js`) y `AdminPlanificacionPage.jsx` sin ruta que lo monte.
+3. **Suite E2E.** `arcade_escrituras`, `arcade_cerrar_sesion` y `qa_roles` tienen fallos preexistentes (verificado corriéndolos en `main`): 3, 2 y 1 respectivamente. No los causa esta auditoría, pero conviene atenderlos — Cypress no está en CI y esos specs cubren escrituras reales.
