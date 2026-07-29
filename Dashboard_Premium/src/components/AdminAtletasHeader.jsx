@@ -25,9 +25,9 @@ export default function AdminAtletasHeader({
           <UserPlus size={20} strokeWidth={2.5} />
         </HexAvatar>
         <div className="min-w-0">
-          <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
             Gestionar <span style={{ color: C.gold }}>Atletas</span>
-          </h2>
+          </h1>
           <MicroLabel style={{ marginTop: 3 }}>
             {atletasFiltrados.length} de {atletas?.length || 0} atletas
             {filtrosActivos && <span style={{ color: C.gold }}> · Filtros activos</span>}

@@ -9,7 +9,7 @@ import ModoCanchaArcade from '../components/arcade/ModoCanchaArcade';
 import CutCard from '../components/arcade/CutCard';
 import HexAvatar from '../components/arcade/HexAvatar';
 import MicroLabel from '../components/arcade/MicroLabel';
-import { C, BORDER, GRAD, TINT, cut, PIXEL } from '../components/arcade/arcadeTokens';
+import { C, BORDER, GRAD, TINT, ROW_H, cut, PIXEL } from '../components/arcade/arcadeTokens';
 import { recoveryPill } from '../lib/recoveryPill';
 import { tieneSenal } from '../lib/senalesAtleta';
 import { fetchTodosLosAtletas } from '../api/atletasService';
@@ -235,7 +235,7 @@ export default function CoachHomePage() {
               onClick={() => navigate('/admin/sesiones')}
               className="cut-focus"
               style={{
-                width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', marginTop: 8, minHeight: ROW_H, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 padding: '10px', clipPath: cut(8), background: 'transparent', color: C.text2,
                 fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer',
                 border: `1px solid ${BORDER.neutralSoft}`,

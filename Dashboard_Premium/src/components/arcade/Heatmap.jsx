@@ -1,4 +1,4 @@
-import { PIXEL, C, cut } from './arcadeTokens';
+import { PIXEL, C, ROW_H, cut } from './arcadeTokens';
 
 /** Heatmap de ocupación (dueño · asistencia): grid 44px + 6 días, celdas táctiles
  *  con alpha por % y leyenda LIBRE→LLENO. Data-driven (rows con celdas ya
@@ -6,7 +6,7 @@ import { PIXEL, C, cut } from './arcadeTokens';
 export default function Heatmap({ days = [], rows = [] }) {
   return (
     <div style={{ background: C.card, border: '1px solid rgba(255,215,0,.14)', clipPath: cut(12), padding: 13 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '44px repeat(6, 1fr)', gap: 4, marginBottom: 5 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '38px repeat(6, 1fr)', gap: 3, marginBottom: 5 }}>
         <span />
         {days.map((d, i) => (
           <span key={i} style={{ textAlign: 'center', fontFamily: PIXEL, fontSize: 7.5, color: C.text3 }}>{d}</span>
@@ -14,10 +14,12 @@ export default function Heatmap({ days = [], rows = [] }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {rows.map((hr, ri) => (
-          <div key={ri} style={{ display: 'grid', gridTemplateColumns: '44px repeat(6, 1fr)', gap: 4 }}>
+          <div key={ri} // 38px + gap 3 (antes 44 + 4): libera 12px de ancho para que las 6 celdas
+            // lleguen a 44px de lado. La columna de hora no necesitaba 44.
+            style={{ display: 'grid', gridTemplateColumns: '38px repeat(6, 1fr)', gap: 3 }}>
             <span style={{ fontFamily: PIXEL, fontSize: 7.5, color: C.text3, alignSelf: 'center' }}>{hr.time}</span>
             {hr.cells.map((hc, ci) => (
-              <button key={ci} type="button" onClick={hc.onPick} aria-label={hc.aria} style={{ height: 34, display: 'grid', placeItems: 'center', background: hc.bg, border: `1px solid ${hc.border}`, clipPath: cut(5), fontFamily: PIXEL, fontSize: 7.5, color: hc.fg, cursor: 'pointer' }}>{hc.label}</button>
+              <button key={ci} type="button" onClick={hc.onPick} aria-label={hc.aria} style={{ height: ROW_H, display: 'grid', placeItems: 'center', background: hc.bg, border: `1px solid ${hc.border}`, clipPath: cut(5), fontFamily: PIXEL, fontSize: 7.5, color: hc.fg, cursor: 'pointer' }}>{hc.label}</button>
             ))}
           </div>
         ))}

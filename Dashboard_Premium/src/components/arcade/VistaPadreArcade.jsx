@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../AuthContext';
-import { C, BORDER, GRAD, RADAR_FILL_INFO, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
+import { C, BORDER, GRAD, RADAR_FILL_INFO, ROW_H, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
 import ArcadePerfilMenu from './ArcadePerfilMenu';
 import HexAvatar from './HexAvatar';
 import MicroLabel from './MicroLabel';
@@ -234,17 +234,23 @@ export default function VistaPadreArcade() {
           VistaDuenoArcade — sin ellos el scroll se iba al body en vez del
           contenedor interno (scroller sin cota de altura). */}
       <div style={{ position: 'relative', width: '100%', maxWidth: 480, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 96px', WebkitOverflowScrolling: 'touch' }}>
+        {/* <main>: landmark de contenido del portal — no lo tenía, igual que el
+            del atleta antes de la auditoría. */}
+        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 96px', WebkitOverflowScrolling: 'touch' }}>
           {/* Cabecera */}
           <div id="padre-base" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
             <div>
               <MicroLabel color={C.text3} size={8.5} tracking=".08em" style={{ marginBottom: 4 }}>MI REPRESENTADO</MicroLabel>
-              <p style={{ margin: 0, fontSize: 12, color: C.text2 }}>{vm?.parentLine || (user?.nombre ?? '…')}</p>
+              {/* h1: el portal del padre no tenía NINGÚN encabezado de nivel 1.
+                  El nombre del representado es lo que identifica esta página;
+                  se conserva su tamaño — un h1 no tiene por qué ser el texto
+                  más grande, solo el que encabeza el documento. */}
+              <h1 style={{ margin: 0, fontSize: 12, fontWeight: 400, color: C.text2 }}>{vm?.parentLine || (user?.nombre ?? '…')}</h1>
             </div>
             {/* Avatar del representante = menú de perfil (la salida de sesión del
                 portal). Ocupa el hueco del hex decorativo de campana, que no
                 enrutaba a ninguna bandeja de notificaciones. */}
-            <ArcadePerfilMenu size={34} initial={(user?.nombre || '?').charAt(0).toUpperCase()} />
+            <ArcadePerfilMenu size={44} initial={(user?.nombre || '?').charAt(0).toUpperCase()} />
           </div>
 
           {/* Selector de hijos (si hay varios) */}
@@ -256,6 +262,7 @@ export default function VistaPadreArcade() {
                   type="button"
                   onClick={() => setIdx(i)}
                   style={{
+                    minHeight: ROW_H,
                     padding: '7px 12px',
                     clipPath: cut(7),
                     fontFamily: PIXEL,
@@ -346,10 +353,10 @@ export default function VistaPadreArcade() {
                   </div>
                   {!pagado ? (
                     <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                      <button type="button" onClick={onPagar} style={{ flex: 1, padding: 13, background: GRAD.goldText, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9.5, cursor: 'pointer' }}>
+                      <button type="button" onClick={onPagar} style={{ flex: 1, minHeight: ROW_H, padding: 13, background: GRAD.goldText, color: C.ink, border: 'none', clipPath: cut(10), fontFamily: PIXEL, fontSize: 9.5, cursor: 'pointer' }}>
                         💳 PAGAR {fmtUSD(vm.pago.monto)}
                       </button>
-                      <button type="button" onClick={onWhatsApp} style={{ flex: 1, padding: 13, background: 'transparent', border: `1px solid rgba(37,211,102,.45)`, color: C.whatsapp, clipPath: cut(10), fontFamily: PIXEL, fontSize: 9.5, cursor: 'pointer' }}>
+                      <button type="button" onClick={onWhatsApp} style={{ flex: 1, minHeight: ROW_H, padding: 13, background: 'transparent', border: `1px solid rgba(37,211,102,.45)`, color: C.whatsapp, clipPath: cut(10), fontFamily: PIXEL, fontSize: 9.5, cursor: 'pointer' }}>
                         WHATSAPP
                       </button>
                     </div>
@@ -465,7 +472,7 @@ export default function VistaPadreArcade() {
               </div>
             </>
           )}
-        </div>
+        </main>
 
         <ArcadeBottomNav variant="padre" active={nav} onNavigate={goSection} />
       </div>

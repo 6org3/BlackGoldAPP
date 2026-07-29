@@ -182,9 +182,9 @@ export default function AdminAsistencia({ user, atletas = [] }) {
             <ClipboardList size={22} strokeWidth={2.5} />
           </HexAvatar>
           <div>
-            <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight" style={{ color: C.text }}>
               Control de <span style={{ color: C.gold }}>Asistencia</span>
-            </h2>
+            </h1>
             <MicroLabel style={{ marginTop: 4 }}>{nombreGrupoActivo} · {total} atletas</MicroLabel>
           </div>
         </div>

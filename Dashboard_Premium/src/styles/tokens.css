@@ -36,7 +36,11 @@
   --color-fg:           #EDEDED; /* texto principal */
   --color-fg-secondary: #9CA3AF; /* texto de apoyo (gray-400) */
   --color-fg-muted:     #828997; /* labels, metadatos — muted accesible (AA 4.5:1 en superficies oscuras; subido desde #6B7280 gray-500, ver design_system.md §contraste) */
-  --color-fg-faint:     #4B5563; /* solo decorativo, nunca información (gray-600) */
+  /* faint: subido de #4B5563 (gray-600) a #7B8593. La regla decía "solo
+     decorativo, nunca información" pero la auditoría lo encontró rotulando
+     datos reales ("Sin datos", "15 /100", conteos de filtros) a 2.5:1. Ahora
+     cumple AA en toda superficie del HUD, se siga o no la regla. */
+  --color-fg-faint:     #7B8593;
   --color-fg-inverse:   #0A0A0C; /* texto sobre superficies doradas */
 
   /* ----------------------------------------------------------
@@ -79,7 +83,7 @@
   --color-tier-muybueno:  #FFD700;
   --color-tier-bueno:     #22D3EE;
   --color-tier-regular:   #FB923C;
-  --color-tier-sindatos:  #4B5563;
+  --color-tier-sindatos:  #7B8593; /* se pinta como texto del tier: debe cumplir AA */
 
   /* Externos */
   --color-whatsapp:      #25D366;

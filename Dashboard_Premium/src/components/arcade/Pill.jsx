@@ -18,6 +18,9 @@ export default function Pill({ label, active = false, onClick, accent = C.gold, 
       aria-pressed={active}
       style={{
         minHeight: ROW_H,
+        // minWidth también: un objetivo táctil es 44x44, y las píldoras de
+        // label corto ("XP") se quedaban en 40px de ancho.
+        minWidth: ROW_H,
         padding: '9px 12px',
         fontFamily: PIXEL,
         fontSize: size,

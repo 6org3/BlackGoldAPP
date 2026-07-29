@@ -185,9 +185,9 @@ export default function AdminComunicaciones({ user, atletas = [] }) {
               en "COMUNICACIONE/S". Desktop se queda en text-4xl. break-words es la
               red por debajo de 375px; min-w-0 deja al flex encoger este bloque. */}
           <div className="min-w-0">
-            <h2 className="text-xl md:text-4xl font-black uppercase tracking-tight break-words" style={{ color: C.text }}>
+            <h1 className="text-xl md:text-4xl font-black uppercase tracking-tight break-words" style={{ color: C.text }}>
               Comunica<span style={{ color: C.gold }}>ciones</span>
-            </h2>
+            </h1>
             <MicroLabel style={{ marginTop: 4 }}>Club · Coach · Familia</MicroLabel>
           </div>
         </div>

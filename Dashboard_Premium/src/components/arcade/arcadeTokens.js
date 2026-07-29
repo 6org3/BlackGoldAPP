@@ -31,7 +31,13 @@ export const C = {
   text: '#EDEDED',
   text2: '#9CA3AF',
   text3: '#828997', // muted ACCESIBLE: AA 4.5:1 (4.67:1) en toda superficie del HUD; espejo de --color-fg-muted (design_system_arcade.md §2.7)
-  text4: '#4B5563',
+  // text4 = gris apagado ACCESIBLE. Era #4B5563, que sobre las superficies del
+  // HUD se quedaba entre 2.32:1 y 2.69:1 — muy lejos de AA — y se usaba como
+  // color de texto en 21 sitios: la auditoría midió 243 nodos fallando 1.4.3
+  // por este único token (portales de atleta, coach y dueño). #7B8593 cumple
+  // en TODO fondo del HUD (4.69:1 en el más claro, 5.45:1 en el más oscuro) y
+  // sigue leyéndose por debajo de text3. Ver docs/auditoria_impeccable_*.md.
+  text4: '#7B8593',
   ink: '#0A0A0C', // texto sobre superficies doradas
   inkGreen: '#04110B', // texto sobre verde sólido
   onDanger: '#FFFFFF', // texto sobre danger sólido (p.ej. "A" ausente en SegmentToggle)

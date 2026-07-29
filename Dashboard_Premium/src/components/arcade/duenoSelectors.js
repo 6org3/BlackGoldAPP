@@ -106,7 +106,9 @@ function ctxAsistencia(state, data, actions) {
     cells: HD[fi].map((c, di) => {
       const key = `${di}-${fi}`;
       const isSel = key === selKey;
-      if (!c) return { label: '—', fg: '#374151', bg: 'rgba(255,255,255,.03)', border: 'rgba(255,255,255,.05)', onPick: () => {}, aria: `${DN[di]} ${t} libre` };
+      // C.text4, no un hex suelto: #374151 daba 1.78:1 sobre la celda y además
+      // era color arbitrario fuera de la capa de tokens.
+      if (!c) return { label: '—', fg: C.text4, bg: 'rgba(255,255,255,.03)', border: 'rgba(255,255,255,.05)', onPick: () => {}, aria: `${DN[di]} ${t} libre` };
       const a = (0.08 + 0.7 * (c.p / 100)).toFixed(2);
       return {
         label: String(c.p),

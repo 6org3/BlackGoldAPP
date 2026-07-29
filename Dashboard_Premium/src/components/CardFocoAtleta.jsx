@@ -90,7 +90,7 @@ export default function CardFocoAtleta({ atleta }) {
             type="button"
             onClick={handleAsignar}
             disabled={asignando || asignada}
-            className="flex-1 h-10 rounded-control text-xs font-bold uppercase tracking-widest border border-white/10 text-fg-secondary hover:border-brand/30 hover:text-brand transition disabled:opacity-60"
+            className="flex-1 min-h-11 rounded-control text-xs font-bold uppercase tracking-widest border border-white/10 text-fg-secondary hover:border-brand/30 hover:text-brand transition disabled:opacity-60"
           >
             {asignada ? 'Asignada ✓' : asignando ? 'Asignando…' : '+ Asignar'}
           </button>
@@ -98,7 +98,7 @@ export default function CardFocoAtleta({ atleta }) {
         <button
           type="button"
           onClick={() => abrir(atleta.atleta_id)}
-          className="flex-1 h-10 rounded-control text-xs font-bold uppercase tracking-widest border border-mental/40 text-mental-soft hover:bg-mental/10 transition"
+          className="flex-1 min-h-11 rounded-control text-xs font-bold uppercase tracking-widest border border-mental/40 text-mental-soft hover:bg-mental/10 transition"
         >
           ✦ Pregúntale
         </button>

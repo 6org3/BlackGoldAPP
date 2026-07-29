@@ -43,7 +43,8 @@ export default function VistaDuenoArcade() {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: C.bgApp }}>
       <div style={{ position: 'relative', width: '100%', maxWidth: 480, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 26px', WebkitOverflowScrolling: 'touch' }}>
+        {/* <main>: landmark de contenido del portal — no lo tenía. */}
+        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 26px', WebkitOverflowScrolling: 'touch' }}>
           {/* Header por panel */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
             <div>
@@ -84,7 +85,7 @@ export default function VistaDuenoArcade() {
           ) : ctx.isRetencion ? (
             <PanelRetencion ctx={ctx} />
           ) : null}
-        </div>
+        </main>
 
         <ArcadeBottomNav variant="dueno" active={ctx ? ctx.navActive : 'resumen'} onNavigate={actions.goTab} />
       </div>
