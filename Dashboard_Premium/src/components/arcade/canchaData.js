@@ -55,6 +55,7 @@ export function mapAtleta(a) {
     pwr: a.overall_score || 0,
     nivel: a.nivel_desarrollo || 'Desarrollo',
     categoria: a.categoria || null,
+    fotoPath: a.foto_path || null,
     ...deriveHue(a),
   };
 }

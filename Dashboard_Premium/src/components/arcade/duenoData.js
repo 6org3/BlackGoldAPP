@@ -177,7 +177,7 @@ function mapRetencion(ret, list) {
   // ausente se trata como activo (columna v31 NOT NULL DEFAULT 'activo').
   const riesgo = (list || []).filter((a) => esActivo(a) && tieneSenal(a)).slice(0, 6).map((a) => {
     const r = motivoRiesgo(a);
-    return { id: a.atleta_id, initial: (a.nombre || '?').charAt(0).toUpperCase(), hue: r.hue, name: a.nombre || 'Atleta', motivo: r.motivo, mc: r.mc };
+    return { id: a.atleta_id, initial: (a.nombre || '?').charAt(0).toUpperCase(), fotoPath: a.foto_path || null, hue: r.hue, name: a.nombre || 'Atleta', motivo: r.motivo, mc: r.mc };
   });
   return {
     retPct: Number(ret.ret_pct) || 0,

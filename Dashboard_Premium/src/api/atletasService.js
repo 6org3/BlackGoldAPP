@@ -278,6 +278,10 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
       peso_kg: a.peso_kg,
       talla_cm: a.talla_cm,
       envergadura_cm: a.envergadura_cm,
+      // v53: path en el bucket privado, no una URL — se firma al leer.
+      // El select ya lo trae con '*', pero este mapeo es una whitelist
+      // explícita: sin la clave aquí, la columna no llega a la UI.
+      foto_path: a.foto_path || null,
       readiness_hoy: readinessHoy,
       _evaluaciones: evalsArray,
     };

@@ -97,6 +97,7 @@ function ctxInicio(state, data, actions) {
     fechaLine: p.fechaLine || fechaHoyLine(p.categoria),
     racha: p.racha,
     heroInicial: p.inicial,
+    heroFoto: p.fotoPath || null,
     heroNombre: p.nombre,
     heroAccent: nivel.color,
     nivelLine: `${(p.nivelDesarrollo || '').toUpperCase()} ${nivel.emoji}`,

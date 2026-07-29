@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useRef, useCallb
 import { loginUsuario, fetchUsuarioPorAuthId } from './api/authService';
 import { supabase } from './api/supabaseClient';
 import { purgarSesionLocal } from './lib/sesionLocal';
+import { limpiarCacheFotos } from './api/fotosAtletasService';
 import PageLoader from './components/PageLoader.jsx';
 
 const AuthContext = createContext(null);
@@ -123,6 +124,10 @@ export const AuthProvider = ({ children }) => {
       console.warn('Cierre de sesión lanzó; se purga la sesión local.', error);
       purgarSesionLocal();
     } finally {
+      // Las URLs firmadas de las fotos viven en un Map de módulo: sin
+      // limpiarlas, sobrevivirían al cambio de usuario en el mismo navegador
+      // y dejarían accesibles rostros de menores de otro club.
+      limpiarCacheFotos();
       setUser(null);
       setDebeCambiarPassword(false);
     }

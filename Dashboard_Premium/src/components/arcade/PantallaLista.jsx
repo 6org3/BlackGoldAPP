@@ -1,6 +1,6 @@
 import { C, BORDER, cut, PIXEL } from './arcadeTokens';
 import { rosterLista } from './canchaSelectors';
-import HexAvatar from './HexAvatar';
+import AvatarAtleta from '../AvatarAtleta';
 import MicroLabel from './MicroLabel';
 import SegmentToggle from './SegmentToggle';
 
@@ -103,7 +103,7 @@ export default function PantallaLista({ state, actions, roster = [] }) {
                     padding: '9px 11px',
                   }}
                 >
-                  <HexAvatar size={34} hue={a.hue} initial={a.name.charAt(0)} />
+                  <AvatarAtleta size={34} hue={a.hue} nombre={a.name} fotoPath={a.fotoPath} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{a.name}</p>
                     <p style={{ margin: '1px 0 0', fontSize: 11, color: C.text3 }}>{a.pos + (a.alert ? ` · ${a.alert}` : '')}</p>

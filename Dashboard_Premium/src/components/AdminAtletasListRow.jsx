@@ -5,7 +5,7 @@ import { NIVEL_BADGE } from './AdminAtletasConstants';
 import { esBaja, etiquetaBaja } from './adminAtletasMembresia';
 import ActionButton from './AdminAtletasActionButton';
 import CutCard from './arcade/CutCard';
-import HexAvatar from './arcade/HexAvatar';
+import AvatarAtleta from './AvatarAtleta';
 import { C, TINT, cut } from './arcade/arcadeTokens';
 
 // ═══════════════════════════════════════════════════════════════
@@ -24,7 +24,7 @@ function AtletaListRow({ atleta, index, onEdit, onDelete, onExport, onAntropomet
       <CutCard cut={10} padding="14px 20px" style={deBaja ? { opacity: 0.72 } : undefined}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 flex-1 min-w-0">
-            <HexAvatar size={40}>{atleta.nombre?.charAt(0)}</HexAvatar>
+            <AvatarAtleta size={40} nombre={atleta.nombre} fotoPath={atleta.foto_path} />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold truncate" style={{ color: C.text }}>{atleta.nombre}</p>
               <p className="text-2xs font-bold uppercase tracking-widest truncate" style={{ color: C.text3 }}>

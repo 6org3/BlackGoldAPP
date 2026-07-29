@@ -1,6 +1,6 @@
 import { C, BORDER, GRAD, cut, PIXEL } from './arcadeTokens';
 import { AXES, BADGE_DEFS } from './canchaMock';
-import HexAvatar from './HexAvatar';
+import AvatarAtleta from '../AvatarAtleta';
 import MicroLabel from './MicroLabel';
 import StarRating from './StarRating';
 import Badge from './Badge';
@@ -26,7 +26,7 @@ export default function PantallaEvaluar({ state, actions, roster = [] }) {
           marginBottom: 16,
         }}
       >
-        <HexAvatar size={56} hue={a.hue} initial={a.name.charAt(0)} style={{ filter: 'drop-shadow(0 0 12px rgba(255,215,0,.35))', fontSize: 20 }} />
+        <AvatarAtleta size={56} hue={a.hue} nombre={a.name} fotoPath={a.fotoPath} style={{ filter: 'drop-shadow(0 0 12px rgba(255,215,0,.35))', fontSize: 20 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 18, fontWeight: 900, letterSpacing: '-.02em' }}>{a.name}</p>
           <p style={{ margin: '3px 0 0', fontSize: 11, color: C.text2 }}>{a.pos} · Sub-16 · destacado de hoy</p>

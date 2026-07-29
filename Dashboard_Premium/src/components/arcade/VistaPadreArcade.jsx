@@ -106,6 +106,8 @@ function buildVM(hijo, detalle, user, sesiones, catalogoEjercicios) {
     parentLine: `${user.nombre || 'Representante'} · ${hijo.categoria || user.club || 'Club Black Gold'}`,
     hijoNombre: hijo.nombre || 'Atleta',
     inicial: (hijo.nombre || '?').charAt(0),
+    hijoId: hijo.atleta_id || hijo.id || null,
+    fotoPath: hijo.foto_path || null,
     pwr: hijo.overall_score || 0,
     rangoLine: `${(xp.rangoNombre || '').toUpperCase()} ${xp.emoji}`,
     xp,
