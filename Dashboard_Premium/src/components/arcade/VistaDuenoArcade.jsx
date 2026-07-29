@@ -48,7 +48,7 @@ export default function VistaDuenoArcade() {
           {/* Header por panel */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
             <div>
-              <MicroLabel color={C.goldDeep} size={9} tracking=".1em" style={{ marginBottom: 6 }}>{fechaHoy()}</MicroLabel>
+              <MicroLabel color={C.goldDeep} size={11} tracking=".1em" style={{ marginBottom: 6 }}>{fechaHoy()}</MicroLabel>
               <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.04em', lineHeight: 1.05 }}>{ctx ? ctx.panelTitle : 'Black Gold'}</h1>
             </div>
             <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -72,7 +72,7 @@ export default function VistaDuenoArcade() {
 
           {!ctx || loading ? (
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
-              <MicroLabel color={C.text3} size={9} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
+              <MicroLabel color={C.text3} size={11} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
             </div>
           ) : ctx.isResumen ? (
             <PanelResumen ctx={ctx} />

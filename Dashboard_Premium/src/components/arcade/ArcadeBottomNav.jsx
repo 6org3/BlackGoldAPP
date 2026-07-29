@@ -25,26 +25,27 @@ const ATLETA = [
   { key: 'eventos', label: 'EVENTOS', Icon: Calendar },
 ];
 
-// Dueño: 5 zonas con hex central elevado = FINANZAS (icono $), como Cancha del coach.
+// Dueño: 5 zonas con hex central elevado = FINANZAS (icono $), como Cancha del
+// coach. `corto` es la etiqueta VISIBLE cuando el nombre completo no cabe en la
+// zona: a 360px de viewport cada una mide 72px y "ASISTENCIA" ocupa 77px con el
+// texto al piso de 11px. El nombre completo se conserva en aria-label, así que
+// el lector de pantalla sigue anunciando "Asistencia", no "Asist.".
 const DUENO = [
   { key: 'resumen', label: 'RESUMEN', Icon: Home },
-  { key: 'asistencia', label: 'ASISTENCIA', Icon: Activity },
+  { key: 'asistencia', label: 'ASISTENCIA', corto: 'ASIST.', Icon: Activity },
   { key: 'finanzas', label: 'FINANZAS', center: true },
   { key: 'equipo', label: 'EQUIPO', Icon: Users },
-  { key: 'retencion', label: 'RETENCIÓN', Icon: RotateCcw },
+  { key: 'retencion', label: 'RETENCIÓN', corto: 'RETEN.', Icon: RotateCcw },
 ];
 
-/* `labelSize`: los ítems de nav son texto funcional y su piso es TEXT_MIN
-   (11px). La variante `dueno` es la excepción — medido a 360px de viewport, su
-   zona es de 72px y a 11px "ASISTENCIA" ocupa 77px y "RETENCIÓN" 73px, así que
-   se desbordarían. Esa nav necesita etiquetas más cortas o menos zonas, que es
-   una decisión del portal del dueño; hasta que se audite, se queda en 8px.
-   Ver docs/auditoria_impeccable_portal_atleta.md. */
+/* Los ítems de nav son texto funcional: su piso es TEXT_MIN (11px) en las
+   cuatro variantes. Donde el nombre no cabe se acorta la etiqueta visible
+   (ver `corto` arriba), nunca se encoge el texto por debajo del piso. */
 const VARIANTS = {
-  coach: { items: COACH, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: Zap, centerFill: true, labelSize: TEXT_MIN },
-  padre: { items: PADRE, accent: C.info, border: 'rgba(96,165,250,.2)', labelSize: TEXT_MIN },
-  atleta: { items: ATLETA, accent: C.gold, border: 'rgba(255,215,0,.16)', labelSize: TEXT_MIN },
-  dueno: { items: DUENO, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: DollarSign, centerFill: false, labelSize: 8 },
+  coach: { items: COACH, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: Zap, centerFill: true },
+  padre: { items: PADRE, accent: C.info, border: 'rgba(96,165,250,.2)' },
+  atleta: { items: ATLETA, accent: C.gold, border: 'rgba(255,215,0,.16)' },
+  dueno: { items: DUENO, accent: C.gold, border: 'rgba(255,215,0,.16)', CenterIcon: DollarSign, centerFill: false },
 };
 
 /**
@@ -57,7 +58,7 @@ export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate 
   const items = v.items;
   const accent = v.accent;
   const CenterIcon = v.CenterIcon || Zap;
-  const labelSize = v.labelSize || TEXT_MIN;
+  const labelSize = TEXT_MIN;
 
   return (
     <nav
@@ -130,6 +131,7 @@ export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate 
             key={it.key}
             type="button"
             onClick={() => onNavigate?.(it.key)}
+            aria-label={it.corto ? it.label : undefined}
             aria-current={on ? 'page' : undefined}
             style={{
               flex: 1,
@@ -146,7 +148,7 @@ export default function ArcadeBottomNav({ variant = 'coach', active, onNavigate 
             }}
           >
             <Icon size={19} strokeWidth={2} />
-            <span style={{ fontFamily: PIXEL, fontSize: labelSize, letterSpacing: '.04em' }}>{it.label}</span>
+            <span style={{ fontFamily: PIXEL, fontSize: labelSize, letterSpacing: '.04em' }}>{it.corto || it.label}</span>
           </button>
         );
       })}

@@ -245,7 +245,7 @@ export default function PortalPadreSeccion({ atleta, subPilarScores }) {
                     <div className="h-32 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={histogramData.data}>
-                          <XAxis dataKey="fecha" tick={{ fill: CHART.axis, fontSize: 9 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                          <XAxis dataKey="fecha" tick={{ fill: CHART.axis, fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                           <Tooltip cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{backgroundColor: '#000', border: '1px solid #333', borderRadius: '8px', fontSize: '12px'}} />
                           <Bar dataKey="xp" radius={[4, 4, 0, 0]}>
                             {histogramData.data.map((entry, index) => (

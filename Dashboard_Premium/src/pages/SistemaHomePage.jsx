@@ -156,11 +156,11 @@ export default function SistemaHomePage() {
           <CutCard cut={10} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: 12, padding: '16px 14px' }}>
             <div style={{ textAlign: 'center' }}>
               <Donut pct={coberturaGlobal} color={C.gold} centerTop={`${coberturaGlobal}%`} size={104} ariaLabel={`Cobertura eval 30d: ${coberturaGlobal}%`} />
-              <MicroLabel color={C.text3} size={9} tracking=".08em" style={{ marginTop: 8 }}>Cobertura eval 30d</MicroLabel>
+              <MicroLabel color={C.text3} size={11} tracking=".08em" style={{ marginTop: 8 }}>Cobertura eval 30d</MicroLabel>
             </div>
             <div style={{ textAlign: 'center' }}>
               <Donut pct={asistenciaPct ?? 0} color={C.ok} centerTop={`${asistenciaPct ?? 0}%`} size={104} ariaLabel={`Asistencia global 7d: ${asistenciaPct ?? 0}%`} />
-              <MicroLabel color={C.text3} size={9} tracking=".08em" style={{ marginTop: 8 }}>Asistencia global 7d</MicroLabel>
+              <MicroLabel color={C.text3} size={11} tracking=".08em" style={{ marginTop: 8 }}>Asistencia global 7d</MicroLabel>
             </div>
           </CutCard>
           <KpiGrid min={110} style={{ marginTop: 10 }}>
@@ -206,7 +206,7 @@ export default function SistemaHomePage() {
                   key={t}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontFamily: 'ui-monospace, monospace', fontSize: 9.5, fontWeight: 700,
+                    fontFamily: 'ui-monospace, monospace', fontSize: 11, fontWeight: 700,
                     padding: '3px 8px', clipPath: cut(5),
                     color: C.ai, background: TINT.ai, border: `1px solid ${BORDER.ai}`,
                   }}

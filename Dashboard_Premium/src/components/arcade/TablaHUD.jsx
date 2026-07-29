@@ -58,7 +58,7 @@ export default function TablaHUD({
                   textAlign: col.align || (col.numeric ? 'right' : 'left'),
                   padding: '10px 12px',
                   fontFamily: PIXEL,
-                  fontSize: 9,
+                  fontSize: 11,
                   letterSpacing: '.06em',
                   textTransform: 'uppercase',
                   color: C.text3,

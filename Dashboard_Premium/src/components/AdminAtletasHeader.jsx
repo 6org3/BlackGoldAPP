@@ -25,7 +25,10 @@ export default function AdminAtletasHeader({
           <UserPlus size={20} strokeWidth={2.5} />
         </HexAvatar>
         <div className="min-w-0">
-          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight" style={{ color: C.text }}>
+          {/* break-words: a 360px "Gestionar Atletas" desbordaba su caja (139px
+              de texto en 128px) porque el contenedor es min-w-0 y el título no
+              podía partirse. */}
+          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight break-words" style={{ color: C.text }}>
             Gestionar <span style={{ color: C.gold }}>Atletas</span>
           </h1>
           <MicroLabel style={{ marginTop: 3 }}>

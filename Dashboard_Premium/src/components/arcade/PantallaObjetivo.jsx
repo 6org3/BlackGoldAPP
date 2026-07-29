@@ -30,7 +30,7 @@ function DrillsResueltos({ ejerciciosIds, ejerciciosMap }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {agruparDrillsPorTipo(drills).map(([tipo, ds]) => (
         <div key={tipo}>
-          <MicroLabel color={C.goldDeep} size={8} tracking=".08em" style={{ marginBottom: 5 }}>{tipo}</MicroLabel>
+          <MicroLabel color={C.goldDeep} size={11} tracking=".08em" style={{ marginBottom: 5 }}>{tipo}</MicroLabel>
           <ul style={{ margin: 0, paddingLeft: 16 }}>
             {ds.map((d, i) => (
               <li key={i} style={{ fontSize: 12, color: C.text2, lineHeight: 1.6 }}>{d.nombre}</li>
@@ -56,7 +56,7 @@ export default function PantallaObjetivo({ state, actions, plantillas = [], ejer
           clipPath: cut(12),
         }}
       >
-        <MicroLabel color={C.text3} size={10} style={{ marginBottom: 8 }}>SIN PLANTILLAS</MicroLabel>
+        <MicroLabel color={C.text3} size={11} style={{ marginBottom: 8 }}>SIN PLANTILLAS</MicroLabel>
         <p style={{ margin: 0, fontSize: 12, color: C.text3, lineHeight: 1.5 }}>
           Aún no hay plantillas de sesión. Continúa sin plantilla para pasar lista.
         </p>
@@ -104,7 +104,7 @@ export default function PantallaObjetivo({ state, actions, plantillas = [], ejer
                         {chip && (
                           <span
                             style={{
-                              fontSize: 9.5,
+                              fontSize: 11,
                               fontWeight: 700,
                               color: C.goldDeep,
                               background: TINT.gold,
@@ -117,7 +117,7 @@ export default function PantallaObjetivo({ state, actions, plantillas = [], ejer
                             {chip}
                           </span>
                         )}
-                        <MicroLabel color={C.text3} size={8.5} tracking="normal">
+                        <MicroLabel color={C.text3} size={11} tracking="normal">
                           {count > 0 ? `${count} ejercicio${count === 1 ? '' : 's'}` : 'Sin ejercicios'}
                         </MicroLabel>
                       </div>

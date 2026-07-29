@@ -65,7 +65,7 @@ export default function PantallaBuscador({ state, actions, roster = [] }) {
               <HexAvatar size={34} hue={a.hue} initial={a.name.charAt(0)} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>{a.name}</p>
-                <p style={{ margin: '1px 0 0', fontSize: 10, color: C.text3 }}>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: C.text3 }}>
                   {a.pos} · Sub-16 · PWR {a.pwr}
                 </p>
               </div>

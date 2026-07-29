@@ -91,7 +91,7 @@ export default function FilterBar({
                 minHeight: ROW_H_DENSE,
                 padding: '4px 10px',
                 fontFamily: PIXEL,
-                fontSize: 8.5,
+                fontSize: 11,
                 letterSpacing: '.04em',
                 textTransform: 'uppercase',
                 cursor: 'pointer',

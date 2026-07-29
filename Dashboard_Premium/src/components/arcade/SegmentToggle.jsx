@@ -14,7 +14,7 @@ export default function SegmentToggle({ value, onPresent, onAbsent, name }) {
     padding: '11px 0',
     textAlign: 'center',
     fontFamily: PIXEL,
-    fontSize: 10,
+    fontSize: 11,
     cursor: 'pointer',
     appearance: 'none',
     border: 'none',

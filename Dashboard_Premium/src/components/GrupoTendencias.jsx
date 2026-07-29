@@ -138,9 +138,9 @@ export default function GrupoTendencias({ atletas }) {
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                           {/* interval={0} + inclinación: todas las etiquetas siempre
                               visibles aunque el viewport sea angosto */}
-                          <XAxis dataKey="label" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }}
+                          <XAxis dataKey="label" stroke="rgba(255,255,255,0.15)" fontSize={11} tick={{ fill: CHART.axis }}
                             interval={0} angle={-35} textAnchor="end" height={55} />
-                          <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }} ticks={[0, 25, 50, 75, 100]} />
+                          <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={11} tick={{ fill: CHART.axis }} ticks={[0, 25, 50, 75, 100]} />
                           <Tooltip
                             cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                             contentStyle={{ backgroundColor: CHART.tooltip.background, border: '1px solid rgba(255,215,0,0.2)', borderRadius: '12px', fontSize: '11px' }}
@@ -151,7 +151,7 @@ export default function GrupoTendencias({ atletas }) {
                           />
                           <Bar dataKey="scorePromedio" radius={[6, 6, 0, 0]} cursor="pointer"
                             onClick={(data) => data?.sub_pilar && setSubPilarActivo(data.sub_pilar)}>
-                            <LabelList dataKey="scorePromedio" position="top" fill={CHART.label} fontSize={9} />
+                            <LabelList dataKey="scorePromedio" position="top" fill={CHART.label} fontSize={11} />
                             {debilidades.map(d => (
                               <Cell key={d.sub_pilar} fill={d.color}
                                 opacity={subPilarActivo && subPilarActivo !== d.sub_pilar ? 0.35 : 0.9} />
@@ -181,8 +181,8 @@ export default function GrupoTendencias({ atletas }) {
                             <ResponsiveContainer width="100%" height="100%">
                               <LineChart data={serieMensual} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-                                <XAxis dataKey="mes" stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }} />
-                                <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={9} tick={{ fill: CHART.axis }} ticks={[0, 25, 50, 75, 100]} />
+                                <XAxis dataKey="mes" stroke="rgba(255,255,255,0.15)" fontSize={11} tick={{ fill: CHART.axis }} />
+                                <YAxis domain={[0, 100]} stroke="rgba(255,255,255,0.15)" fontSize={11} tick={{ fill: CHART.axis }} ticks={[0, 25, 50, 75, 100]} />
                                 <Tooltip
                                   contentStyle={{ backgroundColor: CHART.tooltip.background, border: '1px solid rgba(255,215,0,0.2)', borderRadius: '12px', fontSize: '11px' }}
                                   formatter={(val, _n, { payload }) => [`${val}/100 (${payload.n} medición${payload.n !== 1 ? 'es' : ''})`, 'Promedio del grupo']}

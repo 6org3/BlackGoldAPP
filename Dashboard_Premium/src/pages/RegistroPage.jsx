@@ -212,7 +212,7 @@ export default function RegistroPage() {
               <CutCard cut={12} background={C.card} border={BORDER.okSoft} padding="20px">
                 <div className="flex items-center gap-2 mb-5">
                   <Phone size={15} style={{ color: C.ok }} />
-                  <MicroLabel size={10.5} style={{ color: C.ok }}>Representante legal obligatorio (menor de edad)</MicroLabel>
+                  <MicroLabel size={11} style={{ color: C.ok }}>Representante legal obligatorio (menor de edad)</MicroLabel>
                 </div>
 
                 <div className="space-y-4">

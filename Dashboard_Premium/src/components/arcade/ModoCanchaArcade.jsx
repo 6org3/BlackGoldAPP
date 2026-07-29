@@ -236,7 +236,7 @@ function CanchaTakeover({ onClose }) {
               <ChevronLeft size={16} strokeWidth={2.4} />
             </button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <MicroLabel color={C.goldDeep} size={8.5} tracking=".12em">{header.label}</MicroLabel>
+              <MicroLabel color={C.goldDeep} size={11} tracking=".12em">{header.label}</MicroLabel>
               <p style={{ margin: '3px 0 0', fontSize: 17, fontWeight: 900, letterSpacing: '-.03em', lineHeight: 1.05 }}>{header.title}</p>
             </div>
           </div>

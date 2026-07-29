@@ -64,7 +64,7 @@ export default function PantallaCierre({ state, actions, roster = [] }) {
                 style={{ flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit' }}
               >
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{a.name}</p>
-                <p style={{ margin: '1px 0 0', fontSize: 9.5, color: statusColor }}>{status}</p>
+                <p style={{ margin: '1px 0 0', fontSize: 11, color: statusColor }}>{status}</p>
               </button>
               {sel && (
                 <button
@@ -79,7 +79,7 @@ export default function PantallaCierre({ state, actions, roster = [] }) {
                     border: `1px solid ${saved ? BORDER.okSoft : BORDER.goldStrong}`,
                     color: saved ? C.ok : C.gold,
                     fontFamily: PIXEL,
-                    fontSize: 8.5,
+                    fontSize: 11,
                     letterSpacing: '.03em',
                     cursor: 'pointer',
                   }}

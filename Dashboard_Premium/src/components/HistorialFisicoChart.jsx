@@ -70,16 +70,16 @@ export default function HistorialFisicoChart({ evaluaciones }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-            <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={10} tickMargin={10} />
-            <YAxis yAxisId="left" stroke="rgba(255,255,255,0.2)" fontSize={10} domain={['dataMin - 2', 'dataMax + 2']} />
-            <YAxis yAxisId="right" orientation="right" stroke="rgba(255,255,255,0.2)" fontSize={10} domain={['dataMin - 1', 'dataMax + 1']} />
+            <XAxis dataKey="name" stroke="rgba(255,255,255,0.2)" fontSize={11} tickMargin={10} />
+            <YAxis yAxisId="left" stroke="rgba(255,255,255,0.2)" fontSize={11} domain={['dataMin - 2', 'dataMax + 2']} />
+            <YAxis yAxisId="right" orientation="right" stroke="rgba(255,255,255,0.2)" fontSize={11} domain={['dataMin - 1', 'dataMax + 1']} />
             <Tooltip
               contentStyle={{ backgroundColor: CHART.tooltip.background, border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
               itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
               labelStyle={{ fontSize: '10px', color: CHART.label, marginBottom: '4px' }}
             />
             {/* Leyenda visible: en móvil no hay hover para distinguir las series */}
-            <Legend wrapperStyle={{ fontSize: 10, textTransform: 'uppercase' }} iconType="circle" iconSize={7} />
+            <Legend wrapperStyle={{ fontSize: 11, textTransform: 'uppercase' }} iconType="circle" iconSize={7} />
             <Area yAxisId="left" type="monotone" dataKey="peso" stroke={COLORS.feedback.successSoft} name="Peso (kg)" strokeWidth={2} fillOpacity={1} fill="url(#colorPeso)" />
             <Area yAxisId="right" type="monotone" dataKey="imc" stroke={COLORS.feedback.mental} name="IMC" strokeWidth={2} fillOpacity={1} fill="url(#colorImc)" />
           </AreaChart>

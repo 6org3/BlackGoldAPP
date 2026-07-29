@@ -27,7 +27,7 @@ export default function SalidaAdmin({ label, onClick }) {
         clipPath: cut(10),
         color: C.gold,
         fontFamily: PIXEL,
-        fontSize: 8,
+        fontSize: 11,
         cursor: 'pointer',
       }}
     >

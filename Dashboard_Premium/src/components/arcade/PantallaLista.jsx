@@ -30,7 +30,7 @@ export default function PantallaLista({ state, actions, roster = [] }) {
               color: C.ok,
               clipPath: cut(8),
               fontFamily: PIXEL,
-              fontSize: 8.5,
+              fontSize: 11,
               letterSpacing: '.04em',
               cursor: 'pointer',
             }}
@@ -51,7 +51,7 @@ export default function PantallaLista({ state, actions, roster = [] }) {
             clipPath: cut(12),
           }}
         >
-          <MicroLabel color={C.text3} size={10} style={{ marginBottom: 8 }}>SIN ATLETAS</MicroLabel>
+          <MicroLabel color={C.text3} size={11} style={{ marginBottom: 8 }}>SIN ATLETAS</MicroLabel>
           <p style={{ margin: 0, fontSize: 12, color: C.text3, lineHeight: 1.5 }}>
             El bloque <b style={{ color: C.text2 }}>{state.level || '—'}</b> no tiene atletas asignados.
           </p>
@@ -72,7 +72,7 @@ export default function PantallaLista({ state, actions, roster = [] }) {
             }}
           >
             <div style={{ flex: 1 }}>
-              <MicroLabel color={C.text3} size={8.5} tracking=".06em">PRESENTES</MicroLabel>
+              <MicroLabel color={C.text3} size={11} tracking=".06em">PRESENTES</MicroLabel>
               <p style={{ margin: '4px 0 0' }}>
                 <span style={{ fontFamily: PIXEL, fontSize: 21, color: C.ok }}>{presentCount}</span>
                 <span style={{ fontFamily: PIXEL, fontSize: 13, color: C.text3 }}> / {listRoster.length}</span>
@@ -106,7 +106,7 @@ export default function PantallaLista({ state, actions, roster = [] }) {
                   <HexAvatar size={34} hue={a.hue} initial={a.name.charAt(0)} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{a.name}</p>
-                    <p style={{ margin: '1px 0 0', fontSize: 9.5, color: C.text3 }}>{a.pos + (a.alert ? ` · ${a.alert}` : '')}</p>
+                    <p style={{ margin: '1px 0 0', fontSize: 11, color: C.text3 }}>{a.pos + (a.alert ? ` · ${a.alert}` : '')}</p>
                   </div>
                   <SegmentToggle
                     value={st}

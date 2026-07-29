@@ -23,7 +23,7 @@ import { C, BORDER, TINT, GRAD, cut } from './arcade/arcadeTokens';
 
 const chip = (bg, border, color) => ({
   clipPath: cut(4), background: bg, border: `1px solid ${border}`, color,
-  fontSize: 9, fontWeight: 900, letterSpacing: '.08em', padding: '3px 7px', textTransform: 'uppercase',
+  fontSize: 11, fontWeight: 900, letterSpacing: '.08em', padding: '3px 7px', textTransform: 'uppercase',
 });
 
 function Ocupacion({ inscritos, cupo }) {

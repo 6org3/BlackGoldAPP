@@ -102,9 +102,15 @@
      ---------------------------------------------------------- */
   --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
 
-  --text-3xs: 0.5625rem;            /* 9px — nano labels (reemplaza text-[9px]) */
+  /* Piso de texto funcional = 11px (espejo de TEXT_MIN en arcadeTokens.js).
+     3xs (9px) y 2xs (10px) quedaban por debajo y entre las dos rotulaban
+     cientos de nodos de dato real en los portales de coach y dueño. Al subir
+     ambas al piso colapsan en el mismo valor: se conservan los dos nombres
+     para no reescribir los 57 archivos que ya los usan, pero ya no son una
+     escala — son el mismo suelo de legibilidad. */
+  --text-3xs: 0.6875rem;            /* 11px — piso de texto funcional */
   --text-3xs--line-height: 1.35;
-  --text-2xs: 0.625rem;             /* 10px — micro labels (reemplaza text-[10px]) */
+  --text-2xs: 0.6875rem;            /* 11px — piso de texto funcional */
   --text-2xs--line-height: 1.4;
 
   --tracking-eyebrow: 0.2em;        /* labels uppercase de sección/chip */
