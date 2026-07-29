@@ -14,7 +14,8 @@
     "functions:sync": "node scripts/sync_edge_shared.mjs",
     "functions:deploy": "npm run functions:sync && npx supabase functions deploy generar-misiones-ia",
     "functions:deploy:brain": "npm run functions:sync && npx supabase functions deploy brain-gateway",
-    "functions:deploy:copiloto": "npm run functions:sync && npx supabase functions deploy copiloto"
+    "functions:deploy:copiloto": "npm run functions:sync && npx supabase functions deploy copiloto",
+    "functions:deploy:registro": "npm run functions:sync && npx supabase functions deploy registro-publico"
   },
   "dependencies": {
     "@fontsource/outfit": "^5.3.0",
