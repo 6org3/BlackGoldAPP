@@ -121,7 +121,7 @@ Si se necesita que un agente opere sobre algo que ninguno de los dos MCP cubre t
 
 ## Rack documental deportivo (conocimiento del deporte)
 
-Corpus de ciencia del deporte del club, indexado con BM25 por `blackgold-mcp/src/rack.js`. Detalle completo (fuentes, inventario de docs, cómo nutrirlo) en [`blackgold-mcp/CLAUDE.md`](blackgold-mcp/CLAUDE.md) y la skill `add-rack-doc`. **Regla dura: el conocimiento del deporte vive en el rack, nunca hardcodeado en `src/index.js`.**
+Corpus de ciencia del deporte del club, indexado con BM25 por `packages/brain-core/rackMotor.js` + `packages/brain-core/rack.js` (el motor se movió ahí en el refactor de brain-core; ya no vive en `blackgold-mcp/src/`). Detalle completo (fuentes, inventario de docs, cómo nutrirlo) en [`blackgold-mcp/CLAUDE.md`](blackgold-mcp/CLAUDE.md) y la skill `add-rack-doc`; plan de evolución con disparadores en [`docs/plan_semantico_rack.md`](docs/plan_semantico_rack.md). **Regla dura: el conocimiento del deporte vive en el rack, nunca hardcodeado en `src/index.js`.**
 
 ---
 Última actualización: 2026-07-29.

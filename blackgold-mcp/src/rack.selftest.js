@@ -6,14 +6,12 @@
 //   - ADVIERTE si un sub-pilar tiene < MIN_CHUNKS fragmentos etiquetados (salud del corpus).
 //   - GOLDEN QUERIES: una consulta por sub-pilar; advierte si ningún doc esperado
 //     aparece en el top-3. Es la métrica que decide si BM25+etiquetas alcanza o si
-//     algún día hay que saltar a embeddings (ver plan semántico, Fase C).
+//     algún día hay que saltar a embeddings (ver docs/plan_semantico_rack.md, Fase C).
 import { buscarRack, inventarioRack } from "../../packages/brain-core/rack.js";
 
 const MIN_CHUNKS = 3;
 
-// Docs esperados por sub-pilar. Incluyen docs del plan de corpus aún no redactados
-// (taxonomia_pilares_subpilares, recuperacion_carga_descanso, trabajo_casa_atleta):
-// la advertencia se resuelve sola cuando se engorde el corpus.
+// Docs esperados por sub-pilar.
 const GOLDEN = [
   { subpilar: "fuerza", consulta: "fuerza ejercicios entrenamiento progresión edad", esperados: ["manual_entrenamiento.md", "taxonomia_pilares_subpilares.md", "fundamentos_iniciacion_vinueza.md", "baremos_cientificos.md"] },
   { subpilar: "explosividad", consulta: "explosividad salto CMJ umbrales edad", esperados: ["baremos_cientificos.md", "taxonomia_pilares_subpilares.md", "manual_entrenamiento.md"] },
@@ -25,6 +23,11 @@ const GOLDEN = [
   { subpilar: "resiliencia", consulta: "resiliencia mentalidad ejercicios presión", esperados: ["mentalidad_mamba.md", "taxonomia_pilares_subpilares.md"] },
   { subpilar: "recuperacion", consulta: "recuperación sueño hidratación fatiga carga descanso", esperados: ["recuperacion_carga_descanso.md", "trabajo_casa_atleta.md", "manual_entrenamiento.md"] },
   { subpilar: "composicion_corporal", consulta: "composición corporal antropometría peso talla", esperados: ["taxonomia_pilares_subpilares.md", "fundamentos_iniciacion_vinueza.md", "baremos_cientificos.md"] },
+  // Duras: un solo doc esperado. Verifican que el conocimiento específico sea recuperable,
+  // no solo que el doc canónico del sub-pilar domine.
+  { subpilar: "resiliencia (clima)", consulta: "abandono deportivo presión de los padres diversión", esperados: ["clima_motivacional_abandono.md"] },
+  { subpilar: "composicion (IMC)", consulta: "IMC percentil por edad y sexo en menores", esperados: ["antropometria_composicion_corporal.md"] },
+  { subpilar: "confianza (n)", consulta: "cuántas mediciones hacen falta para confiar en una tendencia", esperados: ["sesgo_muestra_pequena.md"] },
 ];
 
 const inv = inventarioRack();
