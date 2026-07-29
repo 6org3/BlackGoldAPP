@@ -28,4 +28,6 @@ Ver la skill `add-rack-doc` (`.claude/skills/add-rack-doc/SKILL.md`) para el flu
 
 README operativo del corpus: `blackgold-mcp/knowledge/README.md`. Al añadir docs, mantener sincronizado este inventario.
 
+> **Además de `npm run rack`, correr `npm run functions:sync` en `Dashboard_Premium/`.** Las Edge Functions corren en Deno y no leen disco: consumen el corpus embebido en `supabase/functions/_shared/brain-core/rack-corpus.generado.js`. Si se omite, el spec `edgeSharedSync.test.js` falla en CI por divergencia con `knowledge/`.
+
 Plan de evolución del rack: [`docs/plan_semantico_rack.md`](../docs/plan_semantico_rack.md) — Fase A (BM25 + capa semántica) es lo implementado; Fase B (corpus en Supabase) y Fase C (embeddings/pgvector) son diseño con **disparadores explícitos**, no trabajo pendiente. No adelantarlas sin que se cumpla un disparador.
