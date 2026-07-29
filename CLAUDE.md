@@ -30,18 +30,21 @@ Si una versión anterior de este documento (o cualquier doc de `docs/plan_remedi
 Auditoría completa (RLS, Edge Functions, MCPs, secretos, despliegue) con verificación adversarial de cada hallazgo. Resultado en el PR #143. **Lo cerrado en código está en ese PR; lo que sigue abierto y NO puede hacerse desde el repositorio:**
 
 1. **Rotar credenciales expuestas** (solo el dueño, dashboard de Supabase). El repo es público y tuvo trackeados el password del superadmin global, el del owner de NLB y el algoritmo que genera el de todo el staff sembrado. El código ya está limpio, pero los valores siguen en el historial: hay que rotar, no basta con borrar. Igual la anon key legacy expuesta desde `da5f5c1` — usar el formato `sb_publishable_*` en `.env.local` **no** prueba que las legacy estén desactivadas, siguen vivas hasta desactivarlas explícitamente.
-2. **Aplicar v52** con `npx supabase db push`.
-3. **Desplegar `generar-misiones-ia`** con `npm run functions:deploy` (era la única Edge Function sin autenticación).
+2. **Desplegar `generar-misiones-ia`** con `npm run functions:deploy` (era la única Edge Function sin autenticación).
+3. **Desplegar `registro-publico`** con `npm run functions:deploy:registro` — **solo DESPUÉS de aplicar v52** (ya aplicada, ver abajo). El control de abuso anota cada intento en `registro_intentos` y es *fail-closed*: si esa tabla no existe, la función responde 503 a **todo** registro. Migración primero, función después.
+
+**v52 y v53 YA ESTÁN APLICADAS** en producción — verificado el 2026-07-29 con `npx supabase migration list` (ambas aparecen con versión remota). Si otra parte de este documento dice que están "escritas pero no aplicadas", está desactualizada. La única sin aplicar es **v54**.
 
 Los P2 se abordaron en el PR #146 (v53 + fuentes propias + paginación de PostgREST + guardarraíles). Lo que **queda abierto** de ese lote:
 
-- **`registro-publico`** sin captcha ni rate limit, y sin rollback si `admin.createUser` falla tras la RPC (deja la cédula ocupada para siempre). La tabla `registro_intentos` ya existe en v52; falta cablearla.
 - **Gate de cuota del copiloto** en la Edge Function: v53 trae `copiloto_uso` y `consumir_cuota_copiloto`, falta invocarla desde `copiloto/index.ts`.
 - **Mensajes internos de Postgres/GoTrue** devueltos al cliente en `brain-gateway`, `crear-acceso-usuario` y `purgar-usuario-rechazado` (`copiloto` ya lo hace bien y sirve de patrón). Y `crear-acceso-usuario` no comprueba el `estado` del target.
 - **`npm audit fix`** sin `--force` en `Dashboard_Premium` y `blackgold-mcp`, y `zod` sin declarar en `blackgold-mcp/package.json`.
 - **CSP a enforcing**: ya no quedan terceros, así que puede salir de `Report-Only`. Debe ir en un PR aparte con verificación manual en el preview. Ojo: quitar `'unsafe-inline'` de `style-src` NO es viable — hay 1.504 atributos `style=` y los nonces no aplican a atributos; es el techo de la arquitectura, no deuda.
 
 Descartado tras verificación adversarial, **no volver a levantarlo**: la allowlist de CORS (sin `Allow-Credentials` y con la sesión en el header `Authorization` no concede nada, y es el único cambio capaz de tumbar todos los previews), `precio_servicio_atleta` (v27 ya revoca `anon`), `p_registrado_por` (la RLS lo ata desde v27), `club_id: null` en el MCP (es la semántica de catálogo global) y la CVE de `react-router` (aplica al modo RSC; esta app es una SPA con `BrowserRouter`).
+
+**P1-6 (control de abuso y rollback del registro público) ya está cerrado en código** — PR #145: límite por IP (5/hora, cuenta todo intento) y tope por club (20/día, solo altas efectivas más las peticiones en vuelo) sobre `registro_intentos`, compensación del alta cuando `admin.createUser` falla, y captcha Turnstile verificado server-side pero **inerte** hasta que se configuren `TURNSTILE_SECRET_KEY` (Supabase → Edge Functions → Secrets) y `VITE_TURNSTILE_SITE_KEY` (Vercel). Los umbrales se ajustan sin redesplegar con `REGISTRO_LIMITE_IP_HORA` y `REGISTRO_LIMITE_CLUB_DIA`.
 
 ## Stack técnico (Dashboard_Premium)
 

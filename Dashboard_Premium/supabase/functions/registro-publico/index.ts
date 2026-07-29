@@ -44,6 +44,14 @@ const emailParaAuth = (correo: string | null | undefined, cedula: string) =>
 const haceUnaHora = () => new Date(Date.now() - 60 * 60 * 1000).toISOString();
 const haceUnDia = () => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+// Cuánto se considera "en vuelo" una petición que aún no terminó, para que
+// reserve cupo del club mientras corre (ver paso 3). Holgado respecto a lo que
+// tarda el peor caso real —RPC + una o dos llamadas a la Admin API de Auth—
+// pero corto para que un intento fallido no penalice al club más que unos
+// minutos.
+const RESERVA_MS = 2 * 60 * 1000;
+const haceLaReserva = () => new Date(Date.now() - RESERVA_MS).toISOString();
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'Método no permitido' }, 405);
@@ -71,7 +79,14 @@ serve(async (req) => {
   }
 
   const ip = ipDeRequest(req.headers);
-  const club = atleta.club || null;
+  // El club se NORMALIZA aquí con la misma regla que aplica registrar_publico()
+  // (`NULLIF(btrim(...), '')`, v33) y se manda ya normalizado a la RPC. Si cada
+  // lado viera un string distinto, el alta caería en el club real mientras el
+  // contador la cargaría a otro cubo: bastaría un espacio final ("NLB ") para
+  // estrenar una cuota diaria intacta cuantas veces se quiera, y el tope por
+  // club dejaría de acotar nada.
+  const club = (atleta.club ?? '').trim() || null;
+  const atletaNormalizado = { ...atleta, club };
 
   // 1. Captcha (si está configurado) ANTES de tocar la base: un bot no debe
   //    llegar siquiera a consumir una fila de registro_intentos.
@@ -82,7 +97,9 @@ serve(async (req) => {
   //    y el conteo se incluye a sí mismo: si se anotara al final, un atacante
   //    que dispara N peticiones en paralelo pasaría todas (todas leerían el
   //    contador a cero antes de que ninguna hubiera escrito). Cada petición en
-  //    vuelo deja su marca primero, así que la carrera queda cerrada.
+  //    vuelo deja su marca primero, así que para ESTE límite la carrera queda
+  //    cerrada — el tope por club cuenta `exito`, que no se marca hasta el
+  //    final, y por eso necesita además la reserva del paso 3.
   //    Se anota con exito=false y se corrige al final: un intento que muere a
   //    medias cuenta como intento, que es justo lo que interesa medir.
   const { data: intento, error: eIntento } = await supabase
@@ -98,13 +115,22 @@ serve(async (req) => {
   }
 
   const limiteIp = leerLimite('REGISTRO_LIMITE_IP_HORA', LIMITE_IP_HORA_DEFAULT);
-  const { count: intentosIp } = await supabase
+  const { count: intentosIp, error: eConteoIp } = await supabase
     .from('registro_intentos')
     .select('id', { count: 'exact', head: true })
     .eq('ip', ip)
     .gte('created_at', haceUnaHora());
 
-  if ((intentosIp ?? 0) > limiteIp) {
+  // Mismo criterio que el INSERT: un contador que no se puede leer no autoriza
+  // nada. Sin esto el límite falla ABIERTO — un timeout de la consulta (o un
+  // 5xx del pooler) devuelve count nulo, `0 > 5` es falso y la petición pasa,
+  // justo cuando la tabla está bajo la ráfaga que se quiere frenar.
+  if (eConteoIp || intentosIp === null) {
+    console.error('[registro-publico] no se pudo contar por IP:', eConteoIp?.message ?? 'count nulo');
+    return jsonResponse({ error: 'No se pudo procesar el registro en este momento. Inténtalo en unos minutos.' }, 503);
+  }
+
+  if (intentosIp > limiteIp) {
     console.warn(`[registro-publico] IP ${ip} bloqueada: ${intentosIp} intentos en la última hora.`);
     return jsonResponse({
       error: 'Recibimos demasiadas inscripciones desde esta conexión en la última hora. '
@@ -112,19 +138,42 @@ serve(async (req) => {
     }, 429);
   }
 
-  // 3. Tope por club sobre las altas EFECTIVAS del día (ver nota en
-  //    controlAbuso.ts sobre por qué aquí no cuentan los fallos).
+  // 3. Tope por club. Cuenta las altas EFECTIVAS del día (ver nota en
+  //    controlAbuso.ts sobre por qué aquí no cuentan los fallos) MÁS las
+  //    peticiones todavía en vuelo.
+  //
+  //    Lo segundo cierra una carrera que el límite por IP no cubre: `exito` no
+  //    se marca hasta el final (después de la RPC y de createUser), así que
+  //    durante esa ventana ninguna petición es visible para las demás y N
+  //    simultáneas leerían todas el mismo contador viejo. Contar como ocupado
+  //    lo insertado hace muy poco reserva el cupo desde el primer instante.
+  //    La reserva dura RESERVA_MS y no 24 h a propósito: un intento fallido
+  //    penaliza al club unos minutos, no el día entero — si los fallos gastaran
+  //    cuota diaria, agotar la de un club con puros errores sería un DoS más
+  //    barato que el abuso que se quiere frenar.
   if (club) {
     const limiteClub = leerLimite('REGISTRO_LIMITE_CLUB_DIA', LIMITE_CLUB_DIA_DEFAULT);
-    const { count: altasClub } = await supabase
-      .from('registro_intentos')
-      .select('id', { count: 'exact', head: true })
-      .eq('club', club)
-      .eq('exito', true)
-      .gte('created_at', haceUnDia());
 
-    if ((altasClub ?? 0) >= limiteClub) {
-      console.warn(`[registro-publico] club "${club}" al tope: ${altasClub} altas en 24 h.`);
+    const [altas, enVuelo] = await Promise.all([
+      supabase.from('registro_intentos')
+        .select('id', { count: 'exact', head: true })
+        .eq('club', club).eq('exito', true).gte('created_at', haceUnDia()),
+      supabase.from('registro_intentos')
+        .select('id', { count: 'exact', head: true })
+        .eq('club', club).eq('exito', false).gte('created_at', haceLaReserva()),
+    ]);
+
+    if (altas.error || enVuelo.error || altas.count === null || enVuelo.count === null) {
+      console.error('[registro-publico] no se pudo contar por club:',
+        altas.error?.message ?? enVuelo.error?.message ?? 'count nulo');
+      return jsonResponse({ error: 'No se pudo procesar el registro en este momento. Inténtalo en unos minutos.' }, 503);
+    }
+
+    // `>` y no `>=`: la fila de ESTA petición ya está insertada y entra en
+    // `enVuelo`, así que el total se incluye a sí mismo igual que en el de IP.
+    const ocupado = altas.count + enVuelo.count;
+    if (ocupado > limiteClub) {
+      console.warn(`[registro-publico] club "${club}" al tope: ${altas.count} altas + ${enVuelo.count} en vuelo.`);
       return jsonResponse({
         error: 'Este club alcanzó el máximo de inscripciones en línea por hoy. '
           + 'Vuelve a intentarlo mañana o contacta directamente al club.',
@@ -136,7 +185,7 @@ serve(async (req) => {
   //    La RPC fuerza rol atleta/padre server-side y trae los mensajes
   //    amigables de duplicados (cédula ya registrada, teléfono repetido).
   const { data: reg, error: eReg } = await supabase.rpc('registrar_publico', {
-    p_atleta: atleta,
+    p_atleta: atletaNormalizado,
     p_padre: padre,
   });
   if (eReg) return jsonResponse({ error: eReg.message }, 400);
@@ -189,12 +238,24 @@ serve(async (req) => {
       return (data?.length ?? 0) > 0;
     };
 
-    const revertido = reg?.atleta_usuario_id ? await revertir(reg.atleta_usuario_id) : false;
-    // El representante solo se borra si nació en ESTA llamada: si ya existía,
-    // tiene otros hijos y su cuenta no es nuestra para deshacer.
-    if (reg?.padre_id && !reg?.padre_existente) await revertir(reg.padre_id);
+    // La causa nunca se le devuelve al registrante —diría si esa cédula o ese
+    // correo ya tienen cuenta, que es el oráculo de existencia que v52 §4
+    // cerró en resolver_email_login— pero sí queda en el log: sin esto no
+    // habría rastro de por qué falló.
+    const causa = eAuthAtleta.message || '';
+    console.error('[registro-publico] createUser falló:', causa);
 
-    if (!revertido) {
+    const revertidoAtleta = reg?.atleta_usuario_id ? await revertir(reg.atleta_usuario_id) : false;
+    // El representante se borra solo si (a) nació en ESTA llamada — si ya
+    // existía tiene otros hijos y su cuenta no es nuestra para deshacer — y
+    // (b) la fila del atleta SÍ desapareció. Sin (b) se dejaría al menor
+    // registrado y sin representante, peor que no haber revertido nada.
+    if (revertidoAtleta && reg?.padre_id && !reg?.padre_existente) {
+      const revertidoPadre = await revertir(reg.padre_id);
+      if (!revertidoPadre) console.error('[registro-publico] representante sin revertir:', reg.padre_id);
+    }
+
+    if (!revertidoAtleta) {
       // La cédula quedó ocupada por una fila sin acceso. Se dice tal cual: es
       // un caso que solo el club puede desatascar (rechazar + purgar, v45), y
       // callarlo mandaría al registrante a reintentar contra un UNIQUE que ya
@@ -207,8 +268,18 @@ serve(async (req) => {
       }, 500);
     }
 
+    // Se revirtió todo, pero "inténtalo de nuevo" solo vale si el fallo puede
+    // pasarse solo. Si el email sintético (o el correo dado) ya pertenece a
+    // otra cuenta de Auth, reintentar fallará idéntico las veces que sea: eso
+    // lo desatasca el club, no la insistencia. Caso real y documentado: una
+    // purga a medias (v45) deja viva la cuenta de Auth sin su fila en
+    // `usuarios`.
+    const permanente = /already been registered|already exists|already registered/i.test(causa);
     return jsonResponse({
-      error: 'No se pudo generar la cuenta de acceso. No se guardó nada: vuelve a intentarlo en unos minutos.',
+      error: permanente
+        ? 'No se pudo crear la cuenta de acceso porque ese correo o esa cédula ya tienen una. '
+          + 'No se guardó nada; contacta al club para que lo revisen.'
+        : 'No se pudo generar la cuenta de acceso. No se guardó nada: vuelve a intentarlo en unos minutos.',
     }, 500);
   }
 

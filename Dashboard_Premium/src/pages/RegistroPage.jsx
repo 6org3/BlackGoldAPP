@@ -36,6 +36,11 @@ export default function RegistroPage() {
   // pública; sin ella `captchaActivo` es false y nada cambia para el usuario.
   const captchaActivo = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
   const [captchaToken, setCaptchaToken] = useState(null);
+  // Si el widget no llega a cargar (red que bloquea challenges.cloudflare.com,
+  // bloqueador de anuncios), NO se deja el botón muerto: se envía igual y que
+  // responda el servidor, que es quien decide. Un botón gris sin explicación
+  // convertiría un fallo de un tercero en una caída del formulario público.
+  const [captchaDisponible, setCaptchaDisponible] = useState(true);
   // El token es de un solo uso: tras un intento fallido hay que pedir uno nuevo
   // o el reintento se rechazaría siempre por captcha ya consumido.
   const [reintentoCaptcha, setReintentoCaptcha] = useState(0);
@@ -250,11 +255,15 @@ export default function RegistroPage() {
 
           {/* Solo aparece si el club activó Turnstile (VITE_TURNSTILE_SITE_KEY);
               sin clave no renderiza nada y el formulario queda igual que antes. */}
-          <CaptchaTurnstile onToken={setCaptchaToken} reintento={reintentoCaptcha} />
+          <CaptchaTurnstile
+            onToken={setCaptchaToken}
+            onDisponible={setCaptchaDisponible}
+            reintento={reintentoCaptcha}
+          />
 
           <button
             type="submit"
-            disabled={loading || (captchaActivo && !captchaToken)}
+            disabled={loading || (captchaActivo && captchaDisponible && !captchaToken)}
             className="cut-focus w-full flex items-center justify-center gap-2 min-h-11 disabled:opacity-50 active:scale-[0.99] transition"
             style={{ clipPath: cut(12), background: GRAD.goldCTA, color: C.ink, fontWeight: 900, fontSize: 14, letterSpacing: '.08em', textTransform: 'uppercase', border: 'none', padding: '13px' }}
           >
