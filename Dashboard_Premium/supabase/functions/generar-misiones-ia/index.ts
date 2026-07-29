@@ -17,7 +17,6 @@
 // progreso_misiones — el 23505 se cuenta como omisión, nunca como error.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   calcularCategoriaFEB,
   categoriaABucketBaremo,
@@ -25,17 +24,7 @@ import {
   seleccionarMisiones,
 } from "../_shared/analytics-core/index.js";
 import { analizarReadiness } from "../_shared/brain-core/readiness.js";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const jsonResponse = (body: unknown, status: number) =>
-  new Response(JSON.stringify(body), {
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    status,
-  });
+import { autenticar, fueraDeAlcance, jsonResponse, obtenerAtleta } from "../_shared/brainAuth.ts";
 
 // Genera una misión con Gemini para una debilidad sin cobertura de catálogo.
 // Best-effort: cualquier fallo devuelve null (la debilidad se reporta sin misión).
@@ -103,12 +92,16 @@ async function generarMisionConIA(
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-  if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Método no permitido' }, 405);
-  }
+  // Identidad y alcance ANTES de tocar nada. Esta función corre con
+  // service_role, que salta toda la RLS: sin este bloque el `atleta_id` del
+  // body era el único "control de acceso", así que cualquiera con la anon key
+  // pública (va en el bundle) leía el perfil físico y las alertas de readiness
+  // de un menor de cualquier club, y escribía en sus misiones. Mismo patrón
+  // que brain-gateway, que es el correcto.
+  const auth = await autenticar(req);
+  if (auth.error) return auth.error;
+  const caller = auth.caller!;
+  const supabase = auth.admin!;
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -119,10 +112,12 @@ serve(async (req) => {
       return jsonResponse({ error: 'Falta atleta_id en el body' }, 400);
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
+    // El caller debe poder ver a este atleta: owner solo su club, coach club +
+    // categoría, atleta solo a sí mismo, padre solo a sus hijos.
+    const objetivo = await obtenerAtleta(supabase, atletaId);
+    if (objetivo.error) return objetivo.error;
+    const rechazo = await fueraDeAlcance(supabase, caller, objetivo.target!);
+    if (rechazo) return jsonResponse({ error: rechazo }, 403);
 
     // 1. Atleta + fecha de nacimiento → categoría FEB → bucket de baremo
     const { data: atleta, error: atletaError } = await supabase
@@ -132,7 +127,8 @@ serve(async (req) => {
       .single();
 
     if (atletaError || !atleta) {
-      return jsonResponse({ error: `Atleta no encontrado: ${atletaError?.message ?? atletaId}` }, 404);
+      if (atletaError) console.error('generar-misiones-ia atleta:', atletaError);
+      return jsonResponse({ error: 'Atleta no encontrado.' }, 404);
     }
 
     const fechaNacimiento = (atleta.usuarios as { fecha_nacimiento?: string } | null)?.fecha_nacimiento ?? null;
@@ -353,7 +349,9 @@ serve(async (req) => {
       },
     }, 200);
   } catch (error) {
-    console.error(error);
-    return jsonResponse({ error: (error as Error).message }, 500);
+    // El detalle va al log del servidor, no al cliente: los mensajes de
+    // Postgres/PostgREST delatan nombres de tabla, columnas y políticas.
+    console.error('generar-misiones-ia:', error);
+    return jsonResponse({ error: 'No se pudieron generar las misiones. Reintenta en un momento.' }, 500);
   }
 });
