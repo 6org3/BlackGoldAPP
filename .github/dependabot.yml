@@ -1,0 +1,62 @@
+# Dependabot — actualizaciones de dependencias con revisión humana.
+#
+# Existe sobre todo por las GitHub Actions: desde que se fijan por SHA
+# (.github/workflows/ci.yml) ya no se actualizan solas al mover el tag, que es
+# justo lo que se quería. Dependabot es lo que evita que ese pinning se
+# convierta en "nunca más se actualiza": abre un PR con el SHA nuevo y el
+# comentario de versión al día, y una persona decide.
+#
+# Todo va en PR, nunca automerge: `main` está protegida y este repo es público.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(ci)'
+    labels:
+      - dependencias
+
+  # App principal. Agrupado para no abrir doce PRs a la vez: los parches de
+  # seguridad se separan del ruido de minors para poder priorizarlos.
+  - package-ecosystem: npm
+    directory: /Dashboard_Premium
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+    labels:
+      - dependencias
+    groups:
+      seguridad:
+        applies-to: security-updates
+        patterns: ['*']
+      menores:
+        applies-to: version-updates
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+
+  # Los dos servidores MCP corren con la service_role key: sus dependencias
+  # importan aunque no toquen el navegador.
+  - package-ecosystem: npm
+    directory: /blackgold-mcp
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'chore(deps)'
+    labels:
+      - dependencias
+
+  - package-ecosystem: npm
+    directory: /blackgold-negocio-mcp
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'chore(deps)'
+    labels:
+      - dependencias

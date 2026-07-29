@@ -40,11 +40,17 @@ jobs:
       run:
         working-directory: Dashboard_Premium
     steps:
+      # Actions fijadas por SHA, no por tag: `@v4` es un tag MOVIBLE que su
+      # dueño puede reapuntar a otro commit. Quien controle ese repo (o le
+      # comprometa la cuenta) ejecutaría código arbitrario en este pipeline, con
+      # acceso a su token y a sus variables. El SHA es inmutable. El comentario
+      # dice qué versión es, para poder leerlo; Dependabot lo actualiza solo
+      # (.github/dependabot.yml).
       - name: Descargar el código
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           # El repo no fija versión de Node (no hay "engines" en package.json
           # ni .nvmrc). Node 22 es la que usa la máquina de desarrollo y
