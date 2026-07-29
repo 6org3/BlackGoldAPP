@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useMemo, useRef, useState } from 'react';
+import { useReducer, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { fetchReadinessHoy, checkinDisponible } from '../../api/readinessService';
 import { ATLETA_MOCK, MINI_QUIZ } from './atletaMock';
 import { fetchAtletaPanel, completarMision, responderRSVP, alertaReadiness } from './atletaData';
@@ -81,6 +81,8 @@ export default function useAtleta(user) {
   const [state, dispatch] = useReducer(reducer, initialState, (base) => ({ ...base, aTab: tabPersistida() }));
   const [data, setData] = useState(() => (isReal ? null : ATLETA_MOCK));
   const [loading, setLoading] = useState(isReal);
+  const [error, setError] = useState(null);
+  const [reintento, setReintento] = useState(0);
 
   // Refs con el último estado/datos para leerlos dentro de acciones async
   // (guards de envío/RSVP) sin recrear el objeto de acciones en cada cambio.
@@ -106,16 +108,21 @@ export default function useAtleta(user) {
           setLoading(false);
         }
       })
-      .catch(() => {
+      .catch((e) => {
+        // NO se degrada a ATLETA_MOCK. Ese objeto es el perfil demo de otra
+        // persona (nombre, XP, radar y rango inventados) y ningún componente
+        // muestra el badge `demo`, así que un atleta real con un corte de red
+        // veía datos ajenos presentados como propios y podía darlos por buenos.
+        // Mejor decir "no pude cargar" que mentir con seguridad.
         if (alive) {
-          setData(ATLETA_MOCK); // degradación defensiva
+          setError(e?.message || 'No pudimos cargar tu perfil.');
           setLoading(false);
         }
       });
     return () => {
       alive = false;
     };
-  }, [isReal, user]);
+  }, [isReal, user, reintento]);
 
   // Check-in de readiness del día. Se consulta fresco (no se usa
   // user.readiness_hoy, que se resolvió al hacer login y quedaría de ayer en una
@@ -197,5 +204,11 @@ export default function useAtleta(user) {
     [isReal, user],
   );
 
-  return { state, data, actions, loading, isReal };
+  const reintentar = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    setReintento((n) => n + 1);
+  }, []);
+
+  return { state, data, actions, loading, isReal, error, reintentar };
 }

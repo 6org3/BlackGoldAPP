@@ -1,5 +1,6 @@
 // src/api/atletasService.js
 import { supabase } from './supabaseClient';
+import { traerTodo } from './paginacion';
 import { calculateRank } from './authService';
 import { calcularCategoriaFEB, calcularMetricasDerivadas } from './utilsAtletas';
 import { fechaNacimientoDeEdad } from '../lib/edad';
@@ -28,6 +29,17 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
     orderBy = null,
   } = options;
 
+  // `,`, `(`, `)` y `%` tienen significado especial en la sintaxis de
+  // filtros de PostgREST (separan términos de `.or()` / delimitan valores);
+  // se retiran del texto de búsqueda para que no se pueda inyectar una
+  // condición de filtro arbitraria a través del cuadro de búsqueda.
+  // Vive fuera de construirQuery porque el refinado en memoria de más abajo
+  // (coincideBusqueda) también lo usa.
+  const sanitizedSearch = search.replace(/[,()%]/g, '').trim();
+
+  // Función, no una consulta ya construida: los builders de PostgREST no se
+  // pueden re-ejecutar, y el camino sin límite necesita pedir varias páginas.
+  const construirQuery = () => {
   let query = supabase
     .from('atletas')
     .select(`
@@ -61,11 +73,6 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
     query = query.eq('usuarios.categoria_feb', user.categoria);
   }
 
-  // `,`, `(`, `)` y `%` tienen significado especial en la sintaxis de
-  // filtros de PostgREST (separan términos de `.or()` / delimitan valores);
-  // se retiran del texto de búsqueda para que no se pueda inyectar una
-  // condición de filtro arbitraria a través del cuadro de búsqueda.
-  const sanitizedSearch = search.replace(/[,()%]/g, '').trim();
   if (sanitizedSearch) {
     // `ilike` es sensible a tildes ('Nuñez' jamás encontraría 'Núñez' y la BD
     // no tiene `unaccent`): al servidor se le pide un SUPERCONJUNTO con el
@@ -120,13 +127,23 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   // orden) puede repetir o saltarse filas entre páginas consecutivas.
   query = query.order('id');
 
+  return query;
+  };
+
+  let atletas, count, error;
   if (limit > 0) {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
-    query = query.range(from, to);
+    ({ data: atletas, count, error } = await construirQuery().range(from, to));
+  } else {
+    // Sin límite NO significa "todas": sin `.range()` explícito PostgREST corta
+    // en `db-max-rows` (1000 por defecto) y no avisa. Con varios clubes el
+    // plantel del superadmin ya se acerca a esa cifra, así que se pagina.
+    const res = await traerTodo(construirQuery);
+    atletas = res.data;
+    error = res.error;
+    count = res.data ? res.data.length : 0;
   }
-
-  const { data: atletas, count, error } = await query;
 
   if (error || !atletas) {
     console.error('Error fetching atletas:', error);
@@ -137,13 +154,21 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
     return limit > 0 ? { data: [], hasMore: false } : [];
   }
 
-  // Fetch evaluaciones for all athletes
+  // Fetch evaluaciones for all athletes.
+  // Paginado explícito: el orden es GLOBAL por fecha, así que al pasar de 1000
+  // filas los atletas cuya última evaluación es más antigua se quedaban sin
+  // ninguna — indistinguible de "nunca se evaluó", y con el radar y el overall
+  // calculados sobre un historial incompleto.
   const atletaIds = atletas.map(a => a.id);
-  const { data: evaluaciones } = await supabase
-    .from('evaluaciones_pruebas')
-    .select('*')
-    .in('atleta_id', atletaIds)
-    .order('created_at', { ascending: false });
+  const { data: evaluaciones, error: errEvals } = await traerTodo(() =>
+    supabase
+      .from('evaluaciones_pruebas')
+      .select('*')
+      .in('atleta_id', atletaIds)
+      .order('created_at', { ascending: false })
+      .order('id') // desempate estable entre páginas
+  );
+  if (errEvals) console.error('Error fetching evaluaciones:', errEvals);
 
   // Fetch readiness diario (solo del día de hoy)
   const hoy = new Date().toISOString().split('T')[0];

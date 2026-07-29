@@ -55,7 +55,16 @@ serve(async (req) => {
   const { data: purga, error: eRpc } = await comoUsuario.rpc('purgar_usuario_rechazado', {
     p_usuario_id: usuarioId,
   });
-  if (eRpc) return jsonResponse({ error: eRpc.message }, 400);
+  if (eRpc) {
+    // P0001 = RAISE EXCEPTION de nuestro propio PL/pgSQL: son validaciones de
+    // negocio escritas en español y para el usuario ("solo se pueden purgar
+    // usuarios rechazados"), así que sí se muestran. Cualquier otro código es
+    // del motor y delata tablas, columnas o políticas: al log, no al cliente.
+    console.error('[purgar-usuario-rechazado] RPC:', eRpc.code, eRpc.message);
+    return jsonResponse({
+      error: eRpc.code === 'P0001' ? eRpc.message : 'No se pudo purgar el usuario. Reintenta en un momento.',
+    }, 400);
+  }
 
   // La fila ya no existe en Postgres; borrar también la cuenta de Auth si la
   // tenía (puede ser null: un rechazo puede haber llegado antes de que se le
@@ -63,8 +72,9 @@ serve(async (req) => {
   if (purga?.auth_user_id) {
     const { error: eAuth } = await reintentarAuth(() => admin!.auth.admin.deleteUser(purga.auth_user_id as string));
     if (eAuth) {
+      console.error('[purgar-usuario-rechazado] deleteUser:', eAuth.message);
       return jsonResponse({
-        error: 'Se liberó la cédula pero no se pudo borrar la cuenta de acceso: ' + eAuth.message,
+        error: 'Se liberó la cédula, pero no se pudo borrar la cuenta de acceso. Reintenta la purga.',
         cedula_liberada: purga?.cedula ?? null,
       }, 500);
     }

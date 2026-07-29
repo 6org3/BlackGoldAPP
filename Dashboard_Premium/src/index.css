@@ -1,3 +1,21 @@
+/* Fuentes auto-hospedadas (@fontsource). Antes venían de fonts.googleapis.com,
+   lo que (a) revelaba la IP y el User-Agent de cada atleta y cada padre a un
+   tercero en cada carga, y (b) obligaba a un handler inline en index.html
+   (`onload="this.media='all'"`), único obstáculo para una CSP con
+   `script-src 'self'`. Son 83 KB de woff2 (subconjunto latino), menos que el
+   round-trip a Google en la conectividad 3G/4G del club, y sin depender de que
+   un tercero responda para que el texto aparezca.
+   Los pesos son EXACTAMENTE los que pedía el <link> anterior (Outfit
+   300/400/600/800/900, Silkscreen 400/700), así que el render no cambia: los
+   `font-weight: 700` del código se siguen sintetizando igual, porque ese peso
+   tampoco se cargaba antes. */
+@import "@fontsource/outfit/300.css";
+@import "@fontsource/outfit/400.css";
+@import "@fontsource/outfit/600.css";
+@import "@fontsource/outfit/800.css";
+@import "@fontsource/outfit/900.css";
+@import "@fontsource/silkscreen/400.css";
+@import "@fontsource/silkscreen/700.css";
 @import "tailwindcss";
 @import "./styles/tokens.css";
 

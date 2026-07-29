@@ -1,5 +1,6 @@
 // src/api/evaluacionesService.js
 import { supabase } from './supabaseClient';
+import { traerTodo } from './paginacion';
 import { checkAndCreateRecompensas } from './recompensasService';
 // Sin ciclo: brainService solo importa supabaseClient.
 import { invalidarDiagnostico } from './brainService';
@@ -156,11 +157,18 @@ export const fetchCatalogoPruebas = async () => {
 export const fetchEvaluacionesDeAtletas = async (atletaIds) => {
   if (!atletaIds || atletaIds.length === 0) return {};
 
-  const { data, error } = await supabase
-    .from('evaluaciones_pruebas')
-    .select('*')
-    .in('atleta_id', atletaIds)
-    .order('created_at', { ascending: true });
+  // Paginado explícito: el orden es GLOBAL por fecha, así que sin `.range()`
+  // PostgREST cortaba en 1000 filas sin avisar y los atletas cuya evaluación
+  // más antigua quedaba fuera del corte se devolvían con [] — indistinguible
+  // de "nunca se evaluó".
+  const { data, error } = await traerTodo(() =>
+    supabase
+      .from('evaluaciones_pruebas')
+      .select('*')
+      .in('atleta_id', atletaIds)
+      .order('created_at', { ascending: true })
+      .order('id') // desempate estable entre páginas
+  );
   if (error) throw error;
 
   const porAtleta = {};

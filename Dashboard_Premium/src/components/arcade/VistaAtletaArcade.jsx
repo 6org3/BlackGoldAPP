@@ -27,7 +27,7 @@ function footerStyle(footer) {
  */
 export default function VistaAtletaArcade() {
   const { user } = useAuth();
-  const { state, data, actions, loading } = useAtleta(user);
+  const { state, data, actions, loading, error, reintentar } = useAtleta(user);
   const ctx = data ? buildAtletaCtx(state, data, actions) : null;
 
   const showNav = ctx ? ctx.showNav : true;
@@ -61,7 +61,25 @@ export default function VistaAtletaArcade() {
             contenido del portal — sin él, un lector de pantalla no ofrece el
             salto al contenido y recorre el header en cada cambio de pantalla. */}
         <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: scrollPad, WebkitOverflowScrolling: 'touch' }}>
-          {!ctx || loading ? (
+          {error ? (
+            <div style={{ padding: '36px 8px', textAlign: 'center' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 19, fontWeight: 900, color: C.danger }}>Sin conexión</p>
+              <p style={{ margin: '0 0 18px', fontSize: 13, color: C.text2, lineHeight: 1.5 }}>
+                No pudimos cargar tu perfil. Revisa tu conexión y vuelve a intentarlo.
+              </p>
+              <button
+                type="button"
+                onClick={reintentar}
+                style={{
+                  minHeight: 44, padding: '0 22px', cursor: 'pointer', color: C.ink,
+                  background: C.gold, border: 'none', clipPath: cut(10),
+                  fontSize: 12, fontWeight: 900, letterSpacing: '.1em',
+                }}
+              >
+                REINTENTAR
+              </button>
+            </div>
+          ) : !ctx || loading ? (
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
               <MicroLabel color={C.text3} size={11} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
             </div>
