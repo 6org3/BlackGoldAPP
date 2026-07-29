@@ -149,9 +149,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             onClick={() => navigate('/admin/misiones')}
           />
         )}
-        {/* El coach entra en modo cobro (registrar efectivo y recordar); la ruta
-            ya lo admitía — ocultarle el enlace era una barrera cosmética. */}
-        {esStaff && (
+        {/* Solo dueño: el "modo cobro" del coach (§7.4) quedó descartado por el
+            dueño el 2026-07-22 (docs/pagos_diseno.md §10.4). Ahora la ruta y la
+            RLS (v52) coinciden con este enlace, así que ya no es cosmético. */}
+        {(user.rol === 'owner' || user.rol === 'superadmin') && (
           <NavItem
             icon={<DollarSign size={18} />}
             label="Control de Pagos"

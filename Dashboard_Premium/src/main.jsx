@@ -230,7 +230,11 @@ createRoot(document.getElementById('root')).render(
           <Route
             path="/admin/pagos"
             element={
-              <PrivateRoute roles={['superadmin', 'owner', 'coach']}>
+              /* Sin 'coach': el dueño descartó el "modo cobro" del §7.4 el
+                 2026-07-22 (docs/pagos_diseno.md §10.4, "Pagos es solo-owner").
+                 La RLS lo respalda desde v52; esto evita que el coach llegue a
+                 una pantalla que ya no puede usar. */
+              <PrivateRoute roles={['superadmin', 'owner']}>
                 <AdminPagosPage />
               </PrivateRoute>
             }
