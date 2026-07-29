@@ -6,18 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#09090b" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Carga no bloqueante: en 3G/4G rural el primer render no espera el
-         round-trip a fonts.googleapis.com (media=print se aplica sin bloquear
-         y onload la promueve a all). -->
-    <!-- Silkscreen (pixel) se suma a Outfit en un solo request: SOLO se usa en
-         números grandes y micro-etiquetas del lenguaje "Arcade HUD" (Modo Cancha,
-         Vista Padre); el cuerpo sigue en Outfit. -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
-    </noscript>
+    <!-- Las fuentes (Outfit + Silkscreen) se auto-hospedan vía @fontsource y se
+         importan desde src/index.css. Antes venían de fonts.googleapis.com con
+         un handler inline (onload="this.media='all'") para no bloquear el primer
+         render: eso filtraba la IP de cada atleta y cada padre a un tercero, y
+         el handler era el único obstáculo para una CSP con script-src 'self'.
+         Servidas desde el mismo origen no hay round-trip externo que esperar,
+         así que la carga diferida deja de hacer falta. -->
     <title>Black Gold Premium Dashboard</title>
   </head>
   <body>

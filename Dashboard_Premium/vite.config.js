@@ -61,23 +61,17 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MB
-        // Sin esto, la fuente Outfit no carga offline ni con red débil:
-        // el CSS de Google Fonts no forma parte del precache del build.
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts-css' },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-woff',
-              expiration: { maxEntries: 10, maxAgeSeconds: 31536000 }, // 1 año
-            },
-          },
-        ],
+        // globPatterns explícito: el default de Workbox
+        // (js,css,html,ico,png,svg) NO incluye woff2, así que sin esto las
+        // fuentes auto-hospedadas quedaban fuera del precache y la app
+        // instalada perdía la tipografía al abrirse sin red.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Ya no hace falta runtimeCaching: las fuentes se auto-hospedan
+        // (@fontsource, ver src/index.css), así que son parte del propio build.
+        // Antes había que cachear a mano fonts.googleapis.com y
+        // fonts.gstatic.com porque el CSS de un tercero no entra en el build.
+        // Sigue sin haber NINGUNA regla que cachee respuestas de Supabase: los
+        // datos del club no deben servirse rancios desde el service worker.
       },
       manifest: {
         name: 'Black Gold Premium',
