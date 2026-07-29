@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, User, Phone, Loader2, CheckCircle2 } from 'lucide-react';
 import { registrarDesdeFormularioPublico, fetchClubesPublicos } from '../api/registroPublicoService';
 import { calcularEdad } from '../api/utilsAtletas';
+import CaptchaTurnstile from '../components/CaptchaTurnstile';
 import CutCard from '../components/arcade/CutCard';
 import HexAvatar from '../components/arcade/HexAvatar';
 import MicroLabel from '../components/arcade/MicroLabel';
@@ -30,6 +31,14 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  // Captcha anti-robot. Solo entra en juego si el club configuró la clave
+  // pública; sin ella `captchaActivo` es false y nada cambia para el usuario.
+  const captchaActivo = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  // El token es de un solo uso: tras un intento fallido hay que pedir uno nuevo
+  // o el reintento se rechazaría siempre por captcha ya consumido.
+  const [reintentoCaptcha, setReintentoCaptcha] = useState(0);
 
   const [datosAtleta, setDatosAtleta] = useState({
     nombre: '',
@@ -71,10 +80,13 @@ export default function RegistroPage() {
     setLoading(true);
     setError('');
     try {
-      await registrarDesdeFormularioPublico(datosAtleta, esMenorEdad ? datosPadre : null);
+      await registrarDesdeFormularioPublico(datosAtleta, esMenorEdad ? datosPadre : null, captchaToken);
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Ocurrió un error al registrar.');
+      // Token quemado en el intento fallido: pedir uno nuevo para que el
+      // usuario pueda corregir el dato y reenviar.
+      if (captchaActivo) setReintentoCaptcha((n) => n + 1);
     } finally {
       setLoading(false);
     }
@@ -236,9 +248,13 @@ export default function RegistroPage() {
             </motion.div>
           )}
 
+          {/* Solo aparece si el club activó Turnstile (VITE_TURNSTILE_SITE_KEY);
+              sin clave no renderiza nada y el formulario queda igual que antes. */}
+          <CaptchaTurnstile onToken={setCaptchaToken} reintento={reintentoCaptcha} />
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (captchaActivo && !captchaToken)}
             className="cut-focus w-full flex items-center justify-center gap-2 min-h-11 disabled:opacity-50 active:scale-[0.99] transition"
             style={{ clipPath: cut(12), background: GRAD.goldCTA, color: C.ink, fontWeight: 900, fontSize: 14, letterSpacing: '.08em', textTransform: 'uppercase', border: 'none', padding: '13px' }}
           >
