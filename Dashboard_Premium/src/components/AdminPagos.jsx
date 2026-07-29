@@ -63,6 +63,7 @@ export default function AdminPagos({ user, atletas = [] }) {
   const [pagos, setPagos] = useState([]);
   const [contactos, setContactos] = useState({});      // atleta_id → representante de pagos
   const [loading, setLoading] = useState(false);
+  const [errorCarga, setErrorCarga] = useState(null);
   const [generando, setGenerando] = useState(false);
   const [vencidosListos, setVencidosListos] = useState(false);
   const [mostrarVerificacion, setMostrarVerificacion] = useState(false);
@@ -90,13 +91,24 @@ export default function AdminPagos({ user, atletas = [] }) {
     fetchGruposClub().then(setGrupos);
   }, []);
 
+  // try/finally: sin él una excepción dejaba `loading` en true para siempre, y
+  // con la tabla vacía "no hay pagos este mes" era indistinguible de "falló la
+  // carga" — sobre la pantalla con la que el dueño decide a quién cobrar.
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await fetchPagosMes(mes, anio, grupoId);
-    setPagos(data);
-    setLoading(false);
-    const atletaIds = [...new Set(data.map(p => p.atleta_id))];
-    fetchContactosPago(atletaIds).then(setContactos);
+    try {
+      const data = await fetchPagosMes(mes, anio, grupoId);
+      setPagos(data);
+      setErrorCarga(null);
+      const atletaIds = [...new Set(data.map(p => p.atleta_id))];
+      fetchContactosPago(atletaIds).then(setContactos).catch(() => {});
+    } catch (e) {
+      console.error('AdminPagos: fallo al cargar los pagos del mes', e);
+      setErrorCarga('No pudimos cargar los pagos de este mes.');
+      setPagos([]);
+    } finally {
+      setLoading(false);
+    }
   }, [mes, anio, grupoId]);
 
   useEffect(() => {
@@ -450,6 +462,25 @@ export default function AdminPagos({ user, atletas = [] }) {
           <div className="text-center py-16" style={{ color: C.text3 }}>
             <RefreshCw size={24} className="mx-auto mb-3 animate-spin opacity-30" />
             <p className="text-sm font-bold">Cargando pagos...</p>
+          </div>
+        ) : errorCarga ? (
+          /* Error distinto del vacío: "no hay pagos" invita a generar el mes,
+             y hacer eso sobre una carga fallida factura el club a ciegas. */
+          <div className="text-center py-16" style={{ color: C.text3 }}>
+            <DollarSign size={32} className="mx-auto mb-3 opacity-30" style={{ color: C.danger }} />
+            <p className="text-sm font-bold" style={{ color: C.danger }}>{errorCarga}</p>
+            <p className="text-xs mt-1 mb-4" style={{ color: C.text3 }}>No generes el mes hasta poder ver los pagos actuales.</p>
+            <button
+              type="button"
+              onClick={load}
+              style={{
+                minHeight: 44, padding: '0 22px', cursor: 'pointer', color: C.ink,
+                background: C.gold, border: 'none', clipPath: cut(10),
+                fontSize: 12, fontWeight: 900, letterSpacing: '.1em',
+              }}
+            >
+              REINTENTAR
+            </button>
           </div>
         ) : pagos.length === 0 ? (
           <div className="text-center py-16" style={{ color: C.text3 }}>

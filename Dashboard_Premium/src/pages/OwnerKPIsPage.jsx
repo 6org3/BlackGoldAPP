@@ -54,19 +54,30 @@ export default function OwnerKPIsPage() {
 
   const [atletas, setAtletas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reintento, setReintento] = useState(0);
   const [asistenciaPct, setAsistenciaPct] = useState(null);
   const [misionesCompletadas, setMisionesCompletadas] = useState(null);
 
-  // Load all athletes
+  // Load all athletes. El try/finally importa: sin él, una excepción dejaba
+  // `loading` en true para siempre y la página giraba sin decir nada, así que
+  // el dueño no podía distinguir "cargando" de "se rompió".
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const data = await fetchTodosLosAtletas(user);
-      setAtletas(data);
-      setLoading(false);
+      try {
+        const data = await fetchTodosLosAtletas(user);
+        setAtletas(data);
+        setError(null);
+      } catch (e) {
+        console.error('OwnerKPIsPage: fallo al cargar el plantel', e);
+        setError('No pudimos cargar los datos del club.');
+      } finally {
+        setLoading(false);
+      }
     };
     load();
-  }, [user]);
+  }, [user, reintento]);
 
   // Load attendance for last 7 days
   useEffect(() => {
@@ -224,7 +235,26 @@ export default function OwnerKPIsPage() {
             </div>
           )}
 
-          {!loading && (
+          {/* Error: distinguible del vacío y del "cargando", y con salida. */}
+          {!loading && error && (
+            <div className="flex flex-col items-center justify-center h-64 text-center" style={{ color: C.text3 }}>
+              <p style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 900, color: C.danger }}>No se pudo cargar</p>
+              <p style={{ margin: '0 0 18px', fontSize: 13, color: C.text2 }}>{error}</p>
+              <button
+                type="button"
+                onClick={() => { setError(null); setReintento((n) => n + 1); }}
+                style={{
+                  minHeight: 44, padding: '0 22px', cursor: 'pointer', color: C.ink,
+                  background: C.gold, border: 'none', clipPath: cut(10),
+                  fontSize: 12, fontWeight: 900, letterSpacing: '.1em',
+                }}
+              >
+                REINTENTAR
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && (
             <>
               {/* ===== SECTION 1: Summary KPIs (grid auto-fit §6.4) ===== */}
               <KpiGrid min={190} gap={12} style={{ marginBottom: 48 }}>
