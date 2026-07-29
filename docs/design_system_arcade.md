@@ -177,7 +177,8 @@ Fallback: `C.text2` sobre `rgba(255,255,255,.1)`.
 | Componente | Propósito | Props clave | Cuándo usar |
 |---|---|---|---|
 | **`CutCard`** | Superficie base con esquina cortada; se vuelve control accesible con `onClick` (rol button, foco, teclado) sin cambiar aspecto | `cut=10`, `background`, `border`, `padding`, `onClick`, `ariaLabel` | Todo contenedor de contenido del HUD |
-| **`HexAvatar`** | Avatar/badge hexagonal con inicial o icono, coloreado por `hue` o directo | `initial`/`children`, `size=44`, `hue`, `background`, `color`, `glow`, `onClick` | Identidad de persona/club |
+| **`HexAvatar`** | Avatar/badge hexagonal con inicial, icono o foto, coloreado por `hue` o directo | `initial`/`children`, `size=44`, `hue`, `background`, `color`, `glow`, `onClick`, `src`, `alt`, `onErrorFoto` | Identidad de persona/club |
+| **`AvatarAtleta`** | Envuelve a `HexAvatar` resolviendo la URL firmada de la foto del atleta; con `editable`, badge de cámara que abre `FotoAtletaModal` | `fotoPath`, `nombre`, `size`, `hue`, `editable`, `atletaId`, `onCambio` | **Todo retrato de atleta** |
 | **`Badge`** | Insignia hexagonal que se desbloquea (gris desaturado → hex dorado con glow y `bg-pop`) | `icon`, `name` (admite `\n`), `unlocked` | Logros por eje del atleta |
 | **`Pill`** | Chip de filtro/segmento genérico (activo = oro suave + borde dorado) | `label`, `active`, `onClick`, `accent=C.gold`, `cut=7`, `size=8.5` | Filtros reutilizables (misiones/finanzas) |
 | **`SegmentToggle`** | Toggle P/A de asistencia (Presente=verde, Ausente=rojo, sin marcar=neutro); área táctil ≥44px | `value` (`'P'`/`'A'`/undefined), `onPresent`, `onAbsent`, `name` | Pasar lista |
@@ -193,6 +194,8 @@ Fallback: `C.text2` sobre `rgba(255,255,255,.1)`.
 | **`ArcadeBottomNav`** | Nav inferior (78px) por rol; variantes con **hex central elevado** | `variant` (`coach`/`padre`/`atleta`/`dueno`), `active`, `onNavigate` | Navegación principal de cada portal |
 
 **Notas de accesibilidad ya cableadas en las primitivas** (heredarlas, no reinventarlas): `CutCard`/`HexAvatar` con `onClick` exponen `role="button"`, `tabIndex`, `aria-label` y `Enter/Espacio`; `StarRating`/`SegmentToggle` garantizan hit-target ≥44px con glifo más pequeño; `XPCells` es un `role="progressbar"` con `aria-valuenow`; `Donut`/`RadarChart` son `role="img"` con `aria-label`; `LiveDot` es `aria-hidden` (nunca es la única señal).
+
+**Regla dura — el retrato de un atleta entra siempre por `AvatarAtleta`, nunca con un `<img>` suelto ni pasando `src` a `HexAvatar` a mano.** El bucket `fotos-atletas` es privado (v53) y sus URLs son firmadas: caducan. `AvatarAtleta` es lo que agrupa las firmas en una sola petición por tick, invalida la caché cuando una imagen falla y cae a la inicial sin dejar un hueco. Un `<img>` a pelo se queda sin las tres cosas y muestra un roto al cabo de una hora.
 
 ---
 

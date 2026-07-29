@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { C, BORDER, cut, PIXEL } from './arcadeTokens';
 import CutCard from './CutCard';
-import HexAvatar from './HexAvatar';
+import AvatarAtleta from '../AvatarAtleta';
 import { coincideBusqueda } from '../../lib/normalizarTexto';
 
 export default function PantallaBuscador({ state, actions, roster = [] }) {
@@ -62,7 +62,7 @@ export default function PantallaBuscador({ state, actions, roster = [] }) {
               padding="11px 12px"
               style={{ display: 'flex', alignItems: 'center', gap: 11 }}
             >
-              <HexAvatar size={34} hue={a.hue} initial={a.name.charAt(0)} />
+              <AvatarAtleta size={34} hue={a.hue} nombre={a.name} fotoPath={a.fotoPath} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700 }}>{a.name}</p>
                 <p style={{ margin: '1px 0 0', fontSize: 11, color: C.text3 }}>

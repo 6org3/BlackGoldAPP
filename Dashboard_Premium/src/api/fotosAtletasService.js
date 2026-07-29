@@ -106,6 +106,32 @@ export async function getFotoUrl(path) {
 }
 
 /**
+ * La foto como data URL, para html2canvas.
+ *
+ * Capturar la URL firmada directamente es una trampa silenciosa: html2canvas
+ * puede disparar antes de que la imagen remota termine de cargar y produce un
+ * PDF sin cara, sin lanzar ningún error. Embebida, no hay red ni CORS de por
+ * medio en el momento de la captura.
+ */
+export async function getFotoDataUrl(path) {
+  const url = await getFotoUrl(path);
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const lector = new FileReader();
+      lector.onloadend = () => resolve(typeof lector.result === 'string' ? lector.result : null);
+      lector.onerror = () => resolve(null);
+      lector.readAsDataURL(blob);
+    });
+  } catch {
+    return null; // el PDF sale con el placeholder, no roto
+  }
+}
+
+/**
  * Olvida una URL. Llamar desde el onError del <img>: cubre la firma caducada
  * mientras la pestaña seguía abierta (incluido el portátil que despierta de
  * suspensión con el reloj saltado, que ningún TTL detecta).
