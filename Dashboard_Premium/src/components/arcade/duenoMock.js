@@ -13,6 +13,21 @@
    ============================================================ */
 import { C } from './arcadeTokens';
 
+const MESES_UP = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+
+// El demo también rotula con los últimos 3 meses reales: un mock con meses fijos
+// envejece y contradice la fecha que el usuario tiene delante. Se ancla al día 1
+// antes de restar porque setMonth desborda desde un día 29-31 (31 de julio − 1
+// mes = 1 de julio, no junio).
+function mesesMetaDemo() {
+  return [2, 1, 0].map((n) => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - n);
+    return { k: `m${n}`, label: MESES_UP[d.getMonth()] };
+  });
+}
+
 export const DUENO_MOCK = {
   demo: true,
 
@@ -34,12 +49,17 @@ export const DUENO_MOCK = {
     { time: '19:30', title: 'Evaluación · CMJ + Sprint', sub: 'Coach Peña · 12 atletas', chip: 'PROGRAMADA', chipColor: C.text3, live: false },
   ],
 
-  // D2 · Finanzas (por mes)
+  // D2 · Finanzas (por mes). Claves relativas: m0 = mes en curso, m1 = anterior,
+  // m2 = el previo — nunca literales de mes, que quedarían desfasados al pasar
+  // el tiempo. Las etiquetas visibles salen de `mesesMeta`.
   finanzas: {
-    may: { recaudado: 3010, meta: 3390, cobrar: 380, men: 2590, ses: 420, vencCount: 2, vencMonto: 70, becados: 2 },
-    jun: { recaudado: 2875, meta: 3420, cobrar: 545, men: 2455, ses: 420, vencCount: 4, vencMonto: 175, becados: 2 },
-    jul: { recaudado: 2940, meta: 3420, cobrar: 480, men: 2520, ses: 420, vencCount: 3, vencMonto: 140, becados: 2 },
+    m2: { recaudado: 3010, meta: 3390, cobrar: 380, men: 2590, ses: 420, vencCount: 2, vencMonto: 70, becados: 2 },
+    m1: { recaudado: 2875, meta: 3420, cobrar: 545, men: 2455, ses: 420, vencCount: 4, vencMonto: 175, becados: 2 },
+    m0: { recaudado: 2940, meta: 3420, cobrar: 480, men: 2520, ses: 420, vencCount: 3, vencMonto: 140, becados: 2 },
   },
+  // Getter, no valor: calculado al importar quedaría congelado en el mes en que
+  // se cargó el módulo. El spread `{...DUENO_MOCK}` de duenoData lo evalúa.
+  get mesesMeta() { return mesesMetaDemo(); },
   verificar: [
     { id: 'mateo', initial: 'M', hue: 'gold', name: 'Mateo Chávez', sub: 'Mensualidad julio · transferencia', monto: '$35' },
   ],
