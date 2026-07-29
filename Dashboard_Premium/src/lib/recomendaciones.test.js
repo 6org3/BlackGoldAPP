@@ -11,6 +11,8 @@ import {
   detectarDebilidades,
   seleccionarMisiones,
   calcularXPMision,
+  confianzaSubPilar,
+  UMBRAL_CONFIANZA_FIRME,
 } from '../../../packages/analytics-core/recomendaciones.js';
 
 // ───────────────────────────────────────────────────────────────────
@@ -191,6 +193,78 @@ describe('detectarDebilidades', () => {
 // ───────────────────────────────────────────────────────────────────
 // seleccionarMisiones
 // ───────────────────────────────────────────────────────────────────
+
+describe('confianzaSubPilar', () => {
+  it('sin pruebas → n=0 y provisional (nunca firme por ausencia de datos)', () => {
+    expect(confianzaSubPilar([])).toEqual({ n: 0, nivel: 'provisional' });
+    expect(confianzaSubPilar()).toEqual({ n: 0, nivel: 'provisional' });
+  });
+
+  it('entrada inválida → n=0 y provisional (no lanza)', () => {
+    expect(confianzaSubPilar(null)).toEqual({ n: 0, nivel: 'provisional' });
+    expect(confianzaSubPilar(undefined)).toEqual({ n: 0, nivel: 'provisional' });
+    expect(confianzaSubPilar('sentadilla_rel')).toEqual({ n: 0, nivel: 'provisional' });
+    expect(confianzaSubPilar(3)).toEqual({ n: 0, nivel: 'provisional' });
+    expect(confianzaSubPilar({ length: 5 })).toEqual({ n: 0, nivel: 'provisional' });
+  });
+
+  it('por debajo del umbral → provisional; a partir del umbral → firme', () => {
+    expect(confianzaSubPilar(['a'])).toEqual({ n: 1, nivel: 'provisional' });
+    expect(confianzaSubPilar(['a', 'b'])).toEqual({ n: 2, nivel: 'provisional' });
+    expect(confianzaSubPilar(['a', 'b', 'c'])).toEqual({ n: 3, nivel: 'firme' });
+    expect(confianzaSubPilar(['a', 'b', 'c', 'd'])).toEqual({ n: 4, nivel: 'firme' });
+  });
+
+  it('el umbral por defecto es exactamente UMBRAL_CONFIANZA_FIRME', () => {
+    const justoDebajo = Array(UMBRAL_CONFIANZA_FIRME - 1).fill('prueba');
+    const justoEnElBorde = Array(UMBRAL_CONFIANZA_FIRME).fill('prueba');
+    expect(confianzaSubPilar(justoDebajo).nivel).toBe('provisional');
+    expect(confianzaSubPilar(justoEnElBorde).nivel).toBe('firme');
+  });
+
+  it('entradas vacías o nulas no suman a n', () => {
+    expect(confianzaSubPilar(['a', null, 'b', undefined, '', 'c'])).toEqual({ n: 3, nivel: 'firme' });
+  });
+
+  it('umbral configurable para la ratificación pendiente (Q1: n>=2 vs n>=3)', () => {
+    expect(confianzaSubPilar(['a', 'b'], { umbral: 2 })).toEqual({ n: 2, nivel: 'firme' });
+    expect(confianzaSubPilar(['a', 'b', 'c'], { umbral: 4 })).toEqual({ n: 3, nivel: 'provisional' });
+  });
+
+  it('encaja con la lista `pruebas` que produce detectarDebilidades', () => {
+    // 'fuerza' medido por 3 pruebas distintas → firme; 'tiro' por 1 → provisional.
+    const debilidades = detectarDebilidades([
+      evalRow('sentadilla_rel', 'fuerza', 20),
+      evalRow('pushups_max', 'fuerza', 20),
+      evalRow('press_banca_rel', 'fuerza', 20),
+      evalRow('tiro_libre', 'tiro', 20),
+    ]);
+    const porSubPilar = Object.fromEntries(
+      debilidades.map(d => [d.sub_pilar, confianzaSubPilar(d.pruebas)])
+    );
+    expect(porSubPilar.fuerza).toEqual({ n: 3, nivel: 'firme' });
+    expect(porSubPilar.tiro).toEqual({ n: 1, nivel: 'provisional' });
+  });
+
+  it('cuenta pruebas distintas, no mediciones repetidas de la misma prueba', () => {
+    // 3 mediciones de sentadilla en fechas distintas: ultimasPorPrueba deja 1 sola,
+    // así que la confianza sigue siendo provisional. Es la semántica documentada:
+    // n mide AMPLITUD (cuántas pruebas cubren el sub-pilar), no historial.
+    const [debilidad] = detectarDebilidades([
+      evalRow('sentadilla_rel', 'fuerza', 20, '2026-01-15T10:00:00Z'),
+      evalRow('sentadilla_rel', 'fuerza', 22, '2026-03-15T10:00:00Z'),
+      evalRow('sentadilla_rel', 'fuerza', 24, '2026-05-15T10:00:00Z'),
+    ]);
+    expect(debilidad.pruebas).toEqual(['sentadilla_rel']);
+    expect(confianzaSubPilar(debilidad.pruebas)).toEqual({ n: 1, nivel: 'provisional' });
+  });
+
+  it('es pura: no muta la entrada', () => {
+    const pruebas = ['a', 'b'];
+    confianzaSubPilar(pruebas);
+    expect(pruebas).toEqual(['a', 'b']);
+  });
+});
 
 describe('seleccionarMisiones', () => {
   const debilidadMovilidad = { sub_pilar: 'movilidad', score: 15, tier: 'poor', pruebas: ['sit_reach'] };

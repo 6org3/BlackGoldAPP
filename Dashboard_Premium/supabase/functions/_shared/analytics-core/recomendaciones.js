@@ -26,6 +26,16 @@ const XP_FALLBACK = 50;
 // Nivel asumido cuando el atleta no tiene nivel definido (ver seleccionarMisiones).
 const NIVEL_POR_DEFECTO = 'Desarrollo';
 
+/**
+ * Mínimo de pruebas distintas que debe medir un sub-pilar para que su diagnóstico
+ * cuente como `firme` (H1-D2 de docs/spec_h1_autonomia_resultados.md).
+ *
+ * PENDIENTE DE RATIFICACIÓN por el cuerpo técnico (pregunta Q1 del spec: n≥3 vs
+ * n≥2). Se exporta para que ratificarlo sea cambiar un único valor y para que la
+ * UI pueda explicar el criterio sin volver a escribir el número.
+ */
+export const UMBRAL_CONFIANZA_FIRME = 3;
+
 // ===================================================================
 // HELPERS INTERNOS
 // ===================================================================
@@ -156,6 +166,45 @@ export function detectarDebilidades(
   return debilidades
     .slice(0, maxDebilidades)
     .map(({ _indiceEje, ...debilidad }) => debilidad);
+}
+
+/**
+ * Confianza estadística del diagnóstico de un sub-pilar, según cuántas pruebas
+ * distintas lo midieron.
+ *
+ * Implementa H1-D2 del spec de autonomía (docs/spec_h1_autonomia_resultados.md).
+ * El fundamento deportivo vive en el rack, no aquí:
+ * `blackgold-mcp/knowledge/sesgo_muestra_pequena.md` (ley de los pequeños números,
+ * error típico de medición y regresión a la media).
+ *
+ * QUÉ CUENTA `n`: pruebas DISTINTAS que midieron el sub-pilar en la ventana vigente
+ * (es decir, amplitud de la medición), no mediciones repetidas en el tiempo. Es una
+ * consecuencia directa de la entrada: `detectarDebilidades` construye su lista
+ * `pruebas` desde `ultimasPorPrueba`, que ya se queda con la última fila de cada
+ * `prueba_tipo`. Ejemplo: `fuerza` la miden 3 pruebas (sentadilla, push-ups, press);
+ * un atleta con solo sentadilla registrada da n=1 → `provisional`, porque su score
+ * de fuerza es el promedio de una sola prueba. La confianza de una TENDENCIA (varios
+ * puntos de la misma prueba en el tiempo) es una pregunta distinta y NO está resuelta
+ * hoy: `tendencias.js` construye las series (`seriePorPrueba`, `calcularDelta`) pero
+ * ninguna función declara cuántos puntos hacen creíble una pendiente. No usar esta
+ * función como si respondiera eso.
+ *
+ * Deliberadamente NO decide nada: solo declara la confianza. Quién puede actuar con
+ * `provisional` (orientar sí, diagnosticar o auto-aprobar no) es política de cada
+ * consumidor — el spec la fija para F1 (auto-aprobación) y F2 (reporte al padre).
+ *
+ * @param {Array|null} pruebas - Lista `pruebas` de una debilidad de detectarDebilidades
+ *   (`string[]` de prueba_tipo). Tolera también el array de filas crudas: cuenta
+ *   entradas, sin mirar su forma. Entradas vacías/nulas no suman.
+ * @param {Object} [opciones]
+ * @param {number} [opciones.umbral=UMBRAL_CONFIANZA_FIRME] - Mínimo para `firme`.
+ *   Existe para la ratificación pendiente (Q1) y para pruebas; no para que cada
+ *   llamador invente su propio criterio.
+ * @returns {{ n: number, nivel: 'firme'|'provisional' }}
+ */
+export function confianzaSubPilar(pruebas = [], { umbral = UMBRAL_CONFIANZA_FIRME } = {}) {
+  const n = Array.isArray(pruebas) ? pruebas.filter(Boolean).length : 0;
+  return { n, nivel: n >= umbral ? 'firme' : 'provisional' };
 }
 
 /**
