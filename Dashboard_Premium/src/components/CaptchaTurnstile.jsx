@@ -7,7 +7,7 @@ import { C } from './arcade/arcadeTokens';
 // formulario funciona igual. El captcha exige una cuenta de Cloudflare y dos
 // claves que solo el dueño puede emitir; hacerlo obligatorio sin ellas dejaría
 // caída la inscripción. El freno que SÍ está siempre activo es el límite por
-// IP y por club de la Edge Function (v52 §5 + v53).
+// IP y por club de la Edge Function (v52 §5 + v54).
 //
 // La verificación real ocurre server-side: este widget solo produce un token
 // que `registro-publico` valida contra siteverify con el SECRETO (que nunca

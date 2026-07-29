@@ -1,5 +1,5 @@
 -- ============================================================================
--- v53 — Índice para el tope de inscripciones por club (cierra P1-6 con v52 §5)
+-- v54 — Índice para el tope de inscripciones por club (cierra P1-6 con v52 §5)
 -- ============================================================================
 -- v52 §5 creó `registro_intentos` con el índice (ip, created_at DESC), que es
 -- el que sirve al límite por IP. La Edge Function `registro-publico` aplica
@@ -33,4 +33,4 @@ CREATE INDEX IF NOT EXISTS idx_registro_intentos_club_fecha
   ON public.registro_intentos (club, exito, created_at DESC);
 
 COMMENT ON INDEX public.idx_registro_intentos_club_fecha IS
-  'Tope diario de altas por club en registro-publico (v53): sirve al conteo de altas exitosas y al de peticiones en vuelo.';
+  'Tope diario de altas por club en registro-publico (v54): sirve al conteo de altas exitosas y al de peticiones en vuelo.';

@@ -7,7 +7,7 @@
 // el registro desde el navegador no puede crear la cuenta de Auth: se hace
 // aquí con service_role, igual que hizo la migración de los 819 usuarios.
 //
-// Flujo: control de abuso (v52/v53) → valida el payload → rpc
+// Flujo: control de abuso (v52/v54) → valida el payload → rpc
 // registrar_publico() (transacción de filas con roles forzados a atleta/padre;
 // v24) → admin.createUser del atleta (y del padre si es nuevo) — el trigger
 // trg_vincular_auth_usuario (v24) vincula usuarios.auth_user_id automáticamente

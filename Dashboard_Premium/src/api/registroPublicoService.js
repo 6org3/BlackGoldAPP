@@ -25,7 +25,7 @@ export const fetchClubesPublicos = async () => {
 // `captchaToken` viaja solo si el club activó Turnstile (VITE_TURNSTILE_SITE_KEY
 // en el cliente + TURNSTILE_SECRET_KEY en la función). La función lo valida
 // server-side contra siteverify; si el captcha no está configurado allí, lo
-// ignora. La defensa que aplica siempre es el límite por IP y por club (v52/v53),
+// ignora. La defensa que aplica siempre es el límite por IP y por club (v52/v54),
 // que puede responder 429 — su mensaje llega por la misma vía que los demás.
 export const registrarDesdeFormularioPublico = async (datosAtleta, datosPadre = null, captchaToken = null) => {
   const { data, error } = await supabase.functions.invoke('registro-publico', {
