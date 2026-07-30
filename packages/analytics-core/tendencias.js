@@ -13,6 +13,7 @@
 
 import { RADAR_AXES } from './radar.js';
 import { ultimasPorPrueba, scoreATier } from './recomendaciones.js';
+import { claveDiaLocal, claveMesLocal } from './fechas.js';
 
 // ===================================================================
 // HELPERS INTERNOS
@@ -26,16 +27,17 @@ function promedio(valores) {
   return valores.reduce((a, b) => a + b, 0) / valores.length;
 }
 
-// Claves de agrupación temporal. Se recorta el string ISO directamente
-// (created_at llega como ISO string de la base) en vez de pasar por Date +
-// zona horaria local: así el resultado es determinista e idéntico en web,
-// Node y Deno sin importar el huso del dispositivo.
+// Claves de agrupación temporal: día/mes calendario LOCAL del runtime (mismo
+// criterio que hoyLocal() en Dashboard_Premium/src/api/retencionService.js),
+// no el día/mes UTC de created_at. Un created_at (timestamptz) recortado tal
+// cual agrupaba una evaluación nocturna de Ecuador (p.ej. 20:00, ya pasada la
+// medianoche UTC) en el día/mes SIGUIENTE — ver fechas.js.
 function claveDia(createdAt) {
-  return String(createdAt).slice(0, 10); // 'YYYY-MM-DD'
+  return claveDiaLocal(createdAt); // 'YYYY-MM-DD'
 }
 
 function claveMes(createdAt) {
-  return String(createdAt).slice(0, 7); // 'YYYY-MM'
+  return claveMesLocal(createdAt); // 'YYYY-MM'
 }
 
 /**

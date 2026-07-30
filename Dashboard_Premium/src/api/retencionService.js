@@ -9,6 +9,7 @@
 // en duenoData, que tiene la lista de atletas a mano.
 
 import { supabase } from './supabaseClient';
+import { hoyLocal } from '../lib/fechasLocal';
 
 /**
  * Retención del club para el panel del dueño.
@@ -25,11 +26,9 @@ export async function fetchRetencionClub(meses = 5) {
 }
 
 // Fecha local YYYY-MM-DD (Ecuador UTC-5): evita el corrimiento de día de
-// toISOString() cerca de medianoche al fijar la fecha de baja.
-function hoyLocal() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+// toISOString() cerca de medianoche al fijar la fecha de baja. Único punto de
+// verdad en packages/analytics-core/fechas.js (shim src/lib/fechasLocal.js);
+// ver ese archivo para el porqué completo.
 
 /**
  * Marca (o revierte) la baja de membresía de un atleta — acción del dueño en el

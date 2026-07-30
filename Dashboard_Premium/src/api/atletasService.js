@@ -5,6 +5,7 @@ import { calculateRank } from './authService';
 import { calcularCategoriaFEB, calcularMetricasDerivadas } from './utilsAtletas';
 import { fechaNacimientoDeEdad } from '../lib/edad';
 import { coincideBusqueda, patronBusquedaRelajado } from '../lib/normalizarTexto';
+import { hoyLocal } from '../lib/fechasLocal';
 
 // ============================
 // FETCH ATLETAS (Supabase)
@@ -170,8 +171,8 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   );
   if (errEvals) console.error('Error fetching evaluaciones:', errEvals);
 
-  // Fetch readiness diario (solo del día de hoy)
-  const hoy = new Date().toISOString().split('T')[0];
+  // Fetch readiness diario (solo del día de hoy, día LOCAL — api-01)
+  const hoy = hoyLocal();
   const { data: readinessData } = await supabase
     .from('atleta_readiness')
     .select('*')

@@ -2,6 +2,7 @@
 import { supabase } from './supabaseClient';
 import { getRango } from '../lib/baremosEngine';
 import { calcularMetricasDerivadas } from './utilsAtletas';
+import { hoyLocal } from '../lib/fechasLocal';
 
 export const calculateRank = (atleta) => {
   const overallScore = atleta.overall_score || 0;
@@ -112,8 +113,8 @@ export const fetchUsuarioCompleto = async (usuarioBase) => {
       });
       const evalsArray = Object.values(evalUnicas);
 
-      // Obtener readiness del día
-      const hoy = new Date().toISOString().split('T')[0];
+      // Obtener readiness del día (día LOCAL, no UTC — api-01)
+      const hoy = hoyLocal();
       const { data: readinessData } = await supabase
         .from('atleta_readiness')
         .select('*')

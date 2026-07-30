@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { supabase } from '../api/supabaseClient';
+import { hoyLocal } from '../lib/fechasLocal';
 
 // ── Carga datos del atleta ──────────────
 export function useMisionesPanelAtletaData(atletaId, setAtletaData) {
@@ -26,7 +27,7 @@ export function useMisionesPanelAtletaData(atletaId, setAtletaData) {
           if (!latestEvals[e.prueba_tipo]) latestEvals[e.prueba_tipo] = e;
         });
 
-        const hoy = new Date().toISOString().split('T')[0];
+        const hoy = hoyLocal();
         const { data: readinessData } = await supabase
           .from('atleta_readiness')
           .select('*')

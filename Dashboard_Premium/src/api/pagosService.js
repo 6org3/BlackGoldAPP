@@ -1,5 +1,6 @@
 // src/api/pagosService.js
 import { supabase } from './supabaseClient';
+import { hoyLocal } from '../lib/fechasLocal';
 
 const BUCKET_COMPROBANTES = 'comprobantes-pagos';
 
@@ -130,7 +131,7 @@ export async function marcarPagado(pagoId, { forma_pago, referencia_comprobante 
     .from('pagos')
     .update({
       estado: 'Pagado',
-      fecha_pago: new Date().toISOString().split('T')[0],
+      fecha_pago: hoyLocal(),
       forma_pago,
       referencia_comprobante,
       notas,
@@ -149,7 +150,7 @@ export async function actualizarEstadoVencidos() {
   const { error } = await supabase.rpc('marcar_pagos_vencidos');
   if (!error) return;
   // Fallback pre-v27 (proyecto sin la función todavía)
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = hoyLocal();
   const { error: e2 } = await supabase
     .from('pagos')
     .update({ estado: 'Vencido' })
@@ -438,7 +439,7 @@ export async function crearCargo({ atletaId, servicioId, tipo = 'Otro', concepto
       concepto,
       mes: null,
       anio: null,
-      fecha_servicio: new Date().toISOString().split('T')[0],
+      fecha_servicio: hoyLocal(),
       monto_base: monto,
       descuento_pct: 0,
       monto_final: monto,

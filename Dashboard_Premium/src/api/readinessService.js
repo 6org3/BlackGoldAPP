@@ -2,6 +2,7 @@
 import { supabase } from './supabaseClient';
 // Sin ciclo: brainService solo importa supabaseClient.
 import { invalidarReadiness } from './brainService';
+import { hoyLocal } from '../lib/fechasLocal';
 
 // ============================
 // READINESS ENGINE (FIBA/NBA)
@@ -15,9 +16,14 @@ export const HORA_MINIMA_CHECKIN = 6;
 export const checkinDisponible = (fecha = new Date()) => fecha.getHours() >= HORA_MINIMA_CHECKIN;
 
 export const guardarReadinessDiario = async (readinessData) => {
+  // Si el caller no trae fecha explícita, se fija al día LOCAL aquí, en vez de
+  // dejar que la columna caiga al DEFAULT CURRENT_DATE del servidor (UTC): un
+  // check-in nocturno en Ecuador (UTC-5) ya cruzó medianoche UTC y quedaría
+  // fechado mañana, desincronizado del día que consulta fetchReadinessHoy.
+  const payload = { fecha: hoyLocal(), ...readinessData };
   const { data, error } = await supabase
     .from('atleta_readiness')
-    .insert([readinessData])
+    .insert([payload])
     .select()
     .single();
   if (error) {
@@ -35,7 +41,7 @@ export const guardarReadinessDiario = async (readinessData) => {
 };
 
 export const fetchReadinessHoy = async (atletaId) => {
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = hoyLocal();
   const { data, error } = await supabase
     .from('atleta_readiness')
     .select('*')
