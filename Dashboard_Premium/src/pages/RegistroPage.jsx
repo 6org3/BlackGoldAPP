@@ -105,6 +105,11 @@ export default function RegistroPage() {
 
   const edadAtleta = datosAtleta.fecha_nacimiento ? calcularEdad(datosAtleta.fecha_nacimiento) : null;
   const esMenorEdad = edadAtleta !== null && edadAtleta < 18;
+  // No es `!esMenorEdad`: mientras no haya fecha no se sabe, y no se le puede
+  // exigir el correo a alguien que todavía no dijo su edad. Cuando SÍ es mayor,
+  // el formulario no manda representante, así que su correo es el único real
+  // que tendrá la cuenta — y el servidor lo exige por eso mismo.
+  const esMayorEdad = edadAtleta !== null && edadAtleta >= 18;
 
   const posiciones = ['N/A', 'Generador', 'Alero Físico', 'Ancla Fuerte', 'Escolta', 'Ala-Pívot'];
 
