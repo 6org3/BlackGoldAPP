@@ -167,9 +167,16 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
         // hermano siguiente chocaría contra él. Un correo DISTINTO sí se respeta:
         // el staff puede estar dando de alta a un atleta que es su propio titular.
         const correoDelRepresentante = showParentForm ? (form.padre_correo?.trim().toLowerCase() || null) : null;
-        const correoDelAtleta = (safeCorreo && safeCorreo.toLowerCase() === correoDelRepresentante)
+        // Siempre en minúsculas, igual que el registro público (v57): el UNIQUE de
+        // la tabla distingue mayúsculas pero GoTrue normaliza el email de la
+        // cuenta, así que `Juan@X.com` metido por el panel y `juan@x.com` metido
+        // por el formulario serían dos filas legales apuntando al MISMO usuario de
+        // Auth — y desde v59 el login compara en minúsculas, así que dejarlo sin
+        // normalizar aquí es la única forma de reintroducir el desajuste.
+        const correoNormalizado = safeCorreo?.toLowerCase() || null;
+        const correoDelAtleta = (correoNormalizado === correoDelRepresentante)
           ? null
-          : safeCorreo;
+          : correoNormalizado;
 
         const { data: newUser, error: userErr } = await supabase
           .from('usuarios')
@@ -227,17 +234,25 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
             // Dos consultas en vez de un `.or()` con el correo interpolado: ese
             // valor lo teclea el staff y una coma o un paréntesis dentro
             // reescribiría el filtro de PostgREST.
-            const buscar = (columna, valor) => supabase
-              .from('usuarios')
-              .select('id, telefono')
-              .eq('rol', 'padre')
-              .eq('club', resolvedClub)
-              .eq(columna, valor)
-              .maybeSingle();
+            // Un fallo de lectura NO se confunde con "no existe": si se tragara,
+            // el siguiente paso intentaría crear un representante que ya está y
+            // el alta acabaría avisando de un duplicado inventado en vez de
+            // reintentarse.
+            const buscar = async (columna, valor) => {
+              const { data, error } = await supabase
+                .from('usuarios')
+                .select('id, telefono')
+                .eq('rol', 'padre')
+                .eq('club', resolvedClub)
+                .eq(columna, valor)
+                .maybeSingle();
+              if (error) throw error;
+              return data;
+            };
 
-            let { data: padreExistente } = await buscar('cedula', padreCedula);
+            let padreExistente = await buscar('cedula', padreCedula);
             if (!padreExistente && padreCorreo) {
-              ({ data: padreExistente } = await buscar('correo', padreCorreo));
+              padreExistente = await buscar('correo', padreCorreo);
               // Se le reconoció por el correo: su cuenta sigue existiendo con el
               // teléfono de la primera vez, que es su usuario de login. Decírselo
               // al staff evita que dicte a la familia un número con el que nadie
@@ -287,7 +302,23 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
             // quedaba sin representante mientras la pantalla mostraba
             // "✅ registrado" a secas: el staff se enteraba semanas después, al
             // no poder cobrarle a nadie ni avisar a la familia.
-            avisos.push(`el representante no se pudo vincular (${padreError.message || 'error desconocido'}), hay que crearlo desde /admin/equipo`);
+            //
+            // El motivo se traduce en vez de reenviar el de Postgres: el crudo dice
+            // `duplicate key value violates unique constraint "usuarios_correo_key"`,
+            // que no le sirve a nadie, y devolver mensajes internos al cliente es
+            // justo lo que se cerró en el PR #146.
+            const crudo = padreError.message || '';
+            const motivo = /usuarios_correo_key/.test(crudo)
+              ? 'ese correo ya es de otra cuenta'
+              : /usuarios_telefono_key|usuarios_cedula_key/.test(crudo)
+                ? 'ese teléfono ya es de otra cuenta'
+                : 'error al guardarlo';
+            // El remedio tiene que ser uno que exista: /admin/equipo solo da de
+            // alta coaches y dueños, no representantes. Hoy la única vía de crear
+            // uno es el sub-formulario de esta misma pantalla, y solo durante el
+            // alta — a un atleta ya creado no se le puede añadir representante
+            // desde ninguna parte (anotado como deuda en CLAUDE.md).
+            avisos.push(`el representante no se pudo vincular (${motivo}): corrige sus datos y vuelve a dar de alta al deportista`);
           }
         }
 

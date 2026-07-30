@@ -404,20 +404,24 @@ serve(async (req) => {
     atleta_id: reg?.atleta_id ?? null,
     credenciales: {
       atleta: { usuario: atleta.cedula, password: passwordAtleta },
-      // El usuario del representante es `reg.padre_telefono` —el número con el
-      // que su cuenta existe— y no el que acaba de teclear. Desde v57 se le
-      // reconoce también por el correo, así que la mamá que inscribe al segundo
-      // hijo desde otro número entra igual con el primero: decirle "usa el que
-      // escribiste" la dejaría fuera creyendo que la contraseña está mal.
-      padre: passwordPadre ? { usuario: reg?.padre_telefono ?? null, password: passwordPadre } : null,
+      // Solo se devuelve el identificador cuando la cuenta se ACABA de crear en
+      // esta llamada, y entonces es el teléfono que el propio registrante escribió
+      // — no hay nada ajeno que filtrar.
+      //
+      // v57 devolvía aquí el teléfono ALMACENADO del representante reutilizado
+      // para poder decirle a la familia con qué número entra. Era una fuga: con
+      // mandar el correo de una familia real, un anónimo sin autenticar recibía su
+      // teléfono, la confirmación de que esa persona es representante y —probando
+      // los nombres públicos de los clubes— en cuál está inscrito su hijo. El
+      // README de estas funciones dice que este endpoint "no expone ningún dato
+      // ajeno" y tenía que seguir siendo verdad.
+      padre: passwordPadre ? { usuario: padre?.telefono ?? null, password: passwordPadre } : null,
       // null cuando no se creó representante en esta llamada (atleta mayor de
       // edad), cuando el padre ya existía y conserva su contraseña, o cuando su
-      // cuenta falló: `padre_estado` distingue los tres.
+      // cuenta falló: `padre_estado` distingue los tres. La pantalla usa esto para
+      // decirle a la familia que entre con el número que registró la primera vez,
+      // sin nombrarlo: ella lo sabe y un extraño no lo averigua.
       padre_estado: padreEstado,
-      // Con qué identificador entra el representante que YA tenía cuenta. La
-      // pantalla lo necesita justo en ese caso —no se le emite contraseña, así
-      // que `padre` va en null— y es la única pista que le queda a la familia.
-      padre_usuario: padreEstado === 'ya_existia' ? (reg?.padre_telefono ?? null) : null,
     },
   }, 200);
 });

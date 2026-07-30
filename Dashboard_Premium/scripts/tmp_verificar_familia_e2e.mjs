@@ -83,8 +83,21 @@ const inscribir = async (cedula, nombre, telefonoRep, nombreRep) => {
 
 console.log(`\n=== E2E entrega 4 · club ${CLUB} ===\n`);
 
+// El límite de abuso es de 5 altas por IP y hora (v52/v54), así que dos corridas
+// seguidas de este script lo agotan. Eso NO es un fallo del código que se está
+// verificando: es el control funcionando, y se reporta como omitido — mismo
+// criterio que la suite de registro de `npm run test:rls`. `registro_intentos` no
+// se toca para desbloquearse: es el estado del limitador.
+const esTope = (msg) => /demasiadas inscripciones|máximo de inscripciones/i.test(msg || '');
+
 // ── 1. Primer hijo: la mamá, con su número ──────────────────────────────────
 const r1 = await inscribir(`${PREFIJO}H1`, 'Hermano Uno QAE4', TEL_MAMA, 'Mama QAE4');
+if (esTope(r1.error)) {
+  console.log('  OMITIDO  se agotó el cupo de altas por IP de esta hora — el control de abuso hizo su trabajo.');
+  console.log('           Vuelve a correrlo dentro de una hora para verificar de verdad.');
+  await limpiar();
+  process.exit(0);
+}
 if (r1.error) {
   mal(`el primer hijo no se pudo inscribir: ${r1.error}`);
 } else {
@@ -93,6 +106,17 @@ if (r1.error) {
   else mal(`padre_estado inesperado: ${r1.data?.credenciales?.padre_estado}`);
   if (r1.data?.credenciales?.padre?.usuario === TEL_MAMA) ok(`el representante entra con ${TEL_MAMA}`);
   else mal(`usuario del representante: ${r1.data?.credenciales?.padre?.usuario}`);
+}
+
+// El club aprueba la solicitud del primer hijo. Es un paso real del flujo y aquí
+// es imprescindible: desde v59 el correo solo reconoce a un representante que ya
+// esté `activo`, porque un correo sin verificar no puede bastar para heredar la
+// cuenta de otra familia (ver la cabecera de v59). El caso que la entrega 4
+// arregla es justamente este: el segundo hermano llega cuando el primero ya está
+// dentro.
+if (!r1.error) {
+  await admin.from('usuarios').update({ estado: 'activo' })
+    .eq('cedula', `PADRE_${TEL_MAMA}`);
 }
 
 // ── 2. Segundo hijo: el papá, otro número, MISMO correo ─────────────────────
@@ -107,11 +131,15 @@ if (r2.error) {
   } else {
     mal(`padre_estado inesperado: ${r2.data?.credenciales?.padre_estado}`);
   }
-  // Lo que evita que la familia se quede fuera creyendo que la contraseña falla.
-  if (r2.data?.credenciales?.padre_usuario === TEL_MAMA) {
-    ok(`la respuesta avisa de que entra con ${TEL_MAMA}, no con ${TEL_PAPA}`);
+  // Y NO viene el teléfono del representante. v57 lo devolvía para poder decirle a
+  // la familia con qué número entra, pero era una fuga: bastaba mandar el correo de
+  // una familia real para que un anónimo recibiera su teléfono. v59 lo quitó y la
+  // pantalla se lo dice sin nombrarlo ("el teléfono que registró la primera vez").
+  const cred = r2.data?.credenciales ?? {};
+  if (!('padre_usuario' in cred) && !cred.padre_usuario) {
+    ok('la respuesta NO trae el teléfono del representante reutilizado (sin dato ajeno)');
   } else {
-    mal(`padre_usuario devuelto: ${r2.data?.credenciales?.padre_usuario} (esperado ${TEL_MAMA})`);
+    mal(`sigue filtrando padre_usuario="${cred.padre_usuario}"`);
   }
 }
 

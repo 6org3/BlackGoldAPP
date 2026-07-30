@@ -122,13 +122,28 @@ console.log('\nD. Dos hermanos con el MISMO representante (teléfono y correo id
 
 await limpiar();
 
+// Lo que hace el club al aprobar una solicitud.
+const aprobarRepresentante = (telefono) => admin.from('usuarios')
+  .update({ estado: 'activo' }).eq('cedula', `PADRE_${telefono}`);
+
 // ── E. Papá y mamá: mismo correo familiar, teléfonos distintos ──────────────
+// Este es EL caso de la entrega 4, y desde v59 depende de que el club ya haya
+// aprobado al representante del primer hijo: el correo que llega al registro
+// público no está verificado, así que uno ajeno no puede bastar para heredar una
+// cuenta (ver la cabecera de v59). Se miden las dos variantes.
 console.log('\nE. Un hermano lo inscribe la mamá y el otro el papá, con el correo familiar compartido');
 {
   const r1 = await registrar(conClub(hijo('E1')), rep(TEL_MAMA, CORREO_MAMA, 'Mama QAFAM'));
-  console.log(r1.error ? `   hermano 1 ERROR: ${r1.error.message}` : '   hermano 1 OK');
-  const r2 = await registrar(conClub(hijo('E2')), rep(TEL_PAPA, CORREO_MAMA, 'Papa QAFAM'));
-  console.log(r2.error ? `   hermano 2 ERROR: ${r2.error.message}` : '   hermano 2 OK');
+  console.log(r1.error ? `   hermano 1 ERROR: ${r1.error.message}` : '   hermano 1 OK (representante queda pendiente)');
+  const rMismoDia = await registrar(conClub(hijo('E2')), rep(TEL_PAPA, CORREO_MAMA, 'Papa QAFAM'));
+  console.log(rMismoDia.error
+    ? `   el MISMO DÍA, sin aprobar aún: bloqueado — "${rMismoDia.error.message}"`
+    : '   el MISMO DÍA, sin aprobar aún: OK');
+  await aprobarRepresentante(TEL_MAMA);
+  const rAprobado = await registrar(conClub(hijo('E3')), rep(TEL_PAPA, CORREO_MAMA, 'Papa QAFAM'));
+  console.log(rAprobado.error
+    ? `   con el representante YA APROBADO: ERROR ${rAprobado.error.message}`
+    : `   con el representante YA APROBADO: OK — padre_existente=${rAprobado.data.padre_existente}`);
 }
 
 await limpiar();
@@ -138,8 +153,11 @@ console.log('\nF. La misma mamá inscribe al segundo hijo desde otro número (mi
 {
   const r1 = await registrar(conClub(hijo('F1')), rep(TEL_MAMA, CORREO_MAMA));
   console.log(r1.error ? `   hermano 1 ERROR: ${r1.error.message}` : '   hermano 1 OK');
+  await aprobarRepresentante(TEL_MAMA);
   const r2 = await registrar(conClub(hijo('F2')), rep(TEL_PAPA, CORREO_MAMA));
-  console.log(r2.error ? `   hermano 2 ERROR: ${r2.error.message}` : '   hermano 2 OK');
+  console.log(r2.error
+    ? `   hermano 2 ERROR: ${r2.error.message}`
+    : `   hermano 2 OK — padre_existente=${r2.data.padre_existente}`);
 }
 
 await limpiar();

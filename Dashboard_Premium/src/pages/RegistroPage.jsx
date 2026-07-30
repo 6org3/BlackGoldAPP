@@ -206,15 +206,20 @@ export default function RegistroPage() {
 
                 {/* El representante ya tenía cuenta (inscribió antes a un
                     hermano), así que conserva su contraseña y no se le emite
-                    ninguna. Hay que decirle CON QUÉ entra: desde v57 se le
-                    reconoce también por el correo, así que puede haber inscrito
-                    a este hijo desde otro número — y ese otro número no es su
-                    usuario. Sin esta línea intentaría entrar con el que acaba de
-                    escribir y concluiría que la contraseña está mal. */}
+                    ninguna. Hay que avisarlo, porque desde v57 se le reconoce
+                    también por el correo: puede haber inscrito a este hijo desde
+                    otro número, y ese número no es su usuario — sin este aviso
+                    intentaría entrar con el que acaba de escribir y concluiría que
+                    la contraseña está mal.
+                    El número NO se nombra: la respuesta ya no lo trae, porque
+                    devolverlo permitía que cualquiera obtuviera el teléfono de una
+                    familia con solo saber su correo. La familia de verdad sabe
+                    cuál usó. */}
                 {credenciales.padre_estado === 'ya_existia' && (
                   <p className="text-xs mt-3" style={{ color: C.text2 }}>
-                    Tu representante ya tenía cuenta{credenciales.padre_usuario ? <> y entra con <strong style={{ color: C.text }}>{credenciales.padre_usuario}</strong></> : ''}, con
-                    la misma contraseña de siempre. Este deportista ya quedó vinculado a ella.
+                    Tu representante ya tenía cuenta, así que este deportista quedó vinculado a
+                    ella. Debe entrar con el teléfono que registró la primera vez y su misma
+                    contraseña de siempre.
                   </p>
                 )}
 
