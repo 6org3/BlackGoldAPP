@@ -21,6 +21,8 @@ importan por **ruta relativa** (`.js` planos, ES modules), para no acoplar el bu
 - `baremos.js` — `BAREMOS`, `normalizarValor()`, `calcularOverall()`, `getRango()`,
   `categoriaABucketBaremo()`, `RANGOS`, recompensas.
 - `categoriaFEB.js` — `calcularEdad()`, `calcularCategoriaFEB()`.
+- `fechas.js` — `hoyLocal()`, `claveDiaLocal()`, `claveMesLocal()`: día/mes calendario
+  LOCAL del runtime (mismo criterio que `hoyLocal()` de `retencionService.js`).
 - `radar.js` — `getSubPilarScores()`, `build3LayerRadarData()`, `RADAR_AXES`.
 - `baremos_cientificos.md` — auditoría de las fuentes citadas en `baremos.js` (qué está
   verificado, qué falta, y el riesgo de desincronización entre este archivo y el catálogo

@@ -14,14 +14,40 @@ export const CATEGORIAS_FEB = [
   'Mayores',
 ];
 
+// Componentes { anio, mes (1-12), dia } de una fecha de nacimiento, sin pasar
+// por new Date() + getters locales: fecha_nacimiento llega en producción
+// como 'YYYY-MM-DD' puro (columna `date` de Postgres, o el value de un
+// <input type="date">), y new Date('YYYY-MM-DD') lo interpreta como
+// medianoche UTC — leerlo luego con getFullYear/getMonth/getDate (locales)
+// adelanta el cumpleaños un día entero en cualquier huso detrás de UTC
+// (Ecuador, UTC-5). También se admite un objeto Date ya construido (algunos
+// callers/tests lo usan así), leyendo sus componentes locales directamente
+// sin reinterpretar nada.
+function partesFecha(fechaNacimiento) {
+  if (fechaNacimiento instanceof Date) {
+    if (isNaN(fechaNacimiento.getTime())) return null;
+    return {
+      anio: fechaNacimiento.getFullYear(),
+      mes: fechaNacimiento.getMonth() + 1,
+      dia: fechaNacimiento.getDate(),
+    };
+  }
+  const [anioStr, mesStr, diaStr] = String(fechaNacimiento).split('-');
+  const anio = Number(anioStr);
+  const mes = Number(mesStr);
+  const dia = Number(diaStr);
+  if (!Number.isInteger(anio) || !Number.isInteger(mes) || !Number.isInteger(dia)) return null;
+  return { anio, mes, dia };
+}
+
 export function calcularEdad(fechaNacimiento) {
   if (!fechaNacimiento) return 0;
+  const partes = partesFecha(fechaNacimiento);
+  if (!partes) return 0;
   const hoy = new Date();
-  const fechaNac = new Date(fechaNacimiento);
-  if (isNaN(fechaNac.getTime())) return 0;
-  let edad = hoy.getFullYear() - fechaNac.getFullYear();
-  const mes = hoy.getMonth() - fechaNac.getMonth();
-  if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
+  let edad = hoy.getFullYear() - partes.anio;
+  const mesActual = hoy.getMonth() + 1; // 1-indexado, para comparar contra partes.mes sin mezclar bases
+  if (mesActual < partes.mes || (mesActual === partes.mes && hoy.getDate() < partes.dia)) {
     edad--;
   }
   return edad;

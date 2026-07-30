@@ -250,7 +250,7 @@ server.tool(
       if (estado) q = q.eq("estado", estado);
       if (club) q = q.eq("club", club);
       if (desde) q = q.gte("created_at", desde);
-      if (hasta) q = q.lte("created_at", hasta);
+      if (hasta) q = q.lte("created_at", hasta + "T23:59:59");
       if (usuario_id) q = q.eq("id", usuario_id);
 
       const { data, error } = await q;
