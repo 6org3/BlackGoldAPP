@@ -113,26 +113,45 @@ export const completarMision = async (atletaUserId, misionId) => {
 // ============================
 
 export const aprobarMision = async (progresoId) => {
-  // 1. Obtener la misión y el atleta para sumar el XP.
-  // El XP ahora es 100% por datos vía calcularXPMision (analytics-core):
-  // xp_recompensa > 0 → nivel_objetivo de la misión → nivel_desarrollo del
-  // atleta → fallback 50. Antes aquí había un keyword-match sobre el título
-  // ('micro'/'desarrollo'/'elite') que además nunca corría: el título ni
-  // siquiera se seleccionaba en la query.
-  const { data: progresoData } = await supabase
+  // Guard atómico contra el doble clic / dos requests en vuelo (api-02):
+  // el UPDATE solo matchea la fila si SIGUE en 'pendiente_aprobacion' (el
+  // único estado desde el que se aprueba — ver la máquina de estados arriba:
+  // completarMision la deja ahí). Postgres serializa concurrencia sobre la
+  // misma fila, así que de dos invocaciones simultáneas la segunda siempre
+  // ve la fila ya en 'aprobada' y su .eq('estado', ...) no matchea nada —
+  // `data` vuelve [] y NO se otorga XP una segunda vez. Antes se leía el
+  // estado por separado del UPDATE (read-modify-write no atómico): ambas
+  // invocaciones podían leer 'pendiente_aprobacion' a la vez y las dos
+  // otorgaban XP.
+  const { data: aprobadas, error } = await supabase
     .from('progreso_misiones')
+    .update({ estado: 'aprobada' })
+    .eq('id', progresoId)
+    .eq('estado', 'pendiente_aprobacion')
     .select(`
       atleta_id,
       misiones (xp_recompensa, nivel_objetivo)
-    `)
-    .eq('id', progresoId)
-    .single();
+    `);
+  if (error) throw error;
 
-  if (progresoData && progresoData.misiones) {
+  if (!aprobadas || aprobadas.length === 0) {
+    // Ya estaba aprobada (u otro estado): esta invocación no fue la que
+    // aprobó, así que no hay XP que otorgar de nuevo. El caller (AdminMisiones.jsx)
+    // solo espera que la promesa resuelva sin lanzar.
+    return { success: true, yaAprobada: true };
+  }
+
+  const progresoData = aprobadas[0];
+  if (progresoData.misiones) {
     const atletaId = progresoData.atleta_id;
 
     // Nivel actual del atleta (para calcularXPMision); la mutación de xp_total
     // pasa por otorgarXP (fuente única).
+    // El XP ahora es 100% por datos vía calcularXPMision (analytics-core):
+    // xp_recompensa > 0 → nivel_objetivo de la misión → nivel_desarrollo del
+    // atleta → fallback 50. Antes aquí había un keyword-match sobre el título
+    // ('micro'/'desarrollo'/'elite') que además nunca corría: el título ni
+    // siquiera se seleccionaba en la query.
     const { data: atletaData } = await supabase
       .from('atletas')
       .select('nivel_desarrollo')
@@ -147,12 +166,6 @@ export const aprobarMision = async (progresoId) => {
     }
   }
 
-  // 2. Marcar como aprobada
-  const { error } = await supabase
-    .from('progreso_misiones')
-    .update({ estado: 'aprobada' })
-    .eq('id', progresoId);
-  if (error) throw error;
   return { success: true };
 };
 

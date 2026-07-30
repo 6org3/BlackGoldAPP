@@ -9,8 +9,15 @@ export default function AdminAsistenciaPage() {
   const [atletas, setAtletas] = useState([]);
 
   const loadData = useCallback(async () => {
-    const data = await fetchTodosLosAtletas(user);
-    setAtletas(data);
+    try {
+      const data = await fetchTodosLosAtletas(user);
+      setAtletas(data);
+    } catch (e) {
+      // rutas-01: fallback explícito — mismo resultado visible que antes
+      // (lista vacía) en vez de una excepción sin manejar.
+      console.error('AdminAsistenciaPage: fallo al cargar atletas', e);
+      setAtletas([]);
+    }
   }, [user]);
 
   useEffect(() => { loadData(); }, [loadData]);

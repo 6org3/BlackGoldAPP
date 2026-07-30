@@ -96,18 +96,24 @@ serve(async (req) => {
     password: passwordNueva,
   });
   if (mismaPassword?.user) {
-    // scope 'local' y no el 'global' por defecto: global cerraría TODAS las
-    // sesiones de esta persona, incluida la que está usando ahora mismo.
-    await anon.auth.signOut({ scope: 'local' }).catch(() => {});
-
     // Puede que sea la contraseña del club… o la suya, si el cambio ya se hizo
     // y la respuesta se perdió por el camino (3G/4G rural: pasa). Distinguirlo
     // mirando si la marca sigue puesta evita el peor final posible — decirle
     // "esa es la que te dio el club" sobre la contraseña que ella misma acaba
     // de elegir, y dejarla dando vueltas en una pantalla sin salida.
     if (cuenta.user.app_metadata?.debe_cambiar_password !== true) {
+      // La marca ya estaba apagada: ESTA es la sesión que hay que devolver
+      // (recuperación del reintento tras respuesta perdida), así que no se
+      // descarta. Cerrarla aquí —como se hacía antes— le entregaría al
+      // cliente una sesión ya muerta que `setSession` no puede adoptar, y la
+      // persona quedaría fuera justo después de obedecer.
       return jsonResponse({ ok: true, ya_estaba: true, session: mismaPassword.session ?? null }, 200);
     }
+    // Rechazo: esta sesión de prueba no se devuelve a nadie, así que aquí sí
+    // se descarta. scope 'local' y no el 'global' por defecto: global cerraría
+    // TODAS las sesiones de esta persona, incluida la que está usando ahora
+    // mismo.
+    await anon.auth.signOut({ scope: 'local' }).catch(() => {});
     return jsonResponse(
       { error: 'Esa es la contraseña que te dio el club. Elige una distinta, que solo sepas tú.' },
       400,

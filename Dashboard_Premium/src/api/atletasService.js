@@ -147,8 +147,14 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   }
 
   if (error || !atletas) {
+    // rutas-01: antes esto devolvía [] / {data:[],hasMore:false} sin
+    // distinción — un fallo de red/RLS/5xx se pintaba igual que "el club
+    // tiene 0 atletas", sin error visible ni reintento en los callers cuyo
+    // try/catch nunca llegaba a dispararse. Lanzar hace el fallo
+    // distinguible del vacío; cada caller decide (ver atletasService.test.js
+    // y los callers ya auditados) si ya tenía try/catch o necesitaba uno.
     console.error('Error fetching atletas:', error);
-    return limit > 0 ? { data: [], hasMore: false } : [];
+    throw error || new Error('Error fetching atletas: respuesta vacía de Supabase');
   }
 
   if (atletas.length === 0) {
@@ -172,12 +178,20 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   if (errEvals) console.error('Error fetching evaluaciones:', errEvals);
 
   // Fetch readiness diario (solo del día de hoy, día LOCAL — api-01)
+  // Mismo patrón que evaluaciones_pruebas doce líneas arriba (api-04): sin
+  // traerTodo()/range() PostgREST corta en 1000 filas SIN avisar, y los
+  // atletas cortados aparecían como "sin check-in hoy" — indistinguible de
+  // quien de verdad no hizo check-in.
   const hoy = hoyLocal();
-  const { data: readinessData } = await supabase
-    .from('atleta_readiness')
-    .select('*')
-    .in('atleta_id', atletaIds)
-    .eq('fecha', hoy);
+  const { data: readinessData, error: errReadiness } = await traerTodo(() =>
+    supabase
+      .from('atleta_readiness')
+      .select('*')
+      .in('atleta_id', atletaIds)
+      .eq('fecha', hoy)
+      .order('id') // desempate estable entre páginas
+  );
+  if (errReadiness) console.error('Error fetching readiness:', errReadiness);
 
   // PR-7: `atletas.grupo_id`/`grupo_nombre` es la CACHÉ de la membresía básica,
   // con un único escritor: el espejo `sync_grupo_basico` de v38, que dispara

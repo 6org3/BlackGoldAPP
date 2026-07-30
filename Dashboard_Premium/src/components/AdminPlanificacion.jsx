@@ -40,8 +40,17 @@ export default function AdminPlanificacion() {
 
   useEffect(() => {
     const load = async () => {
-      const data = await fetchTodosLosAtletas(user);
-      setAtletas(data);
+      try {
+        const data = await fetchTodosLosAtletas(user);
+        setAtletas(data);
+      } catch (e) {
+        // rutas-01: fetchTodosLosAtletas ya no traga sus propios errores de
+        // Supabase — reusa el banner de error que esta página ya renderiza
+        // (antes solo para el guardado de sesiones) en vez de dejarla en
+        // blanco como si el club no tuviera atletas.
+        console.error('AdminPlanificacion: fallo al cargar atletas', e);
+        setError('No pudimos cargar el plantel. Puede ser un problema de conexión.');
+      }
     };
     load();
   }, [user]);

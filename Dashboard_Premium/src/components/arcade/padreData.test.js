@@ -25,7 +25,7 @@ import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
 // ese único choke-point para importar la función pura sin red ni envs.
 vi.mock('../../api/supabaseClient', () => ({ supabase: {} }));
 
-import { ultimasSesiones, proximoEvento } from './padreData';
+import { ultimasSesiones, proximoEvento, estadoMision } from './padreData';
 
 afterEach(() => vi.useRealTimers());
 afterAll(() => {
@@ -142,5 +142,33 @@ describe('proximoEvento', () => {
     expect(proximoEvento([{ eventos: { fecha_evento: '2026-07-14', nombre: 'Ya pasó' } }])).toBeNull();
     expect(proximoEvento([])).toBeNull();
     expect(proximoEvento(null)).toBeNull();
+  });
+});
+
+// Máquina real de progreso_misiones (confirmada en misionesService.js):
+//   estado='pendiente'            + completada=false → misión ACTIVA, el hijo no la ha tocado
+//   estado='pendiente_aprobacion' + completada=true   → el hijo la envió, espera al coach (EN REVISIÓN)
+//   estado='aprobada'                                 → COMPLETADA de verdad
+// comp-01: el mapeo viejo invertía justo estos dos primeros casos.
+describe('estadoMision', () => {
+  it('sin misión → placeholder neutro', () => {
+    expect(estadoMision(null)).toEqual({ label: '—', tone: 'muted' });
+  });
+
+  it('pendiente + no completada → ACTIVA (el hijo todavía no la ha tocado)', () => {
+    const r = estadoMision({ estado: 'pendiente', completada: false });
+    expect(r.label).toBe('ACTIVA');
+    expect(r.label).not.toBe('EN REVISIÓN');
+  });
+
+  it('pendiente_aprobacion + completada → EN REVISIÓN (el hijo la envió, espera al coach)', () => {
+    const r = estadoMision({ estado: 'pendiente_aprobacion', completada: true });
+    expect(r.label).toBe('EN REVISIÓN');
+    expect(r.label).not.toBe('COMPLETADA');
+  });
+
+  it('aprobada → COMPLETADA de verdad', () => {
+    const r = estadoMision({ estado: 'aprobada', completada: true });
+    expect(r.label).toBe('COMPLETADA');
   });
 });

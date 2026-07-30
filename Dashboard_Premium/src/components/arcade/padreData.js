@@ -203,10 +203,14 @@ export function misionActual(misiones) {
   );
 }
 
-/** Estado de misión → etiqueta del HUD. */
+/** Estado de misión → etiqueta del HUD. Máquina real (progreso_misiones):
+    estado='pendiente' + completada=false → ACTIVA (el hijo no la ha tocado);
+    completada=true + estado='pendiente_aprobacion' → el hijo la envió y
+    espera al coach (EN REVISIÓN); estado='aprobada' → COMPLETADA de verdad. */
 export function estadoMision(m) {
   if (!m) return { label: '—', tone: 'muted' };
-  if (m.completada) return { label: 'COMPLETADA', tone: 'ok' };
-  if (m.estado === 'pendiente') return { label: 'EN REVISIÓN', tone: 'ai' };
+  if (m.estado === 'aprobada') return { label: 'COMPLETADA', tone: 'ok' };
+  if (m.completada && m.estado === 'pendiente_aprobacion') return { label: 'EN REVISIÓN', tone: 'ai' };
+  if (!m.completada && m.estado === 'pendiente') return { label: 'ACTIVA', tone: 'gold' };
   return { label: 'PENDIENTE', tone: 'muted' };
 }

@@ -42,7 +42,15 @@ export const esErrorJwtTransitorio = (msg?: string | null): boolean =>
 // insertar, deleteUser no llega a borrar). No reintenta ningún otro error
 // (duplicados, validaciones, permisos): esos se devuelven tal cual al primer
 // intento. Deliberadamente NO se usa en llamadas PostgREST con efecto (rpc,
-// insert), que no son idempotentes.
+// insert) que no son idempotentes — reintentar una que SÍ tuvo efecto en el
+// primer intento (el error transitorio puede llegar después de que la
+// operación ya aplicó del lado del servidor) la ejecutaría dos veces.
+// Excepción: crear-acceso-usuario SÍ envuelve un .update() con esta función,
+// pero solo porque ese UPDATE trae su propio guard (`.is('auth_user_id',
+// null)`) que lo vuelve idempotente — un reintento sobre una fila que el
+// primer intento ya vinculó no matchea nada y no hace nada. Un futuro caller
+// que copie el patrón sobre un UPDATE SIN un guard equivalente reintroduciría
+// el problema que esta nota advierte.
 export async function reintentarAuth<T extends { error: unknown }>(
   op: () => Promise<T>,
   intentos = 3,

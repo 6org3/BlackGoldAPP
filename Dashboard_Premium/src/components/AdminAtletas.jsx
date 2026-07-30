@@ -22,7 +22,7 @@ import BannerCredenciales from './BannerCredenciales';
 import { COLORS } from '../lib/designTokens';
 import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
-export default function AdminAtletas({ atletas, onRefresh, user }) {
+export default function AdminAtletas({ atletas, onRefresh, user, errorCarga = '' }) {
   const {
     showForm, setShowForm,
     editingId, setEditingId,
@@ -300,6 +300,25 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
             staff no las anota aquí la familia no puede entrar. */}
         {credenciales && (
           <BannerCredenciales credenciales={credenciales} onCerrar={() => setCredenciales(null)} />
+        )}
+        {/* rutas-01: fallo al CARGAR el plantel (red/RLS/5xx) — distinguible
+            del vacío real y del error de guardado/edición de más abajo. */}
+        {errorCarga && (
+          <motion.div
+            role="alert"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="mb-6 p-4 text-sm font-bold flex items-center gap-3"
+            style={{ clipPath: cut(10), background: TINT.danger, border: `1px solid ${BORDER.danger}`, color: C.danger }}
+          >
+            <AlertCircle size={18} className="shrink-0" /><span className="flex-1">{errorCarga}</span>
+            <button
+              onClick={onRefresh}
+              className="cut-focus ml-auto p-2 -m-2 min-h-11 px-3 flex items-center justify-center font-black uppercase text-xs tracking-widest"
+              style={{ color: C.danger }}
+            >
+              Reintentar
+            </button>
+          </motion.div>
         )}
         {error && (
           <motion.div
