@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fechaNacimientoDeEdad, parseEdad } from './edad';
+import { fechaNacimientoDeEdad, parseEdad, rangoFechaNacimientoPorCategoria } from './edad';
 
 // Fecha fija: sin esto los casos de borde (cumpleaños hoy) dependerían del día
 // en que se corre la suite.
@@ -49,5 +49,37 @@ describe('parseEdad', () => {
     expect(parseEdad('-3')).toBeUndefined();
     expect(parseEdad('abc')).toBeUndefined();
     expect(parseEdad(NaN)).toBeUndefined();
+  });
+});
+
+// coherencia-01: reemplaza los .eq('usuarios.categoria_feb', X) de
+// atletasService.js/AdminMisiones.jsx — la categoría se traduce a un rango de
+// fecha_nacimiento en vez de leer la columna GENERATED congelada.
+describe('rangoFechaNacimientoPorCategoria', () => {
+  it('categoría intermedia (con techo): fechaNacLte y fechaNacGt acotan ambos extremos', () => {
+    // Menores (Sub-14): min 12, max 14.
+    expect(rangoFechaNacimientoPorCategoria('Menores (Sub-14)', HOY)).toEqual({
+      fechaNacLte: fechaNacimientoDeEdad(12, HOY), // nació hace AL MENOS 12 años
+      fechaNacGt: fechaNacimientoDeEdad(15, HOY),  // no ha cumplido 15 todavía
+    });
+  });
+
+  it('Premini (Sub-9): min 1, max 9', () => {
+    expect(rangoFechaNacimientoPorCategoria('Premini (Sub-9)', HOY)).toEqual({
+      fechaNacLte: fechaNacimientoDeEdad(1, HOY),
+      fechaNacGt: fechaNacimientoDeEdad(10, HOY),
+    });
+  });
+
+  it('Mayores: sin techo de edad, fechaNacGt viene undefined (no se aplica .gt)', () => {
+    const rango = rangoFechaNacimientoPorCategoria('Mayores', HOY);
+    expect(rango.fechaNacLte).toBe(fechaNacimientoDeEdad(19, HOY));
+    expect(rango.fechaNacGt).toBeUndefined();
+  });
+
+  it('categoría no canónica devuelve null (el caller debe aplicar un filtro de "cero resultados")', () => {
+    expect(rangoFechaNacimientoPorCategoria('Sub-15', HOY)).toBeNull();
+    expect(rangoFechaNacimientoPorCategoria('', HOY)).toBeNull();
+    expect(rangoFechaNacimientoPorCategoria(undefined, HOY)).toBeNull();
   });
 });

@@ -13,6 +13,7 @@ import { supabase } from '../../api/supabaseClient';
 import { fetchMisiones, completarMision } from '../../api/misionesService';
 import { fetchConvocatoriasAtleta, fetchTableroConvocados, responderRSVP } from '../../api/eventosService';
 import { fetchSesionesAtleta } from '../../api/sesionesEntrenamientoService';
+import { hoyLocal } from '../../lib/fechasLocal';
 import { radarPilares, xpInfo, fichaFisica } from './padreData';
 
 export { completarMision, responderRSVP };
@@ -81,9 +82,16 @@ export function alertaReadiness(user) {
 
 /** Sesión de HOY para "hoy entrenas". El log de entrenamiento no tiene hora,
     así que solo mostramos algo si hay una sesión con fecha de hoy. TODO: cablear
-    una agenda real del atleta (sesiones_programadas por grupo). */
-function hoyEntrenasDe(sesiones) {
-  const hoy = hoyISO();
+    una agenda real del atleta (sesiones_programadas por grupo).
+    lote 3: hoy propio en día LOCAL (Ecuador UTC-5), no el hoyISO() (UTC) del
+    módulo — sesiones_entrenamiento.fecha ya se escribe en día LOCAL desde el
+    fix de la escritura (canchaData.js / AdminPlanificacion.jsx), así que
+    compararla contra un "hoy" en UTC volvía a desalinear justo de noche en
+    Ecuador. Cambio local a esta función: hoyISO() y su uso en la línea de
+    filtrado de eventos (fecha_evento) siguen intactos — tabla y concern
+    distintos, fuera de este lote. */
+export function hoyEntrenasDe(sesiones) {
+  const hoy = hoyLocal();
   const s = (sesiones || []).find((x) => String(x.fecha || '').slice(0, 10) === hoy);
   if (!s) return null;
   return {

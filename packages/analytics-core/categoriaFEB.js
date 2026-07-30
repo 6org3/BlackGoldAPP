@@ -13,6 +13,27 @@ export const CATEGORIAS_FEB = [
   'Mayores',
 ];
 
+// Rango de EDAD (años, ambos límites inclusive; `max: null` = sin techo, solo
+// Mayores) por categoría FEB — espejo en forma de TABLA de los mismos
+// umbrales que calcularCategoriaFEB() aplica por comparación secuencial
+// (edad <= 9 → Premini, etc.). Existe para que un caller que filtra en SQL/
+// PostgREST (coherencia-01: gates de alcance por categoría del coach en
+// atletasService.js, AdminMisiones.jsx) pueda traducir "categoría X" a un
+// rango de `fecha_nacimiento` sin poder invocar esta función fila por fila —
+// nunca leyendo `usuarios.categoria_feb`, la columna GENERATED que Postgres
+// congela en el INSERT (v20). Un test cruzado (utilsAtletas.test.js) recorre
+// todas las edades y verifica que esta tabla y calcularCategoriaFEB() nunca
+// diverjan; si se cambia un umbral aquí sin cambiarlo allá (o viceversa), esa
+// suite lo marca.
+export const RANGOS_EDAD_FEB = {
+  'Premini (Sub-9)': { min: 1, max: 9 },
+  'Mini (Sub-11)': { min: 10, max: 11 },
+  'Menores (Sub-14)': { min: 12, max: 14 },
+  'Prejuvenil (Sub-16)': { min: 15, max: 16 },
+  'Juvenil (Sub-18)': { min: 17, max: 18 },
+  'Mayores': { min: 19, max: null },
+};
+
 // Componentes { anio, mes (1-12), dia } de una fecha de nacimiento, sin pasar
 // por new Date() + getters locales: fecha_nacimiento llega en producción
 // como 'YYYY-MM-DD' puro (columna `date` de Postgres, o el value de un

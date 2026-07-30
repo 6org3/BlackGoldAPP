@@ -8,9 +8,13 @@
 // ya entrada la NOCHE del mismo día local, porque para entonces el día UTC ya
 // había avanzado uno. El fix compara claveDiaLocal(created_at) con hoyLocal().
 //
-// (La comparación de sesionDeHoy contra sesiones_entrenamiento.fecha se deja
-// intacta a propósito — ver el comentario en el hook — porque esa columna se
-// escribe con el DEFAULT CURRENT_DATE del servidor en UTC; no es sitio de este lote.)
+// Regresión lote 3: la comparación de sesionDeHoy contra
+// sesiones_entrenamiento.fecha se dejó A PROPÓSITO en día UTC (todayUTC) hasta
+// que la escritura tuviera su propio fix — ver el comentario que tenía el
+// hook. Ese fix ya llegó (canchaData.js#startSession y
+// AdminPlanificacion.jsx#sesionPayloadDesdeForm ya pasan fecha LOCAL
+// explícita), así que ahora el hook compara con hoyLocal() igual que
+// obsDeHoy.
 //
 // Se fuerza America/Guayaquil al TOPE del spec (antes de cualquier import que
 // use Date), mismo enfoque ya verificado empíricamente en este runtime por
@@ -81,5 +85,26 @@ describe('useMisionesPanelSesionYObservacion', () => {
     await flushMicrotasks();
 
     expect(setObservacionHoy).toHaveBeenCalledWith(observacionMañana);
+  });
+
+  it('reconoce una sesión con fecha LOCAL (post-fix de la escritura) como "de hoy" en el instante nocturno', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(AHORA_NOCTURNO_ECUADOR);
+
+    // fecha ya escrita en día LOCAL por el fix del lote 3 (canchaData.js /
+    // AdminPlanificacion.jsx) — en UTC "hoy" ya sería 2026-07-16, así que con
+    // el todayUTC viejo esta sesión NO se hubiera reconocido como "de hoy".
+    const sesionLocalDeHoy = { id: 'ses-1', fecha: '2026-07-15', eva_registro: 0 };
+    fetchSesionesAtletaMock.mockResolvedValue([sesionLocalDeHoy]);
+    supabaseMock.from.mockReturnValue(builderObservaciones({ data: [], error: null }));
+
+    const setSesionHoy = vi.fn();
+    const setEvaValue = vi.fn();
+    useMisionesPanelSesionYObservacion('atleta-pk-1', setSesionHoy, setEvaValue, vi.fn(), vi.fn());
+
+    await flushMicrotasks();
+
+    expect(setSesionHoy).toHaveBeenCalledWith(sesionLocalDeHoy);
+    expect(setEvaValue).toHaveBeenCalledWith(0);
   });
 });

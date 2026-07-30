@@ -41,6 +41,7 @@ import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
 
 // Resuelto contra la ubicación del script, no contra process.cwd() (mismo
 // motivo que blackgold-mcp: un cliente MCP lanza este proceso con el cwd
@@ -168,7 +169,11 @@ function agregarCobranza(pagos) {
     if (p.estado === "Becado") becados += 1;
 
     const grupo = p.atletas?.grupo_nombre || "Sin grupo";
-    const categoria = p.atletas?.usuarios?.categoria_feb || "Sin categoría";
+    // coherencia-01: la categoría se deriva AL VUELO de fecha_nacimiento,
+    // nunca se lee usuarios.categoria_feb (columna GENERATED que Postgres
+    // congela en el INSERT, v20) — un atleta que cruzó de categoría real sin
+    // que su fila se reescriba agruparía mal en este reporte financiero.
+    const categoria = calcularCategoriaFEB(p.atletas?.usuarios?.fecha_nacimiento) || "Sin categoría";
     acumular(porGrupo, grupo, cobradoFila, saldoFila, p.estado === "Vencido");
     acumular(porCategoria, categoria, cobradoFila, saldoFila, p.estado === "Vencido");
   }
@@ -411,7 +416,7 @@ server.tool(
           id, tipo, estado, monto_final, monto_pagado,
           atletas!inner (
             id, grupo_nombre,
-            usuarios!inner!atletas_usuario_id_fkey ( club, categoria_feb )
+            usuarios!inner!atletas_usuario_id_fkey ( club, fecha_nacimiento )
           )
         `)
         .eq("mes", mesEf)
@@ -678,7 +683,7 @@ server.tool(
         .from("pagos")
         .select(`
           id, tipo, estado, monto_final, monto_pagado,
-          atletas!inner ( id, grupo_nombre, usuarios!inner!atletas_usuario_id_fkey ( club, categoria_feb ) )
+          atletas!inner ( id, grupo_nombre, usuarios!inner!atletas_usuario_id_fkey ( club, fecha_nacimiento ) )
         `)
         .eq("mes", mesEf).eq("anio", anioEf).in("tipo", ["Mensualidad", "Adicional"]);
       if (club) qPagos = qPagos.eq("atletas.usuarios.club", club);

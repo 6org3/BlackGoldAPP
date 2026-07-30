@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
 import { calcularCategoriaFEB } from '../api/utilsAtletas';
+import { rangoFechaNacimientoPorCategoria } from '../lib/edad';
 import { aprobarMision, rechazarMision, aprobarAsignacion, rechazarAsignacion, setMisionActiva, actualizarMision } from '../api/misionesService';
 import { Plus, Save, X, Play, Trash2, CheckCircle, XCircle, Power, ChevronDown, Pencil } from 'lucide-react';
 import { PILAR_LABELS, PILARES_OPTIONS } from '../constants/pilares';
@@ -113,14 +114,26 @@ export default function AdminMisiones() {
     // readiness del club — payload innecesario en móvil.
     let atletasQuery = supabase
       .from('atletas')
-      .select('id, usuarios!inner!atletas_usuario_id_fkey (nombre, categoria, categoria_feb, club, fecha_nacimiento)')
+      .select('id, usuarios!inner!atletas_usuario_id_fkey (nombre, categoria, club, fecha_nacimiento)')
       .eq('usuarios.estado', 'activo')
       .order('id');
     if (user && user.rol !== 'superadmin' && user.club) {
       atletasQuery = atletasQuery.eq('usuarios.club', user.club);
     }
+    // coherencia-01: mismo gate que atletasService.fetchTodosLosAtletas — se
+    // traduce a un rango de fecha_nacimiento en vez de leer
+    // usuarios.categoria_feb (columna GENERATED congelada en el INSERT, v20).
+    // Categoría no canónica ⇒ filtro imposible (0 resultados), no "sin filtro".
     if (user && user.rol === 'coach' && user.categoria && user.categoria !== 'Todas') {
-      atletasQuery = atletasQuery.eq('usuarios.categoria_feb', user.categoria);
+      const rango = rangoFechaNacimientoPorCategoria(user.categoria);
+      if (rango) {
+        atletasQuery = atletasQuery.lte('usuarios.fecha_nacimiento', rango.fechaNacLte);
+        if (rango.fechaNacGt !== undefined) {
+          atletasQuery = atletasQuery.gt('usuarios.fecha_nacimiento', rango.fechaNacGt);
+        }
+      } else {
+        atletasQuery = atletasQuery.eq('usuarios.id', '00000000-0000-0000-0000-000000000000');
+      }
     }
 
     // Pendientes de aprobación (ambas colas: completadas por aprobar y

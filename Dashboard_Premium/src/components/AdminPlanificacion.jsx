@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchSesionesAtleta, crearSesionEntrenamiento } from '../api/sesionesEntrenamientoService';
 import { evaluateSessionRules } from '../lib/trainingRules';
+import { hoyLocal } from '../lib/fechasLocal';
 import { Save, FlaskConical, ShieldAlert, AlertTriangle, Info, Activity, Clock, Zap, Dumbbell, Search } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import BotonVolver from './arcade/BotonVolver';
@@ -12,6 +13,38 @@ const PAUSAS = ['Densidad Baja', 'Densidad Alta'];
 const INTENSIDADES = ['Media', 'Submáxima', 'Máxima'];
 const PARENTESCOS = ['Generales', 'Especiales', 'Técnicos con Carga Extra'];
 const TEMPOS = ['Regular', '3-1-3 Isométrico'];
+
+/**
+ * Payload del insert de sesiones_entrenamiento a partir del form + atleta
+ * seleccionado. Función pura extraída de handleSubmit para poder testearla
+ * sin renderer (el repo no tiene jsdom/testing-library, environment:'node'
+ * en vite.config.js) — mismo espíritu que las funciones puras de padreData.js.
+ *
+ * `fecha` se pasa explícita en día LOCAL (Ecuador UTC-5): la columna es
+ * DATE DEFAULT CURRENT_DATE, evaluado por Postgres en UTC — sin esto una
+ * sesión registrada de noche en Ecuador (ya "mañana" en UTC) quedaba
+ * archivada un día tarde.
+ *
+ * @param {object} form
+ * @param {{ atleta_id: string }} atleta
+ * @param {string} [hoy] - inyectable para tests; por defecto hoyLocal().
+ */
+export function sesionPayloadDesdeForm(form, atleta, hoy = hoyLocal()) {
+  return {
+    atleta_id: atleta.atleta_id,
+    fecha: hoy,
+    meta_entrenamiento: form.meta_entrenamiento,
+    tipo_pausa: form.tipo_pausa,
+    intensidad_bpm: form.intensidad_bpm,
+    parentesco_competencia: form.parentesco_competencia,
+    volumen_especifico_pct: parseInt(form.volumen_especifico_pct),
+    duracion_minutos: parseInt(form.duracion_minutos),
+    tempo_hsr: form.tempo_hsr,
+    volumen_series_reps: form.volumen_series_reps,
+    notas: form.notas,
+    eva_registro: parseInt(form.eva_registro),
+  };
+}
 
 export default function AdminPlanificacion() {
   const { user } = useAuth();
@@ -97,19 +130,7 @@ export default function AdminPlanificacion() {
     setSuccess('');
 
     try {
-      await crearSesionEntrenamiento({
-        atleta_id: selectedAtleta.atleta_id,
-        meta_entrenamiento: form.meta_entrenamiento,
-        tipo_pausa: form.tipo_pausa,
-        intensidad_bpm: form.intensidad_bpm,
-        parentesco_competencia: form.parentesco_competencia,
-        volumen_especifico_pct: parseInt(form.volumen_especifico_pct),
-        duracion_minutos: parseInt(form.duracion_minutos),
-        tempo_hsr: form.tempo_hsr,
-        volumen_series_reps: form.volumen_series_reps,
-        notas: form.notas,
-        eva_registro: parseInt(form.eva_registro),
-      });
+      await crearSesionEntrenamiento(sesionPayloadDesdeForm(form, selectedAtleta));
 
       setSuccess(`Sesión de ${form.meta_entrenamiento} registrada para ${selectedAtleta.nombre}.`);
       setForm(emptySession);

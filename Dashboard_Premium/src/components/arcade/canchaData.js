@@ -291,6 +291,7 @@ export async function startSession({ user, classType, level, present, roster, fo
       .map((a) =>
         crearSesionEntrenamiento({
           atleta_id: a.id,
+          fecha: fechaStr,
           pilar_objetivo: '',
           volumen_series_reps: '',
           notas: tipoStr,

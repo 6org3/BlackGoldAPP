@@ -53,10 +53,12 @@ export async function fetchCoachStats(dias = 30) {
 export const ROLES_EQUIPO = ['coach', 'owner'];
 export const ROLES_EQUIPO_LABELS = ['Coach', 'Co-dueño'];
 
-// Alcance del coach: `usuarios.categoria` se compara contra `categoria_feb` del
-// atleta (atletasService, brainAuth). 'Todas' (o vacío) = el club entero. Es
-// texto sin CHECK: un valor fuera de esta lista dejaría al coach sin ver a
-// nadie, por eso la UI lo ofrece como select cerrado.
+// Alcance del coach: `usuarios.categoria` se compara contra la categoría FEB
+// del atleta DERIVADA AL VUELO de su fecha_nacimiento (atletasService,
+// brainAuth) — nunca contra la columna generada `usuarios.categoria_feb`, que
+// Postgres congela en el INSERT (coherencia-01). 'Todas' (o vacío) = el club
+// entero. Es texto sin CHECK: un valor fuera de esta lista dejaría al coach
+// sin ver a nadie, por eso la UI lo ofrece como select cerrado.
 export const CATEGORIAS_COACH = [
   'Todas',
   'Premini (Sub-9)', 'Mini (Sub-11)', 'Menores (Sub-14)',

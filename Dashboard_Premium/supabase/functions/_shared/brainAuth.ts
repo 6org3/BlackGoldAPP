@@ -13,6 +13,7 @@
 // de supabase/functions/ y el deploy lo empaqueta con cada función.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { calcularCategoriaFEB } from "./analytics-core/categoriaFEB.js";
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -80,7 +81,7 @@ export type Target = {
   id: string;
   usuario_id: string;
   estado_recuperacion: string | null;
-  usuarios: { id: string; nombre: string; fecha_nacimiento: string | null; club: string | null; categoria_feb: string | null };
+  usuarios: { id: string; nombre: string; fecha_nacimiento: string | null; club: string | null };
 };
 
 export type AdminClient = ReturnType<typeof createClient>;
@@ -136,7 +137,7 @@ export async function autenticar(req: Request): Promise<{ error?: Response; call
 export async function obtenerAtleta(admin: AdminClient, atletaId: string): Promise<{ error?: Response; target?: Target }> {
   const { data: target, error: eTarget } = await admin
     .from('atletas')
-    .select('id, usuario_id, estado_recuperacion, usuarios!inner!atletas_usuario_id_fkey(id, nombre, fecha_nacimiento, club, categoria_feb)')
+    .select('id, usuario_id, estado_recuperacion, usuarios!inner!atletas_usuario_id_fkey(id, nombre, fecha_nacimiento, club)')
     .eq('id', atletaId)
     .single();
   if (eTarget || !target) return { error: jsonResponse({ error: 'Atleta no encontrado.' }, 404) };
@@ -162,10 +163,20 @@ export async function fueraDeAlcance(
       return target.usuarios.club === caller.club ? null : 'El atleta no pertenece a tu club.';
     case 'coach': {
       if (target.usuarios.club !== caller.club) return 'El atleta no pertenece a tu club.';
-      // Mismo criterio de alcance que atletasService.fetchTodosLosAtletas:
-      // usuarios.categoria_feb del atleta vs la categoría asignada al coach.
+      // Mismo criterio de alcance que atletasService.fetchTodosLosAtletas
+      // (coherencia-01): la categoría del atleta se DERIVA AL VUELO de
+      // fecha_nacimiento, nunca se lee usuarios.categoria_feb — esa columna es
+      // GENERATED y Postgres la congela en el INSERT (v20), así que un atleta
+      // que cruzó de categoría real sin que su fila se reescriba seguiría
+      // matcheando (o dejando de matchear) la categoría vieja.
+      //
+      // ESTE ES EL GATE DE AUTORIZACIÓN MÁS SENSIBLE DE ESTE ARCHIVO: decide
+      // si un coach puede leer sueño/fatiga/diagnóstico de un menor que no es
+      // de su categoría. NO reintroducir target.usuarios.categoria_feb aquí —
+      // no hay test automatizado que lo detecte (Deno, sin harness de test en
+      // el repo), solo revisión manual/adversarial.
       const limitadoACategoria = caller.categoria && caller.categoria !== 'Todas';
-      return !limitadoACategoria || target.usuarios.categoria_feb === caller.categoria
+      return !limitadoACategoria || calcularCategoriaFEB(target.usuarios.fecha_nacimiento) === caller.categoria
         ? null
         : 'El atleta no pertenece a tu categoría.';
     }

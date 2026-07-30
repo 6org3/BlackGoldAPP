@@ -53,6 +53,32 @@ const haceUnDia = () => new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 const RESERVA_MS = 2 * 60 * 1000;
 const haceLaReserva = () => new Date(Date.now() - RESERVA_MS).toISOString();
 
+// Reintento acotado para el DELETE de compensación de §4 — NO reutiliza
+// reintentarAuth() de _shared/brainAuth.ts: esa función está acotada
+// explícitamente al fallo transitorio de JWT kid de la Admin API de Auth
+// ("unrecognized JWT kid", "token is unverifiable"), no a llamadas PostgREST
+// como esta. Aquí se reintenta ante CUALQUIER error de la query (no solo uno
+// con mensaje reconocible) porque es seguro hacerlo sin importar la causa: el
+// propio DELETE trae el guard `.eq('estado','pendiente').is('auth_user_id',
+// null)` (mismo criterio ya documentado para el UPDATE de crear-acceso-usuario
+// en brainAuth.ts), así que repetirlo sobre una fila que un intento anterior ya
+// hubiera borrado o vinculado simplemente no matchea nada — no hace nada dos
+// veces. Esto ataca directamente la hipótesis del hallazgo original: que el
+// segundo DELETE, ejecutado inmediatamente después sobre la misma conexión,
+// tropiece con la misma causa transitoria que ya haya afectado a la petición.
+async function reintentarDelete<T extends { error: unknown }>(
+  op: () => Promise<T>,
+  intentos = 3,
+): Promise<T> {
+  let ultimo = await op();
+  for (let i = 1; i < intentos; i++) {
+    if (!ultimo.error) break;
+    await new Promise((r) => setTimeout(r, 200 * i));
+    ultimo = await op();
+  }
+  return ultimo;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse({ error: 'Método no permitido' }, 405);
@@ -295,13 +321,13 @@ serve(async (req) => {
     // registrante depende de eso y no debe afirmar que no se guardó nada sin
     // haberlo comprobado.
     const revertir = async (usuarioId: string): Promise<boolean> => {
-      const { data, error } = await supabase
+      const { data, error } = await reintentarDelete(() => supabase
         .from('usuarios')
         .delete()
         .eq('id', usuarioId)
         .eq('estado', 'pendiente')
         .is('auth_user_id', null)
-        .select('id');
+        .select('id'));
       if (error) {
         console.error('[registro-publico] rollback fallido de', usuarioId, error.message);
         return false;
@@ -368,9 +394,22 @@ serve(async (req) => {
   // se veían los tres como `padre: null`, así que la familia cuyo representante
   // se quedaba sin acceso salía de la pantalla creyendo que todo fue bien y
   // descubría el problema al intentar entrar, sin saber qué pedirle al club.
+  //
+  // `reg.padre_auth_activo` (v60) es lo que distingue un representante REAL
+  // (encontrado con su cuenta de Auth vinculada) de uno HUÉRFANO: una fila que
+  // quedó de una compensación fallida en un intento anterior —el DELETE de este
+  // mismo bloque §4, sobre el padre, cuando el createUser del ATLETA falló y ese
+  // segundo borrado también falló— y que `registrar_publico()` vuelve a
+  // encontrar por la misma cédula `PADRE_<telefono>` (v59 no filtra esa vía por
+  // estado, a propósito, para permitir dos hermanos el mismo día). Sin este
+  // campo, `padre_existente=true` bastaba para decidir 'ya_existia' y el
+  // reintento se atascaba ahí para siempre, sin volver a intentar crear la
+  // cuenta de Auth que en realidad falta. Con el campo, ese caso cae al `else
+  // if` de abajo igual que un padre nuevo: es la misma reparación, sin ninguna
+  // rama adicional.
   let passwordPadre: string | null = null;
   let padreEstado: 'sin_representante' | 'ya_existia' | 'emitida' | 'error' = 'sin_representante';
-  if (reg?.padre_id && reg?.padre_existente) {
+  if (reg?.padre_id && reg?.padre_existente && reg?.padre_auth_activo) {
     padreEstado = 'ya_existia';
   } else if (reg?.padre_id && reg?.padre_cedula) {
     const generada = generarPasswordTemporal();

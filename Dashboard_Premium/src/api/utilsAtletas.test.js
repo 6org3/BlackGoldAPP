@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcularEdad, calcularCategoriaFEB } from './utilsAtletas';
+import { calcularEdad, calcularCategoriaFEB, RANGOS_EDAD_FEB } from './utilsAtletas';
 
 describe('calcularEdad', () => {
   it('devuelve 0 si no hay fecha de nacimiento', () => {
@@ -66,5 +66,38 @@ describe('calcularCategoriaFEB', () => {
     const hoy = new Date();
     const fecha16 = new Date(hoy.getFullYear() - 16, hoy.getMonth(), hoy.getDate());
     expect(calcularCategoriaFEB(fecha16)).toBe('Prejuvenil (Sub-16)');
+  });
+});
+
+// coherencia-01: RANGOS_EDAD_FEB es la tabla que atletasService.js/
+// AdminMisiones.jsx/blackgold-negocio-mcp traducen a rangos de
+// fecha_nacimiento para no leer la columna congelada usuarios.categoria_feb.
+// Si alguien cambia un umbral en un solo lado (esta tabla o
+// calcularCategoriaFEB), esta suite lo detecta recorriendo todas las edades.
+describe('RANGOS_EDAD_FEB — no diverge de calcularCategoriaFEB', () => {
+  it('cubre exactamente las 6 categorías canónicas', () => {
+    expect(Object.keys(RANGOS_EDAD_FEB).sort()).toEqual(
+      [
+        'Premini (Sub-9)',
+        'Mini (Sub-11)',
+        'Menores (Sub-14)',
+        'Prejuvenil (Sub-16)',
+        'Juvenil (Sub-18)',
+        'Mayores',
+      ].sort()
+    );
+  });
+
+  it.each(Array.from({ length: 40 }, (_, i) => i))('edad %i: la categoría de la tabla coincide con calcularCategoriaFEB', (edad) => {
+    const esperada = calcularCategoriaFEB(edad);
+    const categoriaDeTabla = Object.entries(RANGOS_EDAD_FEB).find(
+      ([, { min, max }]) => edad >= min && (max === null || edad <= max)
+    )?.[0] ?? null;
+    expect(categoriaDeTabla).toBe(esperada);
+  });
+
+  it('Mayores no tiene techo de edad (max: null)', () => {
+    expect(RANGOS_EDAD_FEB['Mayores'].max).toBeNull();
+    expect(calcularCategoriaFEB(120)).toBe('Mayores');
   });
 });
