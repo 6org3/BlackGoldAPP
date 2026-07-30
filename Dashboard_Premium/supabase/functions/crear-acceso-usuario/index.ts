@@ -18,10 +18,10 @@
 //   - Nunca 'superadmin': ese acceso no nace del panel.
 //   - Idempotente: si el usuario ya tiene auth_user_id responde ya_existia
 //     (salvo `regenerar: true`, ver abajo).
-//   - Password inicial: ALEATORIA para coach y dueño (v41); la cédula para un
-//     atleta, y la cédula del hijo indicado en hijo_usuario_id para un padre
-//     (validando el vínculo real en padres_atletas) — el cliente nunca envía
-//     contraseñas.
+//   - Password inicial: ALEATORIA para TODOS los roles — el cliente nunca envía
+//     contraseñas. Para un padre se sigue exigiendo hijo_usuario_id y el
+//     vínculo real en padres_atletas, ya no para derivar de ahí la contraseña
+//     sino porque un representante existe en función de sus hijos.
 //
 // v41 — POR QUÉ LA CONTRASEÑA DE UN PRIVILEGIADO YA NO SALE DE LA CÉDULA.
 // Hasta v40 esta función fijaba `password = target.cedula` también para coach y
@@ -37,42 +37,28 @@
 //
 // El fix NO es esconder la cédula (se sabe fuera de la base: fighting the
 // symptom), sino que deje de ser la contraseña donde hay privilegios que robar.
-// Atleta/padre siguen con la cédula a propósito: son ~860 cuentas cuyo
-// onboarding entero ("entra con tu cédula") depende de eso y que en su mayoría
-// no tienen correo. Que un coach pueda entrar como un atleta de SU club sigue
-// abierto y anotado — es suplantación, no escalada, y su fix es un cambio de
-// producto (ver el PR de v41).
+//
+// ACTUALIZACIÓN — la excepción de atleta/padre ya no existe. v41 dejó a esos
+// dos roles con `password = cédula` a propósito: eran ~860 cuentas sembradas
+// cuyo onboarding entero ("entra con tu cédula") dependía de eso, y casi
+// ninguna tenía correo. Ese motivo se cae al arrancar de cero con personas
+// reales, y entonces el mismo razonamiento de arriba aplica igual: cualquiera
+// que haya visto el documento de un menor tiene su par de credenciales
+// completo. De paso cierra la suplantación que v41 dejó anotada — un coach
+// leía la cédula de cualquier atleta de su club y con eso entraba como él.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { autenticar, jsonResponse, reintentarAuth, ROLES_STAFF } from "../_shared/brainAuth.ts";
+import { generarPasswordTemporal, MARCA_PASSWORD_TEMPORAL } from "../_shared/credenciales.ts";
 
 // Misma regla que resolver_email_login() (v19), el trigger de v24 y
 // registro-publico.
 const emailParaAuth = (correo: string | null | undefined, cedula: string) =>
   (correo || `${cedula}@sinacceso.blackgoldapp.internal`).toLowerCase();
 
-// Los roles cuya contraseña NO puede derivarse de un dato legible.
-const ROLES_PASS_ALEATORIA = new Set(['coach', 'owner']);
-
-// Contraseña temporal: 14 caracteres de un alfabeto sin ambigüedades visuales
-// (sin O/0, l/1/I), porque el dueño se la va a dictar al coach por WhatsApp o
-// en persona. `crypto.getRandomValues` es el CSPRNG del runtime; se descartan
-// los bytes del último tramo incompleto para no meter sesgo de módulo.
-const generarPasswordTemporal = (largo = 14): string => {
-  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-  const limite = Math.floor(256 / abc.length) * abc.length;
-  const salida: string[] = [];
-  while (salida.length < largo) {
-    const bytes = new Uint8Array(largo * 2);
-    crypto.getRandomValues(bytes);
-    for (const b of bytes) {
-      if (b >= limite) continue;      // sesgo de módulo: se descarta
-      salida.push(abc[b % abc.length]);
-      if (salida.length === largo) break;
-    }
-  }
-  return salida.join('');
-};
+// El generador de contraseñas y la marca de "debe cambiarla" viven en
+// _shared/credenciales.ts: los usan también el registro público y cualquier
+// vía futura de alta, para que no vuelva a haber una excepción por rol.
 
 serve(async (req) => {
   const { error, caller, admin } = await autenticar(req);
@@ -126,12 +112,25 @@ serve(async (req) => {
     if (!target.auth_user_id) {
       return jsonResponse({ error: 'Ese usuario todavía no tiene acceso: créalo en vez de regenerarlo.' }, 400);
     }
-    // Regenerar a un atleta/padre le pondría una contraseña aleatoria y le
-    // rompería el "entra con tu cédula" que su familia conoce; y con la cédula
-    // intacta no hay nada que rotar. Los gates de rol de abajo (coach/owner
-    // solo los toca el dueño) valen igual para crear que para regenerar.
-    if (!ROLES_PASS_ALEATORIA.has(target.rol as string)) {
-      return jsonResponse({ error: 'Solo se regenera el acceso de coaches y dueños.' }, 400);
+    // Antes esto se le negaba a atleta y padre: con la contraseña fijada a la
+    // cédula no había nada que rotar, y rotarla les rompía el "entra con tu
+    // cédula" que su familia conocía. Ahora que la contraseña es aleatoria,
+    // regenerar es justo lo que necesita la familia que la perdió — y es la
+    // única vía de recuperación mientras no haya correo real ni SMTP.
+    //
+    // Pero SOLO el dueño. Crear un acceso y rotarlo no son la misma operación:
+    // crear es parte de la inscripción y la hace cualquier staff; rotar es
+    // recuperación de cuenta y le entrega al que la pide la contraseña NUEVA de
+    // otra persona, en claro. Sin este gate, un coach podía POSTear
+    // { usuario_id: <cualquier atleta de su club>, regenerar: true } y quedarse
+    // con la cuenta del menor —y con la de su representante—, en silencio y sin
+    // pasar por ninguna pantalla: la ausencia de botón no es un control.
+    // Cada club tiene su dueño, así que la recuperación siempre tiene a quién
+    // acudir.
+    if (caller!.rol !== 'owner' && caller!.rol !== 'superadmin') {
+      return jsonResponse({
+        error: 'Solo el dueño del club puede regenerar el acceso de un deportista o de un representante.',
+      }, 403);
     }
   }
   // El acceso de un coach (v35) lo habilita el dueño del club, nunca otro coach.
@@ -151,28 +150,21 @@ serve(async (req) => {
     }
   }
 
-  // Password inicial según el rol del target (v41: aleatoria si hay privilegios).
-  let password: string;
-  let passwordTemporal: string | null = null;
-  if (ROLES_PASS_ALEATORIA.has(target.rol as string)) {
-    password = generarPasswordTemporal();
-    passwordTemporal = password;   // se devuelve UNA vez; no se guarda en ningún lado
-  } else if (target.rol === 'atleta') {
-    if (!target.cedula) return jsonResponse({ error: 'El usuario no tiene cédula registrada.' }, 400);
-    password = target.cedula as string;
-  } else {
+  // La cédula sigue haciendo falta cuando no hay correo: es la que forma el
+  // email sintético con el que nace la cuenta. Ya NO se usa como contraseña.
+  if (!target.correo && !target.cedula) {
+    return jsonResponse({ error: 'El usuario no tiene ni correo ni cédula: no se le puede crear una cuenta.' }, 400);
+  }
+
+  // Para un representante se sigue exigiendo el vínculo con un hijo. Ya no es
+  // para sacar de ahí la contraseña (era la cédula del hijo), sino porque un
+  // representante existe EN FUNCIÓN de sus hijos: emitir acceso a uno suelto
+  // sería crear una cuenta sin nada que representar.
+  if (target.rol === 'padre') {
     const hijoUsuarioId = body?.hijo_usuario_id;
     if (!hijoUsuarioId) {
       return jsonResponse({ error: 'Para un representante se requiere hijo_usuario_id.' }, 400);
     }
-    const { data: hijo } = await admin!
-      .from('usuarios')
-      .select('id, cedula')
-      .eq('id', hijoUsuarioId)
-      .single();
-    if (!hijo?.cedula) return jsonResponse({ error: 'El atleta vinculado no existe o no tiene cédula.' }, 400);
-
-    // El vínculo debe existir de verdad: padres_atletas(padre, atleta-del-hijo).
     const { data: atletaHijo } = await admin!
       .from('atletas')
       .select('id')
@@ -189,14 +181,28 @@ serve(async (req) => {
     if (!vinculo) {
       return jsonResponse({ error: 'El representante no está vinculado a ese atleta.' }, 400);
     }
-    password = hijo.cedula as string;
   }
+
+  // Contraseña inicial: aleatoria para TODOS los roles, sin excepción.
+  // Hasta aquí atleta y padre nacían con `password = cédula` (la del propio
+  // atleta, o la del hijo para el representante). Ver la nota de
+  // _shared/credenciales.ts: la cédula no es un secreto, así que ese par
+  // (cédula, cédula) lo podía usar cualquiera que hubiera visto el documento
+  // del menor. Se devuelve UNA vez en esta respuesta y no se guarda en ningún
+  // lado; quien la pierda necesita una regeneración.
+  const password = generarPasswordTemporal();
+  const passwordTemporal = password;
 
   // v41: rotar el acceso existente. La cuenta de Auth ya existe y ya está
   // vinculada, así que aquí solo se cambia la contraseña.
   if (regenerar) {
     const { error: eRotar } = await reintentarAuth(() => admin!.auth.admin
-      .updateUserById(target.auth_user_id as string, { password }));
+      .updateUserById(target.auth_user_id as string, {
+        password,
+        // Vuelve a quedar marcada como temporal: quien reciba esta contraseña
+        // tendrá que fijar la suya en el primer ingreso, igual que en un alta.
+        app_metadata: MARCA_PASSWORD_TEMPORAL,
+      }));
     if (eRotar) {
       // El mensaje de GoTrue va al log, no al cliente. Esta pantalla la usa el
       // staff, pero el detalle igual delata el estado interno de Auth.
@@ -210,6 +216,7 @@ serve(async (req) => {
     email: emailParaAuth(target.correo as string | null, target.cedula as string),
     password,
     email_confirm: true,
+    app_metadata: MARCA_PASSWORD_TEMPORAL,
   }));
   if (eAuth) {
     console.error('[crear-acceso-usuario] createUser:', eAuth.message);
@@ -226,8 +233,8 @@ serve(async (req) => {
     .eq('id', target.id)
     .is('auth_user_id', null);
 
-  // `password_temporal` va SOLO para coach/owner y solo en esta respuesta: no se
-  // guarda en la base ni se puede volver a consultar. Para atleta/padre es null
-  // — su contraseña sigue siendo la cédula, que el panel ya muestra.
+  // `password_temporal` viaja SOLO en esta respuesta: no se guarda en la base
+  // ni se puede volver a consultar. Si el staff no la anota, la única salida es
+  // regenerar el acceso (`regenerar: true`), que emite otra.
   return jsonResponse({ success: true, password_temporal: passwordTemporal }, 200);
 });

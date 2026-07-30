@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../api/supabaseClient';
-import { AlertCircle, X, Trash2, AlertTriangle, UserMinus } from 'lucide-react';
+import { AlertCircle, X, Trash2, AlertTriangle, UserMinus, KeyRound, KeySquare } from 'lucide-react';
 import { marcarBaja } from '../api/retencionService';
+import { crearAccesoUsuario } from '../api/accesosService';
+import { fetchContactosPago } from '../api/pagosService';
 import { esBaja } from './adminAtletasMembresia';
 import ScoutingReportTemplate from './ScoutingReportTemplate';
 import AntropometriaModal from './AntropometriaModal';
@@ -16,6 +18,7 @@ import MembresiaAtletaModal from './MembresiaAtletaModal';
 import SolicitudesPanel from './SolicitudesPanel';
 import RechazadosPanel from './RechazadosPanel';
 import ModalHUD from './arcade/ModalHUD';
+import BannerCredenciales from './BannerCredenciales';
 import { COLORS } from '../lib/designTokens';
 import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
@@ -26,6 +29,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     saving,
     error, setError,
     success, setSuccess,
+    credenciales, setCredenciales,
     showParentForm, setShowParentForm,
     emptyForm,
     form, setForm,
@@ -67,6 +71,10 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
   const [membresiaAtleta, setMembresiaAtleta] = useState(null);
   // Diálogo HUD activo (reemplaza confirm/alert nativos): null | { variant, ... }.
   const [modal, setModal] = useState(null);
+  // Fila con una regeneración en vuelo: apaga la duda de "¿se quedó colgado?" y
+  // desalienta el segundo clic, que emitiría una contraseña más y dejaría
+  // obsoleta la que el banner está mostrando.
+  const [regenerandoId, setRegenerandoId] = useState(null);
   const reportRef = React.useRef(null);
 
   // Quién puede qué (v34, en simetría con la aprobación de solicitudes: quien
@@ -74,6 +82,12 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
   // server-side — esto solo evita ofrecer un botón que iba a fallar.
   const puedeMembresia = user?.rol === 'owner' || user?.rol === 'superadmin';
   const puedeEliminar = user?.rol === 'superadmin';
+  // Regenerar el acceso es RECUPERACIÓN DE CUENTA, no parte del alta: le
+  // entrega a quien la pide la contraseña nueva de otra persona, en claro. Por
+  // eso es del dueño y no de cualquier staff — un coach no lo ve. La Edge
+  // Function crear-acceso-usuario devuelve 403 al coach que lo intente igual;
+  // esconder el botón es coherencia de UI, no el control.
+  const puedeRegenerarAcceso = user?.rol === 'owner' || user?.rol === 'superadmin';
 
   // Handlers estables: las cards/filas están memoizadas (React.memo) y
   // reciben estas referencias directamente.
@@ -132,6 +146,102 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     });
   }, [onRefresh, refetch]);
 
+  // ─── Regenerar acceso ─────────────────────────────────────
+  // La contraseña inicial dejó de ser la cédula: la genera el servidor y se
+  // muestra UNA vez. Sin correo ni SMTP configurados no hay "olvidé mi
+  // contraseña", así que ESTA pantalla es la única vía de recuperación que le
+  // queda a la familia — y es la que la pantalla de fin de registro le promete
+  // ("si la pierdes antes, el club puede generarte una nueva").
+  //
+  // Emisión propiamente dicha, compartida por el deportista y su representante.
+  const emitirPassword = useCallback(async ({ usuarioId, hijoUsuarioId = null, filaId, nombre, rol, usuario }) => {
+    setModal(null);
+    setRegenerandoId(filaId);
+    // El banner no puede sobrevivir a la emisión que lo reemplaza: si esta
+    // falla, quedaría en pantalla la contraseña de OTRA persona junto al error
+    // de esta, y el staff se la dictaría a quien no es.
+    setCredenciales(null);
+    try {
+      const { password_temporal } = await crearAccesoUsuario({ usuarioId, hijoUsuarioId, regenerar: true });
+      if (password_temporal) setCredenciales([{ nombre, rol, usuario, password: password_temporal }]);
+      setSuccess(`✅ Acceso de ${nombre} regenerado. Anota la contraseña: no se vuelve a mostrar.`);
+    } catch (e) {
+      // Aquí caen también los rechazos con mensaje útil del servidor, y no
+      // solo los fallos: p. ej. el atleta que nunca llegó a tener cuenta de
+      // Auth ("créalo en vez de regenerarlo"). Se muestra tal cual.
+      setModal({
+        variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Error',
+        title: 'No se pudo regenerar el acceso', message: e.message,
+      });
+    } finally {
+      setRegenerandoId(null);
+    }
+  }, [setCredenciales, setSuccess]);
+
+  const handleRegenerarAcceso = useCallback((atleta) => {
+    setModal({
+      variant: 'confirm', tone: 'warn', icon: KeyRound,
+      eyebrow: 'Regenerar acceso',
+      title: `¿Regenerar el acceso de ${atleta.nombre}?`,
+      message: 'Se le asigna una contraseña nueva y la anterior deja de servir en el acto. La verás una sola vez: tendrás que dársela tú.',
+      confirmLabel: 'Regenerar',
+      onConfirm: () => emitirPassword({
+        usuarioId: atleta.id, filaId: atleta.id,
+        nombre: atleta.nombre, rol: 'Deportista', usuario: atleta.cedula,
+      }),
+    });
+  }, [emitirPassword]);
+
+  // Para un representante la Edge Function exige además `hijo_usuario_id` y
+  // comprueba el vínculo real en padres_atletas, así que primero hay que saber
+  // QUIÉN es: lo resuelve fetchContactosPago, la misma consulta con la que el
+  // módulo de pagos saca el contacto de cobranza del atleta (es_rep_pagos
+  // primero, si no el primer vínculo). No se inventa ninguna otra.
+  //
+  // Se resuelve al pulsar, no al listar: un roster filtrado no debe pagar una
+  // consulta extra por una acción que se usa una vez cada muchos meses.
+  const handleRegenerarRepresentante = useCallback(async (atleta) => {
+    setRegenerandoId(atleta.id);
+    let representante = null;
+    try {
+      const contactos = await fetchContactosPago([atleta.atleta_id]);
+      representante = contactos[atleta.atleta_id] || null;
+    } catch (e) {
+      setModal({
+        variant: 'alert', tone: 'danger', icon: AlertTriangle, eyebrow: 'Error',
+        title: 'No se pudo consultar al representante', message: e.message,
+      });
+      return;
+    } finally {
+      setRegenerandoId(null);
+    }
+    if (!representante?.usuarioId) {
+      setModal({
+        variant: 'alert', tone: 'info', icon: KeySquare, eyebrow: 'Sin representante',
+        title: 'No hay representante vinculado',
+        message: `${atleta.nombre} no tiene ningún representante vinculado, así que no hay ninguna contraseña suya que regenerar.`,
+      });
+      return;
+    }
+    setModal({
+      variant: 'confirm', tone: 'warn', icon: KeySquare,
+      eyebrow: 'Regenerar acceso',
+      title: `¿Regenerar el acceso de ${representante.nombre}?`,
+      message: `Es el representante de ${atleta.nombre}. Se le asigna una contraseña nueva y la anterior deja de servir en el acto. La verás una sola vez: tendrás que dársela tú.`,
+      confirmLabel: 'Regenerar',
+      onConfirm: () => emitirPassword({
+        // `hijoUsuarioId` es el usuarios.id del ATLETA (no su atletas.id): la
+        // función traduce de ahí al atleta y verifica el vínculo.
+        usuarioId: representante.usuarioId, hijoUsuarioId: atleta.id, filaId: atleta.id,
+        nombre: representante.nombre || 'Representante',
+        rol: 'Representante',
+        // El teléfono es identificador de login válido (resolver_email_login
+        // acepta correo, teléfono o cédula), y es el que el alta ya le muestra.
+        usuario: representante.telefono || null,
+      }),
+    });
+  }, [emitirPassword]);
+
   const exportPDF = useCallback(async (atleta) => {
     setExportingAtleta(atleta);
     setTimeout(async () => {
@@ -186,6 +296,11 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
 
       {/* ═══════════════════════ MENSAJES ═══════════════════════ */}
       <AnimatePresence>
+        {/* Contraseñas del alta: la inicial ya no es la cédula, así que si el
+            staff no las anota aquí la familia no puede entrar. */}
+        {credenciales && (
+          <BannerCredenciales credenciales={credenciales} onCerrar={() => setCredenciales(null)} />
+        )}
         {error && (
           <motion.div
             role="alert"
@@ -289,6 +404,9 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
         onAntropometria={setEvaluatingAntropometria}
         onToggleMembresia={puedeMembresia ? handleToggleMembresia : null}
         onMembresia={setMembresiaAtleta}
+        onRegenerarAcceso={puedeRegenerarAcceso ? handleRegenerarAcceso : null}
+        onRegenerarRepresentante={puedeRegenerarAcceso ? handleRegenerarRepresentante : null}
+        regenerandoId={regenerandoId}
       />
 
       {/* Componente oculto para exportación PDF */}

@@ -12,6 +12,9 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // Contraseñas recién emitidas en el alta. Llegan una vez del servidor y no
+  // se guardan: el panel las muestra hasta que el staff las descarta.
+  const [credenciales, setCredenciales] = useState(null);
 
   // Catálogo de clubes para el select del superadmin (v34): el resto del staff
   // no elige club — el atleta hereda el suyo y el campo ni se renderiza.
@@ -70,6 +73,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     setEditingId(atleta.atleta_id);
     setShowForm(true);
     setShowParentForm(false);
+    setCredenciales(null);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -77,6 +81,11 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     setSaving(true);
     setError('');
     setSuccess('');
+    // El banner NO puede sobrevivir al alta que lo generó: si la siguiente no
+    // emite contraseñas (la cédula ya existe, la Edge Function falla), quedaría
+    // la clave de la familia anterior en pantalla junto al error de esta otra,
+    // y el staff se la dictaría a quien no es.
+    setCredenciales(null);
 
     const safeCorreo = form.correo?.trim() || null;
     const safeFecha = form.fecha_nacimiento?.trim() || null;
@@ -223,22 +232,29 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
         // sin esto el atleta creado por el panel no podía iniciar sesión.
         // Best-effort: si falla, el alta queda hecha y se avisa en el mensaje.
         const avisos = [];
+        // La contraseña inicial ya no es la cédula: la genera el servidor y
+        // llega UNA sola vez en esta respuesta. Si no se la mostramos al staff
+        // aquí, la familia se queda sin poder entrar y hay que regenerar.
+        const emitidas = [];
         try {
-          await crearAccesoUsuario({ usuarioId: newUser.id });
+          const { password_temporal } = await crearAccesoUsuario({ usuarioId: newUser.id });
+          if (password_temporal) emitidas.push({ nombre: form.nombre, rol: 'Deportista', usuario: form.cedula, password: password_temporal });
         } catch (accesoError) {
           avisos.push(`el atleta quedó sin acceso (${accesoError.message})`);
         }
         if (padreId && padreEsNuevo) {
           try {
-            await crearAccesoUsuario({ usuarioId: padreId, hijoUsuarioId: newUser.id });
+            const { password_temporal } = await crearAccesoUsuario({ usuarioId: padreId, hijoUsuarioId: newUser.id });
+            if (password_temporal) emitidas.push({ nombre: form.padre_nombre || 'Representante', rol: 'Representante', usuario: form.padre_telefono || null, password: password_temporal });
           } catch (accesoError) {
             avisos.push(`el representante quedó sin acceso (${accesoError.message})`);
           }
         }
+        if (emitidas.length) setCredenciales(emitidas);
 
         setSuccess(avisos.length
           ? `✅ ${form.nombre} registrado. ⚠️ ${avisos.join(' · ')}`
-          : `✅ ${form.nombre} registrado. Acceso creado: puede entrar con su cédula (contraseña inicial: su cédula).`);
+          : `✅ ${form.nombre} registrado. Anota las contraseñas: no se vuelven a mostrar.`);
       }
 
       setForm(emptyForm);
@@ -261,6 +277,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     saving,
     error, setError,
     success, setSuccess,
+    credenciales, setCredenciales,
     showParentForm, setShowParentForm,
     emptyForm,
     form, setForm,

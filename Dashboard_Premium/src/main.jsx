@@ -95,6 +95,10 @@ const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
 // Pantalla de cuenta pendiente/rechazada (v33): PrivateRoute la muestra en vez
 // de cualquier ruta privada hasta que el owner apruebe la solicitud.
 const CuentaEnRevision = lazy(() => import('./components/CuentaEnRevision.jsx'))
+// Cambio obligatorio de la contraseña que repartió el club (entrega 2):
+// PrivateRoute la monta en lugar de la ruta pedida mientras el JWT traiga la
+// marca `debe_cambiar_password`.
+const CambioPasswordObligatorio = lazy(() => import('./components/CambioPasswordObligatorio.jsx'))
 const OwnerKPIsPage = lazy(() => import('./pages/OwnerKPIsPage.jsx'))
 const CoachHomePage = lazy(() => import('./pages/CoachHomePage.jsx'))
 // Panel Dueño en estilo "Arcade HUD" (rediseño del handoff): 5 paneles mock-first
@@ -119,7 +123,7 @@ const RootRedirect = () => {
 };
 
 const PrivateRoute = ({ children, roles }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, debeCambiarPassword } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
 
@@ -130,6 +134,16 @@ const PrivateRoute = ({ children, roles }) => {
   // NOT NULL DEFAULT 'activo' y así un select que no la traiga no bloquea.)
   if (user.estado && user.estado !== 'activo') {
     return <CuentaEnRevision estado={user.estado} />;
+  }
+
+  // Nadie opera con la contraseña que le repartió el club (entrega 2): se
+  // dicta por teléfono o se manda por WhatsApp, así que mientras siga en pie
+  // la conoce más gente que su dueño. Va DESPUÉS del estado a propósito — la
+  // Edge Function cambiar-password exige cuenta activa, así que una cuenta
+  // pendiente enviada aquí se quedaría en una pantalla que siempre falla; ya
+  // pasará por ella cuando el club la apruebe.
+  if (debeCambiarPassword) {
+    return <CambioPasswordObligatorio />;
   }
 
   if (roles && !roles.includes(user.rol)) {

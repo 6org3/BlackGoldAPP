@@ -3,14 +3,12 @@ import { motion } from 'framer-motion';
 import { X, Save, User, KeyRound } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
+import { cambiarPasswordPropia } from '../api/accesosService';
+import { validarPasswordNueva } from '../lib/passwordPolicy';
 import { C, BORDER, cut } from './arcade/arcadeTokens';
 
-// Mínimo de Supabase Auth por defecto. Se valida aquí solo para dar un mensaje
-// decente en vez del error crudo del servidor; quien manda es Auth.
-const MIN_PASSWORD = 6;
-
 export default function EditarPerfilModal({ onClose, onRefresh }) {
-  const { user } = useAuth();
+  const { user, confirmarPasswordCambiada } = useAuth();
   const closeBtnRef = useRef(null);
 
   // Semántica de diálogo (mismo patrón que ModoCanchaModal): foco inicial
@@ -50,22 +48,30 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
     e.preventDefault();
     setPassError('');
     setPassSuccess('');
-    if (pass.nueva.length < MIN_PASSWORD) {
-      setPassError(`La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`);
-      return;
-    }
-    if (pass.nueva !== pass.repetir) {
-      setPassError('Las dos contraseñas no coinciden.');
+    const problema = validarPasswordNueva(pass.nueva, {
+      repetir: pass.repetir,
+      datosPersonales: [user?.cedula, user?.correo, user?.telefono],
+    });
+    if (problema) {
+      setPassError(problema);
       return;
     }
     setCambiandoPass(true);
     try {
-      // updateUser actúa sobre la sesión en curso: nadie puede cambiar la
-      // contraseña de otro por esta vía, ni hace falta mandar la actual.
-      const { error: eAuth } = await supabase.auth.updateUser({ password: pass.nueva });
-      if (eAuth) throw eAuth;
+      // Misma vía que el cambio obligatorio del primer ingreso (entrega 2), en
+      // lugar de supabase.auth.updateUser: así las reglas de la contraseña y el
+      // cierre de las demás sesiones valen igual se cambie desde donde se
+      // cambie. El sujeto sigue saliendo del JWT, así que nadie puede cambiar
+      // la contraseña de otro por aquí.
+      const { session } = await cambiarPasswordPropia(pass.nueva);
+      // El cambio revoca todas las sesiones, también esta: sin adoptar la que
+      // devuelve la función, el modal se quedaría abierto sobre una app cuyo
+      // token acaba de morir y el siguiente clic fallaría sin explicación.
+      const sigueDentro = await confirmarPasswordCambiada(session);
       setPass({ nueva: '', repetir: '' });
-      setPassSuccess('Contraseña actualizada. Úsala la próxima vez que entres.');
+      setPassSuccess(sigueDentro
+        ? 'Contraseña actualizada. Úsala la próxima vez que entres.'
+        : 'Contraseña actualizada. Vuelve a entrar con la nueva.');
     } catch (err) {
       setPassError(err.message || 'No se pudo cambiar la contraseña.');
     } finally {

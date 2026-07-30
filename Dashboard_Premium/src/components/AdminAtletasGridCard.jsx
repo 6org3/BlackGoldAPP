@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Dumbbell, Pencil, Trash2, UserMinus, UserCheck, Boxes } from 'lucide-react';
+import { Download, Dumbbell, Pencil, Trash2, UserMinus, UserCheck, Boxes, KeyRound, KeySquare } from 'lucide-react';
 import { NIVEL_BADGE } from './AdminAtletasConstants';
 import { esBaja, etiquetaBaja } from './adminAtletasMembresia';
 import ActionButton from './AdminAtletasActionButton';
@@ -12,10 +12,10 @@ import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 // TARJETA GRID — Vista cuadrícula (Arcade HUD)
 // ═══════════════════════════════════════════════════════════════
 
-// `onDelete` y `onToggleMembresia` llegan en null cuando el rol no puede
-// hacerlo (v34: borrar = superadmin; dar de baja = owner/superadmin), y el
-// botón simplemente no se renderiza.
-function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropometria, onToggleMembresia, onMembresia, isExporting }) {
+// `onDelete`, `onToggleMembresia` y los dos `onRegenerar*` llegan en null
+// cuando el rol no puede hacerlo (v34: borrar = superadmin; dar de baja y
+// regenerar acceso = owner/superadmin), y el botón simplemente no se renderiza.
+function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropometria, onToggleMembresia, onMembresia, onRegenerarAcceso, onRegenerarRepresentante, isExporting, isRegenerando }) {
   const nivelKey = atleta.nivel_desarrollo || 'Por Asignar';
   const badge = NIVEL_BADGE[nivelKey] || NIVEL_BADGE['Por Asignar'];
   const deBaja = esBaja(atleta);
@@ -67,8 +67,10 @@ function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropome
           {atleta.peso_kg && <span>· {atleta.peso_kg} kg</span>}
         </div>
 
-        {/* Acciones */}
-        <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${BORDER.neutralFaint}` }}>
+        {/* Acciones. `flex-wrap`: con las llaves de regeneración el dueño ve
+            ocho botones de 44px y en la columna estrecha de xl no caben en una
+            línea — sin esto se desbordan fuera de la card. */}
+        <div className="flex flex-wrap items-center justify-between gap-y-2 pt-3" style={{ borderTop: `1px solid ${BORDER.neutralFaint}` }}>
           <div className="flex items-center gap-1.5">
             <ActionButton onClick={() => onExport(atleta)} title="Descargar PDF" isActive={isExporting}>
               <Download size={14} className={isExporting ? 'animate-pulse' : ''} />
@@ -83,6 +85,30 @@ function AtletaGridCard({ atleta, index, onEdit, onDelete, onExport, onAntropome
             )}
           </div>
           <div className="flex items-center gap-1.5">
+            {/* Recuperación de contraseña de la familia: la inicial es
+                aleatoria y se ve una sola vez, y no hay correo con el que
+                recuperarla. Dos llaves porque son dos cuentas distintas —
+                regenerar la del deportista no toca la del representante. */}
+            {onRegenerarAcceso && (
+              <ActionButton
+                onClick={() => onRegenerarAcceso(atleta)}
+                title={`Regenerar la contraseña de ${atleta.nombre}`}
+                className="hover:text-warning-soft"
+                isActive={isRegenerando}
+              >
+                <KeyRound size={14} />
+              </ActionButton>
+            )}
+            {onRegenerarRepresentante && (
+              <ActionButton
+                onClick={() => onRegenerarRepresentante(atleta)}
+                title={`Regenerar la contraseña del representante de ${atleta.nombre}`}
+                className="hover:text-warning-soft"
+                isActive={isRegenerando}
+              >
+                <KeySquare size={14} />
+              </ActionButton>
+            )}
             <ActionButton onClick={() => onEdit(atleta)} title="Editar" className="hover:text-brand">
               <Pencil size={14} />
             </ActionButton>

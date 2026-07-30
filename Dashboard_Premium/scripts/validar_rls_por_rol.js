@@ -945,6 +945,14 @@ async function suiteRegistroPublico() {
   check('Edge Function registra atleta + representante (HTTP 200)', res.status === 200 && cuerpo?.success,
     `HTTP ${res.status} ${cuerpo?.error || ''}`);
 
+  // La contraseña inicial ya NO es la cédula: llega una sola vez en esta
+  // respuesta y es la única forma de entrar después. Guardarla aquí es lo que
+  // mantiene vivos los dos logins de esta suite.
+  QA.reg.password = cuerpo?.credenciales?.atleta?.password;
+  check('el registro devuelve una contraseña que NO es la cédula',
+    !!QA.reg.password && QA.reg.password !== QA.reg.cedula,
+    QA.reg.password ? 'coincide con la cédula' : 'no llegó ninguna contraseña');
+
   const { data: vinculado } = await svc.from('usuarios')
     .select('id, auth_user_id, estado').eq('cedula', QA.reg.cedula).single();
   QA.reg.usuarioId = vinculado?.id;
@@ -958,7 +966,7 @@ async function suiteRegistroPublico() {
   check('representante creado con cuenta vinculada (rol padre, pendiente)',
     padreReg?.rol === 'padre' && !!padreReg?.auth_user_id && padreReg?.estado === 'pendiente');
 
-  const cli2 = await loginComo(QA.reg.cedula, QA.reg.cedula);
+  const cli2 = await loginComo(QA.reg.cedula, QA.reg.password);
   const { data: perfil } = await cli2.from('usuarios').select('rol').eq('cedula', QA.reg.cedula).single();
   check('el recién registrado inicia sesión y ve su perfil (rol atleta)', perfil?.rol === 'atleta');
   await cli2.auth.signOut();
@@ -994,7 +1002,7 @@ async function suiteSolicitudes() {
     `HTTP ${resFalso.status} ${cuerpoFalso?.error || ''}`);
 
   // El pendiente no puede auto-aprobarse (guard de `estado` en el trigger).
-  const cliPend = await loginComo(QA.reg.cedula, QA.reg.cedula);
+  const cliPend = await loginComo(QA.reg.cedula, QA.reg.password);
   const { error: eAuto } = await cliPend.from('usuarios')
     .update({ estado: 'activo' }).eq('id', QA.reg.usuarioId).select();
   const { data: sigue } = await svc.from('usuarios').select('estado').eq('id', QA.reg.usuarioId).single();
