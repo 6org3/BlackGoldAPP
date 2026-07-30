@@ -10,6 +10,7 @@ import ModalHUD from './arcade/ModalHUD';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
 import MicroLabel from './arcade/MicroLabel';
+import BannerCredenciales from './BannerCredenciales';
 import { cambiarEstadoCoach } from '../api/coachesService';
 import { crearAccesoUsuario } from '../api/accesosService';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
@@ -202,39 +203,8 @@ export default function AdminEquipo({ user }) {
             <button onClick={() => setSuccess('')} aria-label="Cerrar mensaje" className="cut-focus p-2 -m-2 min-h-11 min-w-11 flex items-center justify-center" style={{ color: C.ok }}><X size={16} /></button>
           </motion.div>
         )}
-        {/* v41: la contraseña temporal, UNA sola vez. El servidor no la guarda:
-            si se cierra sin copiarla, la única salida es regenerarla. */}
         {credencial && (
-          <motion.div role="status" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="mb-6 p-4"
-            style={{ clipPath: cut(10), background: TINT.gold, border: `1px solid ${BORDER.goldStrong}` }}>
-            <div className="flex items-start gap-3">
-              <KeyRound size={18} className="shrink-0 mt-0.5" style={{ color: C.gold }} />
-              <div className="flex-1 min-w-0">
-                <MicroLabel style={{ color: C.gold }}>Contraseña de {credencial.nombre} · se muestra una sola vez</MicroLabel>
-                <div className="mt-2 flex items-center gap-2 flex-wrap">
-                  <code className="text-lg font-black tracking-widest px-3 py-2 select-all break-all"
-                    style={{ background: C.ink, color: C.gold, clipPath: cut(6) }}>
-                    {credencial.password}
-                  </code>
-                  <button
-                    onClick={() => navigator.clipboard?.writeText(credencial.password)}
-                    className="cut-focus min-h-11 px-4 font-black text-2xs uppercase tracking-widest"
-                    style={{ clipPath: cut(6), background: GRAD.goldCTA, color: C.ink, border: 'none' }}>
-                    Copiar
-                  </button>
-                </div>
-                <p className="mt-2 text-xs font-bold" style={{ color: C.text3 }}>
-                  Entra con su cédula y esta contraseña. Dásela tú — nadie más puede volver a verla.
-                  Podrá cambiarla desde su perfil.
-                </p>
-              </div>
-              <button onClick={() => setCredencial(null)} aria-label="Ya la copié"
-                className="cut-focus p-2 -m-2 min-h-11 min-w-11 flex items-center justify-center" style={{ color: C.gold }}>
-                <X size={16} />
-              </button>
-            </div>
-          </motion.div>
+          <BannerCredenciales credenciales={credencial} onCerrar={() => setCredencial(null)} />
         )}
       </AnimatePresence>
 

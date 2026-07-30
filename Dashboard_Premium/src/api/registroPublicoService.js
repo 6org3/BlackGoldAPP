@@ -63,5 +63,8 @@ export const registrarDesdeFormularioPublico = async (datosAtleta, datosPadre = 
   }
   if (data?.error) throw new Error(data.error);
 
-  return { success: true, atletaId: data?.atleta_id };
+  // `credenciales` llega UNA sola vez y no se guarda en ningún lado: la
+  // contraseña inicial es aleatoria (ya no es la cédula) y la pantalla de fin
+  // de registro es el único momento en que la familia puede anotarla.
+  return { success: true, atletaId: data?.atleta_id, credenciales: data?.credenciales ?? null };
 };

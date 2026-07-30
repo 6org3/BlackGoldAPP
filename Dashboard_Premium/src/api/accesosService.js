@@ -9,14 +9,18 @@ import { supabase } from './supabaseClient';
 // Function crear-acceso-usuario (valida JWT del staff, mismo club, vínculo
 // padre↔hijo).
 //
-// Password inicial (v41): para un COACH o DUEÑO es ALEATORIA y viene en
+// Password inicial: ALEATORIA para TODOS los roles, y viene en
 // `password_temporal` — se muestra una sola vez y no se puede volver a
 // consultar (no se guarda en ningún lado). Antes era la cédula, y como la
 // cédula se lee de `usuarios` y `resolver_email_login` la traduce a email
 // hasta para `anon`, era el par de credenciales completo: un coach entraba
-// como el dueño de su club sin escribir nada. Para un ATLETA o REPRESENTANTE
-// sigue siendo la cédula (su onboarding depende de eso) y `password_temporal`
-// llega null.
+// como el dueño de su club sin escribir nada.
+//
+// v41 arregló eso solo para coach y dueño; atleta y representante siguieron
+// con la cédula porque el onboarding de las ~860 cuentas sembradas dependía de
+// ella. Al arrancar de cero con personas reales esa excusa desaparece y la
+// excepción se cierra: con menores, quien haya visto el documento del chico
+// tenía su cuenta. Quien pierda la contraseña necesita `regenerar: true`.
 
 export const crearAccesoUsuario = async ({ usuarioId, hijoUsuarioId = null, regenerar = false }) => {
   const { data, error } = await supabase.functions.invoke('crear-acceso-usuario', {

@@ -18,6 +18,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { reintentarAuth } from "../_shared/brainAuth.ts";
+import { generarPasswordTemporal, MARCA_PASSWORD_TEMPORAL } from "../_shared/credenciales.ts";
 import {
   ipDeRequest,
   leerLimite,
@@ -190,12 +191,18 @@ serve(async (req) => {
   });
   if (eReg) return jsonResponse({ error: eReg.message }, 400);
 
-  // 5. Cuenta de acceso del atleta (password inicial = su cédula, como el
-  //    login histórico). El trigger de v24 vincula auth_user_id.
+  // 5. Cuenta de acceso del atleta. La contraseña es ALEATORIA y se devuelve
+  //    una sola vez al final para que el registrante la anote: hasta aquí era
+  //    su propia cédula, que no es un secreto (está en su documento, en la
+  //    matrícula escolar y en las inscripciones federativas), así que el par
+  //    completo lo tenía cualquiera que la hubiera visto. Ver la nota de
+  //    _shared/credenciales.ts. El trigger de v24 vincula auth_user_id.
+  const passwordAtleta = generarPasswordTemporal();
   const { error: eAuthAtleta } = await reintentarAuth(() => supabase.auth.admin.createUser({
     email: emailParaAuth(atleta.correo, atleta.cedula),
-    password: atleta.cedula,
+    password: passwordAtleta,
     email_confirm: true,
+    app_metadata: MARCA_PASSWORD_TEMPORAL,
   }));
   if (eAuthAtleta) {
     // COMPENSACIÓN. Sin esto la RPC ya confirmó su transacción y queda una fila
@@ -284,18 +291,24 @@ serve(async (req) => {
   }
 
   // 6. Cuenta del representante solo si la RPC lo creó en esta llamada
-  //    (si ya existía conserva su cuenta y contraseña). Password inicial:
-  //    la cédula de este hijo. Best-effort: no bloquea el registro — el
-  //    atleta ya tiene acceso y el club puede darle cuenta al padre desde
-  //    /admin/equipo (crear-acceso-usuario), así que revertir aquí costaría
-  //    más de lo que arregla.
+  //    (si ya existía conserva su cuenta y su contraseña: al inscribir un
+  //    segundo hijo no se le cambia el acceso que ya usa). Contraseña
+  //    aleatoria propia — antes era la cédula del hijo, que además dejaba al
+  //    padre con la MISMA contraseña que su hijo. Best-effort: no bloquea el
+  //    registro — el atleta ya tiene acceso y el club puede darle cuenta al
+  //    padre desde /admin/equipo (crear-acceso-usuario), así que revertir aquí
+  //    costaría más de lo que arregla.
+  let passwordPadre: string | null = null;
   if (reg?.padre_id && !reg?.padre_existente && reg?.padre_cedula) {
+    const generada = generarPasswordTemporal();
     const { error: eAuthPadre } = await reintentarAuth(() => supabase.auth.admin.createUser({
       email: emailParaAuth(padre?.correo, reg.padre_cedula),
-      password: atleta.cedula,
+      password: generada,
       email_confirm: true,
+      app_metadata: MARCA_PASSWORD_TEMPORAL,
     }));
     if (eAuthPadre) console.error('Cuenta del representante no creada:', eAuthPadre.message);
+    else passwordPadre = generada;
   }
 
   // 7. El intento pasa a exitoso: es lo que cuenta el tope diario del club.
@@ -305,5 +318,17 @@ serve(async (req) => {
     .eq('id', intento.id);
   if (eMarca) console.error('[registro-publico] intento no marcado como exitoso:', eMarca.message);
 
-  return jsonResponse({ success: true, atleta_id: reg?.atleta_id ?? null }, 200);
+  // Las contraseñas viajan SOLO en esta respuesta y no se guardan en ningún
+  // lado: la pantalla de fin de registro las muestra para que la familia las
+  // anote. Quien las pierda necesita que el club le regenere el acceso.
+  return jsonResponse({
+    success: true,
+    atleta_id: reg?.atleta_id ?? null,
+    credenciales: {
+      atleta: { usuario: atleta.cedula, password: passwordAtleta },
+      // null cuando no se creó representante en esta llamada (atleta mayor de
+      // edad) o cuando el padre ya existía y conserva su contraseña.
+      padre: passwordPadre ? { usuario: padre?.telefono ?? null, password: passwordPadre } : null,
+    },
+  }, 200);
 });

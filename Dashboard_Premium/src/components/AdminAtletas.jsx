@@ -16,6 +16,7 @@ import MembresiaAtletaModal from './MembresiaAtletaModal';
 import SolicitudesPanel from './SolicitudesPanel';
 import RechazadosPanel from './RechazadosPanel';
 import ModalHUD from './arcade/ModalHUD';
+import BannerCredenciales from './BannerCredenciales';
 import { COLORS } from '../lib/designTokens';
 import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
@@ -26,6 +27,7 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
     saving,
     error, setError,
     success, setSuccess,
+    credenciales, setCredenciales,
     showParentForm, setShowParentForm,
     emptyForm,
     form, setForm,
@@ -186,6 +188,11 @@ export default function AdminAtletas({ atletas, onRefresh, user }) {
 
       {/* ═══════════════════════ MENSAJES ═══════════════════════ */}
       <AnimatePresence>
+        {/* Contraseñas del alta: la inicial ya no es la cédula, así que si el
+            staff no las anota aquí la familia no puede entrar. */}
+        {credenciales && (
+          <BannerCredenciales credenciales={credenciales} onCerrar={() => setCredenciales(null)} />
+        )}
         {error && (
           <motion.div
             role="alert"

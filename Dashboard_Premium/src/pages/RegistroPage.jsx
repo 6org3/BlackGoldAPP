@@ -17,6 +17,27 @@ const FIELD_CLASS =
   'cut-focus arcade-input w-full min-h-11 px-4 py-3 text-base md:text-sm border border-white/10 focus:outline-none focus:border-brand/60 transition-colors';
 const FIELD_STYLE = { clipPath: cut(7), background: C.cardAlt1, color: C.text };
 
+// Una credencial recién emitida. El valor va en fuente monoespaciada y con
+// `select-all` porque se copia a mano o se dicta: la familia tiene que poder
+// distinguir cada carácter (el generador ya excluye O/0 y l/1/I).
+function ClaveInicial({ titulo, usuario, password }) {
+  return (
+    <div className="mb-3 last:mb-0">
+      <MicroLabel size={10} style={{ color: C.text2, display: 'block', marginBottom: 4 }}>{titulo}</MicroLabel>
+      {usuario && (
+        <div className="flex items-baseline gap-2 text-xs" style={{ color: C.text2 }}>
+          <span>Usuario:</span>
+          <code className="select-all font-mono" style={{ color: C.text }}>{usuario}</code>
+        </div>
+      )}
+      <div className="flex items-baseline gap-2 text-xs" style={{ color: C.text2 }}>
+        <span>Contraseña:</span>
+        <code className="select-all font-mono text-sm font-bold tracking-wider" style={{ color: C.gold }}>{password}</code>
+      </div>
+    </div>
+  );
+}
+
 function LabelHUD({ htmlFor, required, children }) {
   return (
     <MicroLabel as="label" htmlFor={htmlFor} style={{ display: 'block', marginBottom: 6 }}>
@@ -31,6 +52,9 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  // Contraseñas iniciales generadas por el servidor. Llegan una sola vez y no
+  // se guardan: esta pantalla es la única oportunidad de anotarlas.
+  const [credenciales, setCredenciales] = useState(null);
 
   // Captcha anti-robot. Solo entra en juego si el club configuró la clave
   // pública; sin ella `captchaActivo` es false y nada cambia para el usuario.
@@ -85,7 +109,8 @@ export default function RegistroPage() {
     setLoading(true);
     setError('');
     try {
-      await registrarDesdeFormularioPublico(datosAtleta, esMenorEdad ? datosPadre : null, captchaToken);
+      const r = await registrarDesdeFormularioPublico(datosAtleta, esMenorEdad ? datosPadre : null, captchaToken);
+      setCredenciales(r?.credenciales ?? null);
       setSuccess(true);
     } catch (err) {
       setError(err.message || 'Ocurrió un error al registrar.');
@@ -107,11 +132,39 @@ export default function RegistroPage() {
           <CutCard cut={14} background={C.card} border={BORDER.okSoft} padding="40px 28px" style={{ boxShadow: GLOW.phone, textAlign: 'center' }}>
             <CheckCircle2 className="w-16 h-16 mx-auto mb-6" style={{ color: C.ok }} />
             <h2 className="text-2xl font-black uppercase tracking-tight mb-3" style={{ color: C.ok }}>¡Solicitud enviada!</h2>
-            <p className="text-sm mb-8" style={{ color: C.text2 }}>
+            <p className="text-sm mb-6" style={{ color: C.text2 }}>
               Tu inscripción quedó pendiente de aprobación por el club. Puedes iniciar
-              sesión con tu cédula (contraseña inicial: tu misma cédula) para consultar
-              el estado de tu solicitud.
+              sesión para consultar el estado de tu solicitud.
             </p>
+
+            {credenciales && (
+              <div
+                className="mb-6 px-4 py-4 text-left"
+                style={{ clipPath: cut(8), background: TINT.warn, border: `1px solid ${BORDER.warn}` }}
+              >
+                <MicroLabel size={11} style={{ color: C.warn, marginBottom: 10, display: 'block' }}>
+                  Anota esto ahora — no se vuelve a mostrar
+                </MicroLabel>
+
+                <ClaveInicial
+                  titulo="Acceso del deportista"
+                  usuario={credenciales.atleta?.usuario}
+                  password={credenciales.atleta?.password}
+                />
+                {credenciales.padre && (
+                  <ClaveInicial
+                    titulo="Acceso del representante"
+                    usuario={credenciales.padre.usuario}
+                    password={credenciales.padre.password}
+                  />
+                )}
+
+                <p className="text-xs mt-3" style={{ color: C.text2 }}>
+                  Te pediremos cambiar la contraseña la primera vez que entres. Si la
+                  pierdes antes, el club puede generarte una nueva.
+                </p>
+              </div>
+            )}
             <button
               onClick={() => navigate('/login')}
               className="cut-focus w-full flex items-center justify-center min-h-11 active:scale-[0.99] transition"
