@@ -27,8 +27,10 @@
 // no se mueve ninguna. Y por eso hace falta service_role — el navegador no
 // puede escribir en `auth.users`.
 //
-// Contrato: POST { correo }. El sujeto sale del JWT, nunca de un id del
-// cliente. `correo: null` o "" lo borra y devuelve la cuenta al sintético.
+// Contrato: POST { correo, usuario_id? }. Sin `usuario_id` el sujeto es quien
+// llama, sacado del JWT. Con él, el panel corrige el de otra persona — y eso
+// solo lo puede hacer el dueño de su propio club (ver el gate más abajo).
+// `correo: null` o "" lo borra y devuelve la cuenta al correo sintético.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { autenticar, jsonResponse, reintentarAuth } from "../_shared/brainAuth.ts";
@@ -46,7 +48,7 @@ serve(async (req) => {
   const { error, caller, admin } = await autenticar(req);
   if (error) return error;
 
-  let body: { correo?: string | null };
+  let body: { correo?: string | null; usuario_id?: string | null };
   try {
     body = await req.json();
   } catch {
@@ -58,14 +60,34 @@ serve(async (req) => {
     return jsonResponse({ error: 'Ese correo no parece una dirección válida.' }, 400);
   }
 
+  // Por defecto, el sujeto es quien llama. El panel puede corregir el de otra
+  // persona —un correo mal tecleado en el alta deja a esa cuenta sin poder
+  // entrar—, pero eso NO es cualquier staff: en cuanto haya SMTP, el correo es
+  // el buzón que gobierna la recuperación, así que apuntarlo a otro sitio es
+  // apoderarse de la cuenta. Mismo criterio que rotar una contraseña (entrega
+  // 2): del dueño.
+  const objetivoId = body?.usuario_id || caller!.id;
+  const esOtro = objetivoId !== caller!.id;
+  if (esOtro && caller!.rol !== 'owner' && caller!.rol !== 'superadmin') {
+    return jsonResponse({ error: 'Solo el dueño del club puede cambiar el correo de otra persona.' }, 403);
+  }
+
   const { data: yo, error: eYo } = await admin
     .from('usuarios')
-    .select('auth_user_id, cedula, correo')
-    .eq('id', caller!.id)
+    .select('auth_user_id, cedula, correo, club')
+    .eq('id', objetivoId)
     .single();
-  if (eYo || !yo) return jsonResponse({ error: 'No se pudo leer tu perfil.' }, 500);
+  if (eYo || !yo) return jsonResponse({ error: 'No se encontró esa cuenta.' }, 404);
+  if (esOtro && caller!.rol !== 'superadmin' && yo.club !== caller!.club) {
+    return jsonResponse({ error: 'Esa persona no pertenece a tu club.' }, 403);
+  }
+  if (esOtro && caller!.rol === 'superadmin' && yo.club !== caller!.club) {
+    console.log(`[auditoria] superadmin ${caller!.id} cambia el correo de ${objetivoId} (club ${yo.club})`);
+  }
   if (!yo.auth_user_id) {
-    return jsonResponse({ error: 'Tu cuenta no tiene un acceso vinculado. Avisa al club.' }, 409);
+    // Sin cuenta de Auth no hay nada que sincronizar: la fila se edita por la
+    // vía normal y el correo entrará en Auth cuando se le cree el acceso.
+    return jsonResponse({ error: 'Esa cuenta todavía no tiene acceso: créalo primero.' }, 409);
   }
 
   const correoAnterior = yo.correo ?? null;
@@ -97,7 +119,7 @@ serve(async (req) => {
   const { error: eFila } = await admin
     .from('usuarios')
     .update({ correo: correoNuevo })
-    .eq('id', caller!.id);
+    .eq('id', objetivoId);
 
   if (eFila) {
     // Compensación: Auth ya cambió. Dejarlo así rompería el login —

@@ -102,6 +102,23 @@ serve(async (req) => {
       return jsonResponse({ error: 'Revisa el correo del representante: no parece una dirección válida.' }, 400);
     }
     padre.correo = correoPadre;
+
+    // `usuarios.correo` es UNIQUE. Si ese correo ya es de otra persona, la RPC
+    // revienta con un unique_violation que su manejador traduce SIEMPRE a "el
+    // teléfono del representante ya está registrado" (v33) — un mensaje que
+    // manda a la familia a revisar un teléfono que está perfecto. Se comprueba
+    // antes para poder decir lo que pasa de verdad. No aplica cuando el
+    // representante ya existe con ese mismo teléfono: ahí la RPC lo reutiliza y
+    // no inserta nada.
+    const cedulaPadre = `PADRE_${padre.telefono ?? ''}`;
+    const { data: duenoDelCorreo } = await supabase
+      .from('usuarios')
+      .select('cedula')
+      .eq('correo', correoPadre)
+      .maybeSingle();
+    if (duenoDelCorreo && duenoDelCorreo.cedula !== cedulaPadre) {
+      return jsonResponse({ error: 'Ese correo ya está registrado en el club con otra persona. Usa otro, o pide ayuda al club si crees que es un error.' }, 409);
+    }
   }
 
   const ip = ipDeRequest(req.headers);

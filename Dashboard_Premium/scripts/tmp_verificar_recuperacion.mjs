@@ -155,6 +155,52 @@ const inventado = await pedir(`${PREFIJO.toLowerCase()}-no-existe-${Date.now()}@
 if (existente === inventado) ok(`un correo real y uno inventado responden igual (${existente})`);
 else mal(`respuestas distintas: real ${existente} vs inventado ${inventado}`);
 
+// ── 6. Corregir el correo de otro es cosa del dueño ──────────────────────────
+// El panel necesita poder arreglar un correo mal tecleado en el alta (deja a esa
+// cuenta sin poder entrar), pero en cuanto haya SMTP el correo es el buzón que
+// gobierna la recuperación: apuntarlo a otro sitio es apoderarse de la cuenta.
+console.log('\n=== 6. El correo de otra persona solo lo cambia el dueño ===');
+const PASS_STAFF = 'clave larga de prueba qa';
+const staff = async (rol, sufijo) => {
+  const ced = `${PREFIJO}-${sufijo}`;
+  const email = `${ced}@sinacceso.blackgoldapp.internal`.toLowerCase();
+  const { data: cuenta } = await admin.auth.admin.createUser({ email, password: PASS_STAFF, email_confirm: true });
+  await admin.from('usuarios').insert({
+    cedula: ced, nombre: `QA ${rol}`, rol, club: CLUB, estado: 'activo', auth_user_id: cuenta.user.id,
+  });
+  const cli = nuevoCliente();
+  const { data: s } = await cli.auth.signInWithPassword({ email, password: PASS_STAFF });
+  return s?.session?.access_token;
+};
+const cambiarCorreoDe = async (token, usuarioId, correo) => {
+  const r = await fetch(`${URL_SB}/functions/v1/actualizar-correo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ correo, usuario_id: usuarioId }),
+  });
+  return { status: r.status, cuerpo: await r.json().catch(() => ({})) };
+};
+
+const tokenDueno = await staff('owner', 'OWNER');
+const tokenCoach = await staff('coach', 'COACH');
+const { data: victima } = await admin.from('usuarios').select('id').eq('cedula', `PADRE_${telPadre}`).single();
+
+const porCoach = await cambiarCorreoDe(tokenCoach, victima.id, `${PREFIJO.toLowerCase()}-secuestro@ejemplo.com`);
+if (porCoach.status === 403) ok(`un coach NO puede repuntar el correo de otro: ${porCoach.cuerpo.error}`);
+else mal(`¡un coach cambió el correo de otra persona! (${porCoach.status})`);
+
+const correoCorregido = `${PREFIJO.toLowerCase()}-corregido-${Date.now()}@ejemplo.com`;
+const porDueno = await cambiarCorreoDe(tokenDueno, victima.id, correoCorregido);
+if (porDueno.status === 200) {
+  ok('el dueño sí puede corregir un correo mal tecleado');
+  const { data: filaFin } = await admin.from('usuarios').select('correo, auth_user_id').eq('id', victima.id).single();
+  const { data: authFin } = await admin.auth.admin.getUserById(filaFin.auth_user_id);
+  if (filaFin.correo === correoCorregido && authFin?.user?.email === correoCorregido) ok('y las dos mitades siguen juntas');
+  else mal(`divergieron — tabla: ${filaFin.correo} · auth: ${authFin?.user?.email}`);
+} else {
+  mal(`el dueño no pudo corregirlo: ${porDueno.status} ${JSON.stringify(porDueno.cuerpo)}`);
+}
+
 console.log('\n=== Limpieza ===');
 await limpiar();
 const { count } = await admin.from('usuarios').select('id', { count: 'exact', head: true }).like('cedula', `${PREFIJO}%`);

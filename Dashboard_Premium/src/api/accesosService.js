@@ -83,3 +83,19 @@ export const actualizarCorreoPropio = async (correo) => {
 
   return data;
 };
+
+// Corrección del correo de OTRA persona desde el panel (solo dueño/superadmin;
+// el servidor lo repite). Existe porque un correo mal tecleado en el alta deja
+// a esa cuenta sin poder entrar: `resolver_email_login` empieza a devolver la
+// dirección nueva y Auth sigue con la vieja. Editarlo a mano en `usuarios` era
+// justamente lo que provocaba esa ruptura.
+export const actualizarCorreoDeUsuario = async (usuarioId, correo) => {
+  const { data, error } = await supabase.functions.invoke('actualizar-correo', {
+    body: { correo, usuario_id: usuarioId },
+  });
+
+  if (error) throw new Error(await mensajeDeError(error, 'No se pudo actualizar el correo.'));
+  if (data?.error) throw new Error(data.error);
+
+  return data;
+};

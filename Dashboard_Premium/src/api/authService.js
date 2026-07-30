@@ -72,13 +72,24 @@ export const loginUsuario = async (identificador, password) => {
 // distinto sería un oráculo para saber qué correos tienen cuenta en el club.
 // Por eso la pantalla muestra siempre el mismo mensaje, pase lo que pase.
 export const enviarEnlaceRecuperacion = async (correo) => {
-  const { error } = await supabase.auth.resetPasswordForEmail(correo.trim().toLowerCase(), {
-    redirectTo: `${window.location.origin}/recuperar`,
-  });
-  // Un fallo de transporte SÍ se cuenta: no depende del correo escrito, así que
-  // no delata nada, y callarlo dejaría a la persona esperando un enlace que
-  // nunca se pidió.
-  if (error) throw new Error('No pudimos enviar el enlace ahora mismo. Revisa tu conexión e inténtalo de nuevo.');
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(correo.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/recuperar`,
+    });
+    // Un error DEVUELTO por el servidor se traga a propósito. Depende del
+    // destinatario —GoTrue limita los reenvíos por correo, así que insistir con
+    // una dirección registrada devuelve 429 mientras una inventada sigue
+    // respondiendo 200—, y pintarlo como fallo convertiría esta pantalla en un
+    // oráculo: "error" significaría "esa cuenta existe". Se registra en consola
+    // para poder depurarlo y se sigue mostrando el mismo mensaje que al éxito.
+    if (error) console.warn('resetPasswordForEmail devolvió error (no se muestra):', error.message);
+  } catch (error) {
+    // Aquí solo caen los fallos de TRANSPORTE: la petición no llegó a salir.
+    // Eso no depende del correo escrito, así que no delata nada — y callarlo
+    // dejaría a la persona esperando un enlace que nunca se pidió.
+    console.warn('resetPasswordForEmail no llegó a salir:', error);
+    throw new Error('No pudimos enviar el enlace ahora mismo. Revisa tu conexión e inténtalo de nuevo.', { cause: error });
+  }
 };
 
 // Conteo de usuarios visibles según RLS (home /sistema del superadmin).

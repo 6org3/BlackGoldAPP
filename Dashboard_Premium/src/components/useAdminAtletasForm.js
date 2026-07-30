@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../api/supabaseClient';
 import { calcularEdad } from '../api/utilsAtletas';
-import { crearAccesoUsuario } from '../api/accesosService';
+import { crearAccesoUsuario, actualizarCorreoDeUsuario } from '../api/accesosService';
 import { fetchClubesTodos } from '../api/clubesService';
 
 // ─── Hook de estado y lógica del formulario de alta/edición ───
@@ -37,6 +37,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
   const [showParentForm, setShowParentForm] = useState(false);
 
   const emptyForm = {
+    usuario_id: null, tiene_acceso: false, correo_original: '',
     cedula: '', nombre: '', correo: '', fecha_nacimiento: '', posicion: 'N/A',
     categoria: '', nivel_desarrollo: '', genero: 'Masculino', club: '',
     // Parent fields (optional)
@@ -53,12 +54,17 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
   const handleEdit = useCallback(async (atleta) => {
     const { data: dataUsuario } = await supabase
       .from('usuarios')
-      .select('correo, fecha_nacimiento, genero, club')
+      .select('id, correo, fecha_nacimiento, genero, club, auth_user_id')
       .eq('cedula', atleta.cedula)
       .single();
     const generoValue = dataUsuario?.genero || 'Masculino';
 
     setForm({
+      // El id y el correo de partida hacen falta para detectar si el correo
+      // cambió: cambiarlo no es un UPDATE más, va por Edge Function.
+      usuario_id: dataUsuario?.id || atleta.id || null,
+      tiene_acceso: !!dataUsuario?.auth_user_id,
+      correo_original: dataUsuario?.correo || '',
       cedula: atleta.cedula || '',
       nombre: atleta.nombre || '',
       correo: dataUsuario?.correo || '',
@@ -93,8 +99,20 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
 
     try {
       if (editingId) {
-        // EDITAR existente
-        const updateData = { nombre: form.nombre, categoria: form.categoria, correo: safeCorreo, fecha_nacimiento: safeFecha, genero: form.genero };
+        // EDITAR existente.
+        // El correo va aparte y PRIMERO. Escribirlo en `usuarios` a secas dejaba
+        // a esa persona sin poder entrar: el login resuelve el correo desde la
+        // tabla (`resolver_email_login`) pero Auth guarda el suyo, y al
+        // separarse su contraseña correcta empezaba a dar "credenciales
+        // inválidas". La Edge Function mueve las dos a la vez.
+        const correoCambio = safeCorreo !== (form.correo_original?.trim() || null);
+        if (correoCambio && form.tiene_acceso && form.usuario_id) {
+          await actualizarCorreoDeUsuario(form.usuario_id, safeCorreo);
+        }
+        const updateData = { nombre: form.nombre, categoria: form.categoria, fecha_nacimiento: safeFecha, genero: form.genero };
+        // Sin cuenta de Auth todavía no hay nada que sincronizar: el correo se
+        // escribe normal y entrará en Auth cuando se le cree el acceso.
+        if (!form.tiene_acceso) updateData.correo = safeCorreo;
         // Cambiar de club es cross-club: solo el superadmin (el trigger
         // proteger_columnas_usuarios lo vuelve a exigir server-side, v34).
         if (esSuperadmin && form.club) {
