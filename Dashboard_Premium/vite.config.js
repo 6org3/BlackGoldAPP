@@ -24,23 +24,33 @@ export default defineConfig({
   },
   build: {
     // Separar dependencias pesadas en chunks vendor cacheables por separado.
+    //
+    // advancedChunks (API nativa de Rolldown), NO manualChunks: la capa de
+    // compatibilidad de manualChunks en rolldown-vite no impone prioridad
+    // entre grupos y cada grupo arrastra las DEPENDENCIAS de lo que captura,
+    // así que aunque la función devolviera 'react-vendor' para react, el grupo
+    // 'charts' (recharts depende de react) se tragaba React y ReactDOM enteros
+    // y el login descargaba los 430 kB de Recharts en la carga inicial.
+    // Con priority explícita, react se captura antes de que charts lo arrastre.
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return
-          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) return 'charts'
-          if (id.includes('framer-motion')) return 'motion'
-          // canvas-confetti va aparte: QuizModal lo importa estáticamente y no
-          // debe arrastrar nada más al chunk de App.
-          if (id.includes('canvas-confetti')) return 'confetti'
-          // OJO: no agrupar jspdf/html2canvas en un chunk manual. Solo se
-          // importan dinámicamente (exportar PDF), y al forzar un chunk 'pdf'
-          // el bundler metía ahí el vite/preload-helper compartido, con lo que
-          // el entry y App importaban ~640 kB de jspdf en la carga inicial.
-          // Sueltos, cada uno queda en su chunk cargado solo bajo demanda.
-          if (id.includes('@supabase')) return 'supabase'
-          if (id.includes('react-router')) return 'router'
-          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) return 'react-vendor'
+        advancedChunks: {
+          groups: [
+            // Máxima prioridad: nadie debe tragarse React como dependencia.
+            { name: 'react-vendor', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 100 },
+            { name: 'router', test: /node_modules[\\/]react-router/, priority: 90 },
+            { name: 'charts', test: /node_modules[\\/](recharts|d3-|victory-vendor)/, priority: 50 },
+            { name: 'motion', test: /node_modules[\\/]framer-motion[\\/]/, priority: 50 },
+            // canvas-confetti va aparte: QuizModal lo importa estáticamente y no
+            // debe arrastrar nada más al chunk de App.
+            { name: 'confetti', test: /node_modules[\\/]canvas-confetti[\\/]/, priority: 50 },
+            // OJO: no agrupar jspdf/html2canvas en un chunk manual. Solo se
+            // importan dinámicamente (exportar PDF), y al forzar un chunk 'pdf'
+            // el bundler metía ahí el vite/preload-helper compartido, con lo que
+            // el entry y App importaban ~640 kB de jspdf en la carga inicial.
+            // Sueltos, cada uno queda en su chunk cargado solo bajo demanda.
+            { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/, priority: 50 },
+          ],
         },
       },
     },
@@ -66,12 +76,37 @@ export default defineConfig({
         // fuentes auto-hospedadas quedaban fuera del precache y la app
         // instalada perdía la tipografía al abrirse sin red.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Ya no hace falta runtimeCaching: las fuentes se auto-hospedan
-        // (@fontsource, ver src/index.css), así que son parte del propio build.
-        // Antes había que cachear a mano fonts.googleapis.com y
-        // fonts.gstatic.com porque el CSS de un tercero no entra en el build.
+        // El stack de exportar PDF (~1 MB) se importa dinámicamente y casi
+        // nadie exporta en la primera visita: precachearlo de entrada solo
+        // infla la instalación inicial de la PWA sin beneficio para la
+        // mayoría de las sesiones. Se excluye del precache y se sirve bajo
+        // demanda vía runtimeCaching (ver abajo). Un patrón por paquete:
+        //   - '**/jspdf*.js'      → jspdf
+        //   - '**/html2canvas*.js' → html2canvas y html2canvas-pro
+        //   - '**/index.es-*.js'  → canvg. OJO: es 'index.es-*', NO 'index-*'
+        //     (ese es el chunk del entry y NO debe excluirse del precache).
+        //   - '**/purify.es-*.js' → dompurify
+        globIgnores: ['**/jspdf*.js', '**/html2canvas*.js', '**/index.es-*.js', '**/purify.es-*.js'],
+        // runtimeCaching vuelve, pero solo para los assets con hash excluidos
+        // arriba: las fuentes siguen auto-hospedadas (@fontsource, ver
+        // src/index.css) y van en el precache normal, así que no necesitan
+        // regla propia. Antes había que cachear a mano fonts.googleapis.com y
+        // fonts.gstatic.com porque el CSS de un tercero no entraba en el build;
+        // eso ya no aplica. CacheFirst es seguro aquí porque el nombre de cada
+        // archivo lleva hash de contenido (un cambio de contenido = nombre
+        // nuevo, nunca una respuesta vieja bajo el mismo nombre).
         // Sigue sin haber NINGUNA regla que cachee respuestas de Supabase: los
         // datos del club no deben servirse rancios desde el service worker.
+        runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/assets/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'assets-bajo-demanda',
+              expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            },
+          },
+        ],
       },
       manifest: {
         name: 'Black Gold Premium',
