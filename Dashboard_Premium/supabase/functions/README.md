@@ -10,7 +10,7 @@ opcional (ver abajo).
 | `brain-gateway` | `autenticar()` + alcance | Diagnóstico de pilares y readiness en JSON |
 | `actualizar-correo` | `autenticar()`, sujeto del JWT | Cambia el correo propio en `usuarios` **y** en Auth, a la vez |
 | `cambiar-password` | `autenticar()`, sujeto del JWT | Cambia la contraseña propia y apaga `debe_cambiar_password` |
-| `copiloto` | `autenticar()` + alcance por tool | Asistente conversacional |
+| `copiloto` | `autenticar()` + alcance por tool | Asistente conversacional; cuota diaria por usuario (`consumir_cuota_copiloto`, 30/día, ajustable con `COPILOTO_LIMITE_DIA` sin redesplegar) |
 | `crear-acceso-usuario` | `autenticar()` + staff | Emite o rota credenciales de un usuario |
 | `generar-misiones-ia` | `autenticar()` + alcance | Genera y asigna misiones según debilidades |
 | `purgar-usuario-rechazado` | `autenticar()` + superadmin | Libera la cédula de un registro rechazado |

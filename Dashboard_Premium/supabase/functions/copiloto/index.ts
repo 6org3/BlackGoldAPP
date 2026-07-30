@@ -9,6 +9,7 @@
 //
 // POST /copiloto  body: { mensajes: [{role:'user'|'assistant', content}], atleta_id? }
 // → { respuesta, tono: 'simple'|'tecnico', herramientas_usadas, modelo }
+// → 429 { error } al agotar la cuota diaria por usuario (consumir_cuota_copiloto, v53)
 //
 // Tono por rol (blueprint §4.4): técnico para coach/owner/superadmin (cifras,
 // unidades, procedencia) y simple para atleta/padre (lenguaje llano, sin jerga
@@ -30,6 +31,7 @@ import {
   type Caller,
   type Target,
 } from "../_shared/brainAuth.ts";
+import { leerLimite } from "../_shared/controlAbuso.ts";
 import { analizarPilares } from "../_shared/brain-core/diagnostico.js";
 import { analizarReadiness } from "../_shared/brain-core/readiness.js";
 import { construirIndiceRack } from "../_shared/brain-core/rackMotor.js";
@@ -46,6 +48,7 @@ const MAX_MENSAJES = 20;
 const MAX_CHARS_MENSAJE = 2000;
 const MAX_ITERACIONES = 5; // vueltas del loop LLM ↔ tools
 const MAX_TOKENS = 1024;   // respuestas cortas: es un chat móvil
+const LIMITE_DIA_DEFAULT = 30; // mensajes por usuario/día (ajustable: COPILOTO_LIMITE_DIA)
 
 // --------------------------------------------------------------
 // Herramientas (Anthropic tools) — superficie POR ROL
@@ -351,6 +354,28 @@ serve(async (req) => {
   if (invalido) return jsonResponse({ error: invalido }, 400);
   const atletaContexto = typeof body?.atleta_id === 'string' && body.atleta_id ? body.atleta_id : null;
 
+  // 5. Cuota diaria por usuario (consumir_cuota_copiloto, v53): consumo ATÓMICO
+  // antes de tocar la API de pago — sin esto, cualquier cuenta autenticada puede
+  // quemar ANTHROPIC_API_KEY en bucle. Va DESPUÉS de validar el body para que
+  // una petición malformada (400) no gaste cuota, y es fail-closed: sin
+  // veredicto de la base no hay LLM. El umbral se ajusta por entorno sin
+  // redesplegar, mismo patrón que los límites de registro-publico.
+  const limiteDia = leerLimite('COPILOTO_LIMITE_DIA', LIMITE_DIA_DEFAULT);
+  const { data: cuota, error: eCuota } = await admin.rpc('consumir_cuota_copiloto', {
+    p_usuario_id: caller.id,
+    p_limite: limiteDia,
+  });
+  const veredicto = cuota as { permitido?: boolean; usados?: number; limite?: number } | null;
+  if (eCuota || typeof veredicto?.permitido !== 'boolean') {
+    console.error('[copiloto] cuota no verificable:', eCuota?.message ?? JSON.stringify(cuota));
+    return jsonResponse({ error: 'El copiloto no está disponible en este momento. Intenta de nuevo en unos minutos.' }, 503);
+  }
+  if (!veredicto.permitido) {
+    return jsonResponse({
+      error: `Alcanzaste el límite diario del copiloto (${veredicto.limite ?? limiteDia} mensajes). Se reinicia mañana.`,
+    }, 429);
+  }
+
   const tono: 'simple' | 'tecnico' = ROLES_STAFF.has(caller.rol) ? 'tecnico' : 'simple';
   const system = construirSystem(caller, tono);
   const tools = herramientasParaRol(caller.rol);
@@ -367,7 +392,7 @@ serve(async (req) => {
     };
   }
 
-  // 5. Loop Messages API ↔ tools (máx MAX_ITERACIONES vueltas).
+  // 6. Loop Messages API ↔ tools (máx MAX_ITERACIONES vueltas).
   const herramientasUsadas = new Set<string>();
   let respuesta: {
     stop_reason?: string;
@@ -425,7 +450,7 @@ serve(async (req) => {
     mensajes.push({ role: 'user', content: resultados });
   }
 
-  // 6. Respuesta final: concatenar los bloques de texto.
+  // 7. Respuesta final: concatenar los bloques de texto.
   let texto = (respuesta?.content ?? [])
     .filter((b) => b.type === 'text')
     .map((b) => b.text ?? '')
