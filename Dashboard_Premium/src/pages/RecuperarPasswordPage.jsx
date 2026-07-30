@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { KeyRound, Mail, ArrowLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../api/supabaseClient';
+import { supabase, llegoPorEnlaceDeAuth } from '../api/supabaseClient';
 import { enviarEnlaceRecuperacion } from '../api/authService';
 import { cambiarPasswordPropia } from '../api/accesosService';
 import { validarPasswordNueva, MIN_PASSWORD } from '../lib/passwordPolicy';
@@ -33,7 +33,9 @@ export default function RecuperarPasswordPage() {
   // el envío funciona, igual que hace con el captcha del registro.
   const recuperacionActiva = Boolean(import.meta.env.VITE_RECUPERACION_POR_CORREO);
 
-  const [modo, setModo] = useState(null); // null mientras se resuelve la sesión
+  // Quien no viene de un enlace no tiene nada que resolver: va directo a pedir
+  // uno. El `null` es solo para el que sí viene, mientras se espera su sesión.
+  const [modo, setModo] = useState(llegoPorEnlaceDeAuth ? null : 'pedir');
   const [correo, setCorreo] = useState('');
   const [nueva, setNueva] = useState('');
   const [repetir, setRepetir] = useState('');
@@ -42,17 +44,41 @@ export default function RecuperarPasswordPage() {
   const [enviado, setEnviado] = useState(false);
   const [error, setError] = useState('');
 
-  // El enlace del correo trae el token en la URL y supabase-js lo canjea al
-  // cargarse el módulo, que es ANTES de que monte este componente: por eso no
-  // basta con escuchar el evento, hay que mirar también si ya hay sesión.
+  // "Vengo del enlace" NO es lo mismo que "tengo sesión". El enlace abre una
+  // sesión corriente, así que fiarse de que exista una haría que esta pantalla
+  // le dijera "ya verificamos tu correo" a cualquiera que estuviera conectado —
+  // y, peor, que quien quisiera PEDIR un enlace desde su propio teléfono no
+  // llegara nunca al formulario. La marca la pone supabaseClient.js mirando la
+  // URL antes de que supabase-js la limpie.
+  //
+  // Y hay una carrera real, comprobada en el navegador: supabase-js canjea el
+  // token del hash de forma asíncrona, así que un `getSession()` de una sola
+  // pasada al montar responde "no hay sesión" y el evento PASSWORD_RECOVERY
+  // puede haber saltado antes de que este efecto registre su listener. Con
+  // ambas señales perdidas, el enlace BUENO acababa mostrando "pídeselo al
+  // club". Por eso se espera: los tokens están en la URL, la sesión va a
+  // aparecer. Si tras unos segundos no aparece, el enlace caducó o ya se usó, y
+  // eso sí hay que decirlo.
   useEffect(() => {
     let activo = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (activo) setModo(session ? 'elegir' : 'pedir');
-    });
     const { data: listener } = supabase.auth.onAuthStateChange((evento) => {
       if (evento === 'PASSWORD_RECOVERY' && activo) setModo('elegir');
     });
+
+    if (llegoPorEnlaceDeAuth) {
+      (async () => {
+        for (let intento = 0; intento < 12 && activo; intento++) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!activo) return;
+          if (session) { setModo('elegir'); return; }
+          await new Promise((r) => setTimeout(r, 250));
+        }
+        if (!activo) return;
+        setModo('pedir');
+        setError('Ese enlace ya no sirve: caducó o alguien lo usó antes. Pide uno nuevo.');
+      })();
+    }
+
     return () => { activo = false; listener.subscription.unsubscribe(); };
   }, []);
 
