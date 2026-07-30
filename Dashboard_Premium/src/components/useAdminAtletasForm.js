@@ -73,6 +73,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     setEditingId(atleta.atleta_id);
     setShowForm(true);
     setShowParentForm(false);
+    setCredenciales(null);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -80,6 +81,11 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
     setSaving(true);
     setError('');
     setSuccess('');
+    // El banner NO puede sobrevivir al alta que lo generó: si la siguiente no
+    // emite contraseñas (la cédula ya existe, la Edge Function falla), quedaría
+    // la clave de la familia anterior en pantalla junto al error de esta otra,
+    // y el staff se la dictaría a quien no es.
+    setCredenciales(null);
 
     const safeCorreo = form.correo?.trim() || null;
     const safeFecha = form.fecha_nacimiento?.trim() || null;

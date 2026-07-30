@@ -17,6 +17,9 @@ export default function AdminAtletasGrupoNivel({
   onAntropometria,
   onToggleMembresia,
   onMembresia,
+  onRegenerarAcceso,
+  onRegenerarRepresentante,
+  regenerandoId,
 }) {
   return (
     <div className="space-y-8">
@@ -73,7 +76,10 @@ export default function AdminAtletasGrupoNivel({
                     onAntropometria={onAntropometria}
                     onToggleMembresia={onToggleMembresia}
                     onMembresia={onMembresia}
+                    onRegenerarAcceso={onRegenerarAcceso}
+                    onRegenerarRepresentante={onRegenerarRepresentante}
                     isExporting={exportingAtleta?.id === atleta.id}
+                    isRegenerando={regenerandoId === atleta.id}
                   />
                 ))}
               </div>
@@ -90,7 +96,10 @@ export default function AdminAtletasGrupoNivel({
                     onAntropometria={onAntropometria}
                     onToggleMembresia={onToggleMembresia}
                     onMembresia={onMembresia}
+                    onRegenerarAcceso={onRegenerarAcceso}
+                    onRegenerarRepresentante={onRegenerarRepresentante}
                     isExporting={exportingAtleta?.id === atleta.id}
+                    isRegenerando={regenerandoId === atleta.id}
                   />
                 ))}
               </div>

@@ -55,6 +55,23 @@ export default function RegistroPage() {
   // Contraseñas iniciales generadas por el servidor. Llegan una sola vez y no
   // se guardan: esta pantalla es la única oportunidad de anotarlas.
   const [credenciales, setCredenciales] = useState(null);
+  const [copia, setCopia] = useState('idle');
+  const [anotado, setAnotado] = useState(false);
+
+  const copiarCredenciales = async () => {
+    const lineas = [
+      `Deportista · usuario: ${credenciales?.atleta?.usuario} · contraseña: ${credenciales?.atleta?.password}`,
+      credenciales?.padre && `Representante · usuario: ${credenciales.padre.usuario} · contraseña: ${credenciales.padre.password}`,
+    ].filter(Boolean);
+    try {
+      await navigator.clipboard.writeText(lineas.join('\n'));
+      setCopia('copiado');
+    } catch {
+      // Fuera de contexto seguro o sin permiso, writeText RECHAZA. Sin acusar
+      // recibo la familia cree que copió y sale de la pantalla sin nada.
+      setCopia('fallo');
+    }
+  };
 
   // Captcha anti-robot. Solo entra en juego si el club configuró la clave
   // pública; sin ella `captchaActivo` es false y nada cambia para el usuario.
@@ -137,7 +154,7 @@ export default function RegistroPage() {
               sesión para consultar el estado de tu solicitud.
             </p>
 
-            {credenciales && (
+            {credenciales ? (
               <div
                 className="mb-6 px-4 py-4 text-left"
                 style={{ clipPath: cut(8), background: TINT.warn, border: `1px solid ${BORDER.warn}` }}
@@ -159,15 +176,66 @@ export default function RegistroPage() {
                   />
                 )}
 
+                {/* 14 caracteres transcritos a mano desde un teléfono es la vía
+                    rápida a "no puedo entrar": el botón evita el dictado. */}
+                <div className="mt-4 flex items-center gap-3 flex-wrap">
+                  <button
+                    onClick={copiarCredenciales}
+                    className="cut-focus min-h-11 px-4 font-black text-2xs uppercase tracking-widest"
+                    style={{ clipPath: cut(6), background: GRAD.goldCTA, color: C.ink, border: 'none' }}
+                  >
+                    {copia === 'copiado' ? 'Copiado' : 'Copiar mis datos'}
+                  </button>
+                  <span aria-live="polite" className="text-xs font-bold" style={{ color: copia === 'fallo' ? C.danger : C.text2 }}>
+                    {copia === 'copiado' && 'Guardado en el portapapeles.'}
+                    {copia === 'fallo' && 'No se pudo copiar: anótalo a mano.'}
+                  </span>
+                </div>
+
+                {credenciales.padre_estado === 'error' && (
+                  <p className="text-xs mt-3 font-bold" style={{ color: C.danger }}>
+                    No pudimos crear la cuenta de tu representante. La tuya sí quedó lista:
+                    avisa al club para que le den acceso a él.
+                  </p>
+                )}
+
                 <p className="text-xs mt-3" style={{ color: C.text2 }}>
                   Te pediremos cambiar la contraseña la primera vez que entres. Si la
                   pierdes antes, el club puede generarte una nueva.
                 </p>
               </div>
+            ) : (
+              <div
+                className="mb-6 px-4 py-4 text-left"
+                style={{ clipPath: cut(8), background: 'rgba(239,68,68,.12)', border: `1px solid ${BORDER.danger}` }}
+              >
+                <p className="text-xs font-bold" style={{ color: C.danger }}>
+                  Tu inscripción se registró, pero no pudimos mostrarte tu contraseña.
+                  Contacta al club antes de intentar entrar: ellos pueden generarte una nueva.
+                </p>
+              </div>
+            )}
+            {/* La única copia de la contraseña vive en esta pantalla: salir de
+                ella la borra para siempre. El paso explícito evita que el botón
+                más grande sea también el más destructivo. */}
+            {credenciales && (
+              <label className="flex items-start gap-3 mb-4 text-left cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={anotado}
+                  onChange={(e) => setAnotado(e.target.checked)}
+                  className="mt-0.5 w-5 h-5 shrink-0 accent-current"
+                  style={{ accentColor: C.gold }}
+                />
+                <span className="text-xs font-bold" style={{ color: C.text2 }}>
+                  Ya anoté mis datos de acceso
+                </span>
+              </label>
             )}
             <button
               onClick={() => navigate('/login')}
-              className="cut-focus w-full flex items-center justify-center min-h-11 active:scale-[0.99] transition"
+              disabled={!!credenciales && !anotado}
+              className="cut-focus w-full flex items-center justify-center min-h-11 active:scale-[0.99] transition disabled:opacity-40"
               style={{ clipPath: cut(12), background: GRAD.greenCTA, color: C.inkGreen, fontWeight: 900, fontSize: 14, letterSpacing: '.08em', textTransform: 'uppercase', border: 'none', padding: '13px' }}
             >
               Ir a iniciar sesión

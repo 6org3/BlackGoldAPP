@@ -22,20 +22,43 @@ import { supabase } from './supabaseClient';
 // excepción se cierra: con menores, quien haya visto el documento del chico
 // tenía su cuenta. Quien pierda la contraseña necesita `regenerar: true`.
 
+// FunctionsHttpError esconde el motivo real en el cuerpo de la respuesta: sin
+// esto el usuario ve siempre el mensaje genérico y nunca el que la función
+// escribió para él ("esa es la contraseña que te dio el club", etc.).
+const mensajeDeError = async (error, porDefecto) => {
+  try {
+    const cuerpo = await error.context?.json();
+    if (cuerpo?.error) return cuerpo.error;
+  } catch { /* respuesta sin JSON: se usa el mensaje genérico */ }
+  return porDefecto;
+};
+
 export const crearAccesoUsuario = async ({ usuarioId, hijoUsuarioId = null, regenerar = false }) => {
   const { data, error } = await supabase.functions.invoke('crear-acceso-usuario', {
     body: { usuario_id: usuarioId, hijo_usuario_id: hijoUsuarioId, regenerar },
   });
 
-  if (error) {
-    // FunctionsHttpError: el mensaje real viene en el cuerpo de la respuesta.
-    let msg = 'No se pudo crear la cuenta de acceso.';
-    try {
-      const cuerpo = await error.context?.json();
-      if (cuerpo?.error) msg = cuerpo.error;
-    } catch { /* respuesta sin JSON: se usa el mensaje genérico */ }
-    throw new Error(msg);
-  }
+  if (error) throw new Error(await mensajeDeError(error, 'No se pudo crear la cuenta de acceso.'));
+  if (data?.error) throw new Error(data.error);
+
+  return data;
+};
+
+// ============================
+// CAMBIO DE CONTRASEÑA PROPIA
+// ============================
+// No usa `supabase.auth.updateUser` a propósito. La marca
+// `app_metadata.debe_cambiar_password` que siembra el alta solo la puede apagar
+// el service_role, y tiene que apagarse EN EL MISMO ACTO que el cambio: si
+// fueran dos pasos, llamar al segundo por su cuenta limpiaría la marca sin
+// haber cambiado nada. La Edge Function cambiar-password hace las dos cosas y
+// además comprueba que la contraseña nueva no sea la que repartió el club.
+export const cambiarPasswordPropia = async (passwordNueva) => {
+  const { data, error } = await supabase.functions.invoke('cambiar-password', {
+    body: { password_nueva: passwordNueva },
+  });
+
+  if (error) throw new Error(await mensajeDeError(error, 'No se pudo cambiar la contraseña.'));
   if (data?.error) throw new Error(data.error);
 
   return data;

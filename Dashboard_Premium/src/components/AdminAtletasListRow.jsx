@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Dumbbell, Pencil, Trash2, UserMinus, UserCheck, Boxes } from 'lucide-react';
+import { Download, Dumbbell, Pencil, Trash2, UserMinus, UserCheck, Boxes, KeyRound, KeySquare } from 'lucide-react';
 import { NIVEL_BADGE } from './AdminAtletasConstants';
 import { esBaja, etiquetaBaja } from './adminAtletasMembresia';
 import ActionButton from './AdminAtletasActionButton';
@@ -12,8 +12,8 @@ import { C, TINT, cut } from './arcade/arcadeTokens';
 // FILA LISTA — Vista lista compacta (Arcade HUD)
 // ═══════════════════════════════════════════════════════════════
 
-// Ver nota de `onDelete`/`onToggleMembresia` en AdminAtletasGridCard.
-function AtletaListRow({ atleta, index, onEdit, onDelete, onExport, onAntropometria, onToggleMembresia, onMembresia, isExporting }) {
+// Ver nota de `onDelete`/`onToggleMembresia`/`onRegenerar*` en AdminAtletasGridCard.
+function AtletaListRow({ atleta, index, onEdit, onDelete, onExport, onAntropometria, onToggleMembresia, onMembresia, onRegenerarAcceso, onRegenerarRepresentante, isExporting, isRegenerando }) {
   const nivelKey = atleta.nivel_desarrollo || 'Por Asignar';
   const badge = NIVEL_BADGE[nivelKey] || NIVEL_BADGE['Por Asignar'];
   const deBaja = esBaja(atleta);
@@ -53,7 +53,10 @@ function AtletaListRow({ atleta, index, onEdit, onDelete, onExport, onAntropomet
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 ml-4">
+          {/* `flex-wrap justify-end`: la fila puede llegar a ocho botones de
+              44px y en móvil no caben junto al nombre — sin esto se comen el
+              texto del atleta en vez de bajar a una segunda línea. */}
+          <div className="flex flex-wrap justify-end items-center gap-2 ml-4">
             <ActionButton onClick={() => onExport(atleta)} title="PDF" isActive={isExporting}>
               <Download size={14} className={isExporting ? 'animate-pulse' : ''} />
             </ActionButton>
@@ -63,6 +66,27 @@ function AtletaListRow({ atleta, index, onEdit, onDelete, onExport, onAntropomet
             {onMembresia && (
               <ActionButton onClick={() => onMembresia(atleta)} title={`Membresía de ${atleta.nombre}`} className="hover:text-brand">
                 <Boxes size={14} />
+              </ActionButton>
+            )}
+            {/* Ver nota de las dos llaves en AdminAtletasGridCard. */}
+            {onRegenerarAcceso && (
+              <ActionButton
+                onClick={() => onRegenerarAcceso(atleta)}
+                title={`Regenerar la contraseña de ${atleta.nombre}`}
+                className="hover:text-warning-soft"
+                isActive={isRegenerando}
+              >
+                <KeyRound size={14} />
+              </ActionButton>
+            )}
+            {onRegenerarRepresentante && (
+              <ActionButton
+                onClick={() => onRegenerarRepresentante(atleta)}
+                title={`Regenerar la contraseña del representante de ${atleta.nombre}`}
+                className="hover:text-warning-soft"
+                isActive={isRegenerando}
+              >
+                <KeySquare size={14} />
               </ActionButton>
             )}
             <ActionButton onClick={() => onEdit(atleta)} title="Editar" className="hover:text-brand">

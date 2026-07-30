@@ -8,6 +8,7 @@ import RadarChart from './RadarChart';
 import FichaFisica from './FichaFisica';
 import XPCells from './XPCells';
 import ArcadeBottomNav from './ArcadeBottomNav';
+import EditarPerfilModal from '../EditarPerfilModal';
 import {
   fetchPadrePanel,
   fetchHijoDetalle,
@@ -145,6 +146,7 @@ export default function VistaPadreArcade() {
   const [reintento, setReintento] = useState(0);
   const [acciones, setAcciones] = useState({}); // { [key]: { confirmado, pagado } }
   const [nav, setNav] = useState('base');
+  const [editarPerfil, setEditarPerfil] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -266,7 +268,15 @@ export default function VistaPadreArcade() {
             {/* Avatar del representante = menú de perfil (la salida de sesión del
                 portal). Ocupa el hueco del hex decorativo de campana, que no
                 enrutaba a ninguna bandeja de notificaciones. */}
-            <ArcadePerfilMenu size={44} initial={(user?.nombre || '?').charAt(0).toUpperCase()} />
+            {/* Con "Editar perfil": era el único portal sin esa entrada, así
+                que el representante no tenía NINGUNA forma de cambiar su
+                contraseña después del primer ingreso — y desde la entrega 1 la
+                suya es una cadena aleatoria de 14 caracteres. */}
+            <ArcadePerfilMenu
+              size={44}
+              initial={(user?.nombre || '?').charAt(0).toUpperCase()}
+              onEditarPerfil={() => setEditarPerfil(true)}
+            />
           </div>
 
           {/* Selector de hijos (si hay varios) */}
@@ -515,6 +525,13 @@ export default function VistaPadreArcade() {
 
         <ArcadeBottomNav variant="padre" active={nav} onNavigate={goSection} />
       </div>
+
+      {editarPerfil && (
+        <EditarPerfilModal
+          onClose={() => setEditarPerfil(false)}
+          onRefresh={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 }

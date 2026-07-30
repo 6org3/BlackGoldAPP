@@ -8,6 +8,7 @@ opcional (ver abajo).
 | Función | Autenticación | Qué hace |
 |---|---|---|
 | `brain-gateway` | `autenticar()` + alcance | Diagnóstico de pilares y readiness en JSON |
+| `cambiar-password` | `autenticar()`, sujeto del JWT | Cambia la contraseña propia y apaga `debe_cambiar_password` |
 | `copiloto` | `autenticar()` + alcance por tool | Asistente conversacional |
 | `crear-acceso-usuario` | `autenticar()` + staff | Emite o rota credenciales de un usuario |
 | `generar-misiones-ia` | `autenticar()` + alcance | Genera y asigna misiones según debilidades |

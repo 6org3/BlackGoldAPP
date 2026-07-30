@@ -298,8 +298,17 @@ serve(async (req) => {
   //    registro — el atleta ya tiene acceso y el club puede darle cuenta al
   //    padre desde /admin/equipo (crear-acceso-usuario), así que revertir aquí
   //    costaría más de lo que arregla.
+  //
+  // El resultado se comunica con `padre_estado` y no solo con la ausencia de
+  // contraseña: "no hay representante", "ya tenía cuenta" y "no se pudo crear"
+  // se veían los tres como `padre: null`, así que la familia cuyo representante
+  // se quedaba sin acceso salía de la pantalla creyendo que todo fue bien y
+  // descubría el problema al intentar entrar, sin saber qué pedirle al club.
   let passwordPadre: string | null = null;
-  if (reg?.padre_id && !reg?.padre_existente && reg?.padre_cedula) {
+  let padreEstado: 'sin_representante' | 'ya_existia' | 'emitida' | 'error' = 'sin_representante';
+  if (reg?.padre_id && reg?.padre_existente) {
+    padreEstado = 'ya_existia';
+  } else if (reg?.padre_id && reg?.padre_cedula) {
     const generada = generarPasswordTemporal();
     const { error: eAuthPadre } = await reintentarAuth(() => supabase.auth.admin.createUser({
       email: emailParaAuth(padre?.correo, reg.padre_cedula),
@@ -307,8 +316,13 @@ serve(async (req) => {
       email_confirm: true,
       app_metadata: MARCA_PASSWORD_TEMPORAL,
     }));
-    if (eAuthPadre) console.error('Cuenta del representante no creada:', eAuthPadre.message);
-    else passwordPadre = generada;
+    if (eAuthPadre) {
+      console.error('Cuenta del representante no creada:', eAuthPadre.message);
+      padreEstado = 'error';
+    } else {
+      passwordPadre = generada;
+      padreEstado = 'emitida';
+    }
   }
 
   // 7. El intento pasa a exitoso: es lo que cuenta el tope diario del club.
@@ -327,8 +341,10 @@ serve(async (req) => {
     credenciales: {
       atleta: { usuario: atleta.cedula, password: passwordAtleta },
       // null cuando no se creó representante en esta llamada (atleta mayor de
-      // edad) o cuando el padre ya existía y conserva su contraseña.
+      // edad), cuando el padre ya existía y conserva su contraseña, o cuando su
+      // cuenta falló: `padre_estado` distingue los tres.
       padre: passwordPadre ? { usuario: padre?.telefono ?? null, password: passwordPadre } : null,
+      padre_estado: padreEstado,
     },
   }, 200);
 });

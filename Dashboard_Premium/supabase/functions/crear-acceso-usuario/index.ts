@@ -117,8 +117,21 @@ serve(async (req) => {
     // cédula" que su familia conocía. Ahora que la contraseña es aleatoria,
     // regenerar es justo lo que necesita la familia que la perdió — y es la
     // única vía de recuperación mientras no haya correo real ni SMTP.
-    // Los gates de rol de abajo (coach/owner solo los toca el dueño) valen
-    // igual para crear que para regenerar.
+    //
+    // Pero SOLO el dueño. Crear un acceso y rotarlo no son la misma operación:
+    // crear es parte de la inscripción y la hace cualquier staff; rotar es
+    // recuperación de cuenta y le entrega al que la pide la contraseña NUEVA de
+    // otra persona, en claro. Sin este gate, un coach podía POSTear
+    // { usuario_id: <cualquier atleta de su club>, regenerar: true } y quedarse
+    // con la cuenta del menor —y con la de su representante—, en silencio y sin
+    // pasar por ninguna pantalla: la ausencia de botón no es un control.
+    // Cada club tiene su dueño, así que la recuperación siempre tiene a quién
+    // acudir.
+    if (caller!.rol !== 'owner' && caller!.rol !== 'superadmin') {
+      return jsonResponse({
+        error: 'Solo el dueño del club puede regenerar el acceso de un deportista o de un representante.',
+      }, 403);
+    }
   }
   // El acceso de un coach (v35) lo habilita el dueño del club, nunca otro coach.
   if ((target.rol === 'coach' || target.rol === 'owner')

@@ -2,10 +2,14 @@
 // Corre contra la función desplegada y limpia todo lo que crea (prefijo QAPWD).
 import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const RAIZ = 'C:/Users/jorge/dev/BlackGoldAPP/.claude/worktrees/cool-leakey-d25456/Dashboard_Premium';
+// Relativo al propio script (la convención del resto de scripts/): con la ruta
+// absoluta incrustada, esto solo corría en el worktree donde se escribió.
+const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const env = Object.fromEntries(
-  fs.readFileSync(`${RAIZ}/.env.local`, 'utf8')
+  fs.readFileSync(path.join(RAIZ, '.env.local'), 'utf8')
     .split(/\r?\n/)
     .map((l) => l.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$/))
     .filter(Boolean)
@@ -27,8 +31,14 @@ const limpiar = async () => {
     await admin.auth.admin.deleteUser(u.id);
   }
   await admin.from('usuarios').delete().like('cedula', `${PREFIJO}%`);
-  const { data: ints } = await admin.from('registro_intentos').select('id').order('id', { ascending: false }).limit(50);
-  if (ints?.length) await admin.from('registro_intentos').delete().in('id', ints.map((r) => r.id));
+  // `registro_intentos` NO se toca. Antes se borraban las 50 filas más
+  // recientes sin filtrar por la prueba, y esa tabla no es telemetría: es el
+  // estado del control de abuso del registro público (v52 §5 + v54, 5 altas por
+  // IP a la hora y 20 por club al día). Vaciarla le devuelve la cuota entera a
+  // quien estuviera abusando y borra el único rastro. La prueba deja una fila
+  // suya, que es exactamente lo que la tabla existe para anotar; el precio es
+  // que esta verificación entra en el mismo cupo: cinco corridas por hora desde
+  // la misma salida a internet.
 };
 
 await limpiar();
@@ -90,6 +100,77 @@ if (!conEmitida.error && conEmitida.data?.user) {
   await anonCli.auth.signOut();
 } else {
   mal(`no se pudo entrar con la contraseña emitida: ${conEmitida.error?.message}`);
+}
+
+// ── La otra mitad: el alta por PANEL (crear-acceso-usuario) ──────────────────
+// El registro público no es la única vía de alta, y la regla tiene que valer
+// igual en las dos. Aquí se levantan un dueño y un coach de mentira en el mismo
+// club para comprobarlo con sesiones reales, no con service_role.
+console.log('\n=== 4. Alta por panel: la contraseña tampoco es la cédula ===');
+
+const PASS_STAFF = 'clave larga de prueba qa';
+const staff = async (rol, sufijo) => {
+  const ced = `${PREFIJO}-${sufijo}`;
+  const email = `${ced}@sinacceso.blackgoldapp.internal`.toLowerCase();
+  const { data: cuenta } = await admin.auth.admin.createUser({
+    email, password: PASS_STAFF, email_confirm: true,
+  });
+  const { data: fila } = await admin.from('usuarios').insert({
+    cedula: ced, nombre: `QA ${rol}`, rol, club: CLUB, estado: 'activo',
+    auth_user_id: cuenta.user.id,
+  }).select().single();
+  const cli = createClient(URL, ANON, { auth: { persistSession: false } });
+  const { data: sesion } = await cli.auth.signInWithPassword({ email, password: PASS_STAFF });
+  return { fila, token: sesion?.session?.access_token };
+};
+
+const llamarCrearAcceso = async (token, cuerpo) => {
+  const r = await fetch(`${URL}/functions/v1/crear-acceso-usuario`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${token}` },
+    body: JSON.stringify(cuerpo),
+  });
+  return { status: r.status, cuerpo: await r.json().catch(() => ({})) };
+};
+
+const dueno = await staff('owner', 'OWNER');
+const coach = await staff('coach', 'COACH');
+
+// Atleta dado de alta "a mano", como hace el panel: fila sin cuenta de Auth.
+const cedPanel = `${PREFIJO}-PANEL`;
+const { data: atletaPanel } = await admin.from('usuarios').insert({
+  cedula: cedPanel, nombre: 'QA Alta Panel', rol: 'atleta', club: CLUB,
+  estado: 'activo', fecha_nacimiento: '2011-03-10', genero: 'Masculino',
+}).select().single();
+
+const alta = await llamarCrearAcceso(dueno.token, { usuario_id: atletaPanel.id });
+if (alta.status === 200 && alta.cuerpo.password_temporal) {
+  ok(`el panel emite contraseña (${alta.cuerpo.password_temporal.length} caracteres)`);
+  if (alta.cuerpo.password_temporal !== cedPanel) ok('y no es la cédula');
+  else mal('¡el panel sigue poniendo la cédula como contraseña!');
+  const { data: cuentaNueva } = await admin.from('usuarios').select('auth_user_id').eq('id', atletaPanel.id).single();
+  const { data: authNueva } = await admin.auth.admin.getUserById(cuentaNueva.auth_user_id);
+  if (authNueva?.user?.app_metadata?.debe_cambiar_password === true) ok('nace marcada para el cambio obligatorio');
+  else mal('el alta por panel no siembra debe_cambiar_password');
+} else {
+  mal(`el alta por panel falló: ${alta.status} ${JSON.stringify(alta.cuerpo)}`);
+}
+
+console.log('\n=== 5. Rotar una contraseña es cosa del dueño ===');
+// Regenerar le entrega a quien lo pide la contraseña NUEVA de otra persona, en
+// claro: si un coach pudiera, se quedaría con la cuenta de cualquier menor de
+// su club sin pasar por ninguna pantalla.
+const rotaCoach = await llamarCrearAcceso(coach.token, { usuario_id: atletaPanel.id, regenerar: true });
+if (rotaCoach.status === 403) ok(`un coach NO puede rotar la contraseña de un atleta: ${rotaCoach.cuerpo.error}`);
+else mal(`¡un coach pudo rotar la contraseña de un atleta! (${rotaCoach.status})`);
+
+const rotaDueno = await llamarCrearAcceso(dueno.token, { usuario_id: atletaPanel.id, regenerar: true });
+if (rotaDueno.status === 200 && rotaDueno.cuerpo.password_temporal) {
+  ok('el dueño sí puede: es la vía de recuperación que la app le promete a la familia');
+  if (rotaDueno.cuerpo.password_temporal !== alta.cuerpo?.password_temporal) ok('y la contraseña cambió de verdad');
+  else mal('devolvió la misma contraseña de antes');
+} else {
+  mal(`el dueño no pudo regenerar: ${rotaDueno.status} ${JSON.stringify(rotaDueno.cuerpo)}`);
 }
 
 console.log('\n=== Limpieza ===');
