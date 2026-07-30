@@ -2,6 +2,7 @@
 // Módulo de Control de Asistencia - Black Gold Intelligence
 
 import { supabase } from './supabaseClient';
+import { claveDiaLocal } from '../lib/fechasLocal';
 
 /**
  * Obtiene TODAS las asistencias de una fecha dada. No acota por grupo: de eso se
@@ -87,11 +88,16 @@ export async function fetchAsistenciaPct(atletaIds, dias = 7) {
   try {
     const desde = new Date();
     desde.setDate(desde.getDate() - dias);
+    // claveDiaLocal(desde) formatea con getters LOCALES (año/mes/día), no con
+    // toISOString() (UTC): cerca de medianoche en Ecuador (UTC-5) el UTC ya
+    // cruzó al día siguiente y el corte quedaría un día tarde, dejando fuera el
+    // día más antiguo de la ventana (asistencia.fecha se escribe en día LOCAL
+    // — ver canchaData.js#startSession y AdminAsistencia.jsx).
     const { data, error } = await supabase
       .from('asistencia')
       .select('estado')
       .in('atleta_id', atletaIds)
-      .gte('fecha', desde.toISOString().split('T')[0]);
+      .gte('fecha', claveDiaLocal(desde));
 
     if (error) throw error;
     if (!data || data.length === 0) return 0;
@@ -111,7 +117,9 @@ export async function fetchHistorialAtleta(atleta_id) {
   try {
     const hace30Dias = new Date();
     hace30Dias.setDate(hace30Dias.getDate() - 30);
-    const fechaMinima = hace30Dias.toISOString().split('T')[0];
+    // Mismo criterio que fetchAsistenciaPct: día LOCAL, no el prefijo UTC de
+    // toISOString() (que recorta el día más antiguo cerca de medianoche Ecuador).
+    const fechaMinima = claveDiaLocal(hace30Dias);
 
     const { data, error } = await supabase
       .from('asistencia')

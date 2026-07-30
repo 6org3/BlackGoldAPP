@@ -28,6 +28,7 @@ import { fetchRetencionClub } from '../../api/retencionService';
 import { fetchOcupacionCancha } from '../../api/ocupacionService';
 import { contarSolicitudesPendientes } from '../../api/solicitudesService';
 import { tieneSenal } from '../../lib/senalesAtleta';
+import { hoyLocal } from '../../lib/fechasLocal';
 import { C } from './arcadeTokens';
 import { DUENO_MOCK } from './duenoMock';
 
@@ -104,8 +105,12 @@ const HEAT_VACIO = {
 // defensa en profundidad (un superadmin vería todos los clubes mezclados).
 // La hora y el estado EN CURSO salen del horario del grupo (sesiones_control
 // no guarda hora propia). Error o día sin sesiones → [] (estado vacío).
-async function fetchAgendaHoy(club) {
-  const hoyISO = new Date().toISOString().split('T')[0];
+export async function fetchAgendaHoy(club) {
+  // Día calendario LOCAL (no UTC): de noche en Ecuador (UTC-5) el día UTC ya
+  // cruzó medianoche y esta agenda "de hoy" dejaría de encontrar las sesiones
+  // de `sesiones_control.fecha` (columna 'date', fijada por AdminSesiones con
+  // el mismo hoyLocal() tras su propio fix) del día real en curso.
+  const hoyISO = hoyLocal();
   const { data, error } = await supabase
     .from('sesiones_control')
     .select(`

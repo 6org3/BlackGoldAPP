@@ -19,6 +19,7 @@ import { getSubPilarScores, RADAR_AXES } from '../../lib/radarCalc';
 import { getXPProgress } from '../../lib/xpProgress';
 import { linkWhatsApp } from '../../lib/plantillasWhatsApp';
 import { resolverNombresEjercicios } from '../../lib/ejerciciosCatalogo';
+import { hoyLocal } from '../../lib/fechasLocal';
 
 export { responderRSVP, subirComprobante, linkWhatsApp };
 
@@ -156,7 +157,7 @@ export const nombrePilar = (key) => NOMBRE_PILAR[key] || key;
 
 /** Próximo evento publicado con fecha futura. */
 export function proximoEvento(convocatorias) {
-  const hoy = new Date().toISOString().split('T')[0];
+  const hoy = hoyLocal();
   const futuras = (convocatorias || []).filter((c) => c?.eventos?.fecha_evento && c.eventos.fecha_evento >= hoy);
   futuras.sort((a, b) => String(a.eventos.fecha_evento).localeCompare(String(b.eventos.fecha_evento)));
   return futuras[0] || null;

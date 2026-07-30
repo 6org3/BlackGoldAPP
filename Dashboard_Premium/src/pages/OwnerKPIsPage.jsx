@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext';
 import BotonVolver from '../components/arcade/BotonVolver';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { supabase } from '../api/supabaseClient';
+import { claveDiaLocal } from '../lib/fechasLocal';
 import { getSubPilarScores, RADAR_AXES } from '../lib/radarCalc';
 import { COLORS, CHART } from '../lib/designTokens';
 import Sidebar from '../components/Sidebar';
@@ -88,12 +89,16 @@ export default function OwnerKPIsPage() {
       }
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      // claveDiaLocal(), no toISOString(): mismo fix que fetchAsistenciaPct en
+      // asistenciaService.js (esta consulta es una copia inline de esa misma
+      // ventana de 7 días) — cerca de medianoche en Ecuador (UTC-5) el día UTC
+      // ya se adelantó y el corte dejaba fuera el día más antiguo de la ventana.
       const { data, error } = await supabase
         .from('asistencia')
         .select('estado')
         // a.id es el id de usuarios; asistencia.atleta_id referencia a la tabla atletas
         .in('atleta_id', atletas.map(a => a.atleta_id))
-        .gte('fecha', sevenDaysAgo.toISOString().split('T')[0]);
+        .gte('fecha', claveDiaLocal(sevenDaysAgo));
 
       if (!error && data && data.length > 0) {
         const presentes = data.filter(r => r.estado === 'Presente').length;

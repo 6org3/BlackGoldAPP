@@ -8,6 +8,7 @@ import {
   toggleServicioActivo, fetchTarifas, upsertTarifa, deleteTarifa, fetchGruposClub,
 } from '../api/pagosService';
 import { normalizarTelefonoEC } from '../lib/plantillasWhatsApp';
+import { hoyLocal } from '../lib/fechasLocal';
 import { CATEGORIAS_FEB } from '../api/utilsAtletas';
 import ModalHUD from './arcade/ModalHUD';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
@@ -302,7 +303,7 @@ function TarifasEditor({ servicioId, grupos, precioBase }) {
         categoria_feb: nueva.categoria_feb || null,
         genero: nueva.genero || null,
         precio: Number(nueva.precio),
-        vigente_desde: new Date().toISOString().split('T')[0],
+        vigente_desde: hoyLocal(),
       });
       setNueva({ grupo_id: '', categoria_feb: '', genero: '', precio: '' });
       load();

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { fetchSesionesAtleta } from '../api/sesionesEntrenamientoService';
 import { supabase } from '../api/supabaseClient';
+import { hoyLocal, claveDiaLocal } from '../lib/fechasLocal';
 
 // ── Carga sesión y observación del día ──
 // Recibe el id de la fila en `atletas` ya resuelto por
@@ -17,10 +18,19 @@ export function useMisionesPanelSesionYObservacion(
 
     const loadSesion = async () => {
       const sesiones = await fetchSesionesAtleta(atletaRowId);
-      const today = new Date().toISOString().split('T')[0];
+      // OJO (rastreado, no se toca aquí): sesiones_entrenamiento.fecha es una
+      // columna DATE con DEFAULT CURRENT_DATE del servidor y ningún INSERT le
+      // pasa una fecha explícita (crearSesionEntrenamiento en canchaData.js ni
+      // en AdminPlanificacion.jsx) — ese DEFAULT lo evalúa Postgres en UTC. Si
+      // esta comparación pasara a hoyLocal() sin arreglar también esa escritura,
+      // se rompería justo el caso más común (sesión de la tarde/noche, revisada
+      // la MISMA tarde/noche: hoy en UTC == fecha en UTC, coinciden por
+      // construcción). Se deja en día UTC hasta que la escritura tenga su propio
+      // fix — es un sitio nuevo, distinto de los de este lote, fuera de alcance.
+      const todayUTC = new Date().toISOString().split('T')[0];
 
       if (sesiones.length > 0) {
-        const sesionDeHoy = sesiones.find(s => s.fecha && s.fecha.startsWith(today));
+        const sesionDeHoy = sesiones.find(s => s.fecha && s.fecha.startsWith(todayUTC));
         if (sesionDeHoy) {
           setSesionHoy(sesionDeHoy);
           setEvaValue(sesionDeHoy.eva_registro || 0);
@@ -36,7 +46,11 @@ export function useMisionesPanelSesionYObservacion(
         .limit(5);
 
       if (observaciones?.length) {
-        const obsDeHoy = observaciones.find(o => o.created_at?.startsWith(today));
+        // created_at sí es un timestamp real (siempre `now()`, sin ambigüedad
+        // de escritura): el día que importa es el LOCAL de quien lo lee, no el
+        // prefijo UTC crudo — una observación de esta mañana dejaba de
+        // reconocerse como "de hoy" al revisarla ya entrada la noche en Ecuador.
+        const obsDeHoy = observaciones.find(o => o.created_at && claveDiaLocal(o.created_at) === hoyLocal());
         if (obsDeHoy) setObservacionHoy(obsDeHoy);
       }
     };
