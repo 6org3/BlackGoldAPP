@@ -119,22 +119,18 @@ serve(async (req) => {
     }
     padre.correo = correoPadre;
 
-    // `usuarios.correo` es UNIQUE. Si ese correo ya es de otra persona, la RPC
-    // revienta con un unique_violation que su manejador traduce SIEMPRE a "el
-    // teléfono del representante ya está registrado" (v33) — un mensaje que
-    // manda a la familia a revisar un teléfono que está perfecto. Se comprueba
-    // antes para poder decir lo que pasa de verdad. No aplica cuando el
-    // representante ya existe con ese mismo teléfono: ahí la RPC lo reutiliza y
-    // no inserta nada.
-    const cedulaPadre = `PADRE_${padre.telefono ?? ''}`;
-    const { data: duenoDelCorreo } = await supabase
-      .from('usuarios')
-      .select('cedula')
-      .eq('correo', correoPadre)
-      .maybeSingle();
-    if (duenoDelCorreo && duenoDelCorreo.cedula !== cedulaPadre) {
-      return jsonResponse({ error: 'Ese correo ya está registrado en el club con otra persona. Usa otro, o pide ayuda al club si crees que es un error.' }, 409);
-    }
+    // Aquí había una comprobación previa de quién es el dueño de ese correo.
+    // Existía porque el manejador de duplicados de la RPC (v33) traducía
+    // cualquier choque a "el teléfono del representante ya está registrado" y
+    // mandaba a la familia a revisar un teléfono impecable. v57 la deja sin
+    // función —ahora la RPC nombra el dato que colisionó de verdad— y, peor, la
+    // vuelve nociva: el correo es precisamente lo que ahora permite reconocer a
+    // un representante que ya inscribió a un hermano con OTRO número (el papá
+    // inscribiendo al segundo, o la misma madre desde otro teléfono), y esta
+    // comprobación cortaba justo ese caso con un 409 antes de que la RPC pudiera
+    // reutilizar la cuenta. La verificación vive ahora donde se puede hacer
+    // bien: dentro de la transacción, sabiendo qué constraint saltó y a qué club
+    // pertenece la fila encontrada.
   }
 
   const ip = ipDeRequest(req.headers);
@@ -255,9 +251,19 @@ serve(async (req) => {
   //    matrícula escolar y en las inscripciones federativas), así que el par
   //    completo lo tenía cualquiera que la hubiera visto. Ver la nota de
   //    _shared/credenciales.ts. El trigger de v24 vincula auth_user_id.
+  //
+  //    El email sale de `reg.atleta_correo` —lo que la RPC GUARDÓ— y no de
+  //    `atleta.correo`, que es lo que llegó en el payload. v57 descarta el correo
+  //    del deportista cuando viene representante (es el de la familia y vive en
+  //    la fila del representante), así que usar el del payload crearía la cuenta
+  //    de Auth con una dirección que la fila no tiene: el trigger
+  //    trg_vincular_auth_usuario (v24/v40) empareja por correo o por la cédula
+  //    sintética, no encontraría nada, y el menor nacería SIN `auth_user_id`, es
+  //    decir sin poder entrar nunca. De paso, esa cuenta se quedaría con el
+  //    correo de la familia y el representante ya no podría tenerlo.
   const passwordAtleta = generarPasswordTemporal();
   const { error: eAuthAtleta } = await reintentarAuth(() => supabase.auth.admin.createUser({
-    email: emailParaAuth(atleta.correo, atleta.cedula),
+    email: emailParaAuth(reg?.atleta_correo, atleta.cedula),
     password: passwordAtleta,
     email_confirm: true,
     app_metadata: MARCA_PASSWORD_TEMPORAL,
@@ -398,11 +404,20 @@ serve(async (req) => {
     atleta_id: reg?.atleta_id ?? null,
     credenciales: {
       atleta: { usuario: atleta.cedula, password: passwordAtleta },
+      // El usuario del representante es `reg.padre_telefono` —el número con el
+      // que su cuenta existe— y no el que acaba de teclear. Desde v57 se le
+      // reconoce también por el correo, así que la mamá que inscribe al segundo
+      // hijo desde otro número entra igual con el primero: decirle "usa el que
+      // escribiste" la dejaría fuera creyendo que la contraseña está mal.
+      padre: passwordPadre ? { usuario: reg?.padre_telefono ?? null, password: passwordPadre } : null,
       // null cuando no se creó representante en esta llamada (atleta mayor de
       // edad), cuando el padre ya existía y conserva su contraseña, o cuando su
       // cuenta falló: `padre_estado` distingue los tres.
-      padre: passwordPadre ? { usuario: padre?.telefono ?? null, password: passwordPadre } : null,
       padre_estado: padreEstado,
+      // Con qué identificador entra el representante que YA tenía cuenta. La
+      // pantalla lo necesita justo en ese caso —no se le emite contraseña, así
+      // que `padre` va en null— y es la única pista que le queda a la familia.
+      padre_usuario: padreEstado === 'ya_existia' ? (reg?.padre_telefono ?? null) : null,
     },
   }, 200);
 });

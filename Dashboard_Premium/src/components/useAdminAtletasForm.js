@@ -160,6 +160,17 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
             : 'Tu usuario no tiene un club asignado. Contacta al superadmin.');
         }
 
+        // El correo de la familia no se duplica en la fila del deportista. Si es
+        // el mismo que el del representante, ahí no sirve para nada —el login del
+        // menor va por su cédula y el club contacta al representante— y en cambio
+        // ocupa un valor UNIQUE: el representante no podría quedárselo, y el
+        // hermano siguiente chocaría contra él. Un correo DISTINTO sí se respeta:
+        // el staff puede estar dando de alta a un atleta que es su propio titular.
+        const correoDelRepresentante = showParentForm ? (form.padre_correo?.trim().toLowerCase() || null) : null;
+        const correoDelAtleta = (safeCorreo && safeCorreo.toLowerCase() === correoDelRepresentante)
+          ? null
+          : safeCorreo;
+
         const { data: newUser, error: userErr } = await supabase
           .from('usuarios')
           .insert({
@@ -168,7 +179,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
             rol: 'atleta',
             club: resolvedClub,
             categoria: form.categoria || null,
-            correo: safeCorreo,
+            correo: correoDelAtleta,
             fecha_nacimiento: safeFecha,
             genero: form.genero
           })
@@ -191,18 +202,50 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
           });
         if (atlErr) throw atlErr;
 
+        const avisos = [];
+
         // Vincular padre si se proporcionó
         let padreId = null;
         let padreEsNuevo = false;
         if (showParentForm && form.padre_telefono?.trim()) {
           try {
-            const padreCedula = `PADRE_${form.padre_telefono.trim()}`;
+            const padreTelefono = form.padre_telefono.trim();
+            const padreCedula = `PADRE_${padreTelefono}`;
+            // En minúsculas, como lo guarda registrar_publico (v57): el UNIQUE de
+            // la tabla distingue mayúsculas pero GoTrue normaliza el email de la
+            // cuenta, así que dos variantes serían dos filas legales apuntando al
+            // mismo usuario de Auth.
+            const padreCorreo = form.padre_correo?.trim().toLowerCase() || null;
 
-            const { data: padreExistente } = await supabase
+            // Mismo criterio que registrar_publico (v57): el representante se
+            // reconoce por teléfono O por correo, y solo dentro de su club. Antes
+            // se buscaba únicamente por `PADRE_<telefono>`, así que al dar de
+            // alta al segundo hermano con el número del otro progenitor el panel
+            // intentaba crear un representante nuevo con un correo que ya era del
+            // primero → UNIQUE, y el catch de abajo lo convertía en un atleta sin
+            // representante y un "✅ registrado" en pantalla.
+            // Dos consultas en vez de un `.or()` con el correo interpolado: ese
+            // valor lo teclea el staff y una coma o un paréntesis dentro
+            // reescribiría el filtro de PostgREST.
+            const buscar = (columna, valor) => supabase
               .from('usuarios')
-              .select('id')
-              .eq('cedula', padreCedula)
-              .single();
+              .select('id, telefono')
+              .eq('rol', 'padre')
+              .eq('club', resolvedClub)
+              .eq(columna, valor)
+              .maybeSingle();
+
+            let { data: padreExistente } = await buscar('cedula', padreCedula);
+            if (!padreExistente && padreCorreo) {
+              ({ data: padreExistente } = await buscar('correo', padreCorreo));
+              // Se le reconoció por el correo: su cuenta sigue existiendo con el
+              // teléfono de la primera vez, que es su usuario de login. Decírselo
+              // al staff evita que dicte a la familia un número con el que nadie
+              // puede entrar.
+              if (padreExistente && padreExistente.telefono !== padreTelefono) {
+                avisos.push(`el representante ya tenía cuenta y entra con ${padreExistente.telefono}, no con ${padreTelefono}`);
+              }
+            }
 
             if (padreExistente) {
               padreId = padreExistente.id;
@@ -212,8 +255,8 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
                 .insert({
                   cedula: padreCedula,
                   nombre: form.padre_nombre || `Padre de ${form.nombre}`,
-                  correo: form.padre_correo || null,
-                  telefono: form.padre_telefono.trim(),
+                  correo: padreCorreo,
+                  telefono: padreTelefono,
                   rol: 'padre',
                   club: resolvedClub
                 })
@@ -232,20 +275,25 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
               .single();
 
             if (padreId && nuevoAtleta) {
-              await supabase
+              const { error: vinculoErr } = await supabase
                 .from('padres_atletas')
                 .insert({ padre_id: padreId, atleta_id: nuevoAtleta.id });
+              if (vinculoErr) throw vinculoErr;
             }
           } catch (padreError) {
-            console.warn('Error vinculando padre (no crítico):', padreError);
+            console.warn('Error vinculando padre:', padreError);
             padreId = null; // sin vínculo no hay acceso del representante que crear
+            // Y se dice. Este catch solo escribía en la consola, así que el atleta
+            // quedaba sin representante mientras la pantalla mostraba
+            // "✅ registrado" a secas: el staff se enteraba semanas después, al
+            // no poder cobrarle a nadie ni avisar a la familia.
+            avisos.push(`el representante no se pudo vincular (${padreError.message || 'error desconocido'}), hay que crearlo desde /admin/equipo`);
           }
         }
 
         // Credenciales de acceso (v33, Edge Function crear-acceso-usuario):
         // sin esto el atleta creado por el panel no podía iniciar sesión.
         // Best-effort: si falla, el alta queda hecha y se avisa en el mensaje.
-        const avisos = [];
         // La contraseña inicial ya no es la cédula: la genera el servidor y
         // llega UNA sola vez en esta respuesta. Si no se la mostramos al staff
         // aquí, la familia se queda sin poder entrar y hay que regenerar.
