@@ -281,12 +281,16 @@ function ctxEventos(state, data, actions) {
   return {
     eventos: (data.eventos || []).map((e) => {
       const voy = state.aVoy?.[e.id] ?? e.going;
+      // Ajuste optimista simétrico: +1 al confirmar, -1 al retirar. Antes solo
+      // sumaba (voy && !e.going) y nunca restaba al retirar (e.going && !voy),
+      // así que el contador quedaba inflado hasta el próximo fetch.
+      const ajusteOptimista = voy && !e.going ? 1 : !voy && e.going ? -1 : 0;
       return {
         icon: e.icon,
         iconHue: e.iconHue,
         titulo: e.titulo,
         sub: e.sub,
-        confLabel: `${(e.conf || 0) + (voy && !e.going ? 1 : 0)}/${e.tot || 0} VAN`,
+        confLabel: `${(e.conf || 0) + ajusteOptimista}/${e.tot || 0} VAN`,
         voy,
         voyLabel: voy ? '✓ CONFIRMADO · ¡NOS VEMOS!' : 'CONFIRMAR · VOY',
         onVoy: () => actions.voyToggle(e.id),

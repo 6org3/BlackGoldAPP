@@ -227,11 +227,33 @@ serve(async (req) => {
   // por id exacto es el cinturón por si otro usuario compartiera el correo.
   // (v40 acotó ese trigger a atleta/padre: para coach/owner este update ES la
   // única vinculación, no un cinturón.)
-  await admin!
+  // Envuelto en reintentarAuth pese a ser un .update(): es la excepción
+  // documentada ahí mismo, válida solo porque el guard .is('auth_user_id',
+  // null) de abajo lo vuelve idempotente. No copiar sobre un UPDATE sin guard.
+  const { error: eVinculo } = await reintentarAuth(async () => admin!
     .from('usuarios')
     .update({ auth_user_id: created.user!.id })
     .eq('id', target.id)
-    .is('auth_user_id', null);
+    .is('auth_user_id', null));
+  if (eVinculo) {
+    console.error('[crear-acceso-usuario] vincular auth_user_id:', eVinculo.message);
+    // Para coach/owner este update es la ÚNICA vinculación: si falla, la
+    // cuenta de Auth queda huérfana y esta respuesta entregaría success:true
+    // con una contraseña que no abre nada. Se compensa borrando la cuenta
+    // recién creada y se devuelve un error claro para que el staff reintente
+    // el alta en vez de creer que ya quedó dado de acceso.
+    // Para atleta/padre el trigger de v24 ya hizo el vínculo real (este update
+    // es solo el cinturón), así que su fallo no deja a nadie huérfano y no
+    // hace falta compensar: se mantiene el comportamiento actual para esos
+    // dos roles.
+    if (target.rol === 'coach' || target.rol === 'owner') {
+      const { error: eBorrar } = await reintentarAuth(() => admin!.auth.admin.deleteUser(created.user!.id));
+      if (eBorrar) {
+        console.error('[crear-acceso-usuario] compensación (deleteUser) también falló:', eBorrar.message);
+      }
+      return jsonResponse({ error: 'No se pudo vincular la cuenta de acceso. Reintenta en un momento.' }, 409);
+    }
+  }
 
   // `password_temporal` viaja SOLO en esta respuesta: no se guarda en la base
   // ni se puede volver a consultar. Si el staff no la anota, la única salida es

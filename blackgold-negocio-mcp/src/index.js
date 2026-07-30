@@ -436,15 +436,30 @@ server.tool(
 
 // ============================================================================
 // Tool 4 — comprobantes_por_validar
+//
+// SEGURIDAD — revisión del 2026-07-29. Igual que sus hermanas
+// listar_leads_pipeline y alertas_vencidos: esta tool corre con la
+// service_role key (se salta la RLS por club de la v24), y sin acotar
+// devolvía en bloque, de TODOS los clubes, el nombre del atleta, banco,
+// número de documento y monto de hasta 200 comprobantes de transferencia. El
+// club ahora es explícito: o se nombra, o se pide `todos_los_clubes: true` a
+// sabiendas.
 // ============================================================================
 server.tool(
   "comprobantes_por_validar",
-  "Lista los comprobantes de transferencia subidos por las familias que aún no han sido revisados por el staff (estado 'pendiente'), con los datos del pago y del atleta.",
+  "Lista los comprobantes de transferencia subidos por las familias que aún no han sido revisados por el staff (estado 'pendiente'), con los datos del pago y del atleta. Exige nombrar el club o pedir `todos_los_clubes: true`.",
   {
-    club: z.string().optional().describe("Filtra por club. Si se omite, trae de todos los clubes."),
+    club: z.string().optional().describe("Club sobre el que consultar. Obligatorio, salvo que se pase todos_los_clubes:true."),
+    todos_los_clubes: z.boolean().optional().describe("true para consultar TODOS los clubes a la vez. Úsalo solo si de verdad hace falta: esta tool no tiene barrera por club."),
   },
-  async ({ club }) => {
+  async ({ club, todos_los_clubes }) => {
     try {
+      if (!club && !todos_los_clubes) {
+        return textoError(
+          "Falta acotar el club. Esta tool usa la service_role key, así que se salta la RLS por club de la v24: sin acotar devolvería los comprobantes (nombre del atleta, banco, número de documento, monto) de TODOS los clubes. Pasa `club: \"<nombre>\"`, o `todos_los_clubes: true` si de verdad los quieres todos."
+        );
+      }
+
       let q = supabase
         .from("pago_comprobantes")
         .select(`
