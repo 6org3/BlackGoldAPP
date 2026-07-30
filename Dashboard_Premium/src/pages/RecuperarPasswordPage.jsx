@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { KeyRound, Mail, ArrowLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { supabase, llegoPorEnlaceDeAuth } from '../api/supabaseClient';
+import { useAuth } from '../AuthContext';
 import { enviarEnlaceRecuperacion } from '../api/authService';
 import { cambiarPasswordPropia } from '../api/accesosService';
 import { validarPasswordNueva, MIN_PASSWORD } from '../lib/passwordPolicy';
@@ -26,6 +27,7 @@ import { C, BORDER, GRAD, GLOW, cut, gridBackground } from '../components/arcade
  */
 export default function RecuperarPasswordPage() {
   const navigate = useNavigate();
+  const { confirmarPasswordCambiada } = useAuth();
 
   // Sin SMTP configurado en el proyecto, Supabase no manda nada (o lo manda
   // solo a los miembros del equipo, 2 por hora). Ofrecer el formulario en ese
@@ -111,9 +113,13 @@ export default function RecuperarPasswordPage() {
       // la anterior). Con `supabase.auth.updateUser` a secas, quien recuperase
       // su cuenta se toparía después con la pantalla de cambio obligatorio,
       // porque la marca seguiría puesta.
-      await cambiarPasswordPropia(nueva);
-      await supabase.auth.signOut().catch(() => {});
-      navigate('/login', { replace: true });
+      const { session } = await cambiarPasswordPropia(nueva);
+      // Se adopta esa sesión y se entra: la persona acaba de demostrar que
+      // controla el correo Y de elegir la contraseña, así que devolverla al
+      // login a escribir lo que acaba de teclear es fricción por nada. Si no
+      // llegó sesión, sí toca volver a entrar — la vieja ya no existe.
+      const sigueDentro = await confirmarPasswordCambiada(session);
+      navigate(sigueDentro ? '/' : '/login', { replace: true });
     } catch (err) {
       setError(err.message || 'No se pudo cambiar la contraseña.');
       setEnviando(false);
