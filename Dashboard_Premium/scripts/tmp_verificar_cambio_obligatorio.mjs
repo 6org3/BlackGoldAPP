@@ -76,7 +76,8 @@ const alta = await fetch(`${URL_SB}/functions/v1/registro-publico`, {
   headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
   body: JSON.stringify({
     atleta: { cedula, nombre: 'QA Cambio Obligatorio', fecha_nacimiento: '2012-05-15', club: CLUB, genero: 'Masculino' },
-    padre: { nombre: 'QA Representante', telefono: '88' + String(Date.now()).slice(-8), correo: null },
+    // El correo del representante es obligatorio desde la entrega 3.
+    padre: { nombre: 'QA Representante', telefono: '88' + String(Date.now()).slice(-8), correo: `${PREFIJO.toLowerCase()}-rep-${Date.now()}@ejemplo.com` },
   }),
 });
 const cuerpoAlta = await alta.json();
