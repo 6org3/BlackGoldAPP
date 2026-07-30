@@ -1,4 +1,5 @@
 // _shared/controlAbuso.ts — control de abuso del único endpoint público.
+// (`leerLimite` es genérico y lo reusa también `copiloto` para su cuota diaria.)
 //
 // Motivo (hallazgo P1-6 de la auditoría pre-producción, 2026-07-29):
 // `registro-publico` es la ÚNICA Edge Function sin `autenticar()` — tiene que
