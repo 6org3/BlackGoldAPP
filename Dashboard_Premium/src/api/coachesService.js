@@ -127,10 +127,10 @@ export async function crearCoach({ cedula, nombre, correo, telefono, categoria, 
 // el suyo: escribir solo la tabla dejaba al coach sin poder entrar, con su
 // contraseña correcta y sin ninguna pista de por qué. `correoActual` permite
 // no gastar la llamada cuando no cambió.
-export async function actualizarCoach(usuarioId, { nombre, correo, telefono, categoria, correoActual, tieneAcceso }) {
+export async function actualizarCoach(usuarioId, { nombre, correo, telefono, categoria, correoActual }) {
   const correoNuevo = correo?.trim() || null;
   const correoCambio = correoNuevo !== (correoActual?.trim() || null);
-  if (correoCambio && tieneAcceso) {
+  if (correoCambio) {
     await actualizarCorreoDeUsuario(usuarioId, correoNuevo);
   }
   const campos = {
@@ -138,9 +138,6 @@ export async function actualizarCoach(usuarioId, { nombre, correo, telefono, cat
     telefono: telefono?.trim() || null,
     categoria: categoria || 'Todas',
   };
-  // Sin cuenta de Auth no hay nada que sincronizar todavía: el correo se escribe
-  // normal y entrará en Auth cuando se le cree el acceso.
-  if (!tieneAcceso) campos.correo = correoNuevo;
   const { error } = await supabase
     .from('usuarios')
     .update(campos)

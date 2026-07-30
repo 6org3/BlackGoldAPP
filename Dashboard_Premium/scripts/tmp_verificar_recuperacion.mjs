@@ -113,11 +113,21 @@ if (sesionRep.error) {
 } else {
   const token = sesionRep.data.session.access_token;
   const correoOtro = `${PREFIJO.toLowerCase()}-otro-${Date.now()}@ejemplo.com`;
-  const cambio = await fetch(`${URL_SB}/functions/v1/actualizar-correo`, {
+  const llamar = (cuerpo) => fetch(`${URL_SB}/functions/v1/actualizar-correo`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ correo: correoOtro }),
+    body: JSON.stringify(cuerpo),
   });
+  // Cambiar el PROPIO correo exige la contrasena actual: sin esa prueba, un
+  // minuto con la sesion de otra persona abierta bastaria para apuntar su
+  // recuperacion a otro buzon, en silencio y para siempre.
+  const sinPass = await llamar({ correo: correoOtro });
+  if (sinPass.status === 400) ok('sin la contrasena actual no se cambia el correo propio');
+  else mal(`cambio el correo sin pedir la contrasena (${sinPass.status})`);
+  const passMala = await llamar({ correo: correoOtro, password_actual: 'no es la suya de verdad' });
+  if (passMala.status === 403) ok('con una contrasena equivocada tampoco');
+  else mal(`acepto una contrasena equivocada (${passMala.status})`);
+  const cambio = await llamar({ correo: correoOtro, password_actual: passRep });
   if (cambio.status === 200) ok('el representante puede cambiar su correo');
   else mal(`el cambio de correo falló: ${cambio.status} ${(await cambio.text()).slice(0, 150)}`);
 
@@ -141,6 +151,10 @@ if (sesionRep.error) {
 }
 
 // ── 5. Pedir el enlace no delata qué correos existen ─────────────────────────
+// Ojo con lo que se compara: GoTrue solo aplica el intervalo mínimo entre
+// correos (429) a direcciones que EXISTEN, así que el oráculo aparece al
+// INSISTIR, no al primer intento. Y hay que usar un correo que de verdad tenga
+// cuenta ahora mismo — comparar dos direcciones inexistentes no prueba nada.
 console.log('\n=== 5. Pedir el enlace no es un oráculo ===');
 const pedir = async (correo) => {
   const r = await fetch(`${URL_SB}/auth/v1/recover`, {
@@ -150,10 +164,23 @@ const pedir = async (correo) => {
   });
   return r.status;
 };
-const existente = await pedir(correoPadre);
-const inventado = await pedir(`${PREFIJO.toLowerCase()}-no-existe-${Date.now()}@ejemplo.com`);
-if (existente === inventado) ok(`un correo real y uno inventado responden igual (${existente})`);
-else mal(`respuestas distintas: real ${existente} vs inventado ${inventado}`);
+const { data: correoVivo } = await admin.from('usuarios').select('correo').eq('cedula', `PADRE_${telPadre}`).single();
+const inventado = `${PREFIJO.toLowerCase()}-no-existe-${Date.now()}@ejemplo.com`;
+const real1 = await pedir(correoVivo.correo);
+const real2 = await pedir(correoVivo.correo);       // el insistido: aquí salta el 429
+const falso1 = await pedir(inventado);
+const falso2 = await pedir(inventado);
+console.log(`  (real ${real1}/${real2} · inventado ${falso1}/${falso2})`);
+// Lo que importa no es que GoTrue responda igual —no lo hace—, sino que la app
+// no lo convierta en dos pantallas distintas: authService se traga el error
+// devuelto y solo propaga los fallos de transporte.
+const fuente = fs.readFileSync(path.join(RAIZ, 'src', 'api', 'authService.js'), 'utf8');
+const bloque = fuente.slice(fuente.indexOf('enviarEnlaceRecuperacion'), fuente.indexOf('contarUsuarios'));
+if (/if \(error\) console\.warn/.test(bloque) && !/if \(error\) throw/.test(bloque)) {
+  ok('la app no propaga el error del servidor (que sí distingue: 429 solo para los que existen)');
+} else {
+  mal('la app convierte el error del servidor en un fallo visible: eso delata qué correos existen');
+}
 
 // ── 6. Corregir el correo de otro es cosa del dueño ──────────────────────────
 // El panel necesita poder arreglar un correo mal tecleado en el alta (deja a esa
@@ -200,6 +227,30 @@ if (porDueno.status === 200) {
 } else {
   mal(`el dueño no pudo corregirlo: ${porDueno.status} ${JSON.stringify(porDueno.cuerpo)}`);
 }
+
+// ── 7. La tabla ya no acepta cambios de correo desde la app (v56) ────────────
+// Encauzar el cliente no bastaba: la RLS dejaba a cualquier staff hacer un
+// PATCH directo a usuarios.correo y separar la tabla de Auth, dejando a esa
+// persona fuera con su contraseña correcta y sin forma de desatascarse.
+console.log('\n=== 7. Nadie envenena el correo por PostgREST ===');
+const { data: sesionCoachRaw } = await nuevoCliente().auth.signInWithPassword({
+  email: `${PREFIJO}-COACH@sinacceso.blackgoldapp.internal`.toLowerCase(), password: PASS_STAFF,
+});
+const patch = await fetch(`${URL_SB}/rest/v1/usuarios?id=eq.${victima.id}`, {
+  method: 'PATCH',
+  headers: {
+    'Content-Type': 'application/json', apikey: ANON,
+    Authorization: `Bearer ${sesionCoachRaw.session.access_token}`, Prefer: 'return=representation',
+  },
+  body: JSON.stringify({ correo: `${PREFIJO.toLowerCase()}-envenenado@ejemplo.com` }),
+});
+const cuerpoPatch = await patch.text();
+if (patch.status >= 400) ok(`el PATCH directo se rechaza (${patch.status})`);
+else mal(`¡se pudo envenenar el correo por PostgREST! (${patch.status} ${cuerpoPatch.slice(0, 120)})`);
+
+const { data: filaTrasPatch } = await admin.from('usuarios').select('correo').eq('id', victima.id).single();
+if (filaTrasPatch.correo === correoCorregido) ok('y el correo quedó como estaba');
+else mal(`el correo cambió a ${filaTrasPatch.correo}`);
 
 console.log('\n=== Limpieza ===');
 await limpiar();

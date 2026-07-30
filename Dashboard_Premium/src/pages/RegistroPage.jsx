@@ -321,8 +321,13 @@ export default function RegistroPage() {
                   <input id="reg-telefono" type="tel" name="telefono" autoComplete="section-atleta tel" value={datosAtleta.telefono} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="0999999999" />
                 </div>
                 <div>
-                  <LabelHUD htmlFor="reg-correo">Correo electrónico (opcional)</LabelHUD>
-                  <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="ejemplo@correo.com" />
+                  {/* Obligatorio solo para el atleta MAYOR de edad: ahí el
+                      titular es él y su correo es la única vía de recuperación.
+                      Si es menor, el que cuenta es el del representante. */}
+                  <LabelHUD htmlFor="reg-correo" required={esMayorEdad}>
+                    {esMayorEdad ? 'Correo electrónico' : 'Correo electrónico (opcional)'}
+                  </LabelHUD>
+                  <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} required={esMayorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="ejemplo@correo.com" />
                 </div>
               </div>
 

@@ -73,9 +73,9 @@ export const cambiarPasswordPropia = async (passwordNueva) => {
 // cambia la de la tabla, las dos se separan, el login empieza a resolver a un
 // correo que Auth no conoce y la persona se queda fuera con su contraseña
 // correcta. La Edge Function mueve las dos a la vez o ninguna.
-export const actualizarCorreoPropio = async (correo) => {
+export const actualizarCorreoPropio = async (correo, passwordActual) => {
   const { data, error } = await supabase.functions.invoke('actualizar-correo', {
-    body: { correo },
+    body: { correo, password_actual: passwordActual },
   });
 
   if (error) throw new Error(await mensajeDeError(error, 'No se pudo actualizar tu correo.'));

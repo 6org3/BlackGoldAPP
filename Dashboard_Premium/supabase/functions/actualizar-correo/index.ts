@@ -27,12 +27,13 @@
 // no se mueve ninguna. Y por eso hace falta service_role — el navegador no
 // puede escribir en `auth.users`.
 //
-// Contrato: POST { correo, usuario_id? }. Sin `usuario_id` el sujeto es quien
+// Contrato: POST { correo, password_actual?, usuario_id? }. Sin `usuario_id` el sujeto es quien
 // llama, sacado del JWT. Con él, el panel corrige el de otra persona — y eso
 // solo lo puede hacer el dueño de su propio club (ver el gate más abajo).
 // `correo: null` o "" lo borra y devuelve la cuenta al correo sintético.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { autenticar, jsonResponse, reintentarAuth } from "../_shared/brainAuth.ts";
 
 // Misma regla que resolver_email_login(), crear-acceso-usuario y
@@ -48,7 +49,7 @@ serve(async (req) => {
   const { error, caller, admin } = await autenticar(req);
   if (error) return error;
 
-  let body: { correo?: string | null; usuario_id?: string | null };
+  let body: { correo?: string | null; usuario_id?: string | null; password_actual?: string };
   try {
     body = await req.json();
   } catch {
@@ -84,14 +85,53 @@ serve(async (req) => {
   if (esOtro && caller!.rol === 'superadmin' && yo.club !== caller!.club) {
     console.log(`[auditoria] superadmin ${caller!.id} cambia el correo de ${objetivoId} (club ${yo.club})`);
   }
-  if (!yo.auth_user_id) {
-    // Sin cuenta de Auth no hay nada que sincronizar: la fila se edita por la
-    // vía normal y el correo entrará en Auth cuando se le cree el acceso.
-    return jsonResponse({ error: 'Esa cuenta todavía no tiene acceso: créalo primero.' }, 409);
-  }
-
   const correoAnterior = yo.correo ?? null;
   if (correoNuevo === correoAnterior) return jsonResponse({ ok: true, sin_cambios: true }, 200);
+
+  if (!yo.auth_user_id) {
+    // Todavía no hay cuenta de Auth, así que no hay nada que sincronizar: se
+    // escribe la fila y ya. Pasa igualmente por aquí porque desde v56 la tabla
+    // no acepta cambios de `correo` desde una sesión de la app.
+    const { error: eSolaFila } = await admin
+      .from('usuarios').update({ correo: correoNuevo }).eq('id', objetivoId);
+    if (eSolaFila) {
+      const dup = /duplicate|unique/i.test(eSolaFila.message ?? '');
+      return jsonResponse({ error: dup ? 'Ese correo ya está en uso por otra cuenta del club.' : 'No se pudo guardar el correo.' }, 409);
+    }
+    return jsonResponse({ ok: true, correo: correoNuevo }, 200);
+  }
+
+  // CAMBIAR EL PROPIO CORREO EXIGE LA CONTRASEÑA ACTUAL.
+  // No es una formalidad: desde esta entrega el correo de Auth decide a qué
+  // buzón llega el enlace de recuperación, así que moverlo con solo un JWT
+  // válido convierte un acceso MOMENTÁNEO a una sesión abierta —el teléfono
+  // familiar, que en este club padres e hijos comparten— en control PERMANENTE
+  // y silencioso de la cuenta: la víctima no se entera, y el cambio sobrevive a
+  // que ella cambie su contraseña y a que el dueño se la regenere.
+  // Para el camino del dueño corrigiendo a otro no aplica: ahí el gate es el
+  // rol, y pedirle su contraseña por cada ficha que corrige no compra nada.
+  if (!esOtro) {
+    const passwordActual = typeof body?.password_actual === 'string' ? body.password_actual : '';
+    if (!passwordActual) {
+      return jsonResponse({ error: 'Escribe tu contraseña actual para cambiar tu correo.', requiere_password: true }, 400);
+    }
+    const anonVerif = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const emailActualDeAuth = (await reintentarAuth(() => admin.auth.admin.getUserById(yo.auth_user_id)))
+      .data?.user?.email;
+    const { data: prueba } = await anonVerif.auth.signInWithPassword({
+      email: emailActualDeAuth ?? '', password: passwordActual,
+    });
+    if (!prueba?.user) {
+      return jsonResponse({ error: 'Esa no es tu contraseña actual.' }, 403);
+    }
+    // scope 'local': el 'global' por defecto cerraría todas las sesiones de
+    // esta persona, incluida la que está usando ahora mismo.
+    await anonVerif.auth.signOut({ scope: 'local' }).catch(() => {});
+  }
 
   // Al borrar el correo, la cuenta de Auth vuelve al sintético: si se quedara
   // con el real, `resolver_email_login` devolvería el derivado de la cédula y

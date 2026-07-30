@@ -68,10 +68,10 @@ export default function useAdminEquipoForm({ user }) {
       nombre: coach.nombre || '',
       correo: coach.correo || '',
       // Cambiar el correo no es un UPDATE más: hay que moverlo también en Auth
-      // o esta persona se queda sin poder entrar. actualizarCoach necesita
-      // saber si cambió y si ya hay cuenta que sincronizar.
+      // o esta persona se queda sin poder entrar (y desde v56 la tabla ni
+      // acepta ese UPDATE). actualizarCoach compara contra esto para no gastar
+      // la llamada cuando no cambió.
       correoActual: coach.correo || '',
-      tieneAcceso: !!coach.tieneAcceso,
       telefono: coach.telefono || '',
       categoria: coach.categoria || 'Todas',
       // El rol no se edita (solo superadmin puede cambiarlo, trigger v34); va

@@ -90,6 +90,22 @@ serve(async (req) => {
   // Se valida AQUÍ y no dentro de la RPC porque desde v55 la Edge Function es
   // la única puerta: `anon` perdió el EXECUTE, así que esto no se puede saltar
   // llamando a PostgREST.
+  // Sin representante (atleta mayor de edad) el titular es él mismo, así que el
+  // correo obligatorio es el SUYO. Sin esta mitad la regla se caía sola: bastaba
+  // registrarse como adulto para que la cuenta naciera sin ninguna dirección
+  // real —la de Auth sería el sintético `<cédula>@sinacceso…`, que no existe— y
+  // sin ninguna vía de recuperación.
+  if (!padre) {
+    const correoAtleta = (atleta.correo ?? '').trim();
+    if (!correoAtleta) {
+      return jsonResponse({ error: 'El correo es obligatorio: es la única forma de recuperar tu cuenta si pierdes la contraseña.' }, 400);
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoAtleta)) {
+      return jsonResponse({ error: 'Revisa tu correo: no parece una dirección válida.' }, 400);
+    }
+    atleta.correo = correoAtleta;
+  }
+
   if (padre) {
     const correoPadre = (padre.correo ?? '').trim();
     if (!correoPadre) {
