@@ -17,8 +17,10 @@
 //
 // El rack documental corre AQUÍ con el motor portable (rackMotor.js) y el
 // corpus pre-generado (rack-corpus.generado.js, `npm run functions:sync`):
-// mismo índice BM25 que el MCP, sin tocar disco. ANTHROPIC_API_KEY vive en
-// los secrets de la función — jamás en el bundle del cliente.
+// mismo índice BM25 que el MCP, sin tocar disco. El proveedor del LLM es
+// configurable (COPILOTO_FORMATO / _API_KEY / _BASE_URL / _MODEL, con Anthropic
+// y ANTHROPIC_API_KEY como default); la clave vive siempre en los secrets de la
+// función — jamás en el bundle del cliente.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
@@ -41,8 +43,25 @@ import { CORPUS } from "../_shared/brain-core/rack-corpus.generado.js";
 // (el corpus viaja serializado en el bundle; ~cientos de KB, milisegundos).
 const INDICE_RACK = construirIndiceRack(CORPUS);
 
+// Proveedor del LLM. El default es Anthropic nativo (COPILOTO_FORMATO ausente o
+// con cualquier valor desconocido): es el camino probado y el que está
+// desplegado, así que un typo en la variable degrada al comportamiento actual en
+// vez de romper el copiloto. 'openai' habla el dialecto OpenAI-compatible, que
+// por defecto apunta a DeepSeek.
+//
+// Con DeepSeek hay que quedarse en 'deepseek-chat': 'deepseek-reasoner' NO
+// soporta function calling, y aquí todo el valor sale de las tools (rack,
+// diagnóstico, readiness) — sin ellas el copiloto solo puede alucinar.
+//
+// Aviso de privacidad: el hilo lleva datos de menores (nombres, evaluaciones,
+// sueño y fatiga) y viaja íntegro al proveedor que se configure. Anthropic no
+// entrena con datos de API por defecto; DeepSeek procesa en China y varios
+// proveedores OpenAI-compatible sí entrenan con el tráfico de su API. Elegir
+// proveedor es decisión del dueño del club, no de esta función.
 const API_ANTHROPIC = 'https://api.anthropic.com/v1/messages';
+const API_OPENAI = 'https://api.deepseek.com/chat/completions';
 const MODELO_DEFAULT = 'claude-haiku-4-5';
+const MODELO_OPENAI_DEFAULT = 'deepseek-chat';
 const ROLES_DEFAULT = 'superadmin,owner,coach,atleta,padre';
 const MAX_MENSAJES = 20;
 const MAX_CHARS_MENSAJE = 2000;
@@ -321,6 +340,210 @@ function validarMensajes(mensajes: unknown): string | null {
 }
 
 // --------------------------------------------------------------
+// Capa de proveedor: un solo punto de salida hacia el LLM
+// --------------------------------------------------------------
+//
+// La representación INTERNA del hilo es siempre la de Anthropic (bloques
+// tool_use / tool_result). El dialecto OpenAI se traduce en la frontera, a la
+// ida y a la vuelta, para que el loop del handler, los ejecutores de
+// herramientas y el contrato de respuesta no sepan qué proveedor hay detrás:
+// un formato nuevo se agrega aquí y en ningún otro sitio.
+
+type BloqueAnthropic = {
+  type: string;
+  text?: string;
+  // Bloques tool_use (turno del assistant).
+  id?: string;
+  name?: string;
+  input?: Record<string, unknown>;
+  // Bloques tool_result (turno del user).
+  tool_use_id?: string;
+  content?: string;
+  is_error?: boolean;
+};
+
+type RespuestaLLM = {
+  stop_reason?: string;
+  content?: BloqueAnthropic[];
+  usage?: unknown;
+};
+
+type MensajeHilo = { role: string; content: unknown };
+
+type HerramientaAnthropic = {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+};
+
+type ConfigLLM = {
+  formato: 'anthropic' | 'openai';
+  apiKey: string;
+  baseUrl: string;
+  modelo: string;
+};
+
+// Una variable en blanco es un descuido de configuración, no un valor: se trata
+// como ausente para que caiga en el default en vez de armar una URL rota o
+// mandar una clave vacía (y un salto de línea pegado por error se va con trim).
+function envTexto(nombre: string): string | undefined {
+  const v = Deno.env.get(nombre)?.trim();
+  return v ? v : undefined;
+}
+
+// Devuelve null si no hay clave: el handler traduce eso al 503 de siempre.
+function leerConfigLLM(): ConfigLLM | null {
+  const formato: ConfigLLM['formato'] =
+    envTexto('COPILOTO_FORMATO')?.toLowerCase() === 'openai' ? 'openai' : 'anthropic';
+
+  // El fallback a ANTHROPIC_API_KEY existe solo en el formato nativo: es la
+  // variable que ya está desplegada y funcionando. En formato openai sería peor
+  // que inútil — mandaría la clave de Anthropic a otro proveedor.
+  const apiKey = envTexto('COPILOTO_API_KEY')
+    ?? (formato === 'anthropic' ? envTexto('ANTHROPIC_API_KEY') : undefined);
+  if (!apiKey) return null;
+
+  return {
+    formato,
+    apiKey,
+    baseUrl: envTexto('COPILOTO_BASE_URL') ?? (formato === 'openai' ? API_OPENAI : API_ANTHROPIC),
+    modelo: envTexto('COPILOTO_MODEL') ?? (formato === 'openai' ? MODELO_OPENAI_DEFAULT : MODELO_DEFAULT),
+  };
+}
+
+// Ida: hilo interno → messages OpenAI-compatible.
+function aMensajesOpenAI(system: string, mensajes: MensajeHilo[]): Array<Record<string, unknown>> {
+  // En este dialecto el system no es un campo aparte: es el primer mensaje.
+  const salida: Array<Record<string, unknown>> = [{ role: 'system', content: system }];
+
+  for (const m of mensajes) {
+    if (typeof m.content === 'string') {
+      salida.push({ role: m.role, content: m.content });
+      continue;
+    }
+    const bloques = Array.isArray(m.content) ? (m.content as BloqueAnthropic[]) : [];
+
+    if (m.role === 'assistant') {
+      const texto = bloques.filter((b) => b.type === 'text').map((b) => b.text ?? '').join('\n');
+      const llamadas = bloques
+        .filter((b) => b.type === 'tool_use')
+        .map((b) => ({
+          id: b.id,
+          type: 'function',
+          function: { name: b.name, arguments: JSON.stringify(b.input ?? {}) },
+        }));
+      // content null (no cadena vacía) cuando el turno fue solo tool_calls: es
+      // lo que devuelven estos proveedores y lo que sus validadores esperan.
+      const mensaje: Record<string, unknown> = { role: 'assistant', content: texto || null };
+      if (llamadas.length) mensaje.tool_calls = llamadas;
+      salida.push(mensaje);
+      continue;
+    }
+
+    // Turno user con bloques = los tool_result. Anthropic los agrupa en UN
+    // mensaje; aquí va uno por bloque, cada uno atado a su tool_call_id y en el
+    // mismo orden en que se pidieron.
+    for (const b of bloques) {
+      const cuerpo = b.content ?? '';
+      salida.push({
+        role: 'tool',
+        tool_call_id: b.tool_use_id,
+        // No hay flag is_error en este dialecto: el fallo se marca en el texto
+        // para que el modelo lo lea como error y no como dato bueno.
+        content: b.is_error ? `[error] ${cuerpo}` : cuerpo,
+      });
+    }
+  }
+  return salida;
+}
+
+function aToolsOpenAI(tools: HerramientaAnthropic[]): Array<Record<string, unknown>> {
+  return tools.map((t) => ({
+    type: 'function',
+    function: { name: t.name, description: t.description, parameters: t.input_schema },
+  }));
+}
+
+type RespuestaOpenAI = {
+  choices?: Array<{
+    finish_reason?: string;
+    message?: {
+      content?: string | null;
+      tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }>;
+    };
+  }>;
+  usage?: unknown;
+};
+
+// Vuelta: respuesta OpenAI-compatible → la forma Anthropic que espera el loop.
+function deRespuestaOpenAI(json: RespuestaOpenAI): RespuestaLLM {
+  const mensaje = json.choices?.[0]?.message;
+  const finish = json.choices?.[0]?.finish_reason;
+
+  const bloques: BloqueAnthropic[] = [];
+  if (typeof mensaje?.content === 'string' && mensaje.content) {
+    bloques.push({ type: 'text', text: mensaje.content });
+  }
+  for (const llamada of mensaje?.tool_calls ?? []) {
+    let input: Record<string, unknown> = {};
+    try {
+      input = JSON.parse(llamada.function?.arguments || '{}') as Record<string, unknown>;
+    } catch {
+      // Argumentos malformados: se ejecuta la herramienta con input vacío y que
+      // ella devuelva su propio error de validación por el canal normal. Tumbar
+      // toda la petición por el JSON de un proveedor sería peor.
+      input = {};
+    }
+    bloques.push({ type: 'tool_use', id: llamada.id, name: llamada.function?.name, input });
+  }
+
+  const hayTools = bloques.some((b) => b.type === 'tool_use');
+  return {
+    // El loop corta por stop_reason, así que la traducción tiene que ser fiel:
+    // tool_calls presentes mandan sobre el finish_reason.
+    stop_reason: hayTools ? 'tool_use' : (finish === 'length' ? 'max_tokens' : 'end_turn'),
+    content: bloques,
+    usage: json.usage,
+  };
+}
+
+// Único fetch hacia el proveedor. El detalle del fallo va al log y al cliente le
+// llega siempre el mismo 502 en español: el cuerpo de error de un proveedor
+// puede delatar cabeceras, organización o cuenta.
+async function llamarLLM(
+  cfg: ConfigLLM,
+  system: string,
+  mensajes: MensajeHilo[],
+  tools: HerramientaAnthropic[],
+): Promise<{ ok: true; respuesta: RespuestaLLM } | { ok: false; error: Response }> {
+  const falla502 = () =>
+    jsonResponse({ error: 'El copiloto no pudo responder. Intenta de nuevo en unos minutos.' }, 502);
+
+  const esOpenAI = cfg.formato === 'openai';
+  const headers: Record<string, string> = esOpenAI
+    ? { 'Authorization': `Bearer ${cfg.apiKey}`, 'content-type': 'application/json' }
+    : { 'x-api-key': cfg.apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' };
+  const body = esOpenAI
+    ? { model: cfg.modelo, max_tokens: MAX_TOKENS, messages: aMensajesOpenAI(system, mensajes), tools: aToolsOpenAI(tools) }
+    : { model: cfg.modelo, max_tokens: MAX_TOKENS, system, messages: mensajes, tools };
+
+  let r: Response;
+  try {
+    r = await fetch(cfg.baseUrl, { method: 'POST', headers, body: JSON.stringify(body) });
+  } catch (err) {
+    console.error(`[copiloto] fallo de red hacia el proveedor (${cfg.formato}):`, err instanceof Error ? err.message : err);
+    return { ok: false, error: falla502() };
+  }
+  if (!r.ok) {
+    console.error(`[copiloto] error del proveedor (${cfg.formato}):`, r.status, (await r.text()).slice(0, 500));
+    return { ok: false, error: falla502() };
+  }
+
+  const json = await r.json();
+  return { ok: true, respuesta: esOpenAI ? deRespuestaOpenAI(json as RespuestaOpenAI) : (json as RespuestaLLM) };
+}
+
+// --------------------------------------------------------------
 // Handler
 // --------------------------------------------------------------
 
@@ -339,9 +562,8 @@ serve(async (req) => {
   }
 
   // 3. Configuración del LLM (secrets de la función, nunca del cliente).
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!apiKey) return jsonResponse({ error: 'El copiloto no está configurado todavía.' }, 503);
-  const modelo = Deno.env.get('COPILOTO_MODEL') ?? MODELO_DEFAULT;
+  const cfg = leerConfigLLM();
+  if (!cfg) return jsonResponse({ error: 'El copiloto no está configurado todavía.' }, 503);
 
   // 4. Body: hilo de mensajes (+ atleta de contexto opcional).
   let body: { mensajes?: unknown; atleta_id?: unknown };
@@ -392,40 +614,19 @@ serve(async (req) => {
     };
   }
 
-  // 6. Loop Messages API ↔ tools (máx MAX_ITERACIONES vueltas).
+  // 6. Loop LLM ↔ tools (máx MAX_ITERACIONES vueltas). El hilo se mantiene
+  // siempre en la forma Anthropic: llamarLLM traduce en la frontera si el
+  // proveedor configurado habla el dialecto OpenAI.
   const herramientasUsadas = new Set<string>();
-  let respuesta: {
-    stop_reason?: string;
-    content?: Array<{ type: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
-    usage?: unknown;
-  } | null = null;
+  let respuesta: RespuestaLLM | null = null;
 
   for (let iteracion = 0; iteracion < MAX_ITERACIONES; iteracion++) {
-    let r: Response;
-    try {
-      r = await fetch(API_ANTHROPIC, {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ model: modelo, max_tokens: MAX_TOKENS, system, messages: mensajes, tools }),
-      });
-    } catch (err) {
-      console.error('[copiloto] fallo de red hacia la API de Anthropic:', err instanceof Error ? err.message : err);
-      return jsonResponse({ error: 'El copiloto no pudo responder. Intenta de nuevo en unos minutos.' }, 502);
-    }
-    if (!r.ok) {
-      // Nunca reenviar el detalle al cliente (podría filtrar cabeceras/cuenta);
-      // al log sí, para diagnosticar.
-      console.error('[copiloto] error de la API de Anthropic:', r.status, (await r.text()).slice(0, 500));
-      return jsonResponse({ error: 'El copiloto no pudo responder. Intenta de nuevo en unos minutos.' }, 502);
-    }
-    respuesta = await r.json();
+    const llamada = await llamarLLM(cfg, system, mensajes, tools);
+    if (!llamada.ok) return llamada.error;
+    respuesta = llamada.respuesta;
 
     // Observabilidad de costo: usage por iteración en los logs de la función.
-    console.log(`[copiloto] rol=${caller.rol} modelo=${modelo} iteracion=${iteracion} stop=${respuesta?.stop_reason} usage=${JSON.stringify(respuesta?.usage ?? {})}`);
+    console.log(`[copiloto] rol=${caller.rol} formato=${cfg.formato} modelo=${cfg.modelo} iteracion=${iteracion} stop=${respuesta?.stop_reason} usage=${JSON.stringify(respuesta?.usage ?? {})}`);
 
     if (respuesta?.stop_reason !== 'tool_use') break;
 
@@ -457,6 +658,8 @@ serve(async (req) => {
     .join('\n')
     .trim();
 
+  // 'refusal' es un stop_reason propio de Anthropic (la traducción del dialecto
+  // openai nunca lo emite); se mantiene porque el default sigue siendo nativo.
   if (respuesta?.stop_reason === 'refusal') {
     texto = 'No puedo ayudarte con esa consulta. Si crees que es un error, replantea la pregunta sobre el baloncesto o los atletas del club.';
   } else if (!texto) {
@@ -469,6 +672,6 @@ serve(async (req) => {
     respuesta: texto,
     tono,
     herramientas_usadas: [...herramientasUsadas].filter(Boolean),
-    modelo,
+    modelo: cfg.modelo,
   }, 200);
 });

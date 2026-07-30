@@ -37,6 +37,45 @@ el seguro y la vía rápida es explícita.
 `packages/brain-core` dentro de `_shared/`, porque una Edge Function no puede
 importar desde fuera de su propio directorio.
 
+## Proveedor del copiloto
+
+`copiloto` habla dos dialectos: el nativo de Anthropic (Messages API) y el
+OpenAI-compatible (`/chat/completions`), que sirve para DeepSeek y cualquier
+proveedor con esa misma forma. Se elige con cuatro variables de entorno, en los
+secrets de la función:
+
+| Variable | Default | Qué hace |
+|---|---|---|
+| `COPILOTO_FORMATO` | `anthropic` | `anthropic` u `openai`. Un valor desconocido cae en `anthropic` |
+| `COPILOTO_API_KEY` | — | Clave del proveedor. Si falta y el formato es `anthropic`, usa `ANTHROPIC_API_KEY` |
+| `COPILOTO_BASE_URL` | según formato | `https://api.anthropic.com/v1/messages` · `https://api.deepseek.com/chat/completions` |
+| `COPILOTO_MODEL` | según formato | `claude-haiku-4-5` · `deepseek-chat` |
+
+Sin ninguna de las cuatro, la función se comporta exactamente como antes:
+Anthropic con `ANTHROPIC_API_KEY`. Sin clave por ninguna vía devuelve 503.
+
+Para DeepSeek bastan dos variables, porque los defaults del formato `openai` ya
+apuntan ahí:
+
+```
+COPILOTO_FORMATO=openai
+COPILOTO_API_KEY=sk-...
+```
+
+**Quédate en `deepseek-chat`.** `deepseek-reasoner` no soporta function calling,
+y aquí todo el valor sale de las tools (rack documental, diagnóstico,
+readiness): sin ellas el copiloto solo puede inventar.
+
+### Antes de cambiar de proveedor
+
+El hilo que sale de aquí lleva **datos de menores**: nombres, evaluaciones
+físicas, sueño y fatiga. Viaja íntegro al proveedor que se configure.
+
+Anthropic no entrena con datos de API por defecto. DeepSeek procesa en China y
+varios proveedores OpenAI-compatible sí entrenan con el tráfico de su API —
+conviene leer sus términos antes, no después. La elección de proveedor es
+decisión del dueño del club; esta función solo la ejecuta.
+
 ## Autenticación: por qué `brainAuth` no es opcional
 
 `_shared/brainAuth.ts` expone `autenticar()`, `obtenerAtleta()` y
