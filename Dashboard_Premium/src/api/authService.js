@@ -61,6 +61,26 @@ export const loginUsuario = async (identificador, password) => {
   return fetchUsuarioPorAuthId(authData.user.id);
 };
 
+// ── Recuperación por correo (entrega 3) ─────────────────────────────────────
+// Solo sirve para quien tiene un correo REAL en su cuenta de Auth. Casi ningún
+// atleta lo tiene —su cuenta nace con el sintético `<cédula>@sinacceso…`, un
+// dominio que no existe—, así que en la práctica esto es la vía del
+// representante, que desde la entrega 3 sí está obligado a dar el suyo.
+//
+// `resetPasswordForEmail` NO distingue un correo desconocido de uno real: es
+// deliberado en GoTrue y también lo que queremos aquí, porque si respondiera
+// distinto sería un oráculo para saber qué correos tienen cuenta en el club.
+// Por eso la pantalla muestra siempre el mismo mensaje, pase lo que pase.
+export const enviarEnlaceRecuperacion = async (correo) => {
+  const { error } = await supabase.auth.resetPasswordForEmail(correo.trim().toLowerCase(), {
+    redirectTo: `${window.location.origin}/recuperar`,
+  });
+  // Un fallo de transporte SÍ se cuenta: no depende del correo escrito, así que
+  // no delata nada, y callarlo dejaría a la persona esperando un enlace que
+  // nunca se pidió.
+  if (error) throw new Error('No pudimos enviar el enlace ahora mismo. Revisa tu conexión e inténtalo de nuevo.');
+};
+
 // Conteo de usuarios visibles según RLS (home /sistema del superadmin).
 // head: true no descarga filas, solo el count.
 export const contarUsuarios = async () => {

@@ -365,10 +365,18 @@ export default function RegistroPage() {
                       <input id="reg-rep-telefono" type="tel" name="telefono" autoComplete="section-representante tel" value={datosPadre.telefono} onChange={handlePadreChange} required={esMenorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="0999999999" />
                     </div>
                     <div>
-                      <LabelHUD htmlFor="reg-rep-correo">Correo electrónico (opcional)</LabelHUD>
-                      <input id="reg-rep-correo" type="email" name="correo" autoComplete="section-representante email" value={datosPadre.correo} onChange={handlePadreChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="correo@ejemplo.com" />
+                      {/* Obligatorio desde la entrega 3: es la única dirección
+                          real de la familia, y por tanto lo único que permite
+                          recuperar la cuenta sin depender del club. El servidor
+                          lo vuelve a exigir. */}
+                      <LabelHUD htmlFor="reg-rep-correo" required>Correo electrónico</LabelHUD>
+                      <input id="reg-rep-correo" type="email" name="correo" autoComplete="section-representante email" value={datosPadre.correo} onChange={handlePadreChange} required={esMenorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="correo@ejemplo.com" />
                     </div>
                   </div>
+                  <p className="text-2xs" style={{ color: C.text2 }}>
+                    Al correo del representante llega la recuperación de la contraseña. Sin
+                    él, si la pierden, solo el club puede darles una nueva.
+                  </p>
                 </div>
               </CutCard>
             </motion.div>

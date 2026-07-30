@@ -63,3 +63,23 @@ export const cambiarPasswordPropia = async (passwordNueva) => {
 
   return data;
 };
+
+// ============================
+// CAMBIO DE CORREO PROPIO
+// ============================
+// Tampoco escribe `usuarios.correo` directamente. El login traduce
+// identificador → correo leyendo esa columna (`resolver_email_login`), pero la
+// dirección con la que Auth reconoce la cuenta se guarda aparte: si solo se
+// cambia la de la tabla, las dos se separan, el login empieza a resolver a un
+// correo que Auth no conoce y la persona se queda fuera con su contraseña
+// correcta. La Edge Function mueve las dos a la vez o ninguna.
+export const actualizarCorreoPropio = async (correo) => {
+  const { data, error } = await supabase.functions.invoke('actualizar-correo', {
+    body: { correo },
+  });
+
+  if (error) throw new Error(await mensajeDeError(error, 'No se pudo actualizar tu correo.'));
+  if (data?.error) throw new Error(data.error);
+
+  return data;
+};

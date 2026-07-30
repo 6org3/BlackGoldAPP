@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Save, User, KeyRound } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
-import { cambiarPasswordPropia } from '../api/accesosService';
+import { cambiarPasswordPropia, actualizarCorreoPropio } from '../api/accesosService';
 import { validarPasswordNueva } from '../lib/passwordPolicy';
 import { C, BORDER, cut } from './arcade/arcadeTokens';
 
@@ -91,6 +91,16 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
         throw new Error("El nombre y la cédula son obligatorios.");
       }
 
+      // El correo va aparte y PRIMERO, por una Edge Function: escribirlo aquí
+      // solo cambiaba la tabla, y el login resuelve el correo desde la tabla
+      // pero Auth guarda el suyo por su cuenta. Al separarse, la persona se
+      // quedaba fuera con su contraseña correcta, y la recuperación seguía
+      // yendo al correo viejo. Si esto falla, no se toca nada más.
+      const correoNuevo = form.correo?.trim() || null;
+      if (correoNuevo !== (user.correo || null)) {
+        await actualizarCorreoPropio(correoNuevo);
+      }
+
       // Actualizar usando la API de Supabase en la tabla usuarios.
       // Como el usuario está actualizando su propia fila, el RLS debe permitirlo.
       const { error: dbError } = await supabase
@@ -99,8 +109,7 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
           nombre: form.nombre,
           cedula: form.cedula,
           telefono: form.telefono,
-          fecha_nacimiento: form.fecha_nacimiento || null,
-          correo: form.correo
+          fecha_nacimiento: form.fecha_nacimiento || null
         })
         .eq('id', user.id);
 

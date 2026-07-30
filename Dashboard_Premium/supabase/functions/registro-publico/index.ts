@@ -79,6 +79,31 @@ serve(async (req) => {
     return jsonResponse({ error: 'Cédula, nombre y fecha de nacimiento del atleta son obligatorios.' }, 400);
   }
 
+  // El correo del representante es OBLIGATORIO desde la entrega 3: es la única
+  // dirección real de la familia y, por tanto, lo único que hace posible
+  // recuperar la cuenta sin pasar por el club. El atleta menor casi nunca tiene
+  // correo propio y su cuenta de Auth nace con el sintético
+  // `<cédula>@sinacceso...`, al que no llega nada; si el representante tampoco
+  // lo tiene, perder la contraseña deja a la familia dependiendo de que el
+  // dueño se la regenere a mano.
+  //
+  // Se valida AQUÍ y no dentro de la RPC porque desde v55 la Edge Function es
+  // la única puerta: `anon` perdió el EXECUTE, así que esto no se puede saltar
+  // llamando a PostgREST.
+  if (padre) {
+    const correoPadre = (padre.correo ?? '').trim();
+    if (!correoPadre) {
+      return jsonResponse({ error: 'El correo del representante es obligatorio: es la única forma de recuperar la cuenta si se pierde la contraseña.' }, 400);
+    }
+    // Comprobación deliberadamente laxa (hay un `type="email"` en el formulario
+    // y el servidor de correo es el juez final): solo descarta lo que
+    // seguro no es una dirección, para no rechazar dominios legítimos raros.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoPadre)) {
+      return jsonResponse({ error: 'Revisa el correo del representante: no parece una dirección válida.' }, 400);
+    }
+    padre.correo = correoPadre;
+  }
+
   const ip = ipDeRequest(req.headers);
   // El club se NORMALIZA aquí con la misma regla que aplica registrar_publico()
   // (`NULLIF(btrim(...), '')`, v33) y se manda ya normalizado a la RPC. Si cada
