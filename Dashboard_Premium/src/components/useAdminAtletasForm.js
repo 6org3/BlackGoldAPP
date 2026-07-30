@@ -238,12 +238,20 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
             // el siguiente paso intentaría crear un representante que ya está y
             // el alta acabaría avisando de un duplicado inventado en vez de
             // reintentarse.
+            // `rechazado` se excluye igual que en la RPC (v59): esa cuenta ya no
+            // puede iniciar sesión —`resolver_email_login` la descarta— así que
+            // reutilizarla vincularía al atleta nuevo a un representante muerto.
+            // A diferencia de la RPC, aquí NO se exige `activo`: quien usa esta
+            // pantalla es staff autenticado del club, que ya ve a esa familia, y
+            // exigirlo le impediría dar de alta a un hermano cuyo representante
+            // llegó por el registro público y está esperando aprobación.
             const buscar = async (columna, valor) => {
               const { data, error } = await supabase
                 .from('usuarios')
                 .select('id, telefono')
                 .eq('rol', 'padre')
                 .eq('club', resolvedClub)
+                .neq('estado', 'rechazado')
                 .eq(columna, valor)
                 .maybeSingle();
               if (error) throw error;
