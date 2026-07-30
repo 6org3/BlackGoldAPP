@@ -34,6 +34,7 @@ import {
   type Target,
 } from "../_shared/brainAuth.ts";
 import { leerLimite } from "../_shared/controlAbuso.ts";
+import { calcularCategoriaFEB } from "../_shared/analytics-core/categoriaFEB.js";
 import { analizarPilares } from "../_shared/brain-core/diagnostico.js";
 import { analizarReadiness } from "../_shared/brain-core/readiness.js";
 import { construirIndiceRack } from "../_shared/brain-core/rackMotor.js";
@@ -122,7 +123,7 @@ function herramientasParaRol(rol: string) {
 // Resolución de alcance de atleta (por rol, ANTES de leer datos)
 // --------------------------------------------------------------
 
-const SELECT_ATLETA = 'id, usuario_id, estado_recuperacion, usuarios!inner!atletas_usuario_id_fkey(id, nombre, fecha_nacimiento, club, categoria_feb)';
+const SELECT_ATLETA = 'id, usuario_id, estado_recuperacion, usuarios!inner!atletas_usuario_id_fkey(id, nombre, fecha_nacimiento, club)';
 
 // atleta → SIEMPRE el propio (ignora atleta_id ajeno); padre → hijo vinculado
 // en padres_atletas (si tiene uno solo, ese por defecto); staff → el pedido,
@@ -253,22 +254,30 @@ async function ejecutarReadiness(
 
 async function ejecutarListarAtletas(admin: AdminClient, caller: Caller): Promise<string> {
   if (!ROLES_STAFF.has(caller.rol)) throw new Error('Solo el staff puede listar atletas.');
+  // coherencia-01: categoria_feb NUNCA se lee — es la columna GENERATED que
+  // Postgres congela en el INSERT (v20). La categoría se deriva AL VUELO de
+  // fecha_nacimiento (mismo criterio que fueraDeAlcance en brainAuth.ts), pero
+  // como PostgREST no puede filtrar por una función JS, el filtro de
+  // categoría del coach se aplica DESPUÉS en JS: se trae un límite crudo más
+  // alto (un club real hoy no supera esa cifra) y se recorta el resultado
+  // final a 100 tras filtrar.
   let query = admin
     .from('atletas')
-    .select('id, overall_score, usuarios!inner!atletas_usuario_id_fkey(nombre, categoria_feb, club)')
-    .limit(100);
+    .select('id, overall_score, usuarios!inner!atletas_usuario_id_fkey(nombre, fecha_nacimiento, club)')
+    .limit(500);
   if (caller.club) query = query.eq('usuarios.club', caller.club);
-  if (caller.rol === 'coach' && caller.categoria && caller.categoria !== 'Todas') {
-    query = query.eq('usuarios.categoria_feb', caller.categoria);
-  }
   const { data, error } = await query;
   if (error) throw new Error('No pude listar los atletas.');
-  const atletas = (data || []).map((a: { id: string; overall_score: number | null; usuarios: { nombre: string; categoria_feb: string | null } }) => ({
-    id: a.id,
-    nombre: a.usuarios?.nombre ?? null,
-    categoria_feb: a.usuarios?.categoria_feb ?? null,
-    overall_score: a.overall_score ?? null,
-  }));
+  const limitadoACategoria = caller.rol === 'coach' && !!caller.categoria && caller.categoria !== 'Todas';
+  const atletas = (data || [])
+    .map((a: { id: string; overall_score: number | null; usuarios: { nombre: string; fecha_nacimiento: string | null } }) => ({
+      id: a.id,
+      nombre: a.usuarios?.nombre ?? null,
+      categoria_feb: calcularCategoriaFEB(a.usuarios?.fecha_nacimiento ?? null),
+      overall_score: a.overall_score ?? null,
+    }))
+    .filter((a) => !limitadoACategoria || a.categoria_feb === caller.categoria)
+    .slice(0, 100);
   return JSON.stringify({ total: atletas.length, atletas });
 }
 

@@ -20,9 +20,11 @@ const { supabaseMock } = vi.hoisted(() => ({ supabaseMock: { from: vi.fn() } }))
 vi.mock('./supabaseClient', () => ({ supabase: supabaseMock }));
 
 import { fetchTodosLosAtletas } from './atletasService';
+import { fechaNacimientoDeEdad } from '../lib/edad';
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.useRealTimers();
 });
 
 const HOY = new Date().toISOString().split('T')[0]; // no importa el TZ para este spec
@@ -146,5 +148,100 @@ describe('fetchTodosLosAtletas — error de Supabase (rutas-01)', () => {
     });
 
     await expect(fetchTodosLosAtletas(null, { limit: 12 })).rejects.toBeTruthy();
+  });
+});
+
+// coherencia-01: la categoría FEB se deriva SIEMPRE al vuelo de
+// fecha_nacimiento, nunca leyendo usuarios.categoria_feb (columna GENERATED
+// congelada en el INSERT, v20) — ni en el gate de alcance del coach ni en el
+// filtro de categoría del dropdown de /admin/atletas.
+describe('fetchTodosLosAtletas — categoría FEB derivada al vuelo, no la columna congelada (coherencia-01)', () => {
+  // Instante fijo a mediodía UTC: mismo día calendario en CI (UTC) y en local
+  // (Ecuador, UTC-5), y determinista frente a rangoFechaNacimientoPorCategoria
+  // / fechaNacimientoDeEdad (ambos usan Date "de hoy" por defecto).
+  const AHORA = new Date('2026-07-15T12:00:00Z');
+
+  /** Corre fetchTodosLosAtletas capturando el builder real de `.from('atletas')`
+   *  (con sus spies vi.fn() intactos) para poder inspeccionar con qué columnas
+   *  y valores se llamó .eq()/.lte()/.gt(). */
+  async function correrCapturandoBuilder(user, options) {
+    vi.useFakeTimers();
+    vi.setSystemTime(AHORA);
+    const buildersAtletas = [];
+    supabaseMock.from.mockImplementation((tabla) => {
+      if (tabla === 'atletas') {
+        const b = tablaConCortePostgrest([atletaFila(0)])();
+        buildersAtletas.push(b);
+        return b;
+      }
+      if (tabla === 'evaluaciones_pruebas') return tablaConCortePostgrest([])();
+      if (tabla === 'atleta_readiness') return tablaConCortePostgrest([])();
+      throw new Error(`tabla no mockeada: ${tabla}`);
+    });
+    await fetchTodosLosAtletas(user, options);
+    // OJO: el builder (tablaConCortePostgrest) tiene su propio `.then` para
+    // simular el corte silencioso de PostgREST — es un thenable. `return` de
+    // un `async function` desenvuelve cualquier valor con `.then` llamando a
+    // ESE `.then` (igual que `await`), así que `return buildersAtletas[0]`
+    // directo entrega `{data,error,count}` en vez del builder. Envolverlo en
+    // un objeto plano evita el desenvolvimiento implícito.
+    return { builder: buildersAtletas[0] };
+  }
+
+  it('el SELECT ya no pide la columna congelada categoria_feb', async () => {
+    const { builder } = await correrCapturandoBuilder(null, {});
+    const selectCall = builder.select.mock.calls[0][0];
+    expect(selectCall).not.toMatch(/categoria_feb/);
+  });
+
+  it('gate del coach: traduce su categoría asignada a un rango de fecha_nacimiento, nunca un .eq sobre categoria_feb', async () => {
+    const coach = { rol: 'coach', club: 'ClubTest', categoria: 'Menores (Sub-14)' };
+    const { builder } = await correrCapturandoBuilder(coach, {});
+
+    expect(builder.eq.mock.calls.some(([col]) => col === 'usuarios.categoria_feb')).toBe(false);
+
+    const lteFecha = builder.lte.mock.calls.filter(([col]) => col === 'usuarios.fecha_nacimiento');
+    const gtFecha = builder.gt.mock.calls.filter(([col]) => col === 'usuarios.fecha_nacimiento');
+    // Menores (Sub-14): min 12, max 14 → ha nacido hace al menos 12 años y no
+    // ha cumplido 15 todavía.
+    expect(lteFecha).toEqual([['usuarios.fecha_nacimiento', fechaNacimientoDeEdad(12, AHORA)]]);
+    expect(gtFecha).toEqual([['usuarios.fecha_nacimiento', fechaNacimientoDeEdad(15, AHORA)]]);
+  });
+
+  it('coach con categoría "Todas" no aplica ningún gate de categoría', async () => {
+    const coach = { rol: 'coach', club: 'ClubTest', categoria: 'Todas' };
+    const { builder } = await correrCapturandoBuilder(coach, {});
+    expect(builder.lte.mock.calls.filter(([col]) => col === 'usuarios.fecha_nacimiento')).toEqual([]);
+    expect(builder.gt.mock.calls.filter(([col]) => col === 'usuarios.fecha_nacimiento')).toEqual([]);
+  });
+
+  it('coach con categoría no canónica (dato corrupto): cero resultados, no "sin filtro"', async () => {
+    const coach = { rol: 'coach', club: 'ClubTest', categoria: 'Sub-15-legacy-inexistente' };
+    const { builder } = await correrCapturandoBuilder(coach, {});
+    expect(builder.eq.mock.calls).toContainEqual(['usuarios.id', '00000000-0000-0000-0000-000000000000']);
+  });
+
+  it('filtro voluntario de categoría del dropdown: mismo rango de fecha, no .eq sobre categoria_feb', async () => {
+    const { builder } = await correrCapturandoBuilder(null, { categoria: 'Juvenil (Sub-18)' });
+
+    expect(builder.eq.mock.calls.some(([col]) => col === 'usuarios.categoria_feb')).toBe(false);
+    const lteFecha = builder.lte.mock.calls.filter(([col]) => col === 'usuarios.fecha_nacimiento');
+    const gtFecha = builder.gt.mock.calls.filter(([col]) => col === 'usuarios.fecha_nacimiento');
+    // Juvenil (Sub-18): min 17, max 18.
+    expect(lteFecha).toEqual([['usuarios.fecha_nacimiento', fechaNacimientoDeEdad(17, AHORA)]]);
+    expect(gtFecha).toEqual([['usuarios.fecha_nacimiento', fechaNacimientoDeEdad(19, AHORA)]]);
+  });
+
+  it('filtro de categoría "Mayores" (sin techo): solo fechaNacLte, sin .gt', async () => {
+    const { builder } = await correrCapturandoBuilder(null, { categoria: 'Mayores' });
+    const lteFecha = builder.lte.mock.calls.filter(([col]) => col === 'usuarios.fecha_nacimiento');
+    const gtFecha = builder.gt.mock.calls.filter(([col]) => col === 'usuarios.fecha_nacimiento');
+    expect(lteFecha).toEqual([['usuarios.fecha_nacimiento', fechaNacimientoDeEdad(19, AHORA)]]);
+    expect(gtFecha).toEqual([]);
+  });
+
+  it('categoría inválida en el dropdown: cero resultados, no "sin filtro"', async () => {
+    const { builder } = await correrCapturandoBuilder(null, { categoria: 'no-existe' });
+    expect(builder.eq.mock.calls).toContainEqual(['usuarios.id', '00000000-0000-0000-0000-000000000000']);
   });
 });

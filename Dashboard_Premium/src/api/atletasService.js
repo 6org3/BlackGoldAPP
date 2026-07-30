@@ -3,9 +3,33 @@ import { supabase } from './supabaseClient';
 import { traerTodo } from './paginacion';
 import { calculateRank } from './authService';
 import { calcularCategoriaFEB, calcularMetricasDerivadas } from './utilsAtletas';
-import { fechaNacimientoDeEdad } from '../lib/edad';
+import { fechaNacimientoDeEdad, rangoFechaNacimientoPorCategoria } from '../lib/edad';
 import { coincideBusqueda, patronBusquedaRelajado } from '../lib/normalizarTexto';
 import { hoyLocal } from '../lib/fechasLocal';
+
+// UUID que ninguna fila real de `usuarios` puede tener: filtro "imposible"
+// para preservar el "cero resultados" de una categoría no canónica en vez de
+// omitir el filtro en silencio (ver filtrarPorCategoriaFEB).
+const ID_USUARIO_IMPOSIBLE = '00000000-0000-0000-0000-000000000000';
+
+// coherencia-01: traduce un filtro por categoría FEB a un rango de
+// `fecha_nacimiento` en vez de leer `usuarios.categoria_feb` — columna
+// GENERATED que Postgres congela en el INSERT (v20) y que no envejece con el
+// atleta (ver src/lib/edad.js). Usado tanto por el gate obligatorio de
+// alcance del coach como por el filtro voluntario del dropdown de categoría:
+// mismo criterio, un solo lugar para no divergir.
+//
+// Categoría no canónica (dato corrupto en `usuarios.categoria` del coach, o
+// un valor inesperado del dropdown) ⇒ filtro imposible (0 resultados), NUNCA
+// "sin filtro": omitirlo en silencio le mostraría a un coach atletas fuera de
+// su categoría asignada.
+function filtrarPorCategoriaFEB(query, categoriaBuscada) {
+  const rango = rangoFechaNacimientoPorCategoria(categoriaBuscada);
+  if (!rango) return query.eq('usuarios.id', ID_USUARIO_IMPOSIBLE);
+  query = query.lte('usuarios.fecha_nacimiento', rango.fechaNacLte);
+  if (rango.fechaNacGt !== undefined) query = query.gt('usuarios.fecha_nacimiento', rango.fechaNacGt);
+  return query;
+}
 
 // ============================
 // FETCH ATLETAS (Supabase)
@@ -52,7 +76,6 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
         rol,
         club,
         categoria,
-        categoria_feb,
         correo,
         fecha_nacimiento,
         genero,
@@ -71,7 +94,7 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   // Un coach con categoría asignada solo puede ver esa categoría: se aplica
   // en SQL (antes se traía el club entero y se descartaba en el cliente).
   if (user && user.rol === 'coach' && user.categoria && user.categoria !== 'Todas') {
-    query = query.eq('usuarios.categoria_feb', user.categoria);
+    query = filtrarPorCategoriaFEB(query, user.categoria);
   }
 
   if (sanitizedSearch) {
@@ -84,7 +107,7 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
     query = query.or(`nombre.ilike.%${patronRelajado}%,cedula.ilike.%${patronRelajado}%`, { foreignTable: 'usuarios' });
   }
   if (categoria && categoria !== 'Todas') {
-    query = query.eq('usuarios.categoria_feb', categoria);
+    query = filtrarPorCategoriaFEB(query, categoria);
   }
   // Rango de edad traducido a fechas límite de nacimiento (ver src/lib/edad.js
   // para por qué no se filtra por `atletas.edad` ni por `categoria_feb`).
@@ -266,7 +289,8 @@ export const fetchTodosLosAtletas = async (user = null, options = {}) => {
   });
 
   // El scoping por club y por categoría de coach ya se aplicó en SQL arriba
-  // (usuarios.club / usuarios.categoria_feb), así que no hace falta repetirlo aquí.
+  // (usuarios.club / rango de usuarios.fecha_nacimiento vía
+  // filtrarPorCategoriaFEB, coherencia-01), así que no hace falta repetirlo aquí.
 
   // Refino insensible a tildes de la búsqueda: el patrón relajado enviado a
   // Postgres devuelve un superconjunto (p. ej. 'nunez' → '____z' también

@@ -18,19 +18,17 @@ export function useMisionesPanelSesionYObservacion(
 
     const loadSesion = async () => {
       const sesiones = await fetchSesionesAtleta(atletaRowId);
-      // OJO (rastreado, no se toca aquí): sesiones_entrenamiento.fecha es una
-      // columna DATE con DEFAULT CURRENT_DATE del servidor y ningún INSERT le
-      // pasa una fecha explícita (crearSesionEntrenamiento en canchaData.js ni
-      // en AdminPlanificacion.jsx) — ese DEFAULT lo evalúa Postgres en UTC. Si
-      // esta comparación pasara a hoyLocal() sin arreglar también esa escritura,
-      // se rompería justo el caso más común (sesión de la tarde/noche, revisada
-      // la MISMA tarde/noche: hoy en UTC == fecha en UTC, coinciden por
-      // construcción). Se deja en día UTC hasta que la escritura tenga su propio
-      // fix — es un sitio nuevo, distinto de los de este lote, fuera de alcance.
-      const todayUTC = new Date().toISOString().split('T')[0];
+      // lote 3: sesiones_entrenamiento.fecha ya se escribe en día LOCAL
+      // (Ecuador UTC-5) desde canchaData.js#startSession y
+      // AdminPlanificacion.jsx#sesionPayloadDesdeForm — el INSERT ya no
+      // depende del DEFAULT CURRENT_DATE del servidor (evaluado en UTC), así
+      // que esta comparación pasa a hoyLocal() para que una sesión de la
+      // tarde/noche siga reconociéndose como "de hoy" al revisarla ya entrada
+      // la noche en Ecuador (mismo caso que obsDeHoy más abajo).
+      const hoy = hoyLocal();
 
       if (sesiones.length > 0) {
-        const sesionDeHoy = sesiones.find(s => s.fecha && s.fecha.startsWith(todayUTC));
+        const sesionDeHoy = sesiones.find(s => s.fecha && s.fecha.startsWith(hoy));
         if (sesionDeHoy) {
           setSesionHoy(sesionDeHoy);
           setEvaValue(sesionDeHoy.eva_registro || 0);
