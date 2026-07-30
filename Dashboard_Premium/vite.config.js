@@ -76,12 +76,37 @@ export default defineConfig({
         // fuentes auto-hospedadas quedaban fuera del precache y la app
         // instalada perdía la tipografía al abrirse sin red.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Ya no hace falta runtimeCaching: las fuentes se auto-hospedan
-        // (@fontsource, ver src/index.css), así que son parte del propio build.
-        // Antes había que cachear a mano fonts.googleapis.com y
-        // fonts.gstatic.com porque el CSS de un tercero no entra en el build.
+        // El stack de exportar PDF (~1 MB) se importa dinámicamente y casi
+        // nadie exporta en la primera visita: precachearlo de entrada solo
+        // infla la instalación inicial de la PWA sin beneficio para la
+        // mayoría de las sesiones. Se excluye del precache y se sirve bajo
+        // demanda vía runtimeCaching (ver abajo). Un patrón por paquete:
+        //   - '**/jspdf*.js'      → jspdf
+        //   - '**/html2canvas*.js' → html2canvas y html2canvas-pro
+        //   - '**/index.es-*.js'  → canvg. OJO: es 'index.es-*', NO 'index-*'
+        //     (ese es el chunk del entry y NO debe excluirse del precache).
+        //   - '**/purify.es-*.js' → dompurify
+        globIgnores: ['**/jspdf*.js', '**/html2canvas*.js', '**/index.es-*.js', '**/purify.es-*.js'],
+        // runtimeCaching vuelve, pero solo para los assets con hash excluidos
+        // arriba: las fuentes siguen auto-hospedadas (@fontsource, ver
+        // src/index.css) y van en el precache normal, así que no necesitan
+        // regla propia. Antes había que cachear a mano fonts.googleapis.com y
+        // fonts.gstatic.com porque el CSS de un tercero no entraba en el build;
+        // eso ya no aplica. CacheFirst es seguro aquí porque el nombre de cada
+        // archivo lleva hash de contenido (un cambio de contenido = nombre
+        // nuevo, nunca una respuesta vieja bajo el mismo nombre).
         // Sigue sin haber NINGUNA regla que cachee respuestas de Supabase: los
         // datos del club no deben servirse rancios desde el service worker.
+        runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/assets/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'assets-bajo-demanda',
+              expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            },
+          },
+        ],
       },
       manifest: {
         name: 'Black Gold Premium',
