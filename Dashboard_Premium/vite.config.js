@@ -24,23 +24,33 @@ export default defineConfig({
   },
   build: {
     // Separar dependencias pesadas en chunks vendor cacheables por separado.
+    //
+    // advancedChunks (API nativa de Rolldown), NO manualChunks: la capa de
+    // compatibilidad de manualChunks en rolldown-vite no impone prioridad
+    // entre grupos y cada grupo arrastra las DEPENDENCIAS de lo que captura,
+    // así que aunque la función devolviera 'react-vendor' para react, el grupo
+    // 'charts' (recharts depende de react) se tragaba React y ReactDOM enteros
+    // y el login descargaba los 430 kB de Recharts en la carga inicial.
+    // Con priority explícita, react se captura antes de que charts lo arrastre.
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return
-          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) return 'charts'
-          if (id.includes('framer-motion')) return 'motion'
-          // canvas-confetti va aparte: QuizModal lo importa estáticamente y no
-          // debe arrastrar nada más al chunk de App.
-          if (id.includes('canvas-confetti')) return 'confetti'
-          // OJO: no agrupar jspdf/html2canvas en un chunk manual. Solo se
-          // importan dinámicamente (exportar PDF), y al forzar un chunk 'pdf'
-          // el bundler metía ahí el vite/preload-helper compartido, con lo que
-          // el entry y App importaban ~640 kB de jspdf en la carga inicial.
-          // Sueltos, cada uno queda en su chunk cargado solo bajo demanda.
-          if (id.includes('@supabase')) return 'supabase'
-          if (id.includes('react-router')) return 'router'
-          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) return 'react-vendor'
+        advancedChunks: {
+          groups: [
+            // Máxima prioridad: nadie debe tragarse React como dependencia.
+            { name: 'react-vendor', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 100 },
+            { name: 'router', test: /node_modules[\\/]react-router/, priority: 90 },
+            { name: 'charts', test: /node_modules[\\/](recharts|d3-|victory-vendor)/, priority: 50 },
+            { name: 'motion', test: /node_modules[\\/]framer-motion[\\/]/, priority: 50 },
+            // canvas-confetti va aparte: QuizModal lo importa estáticamente y no
+            // debe arrastrar nada más al chunk de App.
+            { name: 'confetti', test: /node_modules[\\/]canvas-confetti[\\/]/, priority: 50 },
+            // OJO: no agrupar jspdf/html2canvas en un chunk manual. Solo se
+            // importan dinámicamente (exportar PDF), y al forzar un chunk 'pdf'
+            // el bundler metía ahí el vite/preload-helper compartido, con lo que
+            // el entry y App importaban ~640 kB de jspdf en la carga inicial.
+            // Sueltos, cada uno queda en su chunk cargado solo bajo demanda.
+            { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/, priority: 50 },
+          ],
         },
       },
     },
