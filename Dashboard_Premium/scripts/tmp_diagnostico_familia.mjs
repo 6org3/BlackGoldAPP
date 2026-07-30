@@ -169,4 +169,24 @@ console.log('\nG. Representante ya existente en un club, inscribiendo en OTRO cl
 }
 
 await limpiar();
+
+// ── H. El límite que NO se puede cerrar: dos TITULARES con un solo correo ───
+// El hermano de 18 se inscribe solo (es su propio titular, correo obligatorio
+// desde la entrega 3) y luego la madre inscribe al de 12 poniendo el mismo correo
+// familiar como representante. No hay salida técnica: cada uno necesita su cuenta
+// de Auth y GoTrue exige que el email sea único, así que el correo solo puede
+// pertenecer a uno. Lo que v57 arregla es que UN representante cubra a varios
+// hijos; esto es distinto. Se mide para saber qué mensaje recibe la familia.
+console.log('\nH. Hermano mayor de edad con el correo familiar, y luego el menor con ese mismo correo');
+{
+  const r1 = await registrar(
+    conClub({ ...hijo('H1', { correo: CORREO_MAMA }), fecha_nacimiento: '2005-01-10' }),
+    null,
+  );
+  console.log(r1.error ? `   mayor de edad ERROR: ${r1.error.message}` : '   mayor de edad OK (se queda con el correo)');
+  const r2 = await registrar(conClub(hijo('H2')), rep(TEL_MAMA, CORREO_MAMA));
+  console.log(r2.error ? `   hermano menor ERROR: ${r2.error.message}` : '   hermano menor OK');
+}
+
+await limpiar();
 console.log('\n=== fin del diagnóstico (todo lo creado quedó borrado) ===');
