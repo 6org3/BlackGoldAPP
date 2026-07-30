@@ -55,8 +55,8 @@ const QA = {
   coachNuevo: { cedula: 'QA_RLS_COACHNEW', nombre: 'QA Coach Nuevo' },
   // Co-dueño invitado por el dueño original desde la app (v36).
   coDueno: { cedula: 'QA_RLS_CODUENO', nombre: 'QA Co-dueño' },
-  reg: { cedula: 'QA_RLS_REG1', nombre: 'QA Registro Uno', nac: '2013-03-15', telPadre: 'QA_RLS_TEL1' },
-  reg2: { cedula: 'QA_RLS_REG2', nombre: 'QA Registro Dos (rechazo)', nac: '2014-06-25', telPadre: 'QA_RLS_TEL2' },
+  reg: { cedula: 'QA_RLS_REG1', nombre: 'QA Registro Uno', nac: '2013-03-15', telPadre: 'QA_RLS_TEL1', correoPadre: 'qa-rls-rep1@ejemplo.com' },
+  reg2: { cedula: 'QA_RLS_REG2', nombre: 'QA Registro Dos (rechazo)', nac: '2014-06-25', telPadre: 'QA_RLS_TEL2', correoPadre: 'qa-rls-rep2@ejemplo.com' },
 };
 
 // Reversiones que limpiarQA debe aplicar en el finally (y también al arrancar,
@@ -922,7 +922,9 @@ async function suiteRegistroPublico() {
     headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
     body: JSON.stringify({
       atleta: { cedula: QA.reg.cedula, nombre: QA.reg.nombre, fecha_nacimiento: QA.reg.nac, posicion: 'Escolta', club: 'Black Gold' },
-      padre: { nombre: 'QA Rep Registro', telefono: QA.reg.telPadre },
+      // El correo del representante es obligatorio desde v55/entrega 3: sin él la
+      // Edge Function devuelve 400 y esta suite entera se cae.
+      padre: { nombre: 'QA Rep Registro', telefono: QA.reg.telPadre, correo: QA.reg.correoPadre },
     }),
   });
   const cuerpo = await res.json().catch(() => ({}));
@@ -1041,7 +1043,7 @@ async function suiteSolicitudes() {
     headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
     body: JSON.stringify({
       atleta: { cedula: QA.reg2.cedula, nombre: QA.reg2.nombre, fecha_nacimiento: QA.reg2.nac, club: 'Black Gold' },
-      padre: { nombre: 'QA Rep Rechazo', telefono: QA.reg2.telPadre },
+      padre: { nombre: 'QA Rep Rechazo', telefono: QA.reg2.telPadre, correo: QA.reg2.correoPadre },
     }),
   });
   const cuerpo2 = await res2.json().catch(() => ({}));

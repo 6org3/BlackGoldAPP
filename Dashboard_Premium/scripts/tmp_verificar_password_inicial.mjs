@@ -49,13 +49,15 @@ console.log(`club de prueba: ${CLUB}\n`);
 
 const cedula = `${PREFIJO}-1`;
 const telPadre = '09' + String(Date.now()).slice(-8);
+const correoPadre = `${PREFIJO.toLowerCase()}-rep-${Date.now()}@ejemplo.com`;
 
 const r = await fetch(`${URL}/functions/v1/registro-publico`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
   body: JSON.stringify({
     atleta: { cedula, nombre: 'QA Password', fecha_nacimiento: '2012-05-15', club: CLUB, genero: 'Masculino' },
-    padre: { nombre: 'QA Representante', telefono: telPadre, correo: null },
+    // El correo del representante es obligatorio desde la entrega 3.
+    padre: { nombre: 'QA Representante', telefono: telPadre, correo: correoPadre },
   }),
 });
 const cuerpo = await r.json();

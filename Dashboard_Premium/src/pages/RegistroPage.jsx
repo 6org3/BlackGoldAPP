@@ -105,6 +105,11 @@ export default function RegistroPage() {
 
   const edadAtleta = datosAtleta.fecha_nacimiento ? calcularEdad(datosAtleta.fecha_nacimiento) : null;
   const esMenorEdad = edadAtleta !== null && edadAtleta < 18;
+  // No es `!esMenorEdad`: mientras no haya fecha no se sabe, y no se le puede
+  // exigir el correo a alguien que todavía no dijo su edad. Cuando SÍ es mayor,
+  // el formulario no manda representante, así que su correo es el único real
+  // que tendrá la cuenta — y el servidor lo exige por eso mismo.
+  const esMayorEdad = edadAtleta !== null && edadAtleta >= 18;
 
   const posiciones = ['N/A', 'Generador', 'Alero Físico', 'Ancla Fuerte', 'Escolta', 'Ala-Pívot'];
 
@@ -321,8 +326,13 @@ export default function RegistroPage() {
                   <input id="reg-telefono" type="tel" name="telefono" autoComplete="section-atleta tel" value={datosAtleta.telefono} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="0999999999" />
                 </div>
                 <div>
-                  <LabelHUD htmlFor="reg-correo">Correo electrónico (opcional)</LabelHUD>
-                  <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="ejemplo@correo.com" />
+                  {/* Obligatorio solo para el atleta MAYOR de edad: ahí el
+                      titular es él y su correo es la única vía de recuperación.
+                      Si es menor, el que cuenta es el del representante. */}
+                  <LabelHUD htmlFor="reg-correo" required={esMayorEdad}>
+                    {esMayorEdad ? 'Correo electrónico' : 'Correo electrónico (opcional)'}
+                  </LabelHUD>
+                  <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} required={esMayorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="ejemplo@correo.com" />
                 </div>
               </div>
 
@@ -365,10 +375,18 @@ export default function RegistroPage() {
                       <input id="reg-rep-telefono" type="tel" name="telefono" autoComplete="section-representante tel" value={datosPadre.telefono} onChange={handlePadreChange} required={esMenorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="0999999999" />
                     </div>
                     <div>
-                      <LabelHUD htmlFor="reg-rep-correo">Correo electrónico (opcional)</LabelHUD>
-                      <input id="reg-rep-correo" type="email" name="correo" autoComplete="section-representante email" value={datosPadre.correo} onChange={handlePadreChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="correo@ejemplo.com" />
+                      {/* Obligatorio desde la entrega 3: es la única dirección
+                          real de la familia, y por tanto lo único que permite
+                          recuperar la cuenta sin depender del club. El servidor
+                          lo vuelve a exigir. */}
+                      <LabelHUD htmlFor="reg-rep-correo" required>Correo electrónico</LabelHUD>
+                      <input id="reg-rep-correo" type="email" name="correo" autoComplete="section-representante email" value={datosPadre.correo} onChange={handlePadreChange} required={esMenorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="correo@ejemplo.com" />
                     </div>
                   </div>
+                  <p className="text-2xs" style={{ color: C.text2 }}>
+                    Al correo del representante llega la recuperación de la contraseña. Sin
+                    él, si la pierden, solo el club puede darles una nueva.
+                  </p>
                 </div>
               </CutCard>
             </motion.div>

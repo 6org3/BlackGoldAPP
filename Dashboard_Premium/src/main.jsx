@@ -92,6 +92,9 @@ const VistaPadreArcade = lazy(() => import('./components/arcade/VistaPadreArcade
 // mock-first + cableado real (misiones/eventos/pilares/XP).
 const VistaAtletaArcade = lazy(() => import('./components/arcade/VistaAtletaArcade.jsx'))
 const RegistroPage = lazy(() => import('./pages/RegistroPage.jsx'))
+// Recuperación por correo (entrega 3). Pública y con dos caras: pedir el
+// enlace, y elegir contraseña al volver de él — Supabase redirige aquí.
+const RecuperarPasswordPage = lazy(() => import('./pages/RecuperarPasswordPage.jsx'))
 // Pantalla de cuenta pendiente/rechazada (v33): PrivateRoute la muestra en vez
 // de cualquier ruta privada hasta que el owner apruebe la solicitud.
 const CuentaEnRevision = lazy(() => import('./components/CuentaEnRevision.jsx'))
@@ -174,6 +177,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<RegistroPage />} />
+          <Route path="/recuperar" element={<RecuperarPasswordPage />} />
           <Route
             path="/dashboard"
             element={

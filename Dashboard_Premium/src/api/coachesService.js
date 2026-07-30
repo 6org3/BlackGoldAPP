@@ -8,6 +8,7 @@
 // Ver duenoMock.js (DUENO_MOCK.coaches) para la forma exacta.
 
 import { supabase } from './supabaseClient';
+import { actualizarCorreoDeUsuario } from './accesosService';
 
 // Paleta de acentos por posición (fn_coach_stats no devuelve color); se asigna
 // por índice del ranking, de forma estable dentro de una misma carga.
@@ -120,15 +121,26 @@ export async function crearCoach({ cedula, nombre, correo, telefono, categoria, 
 
 // Solo datos de perfil: rol/club/estado no se tocan por aquí (el trigger v34 y
 // cambiarEstadoCoach los gobiernan).
-export async function actualizarCoach(usuarioId, { nombre, correo, telefono, categoria }) {
+//
+// El CORREO va aparte, por Edge Function, y no en este UPDATE. El login
+// resuelve el correo desde `usuarios` (`resolver_email_login`) pero Auth guarda
+// el suyo: escribir solo la tabla dejaba al coach sin poder entrar, con su
+// contraseña correcta y sin ninguna pista de por qué. `correoActual` permite
+// no gastar la llamada cuando no cambió.
+export async function actualizarCoach(usuarioId, { nombre, correo, telefono, categoria, correoActual }) {
+  const correoNuevo = correo?.trim() || null;
+  const correoCambio = correoNuevo !== (correoActual?.trim() || null);
+  if (correoCambio) {
+    await actualizarCorreoDeUsuario(usuarioId, correoNuevo);
+  }
+  const campos = {
+    nombre: nombre?.trim(),
+    telefono: telefono?.trim() || null,
+    categoria: categoria || 'Todas',
+  };
   const { error } = await supabase
     .from('usuarios')
-    .update({
-      nombre: nombre?.trim(),
-      correo: correo?.trim() || null,
-      telefono: telefono?.trim() || null,
-      categoria: categoria || 'Todas',
-    })
+    .update(campos)
     .eq('id', usuarioId);
   if (error) throw new Error(error.message);
   return { success: true };

@@ -185,6 +185,23 @@ export default function Login() {
             </button>
           </form>
 
+          {/* Solo si el club ya puede enviar correos (VITE_RECUPERACION_POR_CORREO,
+              que se enciende cuando hay SMTP configurado). Sin ese envío, este
+              enlace prometería un correo que no llega y la familia esperaría en
+              vez de llamar al club, que es lo único que hoy la desbloquea. */}
+          {import.meta.env.VITE_RECUPERACION_POR_CORREO && (
+            <p className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => navigate('/recuperar')}
+                className="cut-focus inline-flex items-center min-h-11 px-2 text-sm font-bold"
+                style={{ color: C.text2 }}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </p>
+          )}
+
           <div className="mt-7 pt-6 text-center" style={{ borderTop: `1px solid ${BORDER.neutral}` }}>
             <MicroLabel style={{ marginBottom: 10 }}>Acceso solo para miembros</MicroLabel>
             <p className="text-sm" style={{ color: C.text2 }}>

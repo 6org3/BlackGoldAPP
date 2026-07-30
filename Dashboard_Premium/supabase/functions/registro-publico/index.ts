@@ -79,6 +79,64 @@ serve(async (req) => {
     return jsonResponse({ error: 'Cédula, nombre y fecha de nacimiento del atleta son obligatorios.' }, 400);
   }
 
+  // El correo del representante es OBLIGATORIO desde la entrega 3: es la única
+  // dirección real de la familia y, por tanto, lo único que hace posible
+  // recuperar la cuenta sin pasar por el club. El atleta menor casi nunca tiene
+  // correo propio y su cuenta de Auth nace con el sintético
+  // `<cédula>@sinacceso...`, al que no llega nada; si el representante tampoco
+  // lo tiene, perder la contraseña deja a la familia dependiendo de que el
+  // dueño se la regenere a mano.
+  //
+  // Se valida AQUÍ y no dentro de la RPC porque desde v55 la Edge Function es
+  // la única puerta: `anon` perdió el EXECUTE, así que esto no se puede saltar
+  // llamando a PostgREST.
+  // Sin representante (atleta mayor de edad) el titular es él mismo, así que el
+  // correo obligatorio es el SUYO. Sin esta mitad la regla se caía sola: bastaba
+  // registrarse como adulto para que la cuenta naciera sin ninguna dirección
+  // real —la de Auth sería el sintético `<cédula>@sinacceso…`, que no existe— y
+  // sin ninguna vía de recuperación.
+  if (!padre) {
+    const correoAtleta = (atleta.correo ?? '').trim();
+    if (!correoAtleta) {
+      return jsonResponse({ error: 'El correo es obligatorio: es la única forma de recuperar tu cuenta si pierdes la contraseña.' }, 400);
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoAtleta)) {
+      return jsonResponse({ error: 'Revisa tu correo: no parece una dirección válida.' }, 400);
+    }
+    atleta.correo = correoAtleta;
+  }
+
+  if (padre) {
+    const correoPadre = (padre.correo ?? '').trim();
+    if (!correoPadre) {
+      return jsonResponse({ error: 'El correo del representante es obligatorio: es la única forma de recuperar la cuenta si se pierde la contraseña.' }, 400);
+    }
+    // Comprobación deliberadamente laxa (hay un `type="email"` en el formulario
+    // y el servidor de correo es el juez final): solo descarta lo que
+    // seguro no es una dirección, para no rechazar dominios legítimos raros.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoPadre)) {
+      return jsonResponse({ error: 'Revisa el correo del representante: no parece una dirección válida.' }, 400);
+    }
+    padre.correo = correoPadre;
+
+    // `usuarios.correo` es UNIQUE. Si ese correo ya es de otra persona, la RPC
+    // revienta con un unique_violation que su manejador traduce SIEMPRE a "el
+    // teléfono del representante ya está registrado" (v33) — un mensaje que
+    // manda a la familia a revisar un teléfono que está perfecto. Se comprueba
+    // antes para poder decir lo que pasa de verdad. No aplica cuando el
+    // representante ya existe con ese mismo teléfono: ahí la RPC lo reutiliza y
+    // no inserta nada.
+    const cedulaPadre = `PADRE_${padre.telefono ?? ''}`;
+    const { data: duenoDelCorreo } = await supabase
+      .from('usuarios')
+      .select('cedula')
+      .eq('correo', correoPadre)
+      .maybeSingle();
+    if (duenoDelCorreo && duenoDelCorreo.cedula !== cedulaPadre) {
+      return jsonResponse({ error: 'Ese correo ya está registrado en el club con otra persona. Usa otro, o pide ayuda al club si crees que es un error.' }, 409);
+    }
+  }
+
   const ip = ipDeRequest(req.headers);
   // El club se NORMALIZA aquí con la misma regla que aplica registrar_publico()
   // (`NULLIF(btrim(...), '')`, v33) y se manda ya normalizado a la RPC. Si cada

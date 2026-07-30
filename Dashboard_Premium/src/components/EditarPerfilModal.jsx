@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Save, User, KeyRound } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
 import { useAuth } from '../AuthContext';
-import { cambiarPasswordPropia } from '../api/accesosService';
+import { cambiarPasswordPropia, actualizarCorreoPropio } from '../api/accesosService';
 import { validarPasswordNueva } from '../lib/passwordPolicy';
 import { C, BORDER, cut } from './arcade/arcadeTokens';
 
@@ -30,6 +30,9 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // Solo hace falta si se toca el correo: ver el porqué en handleSubmit.
+  const [passwordActual, setPasswordActual] = useState('');
+  const correoCambio = (form?.correo?.trim() || null) !== (user.correo || null);
 
   // v41: cambio de contraseña. Hasta ahora la app no tenía NINGUNA vía para
   // cambiarla, así que la inicial era para siempre. Con las temporales
@@ -91,6 +94,23 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
         throw new Error("El nombre y la cédula son obligatorios.");
       }
 
+      // El correo va aparte y PRIMERO, por una Edge Function: escribirlo aquí
+      // solo cambiaba la tabla, y el login resuelve el correo desde la tabla
+      // pero Auth guarda el suyo por su cuenta. Al separarse, la persona se
+      // quedaba fuera con su contraseña correcta, y la recuperación seguía
+      // yendo al correo viejo. Si esto falla, no se toca nada más.
+      const correoNuevo = form.correo?.trim() || null;
+      if (correoNuevo !== (user.correo || null)) {
+        // El servidor exige la contraseña actual para mover el correo: es el
+        // buzón que gobierna la recuperación, y sin esa prueba un minuto con la
+        // sesión abierta de otro bastaría para quedarse con su cuenta.
+        if (!passwordActual) {
+          throw new Error('Para cambiar tu correo, escribe tu contraseña actual abajo.');
+        }
+        await actualizarCorreoPropio(correoNuevo, passwordActual);
+        setPasswordActual('');
+      }
+
       // Actualizar usando la API de Supabase en la tabla usuarios.
       // Como el usuario está actualizando su propia fila, el RLS debe permitirlo.
       const { error: dbError } = await supabase
@@ -99,8 +119,7 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
           nombre: form.nombre,
           cedula: form.cedula,
           telefono: form.telefono,
-          fecha_nacimiento: form.fecha_nacimiento || null,
-          correo: form.correo
+          fecha_nacimiento: form.fecha_nacimiento || null
         })
         .eq('id', user.id);
 
@@ -176,6 +195,19 @@ export default function EditarPerfilModal({ onClose, onRefresh }) {
               <input id="perfil-correo" type="email" autoComplete="email" value={form.correo} onChange={e => handleChange('correo', e.target.value)}
                 className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" />
             </div>
+            {/* Aparece solo al tocar el correo. Sin esta prueba, un minuto con
+                la sesión de otro persona abierta bastaría para apuntar su
+                recuperación a otro buzón, en silencio y para siempre. */}
+            {correoCambio && (
+              <div>
+                <label htmlFor="perfil-pass-actual" className="block text-2xs text-fg-secondary font-bold uppercase tracking-widest mb-1">
+                  Tu contraseña actual (para cambiar el correo)
+                </label>
+                <input id="perfil-pass-actual" type="password" autoComplete="current-password" value={passwordActual}
+                  onChange={e => setPasswordActual(e.target.value)}
+                  className="w-full bg-surface-card/80 border border-white/10 rounded-control px-4 py-3 text-sm text-white focus:outline-none focus:border-brand/50" />
+              </div>
+            )}
             <div>
               <label htmlFor="perfil-fecha-nacimiento" className="block text-2xs text-fg-secondary font-bold uppercase tracking-widest mb-1">Fecha de Nacimiento</label>
               <input id="perfil-fecha-nacimiento" type="date" max={new Date().toISOString().split('T')[0]} value={form.fecha_nacimiento} onChange={e => handleChange('fecha_nacimiento', e.target.value)}
