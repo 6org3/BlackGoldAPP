@@ -204,6 +204,25 @@ export default function RegistroPage() {
                   </p>
                 )}
 
+                {/* El representante ya tenía cuenta (inscribió antes a un
+                    hermano), así que conserva su contraseña y no se le emite
+                    ninguna. Hay que avisarlo, porque desde v57 se le reconoce
+                    también por el correo: puede haber inscrito a este hijo desde
+                    otro número, y ese número no es su usuario — sin este aviso
+                    intentaría entrar con el que acaba de escribir y concluiría que
+                    la contraseña está mal.
+                    El número NO se nombra: la respuesta ya no lo trae, porque
+                    devolverlo permitía que cualquiera obtuviera el teléfono de una
+                    familia con solo saber su correo. La familia de verdad sabe
+                    cuál usó. */}
+                {credenciales.padre_estado === 'ya_existia' && (
+                  <p className="text-xs mt-3" style={{ color: C.text2 }}>
+                    Tu representante ya tenía cuenta, así que este deportista quedó vinculado a
+                    ella. Debe entrar con el teléfono que registró la primera vez y su misma
+                    contraseña de siempre.
+                  </p>
+                )}
+
                 <p className="text-xs mt-3" style={{ color: C.text2 }}>
                   Te pediremos cambiar la contraseña la primera vez que entres. Si la
                   pierdes antes, el club puede generarte una nueva.
@@ -320,21 +339,29 @@ export default function RegistroPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <LabelHUD htmlFor="reg-telefono">Teléfono (opcional)</LabelHUD>
-                  <input id="reg-telefono" type="tel" name="telefono" autoComplete="section-atleta tel" value={datosAtleta.telefono} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="0999999999" />
+              {/* El contacto del deportista se pide solo cuando él es el
+                  titular. Siendo menor, estos dos campos eran una trampa: el que
+                  cuenta es el del representante, así que el correo de la familia
+                  escrito aquí no servía para nada y encima ocupaba la fila del
+                  hijo — el segundo hermano ya no cabía (UNIQUE), y ni el propio
+                  representante podía quedarse con él. v57 los descarta
+                  server-side; aquí simplemente se deja de pedirlos. */}
+              {!esMenorEdad && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <LabelHUD htmlFor="reg-telefono">Teléfono (opcional)</LabelHUD>
+                    <input id="reg-telefono" type="tel" name="telefono" autoComplete="section-atleta tel" value={datosAtleta.telefono} onChange={handleAtletaChange} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="0999999999" />
+                  </div>
+                  <div>
+                    {/* Obligatorio para el atleta MAYOR de edad: ahí el titular
+                        es él y su correo es la única vía de recuperación. */}
+                    <LabelHUD htmlFor="reg-correo" required={esMayorEdad}>
+                      {esMayorEdad ? 'Correo electrónico' : 'Correo electrónico (opcional)'}
+                    </LabelHUD>
+                    <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} required={esMayorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="ejemplo@correo.com" />
+                  </div>
                 </div>
-                <div>
-                  {/* Obligatorio solo para el atleta MAYOR de edad: ahí el
-                      titular es él y su correo es la única vía de recuperación.
-                      Si es menor, el que cuenta es el del representante. */}
-                  <LabelHUD htmlFor="reg-correo" required={esMayorEdad}>
-                    {esMayorEdad ? 'Correo electrónico' : 'Correo electrónico (opcional)'}
-                  </LabelHUD>
-                  <input id="reg-correo" type="email" name="correo" autoComplete="section-atleta email" value={datosAtleta.correo} onChange={handleAtletaChange} required={esMayorEdad} className={FIELD_CLASS} style={FIELD_STYLE} placeholder="ejemplo@correo.com" />
-                </div>
-              </div>
+              )}
 
               <div>
                 <LabelHUD htmlFor="reg-fecha-nacimiento" required>Fecha de nacimiento</LabelHUD>
