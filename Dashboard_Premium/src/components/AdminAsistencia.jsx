@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, FileText, AlertTriangle, Search, Calendar, Users, Save, ClipboardList, ChevronDown } from 'lucide-react';
 import { fetchAsistenciaPorFecha, upsertAsistencia } from '../api/asistenciaService';
 import { fetchGrupos } from '../api/sesionesService';
+import { hoyLocal } from '../lib/fechasLocal';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
 import BotonVolver from './arcade/BotonVolver';
@@ -29,12 +30,8 @@ const ESTADO_META = {
 // Caja de control de la toolbar (fecha/categoría/buscador): superficie cut(7).
 const boxStyle = { clipPath: cut(7), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}` };
 
-function getTodayStr() {
-  return new Date().toISOString().split('T')[0];
-}
-
 export default function AdminAsistencia({ user, atletas = [] }) {
-  const [fecha, setFecha] = useState(getTodayStr());
+  const [fecha, setFecha] = useState(hoyLocal());
   const [filtroGrupo, setFiltroGrupo] = useState(TODOS); // TODOS | grupo.id
   const [grupos, setGrupos] = useState([]);
   const [busqueda, setBusqueda] = useState('');

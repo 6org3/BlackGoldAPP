@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient';
 import { xpBaseSesion } from '../../../packages/analytics-core/xp.js';
 import { otorgarXP } from './xpService';
 import { TABLA_EJERCICIOS_ENTRENAMIENTO, TABLA_PRUEBAS_EVALUACION } from './tablas';
+import { hoyLocal } from '../lib/fechasLocal';
 
 export async function fetchEjercicios(tipo = null) {
   let q = supabase.from(TABLA_EJERCICIOS_ENTRENAMIENTO).select('*').order('tipo').order('nombre');
@@ -103,7 +104,12 @@ export async function programarEvaluacionGrupal({ coach_id, fecha, grupo_id = nu
 /** Evaluaciones programadas de HOY del coach que aún no se iniciaron
  *  (sin marker [EN_CURSO] — ese se estampa al iniciarlas en cancha). */
 export async function fetchEvaluacionesProgramadasHoy(coachId) {
-  const hoy = new Date().toISOString().split('T')[0];
+  // hoyLocal(), no el día UTC de toISOString(): sesiones_programadas.fecha se
+  // escribe en día LOCAL (programarEvaluacionGrupal recibe `fecha` explícito
+  // del caller — AdminSesiones.jsx usa hoyLocal(); canchaData.js#startSession
+  // también fija fechaStr en LOCAL) — comparar aquí en UTC dejaba de encontrar
+  // la evaluación de hoy entre las 19:00 y medianoche hora Ecuador.
+  const hoy = hoyLocal();
   const { data, error } = await supabase
     .from('sesiones_programadas')
     .select('*, grupos_entrenamiento (nombre)')
@@ -121,7 +127,9 @@ export async function fetchEvaluacionesProgramadasHoy(coachId) {
  *  sesiones_programadas, que solo recibe filas al iniciar Modo Cancha o
  *  programar evaluaciones. */
 export async function fetchSesionesPlanificadasHoy(coachId) {
-  const hoy = new Date().toISOString().split('T')[0];
+  // hoyLocal(): sesiones_control.fecha se escribe en día LOCAL (AdminSesiones.jsx
+  // inicializa el form con hoyLocal()) — mismo motivo que fetchEvaluacionesProgramadasHoy.
+  const hoy = hoyLocal();
   const { data, error } = await supabase
     .from('sesiones_control')
     .select('*, grupos_entrenamiento (nombre, horario)')

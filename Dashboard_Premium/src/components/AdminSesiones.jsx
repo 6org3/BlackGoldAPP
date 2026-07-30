@@ -14,6 +14,7 @@ import {
 import { labelSubPilar } from '../../../packages/analytics-core/taxonomia.js';
 import { generarMensajeSesion, generarLinkWhatsApp } from '../api/comunicacionesService';
 import { filtrarEjerciciosPorTipoYNivel, resolverNombresEjercicios } from '../lib/ejerciciosCatalogo';
+import { hoyLocal } from '../lib/fechasLocal';
 import { NIVEL_BADGE } from './AdminAtletasConstants';
 import { NIVELES_GRUPO } from '../api/gruposService';
 import CutCard from './arcade/CutCard';
@@ -58,8 +59,6 @@ const boxStyle = { clipPath: cut(7), background: C.cardAlt1, border: `1px solid 
 // Input arcade sobre superficie cortada (select/number/textarea del formulario).
 const fieldStyle = { clipPath: cut(6), background: C.cardAlt1, border: `1px solid ${BORDER.neutralSoft}`, color: C.text };
 
-function getTodayStr() { return new Date().toISOString().split('T')[0]; }
-
 export default function AdminSesiones({ user, atletas = [] }) {
   const club = user?.club;
   const [modo, setModo] = useState('Grupal'); // 'Grupal' | 'Individual'
@@ -82,7 +81,7 @@ export default function AdminSesiones({ user, atletas = [] }) {
   // Form state
   const [form, setForm] = useState({
     grupoId: '',
-    fecha: getTodayStr(),
+    fecha: hoyLocal(),
     objetivoTipo: 'Técnico',
     objetivoDesc: '',
     ejerciciosIds: [],

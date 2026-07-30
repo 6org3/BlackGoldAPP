@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Save, Ruler, Scale } from 'lucide-react';
 import { supabase } from '../api/supabaseClient';
+import { hoyLocal } from '../lib/fechasLocal';
 import ModalShell from './arcade/ModalShell';
 import MicroLabel from './arcade/MicroLabel';
 import { C, BORDER, GRAD, TINT, cut } from './arcade/arcadeTokens';
@@ -45,7 +46,9 @@ export default function AntropometriaModal({ atleta, onClose, onRefresh }) {
 
       // Guardar registro histórico en evaluaciones_pruebas
       const pruebas = [];
-      const fechaHoy = new Date().toISOString().split('T')[0];
+      // Día calendario LOCAL (no UTC): de noche en Ecuador (UTC-5) el día UTC ya
+      // cruzó medianoche y esta nota quedaría fechada mañana.
+      const fechaHoy = hoyLocal();
 
       if (pesoKg) {
         pruebas.push({
