@@ -14,6 +14,8 @@ Este documento **no** ratifica las features F1/F2/F3, que siguen pendientes de d
 
 La pierna declarativa vale **solo porque su premisa está verificada**: `npx supabase migration list` da **59/59 en paridad exacta** (ninguna migración aplicada sin archivo local, ninguna local sin aplicar). Es decir, producción es exactamente la suma de las migraciones del repo, y los `.sql` son fuente válida. La pierna conductual cubre el hueco restante (cambios a mano vía el editor SQL del dashboard, que ninguna paridad de migraciones detecta).
 
+> **Trampa al interpretar `migration list`:** compara el remoto contra el directorio de migraciones **de la rama en la que estás parado**, no contra `main`. Corriéndolo desde una rama anterior a v52/v53/v54, esas tres salen como "solo remotas" y parece que producción se adelantó al código — falso positivo que costó un rato en esta misma verificación. Comprobar siempre desde `main` actualizado antes de concluir drift.
+
 **Lo que no se pudo hacer y por qué:** leer el catálogo vivo (`pg_policies`) habría sido la evidencia más directa. No fue posible — `supabase db dump` exige Docker (no disponible), la URL del pooler no trae contraseña, y no hay `psql` ni RPC de introspección en el proyecto. PostgREST no expone `pg_catalog`. Se descartó pedir la contraseña de la base. La combinación paridad-59/59 + verificación conductual cubre el mismo terreno con evidencia distinta.
 
 ## Veredicto por tabla
@@ -85,7 +87,7 @@ Se añadió la suite `suiteTablasEscrituraH1` con **12 asserts**, todos en verde
 - atleta **no** redacta comunicaciones; coach sí en su club, y **no** firmando como usuario de otro club;
 - atleta **no** agrega ni borra misiones del catálogo (ni con XP inflado); sí lo lee (global a propósito).
 
-**Resultado de la corrida completa contra producción: 124/124 asserts en verde.**
+**Resultado de la corrida completa contra producción: 139/139 asserts en verde**, con todas las suites ejecutadas (incluidas registro público y solicitudes, que requieren la ventana del limitador de v54 vencida). Una corrida intermedia dio 124/124 con esas dos suites omitidas por el 429 — el número menor no era un fallo, era menos superficie evaluada.
 
 Se corrigieron además dos defectos de la propia suite, descubiertos al ampliarla:
 
