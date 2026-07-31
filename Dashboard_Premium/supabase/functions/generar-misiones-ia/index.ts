@@ -7,9 +7,9 @@
 //
 // La detección de debilidades y la selección de misiones son DETERMINISTAS y
 // viven en analytics-core (copiado a ../_shared por `npm run functions:sync` —
-// no editar la copia). La IA (Gemini) solo entra como último recurso cuando una
-// debilidad no tiene cobertura en el catálogo, y lo que genera nace inactivo y
-// pasa por aprobación del coach (D3/D4).
+// no editar la copia). La IA (DeepSeek) solo entra como último recurso cuando
+// una debilidad no tiene cobertura en el catálogo, y lo que genera nace
+// inactivo y pasa por aprobación del coach (D3/D4).
 //
 // Idempotencia (una sesión de evaluación = N submits = N invocaciones):
 // 1ª línea: seleccionarMisiones deduplica contra TODAS las asignaciones
@@ -26,14 +26,14 @@ import {
 import { analizarReadiness } from "../_shared/brain-core/readiness.js";
 import { autenticar, fueraDeAlcance, jsonResponse, obtenerAtleta } from "../_shared/brainAuth.ts";
 
-// Genera una misión con Gemini para una debilidad sin cobertura de catálogo.
+// Genera una misión con DeepSeek para una debilidad sin cobertura de catálogo.
 // Best-effort: cualquier fallo devuelve null (la debilidad se reporta sin misión).
 async function generarMisionConIA(
   sinCobertura: { sub_pilar: string; nivel: string; categoriaBucket: string | null },
 ): Promise<{ titulo: string; descripcion: string; justificacion: string; xp_recompensa: number; video_url?: string } | null> {
-  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-  if (!geminiApiKey) {
-    console.error('GEMINI_API_KEY no configurada; se omite la generación IA.');
+  const deepseekApiKey = Deno.env.get('DEEPSEEK_API_KEY');
+  if (!deepseekApiKey) {
+    console.error('DEEPSEEK_API_KEY no configurada; se omite la generación IA.');
     return null;
   }
 
@@ -61,25 +61,34 @@ async function generarMisionConIA(
   `;
 
   try {
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { response_mime_type: 'application/json' },
-        }),
+    // DeepSeek habla el dialecto OpenAI-compatible (mismo formato que usa
+    // copiloto/index.ts para este mismo proveedor): un solo mensaje user con
+    // el prompt, y response_format json_object en vez del generationConfig de
+    // Gemini. El modo JSON de DeepSeek exige que la palabra "json" aparezca en
+    // el mensaje — el prompt ya la incluye ("objeto JSON válido").
+    const respuesta = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${deepseekApiKey}`,
+        'Content-Type': 'application/json',
       },
-    );
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        max_tokens: 1024,
+      }),
+    });
 
-    const geminiData = await geminiResponse.json();
-    if (geminiData.error) {
-      console.error('Gemini Error:', geminiData.error);
+    const datos = await respuesta.json();
+    // DeepSeek puede reportar el error en el cuerpo aun con status no-2xx:
+    // se comprueba antes de asumir que hay choices que leer.
+    if (!respuesta.ok || datos.error) {
+      console.error('DeepSeek Error:', datos.error ?? respuesta.status);
       return null;
     }
 
-    const aiText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    const aiText = datos.choices?.[0]?.message?.content;
     if (!aiText) return null;
 
     const mision = JSON.parse(aiText);

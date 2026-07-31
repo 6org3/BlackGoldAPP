@@ -12,7 +12,7 @@ opcional (ver abajo).
 | `cambiar-password` | `autenticar()`, sujeto del JWT | Cambia la contraseña propia y apaga `debe_cambiar_password` |
 | `copiloto` | `autenticar()` + alcance por tool | Asistente conversacional; cuota diaria por usuario (`consumir_cuota_copiloto`, 30/día, ajustable con `COPILOTO_LIMITE_DIA` sin redesplegar) |
 | `crear-acceso-usuario` | `autenticar()` + staff | Emite o rota credenciales de un usuario |
-| `generar-misiones-ia` | `autenticar()` + alcance | Genera y asigna misiones según debilidades |
+| `generar-misiones-ia` | `autenticar()` + alcance | Genera y asigna misiones según debilidades; la IA de último recurso para debilidades sin cobertura usa DeepSeek (`DEEPSEEK_API_KEY`; antes Gemini) |
 | `purgar-usuario-rechazado` | `autenticar()` + superadmin | Libera la cédula de un registro rechazado |
 | `registro-publico` | **ninguna, a propósito** | Alta pública desde `/registro` |
 
