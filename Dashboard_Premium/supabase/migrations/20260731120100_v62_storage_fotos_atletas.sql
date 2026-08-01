@@ -1,7 +1,7 @@
 -- ============================================================================
--- v53b — Storage para las fotos de identificación (bucket privado + políticas).
+-- v62 — Storage para las fotos de identificación (bucket privado + políticas).
 --
--- SEPARADO de v53 por el mismo motivo que v27b lo estuvo de v27 y v40b de v40:
+-- SEPARADO de v61 por el mismo motivo que v27b lo estuvo de v27 y v40b de v40:
 -- el rol postgres (con el que corre `npx supabase db push`) puede NO ser owner
 -- de storage.objects (lo es supabase_storage_admin) y CREATE POLICY fallaría
 -- con "must be owner of table objects". Si este archivo falla en el push:
@@ -9,7 +9,7 @@
 --      Policies) copiando las expresiones de abajo, y
 --   2. Marcar esta migración como aplicada:
 --      npx supabase migration repair --status applied 20260729140100
--- Así el modelo de datos (v53) no queda rehén de Storage.
+-- Así el modelo de datos (v61) no queda rehén de Storage.
 --
 -- Convención de path: '<atleta_id>/<timestamp>-<rand8>.<ext>' — el primer
 -- segmento habilita a la vez la política de familia (mis_atletas()) y la de

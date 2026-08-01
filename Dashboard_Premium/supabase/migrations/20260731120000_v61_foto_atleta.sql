@@ -1,12 +1,12 @@
 -- ============================================================================
--- v53 — Foto de identificación del atleta (retrato tipo carnet).
+-- v61 — Foto de identificación del atleta (retrato tipo carnet).
 --
 -- Qué habilita: cada atleta puede tener un retrato que reemplaza la inicial
 -- del HexAvatar en toda la app. Lo suben superadmin, el staff de su club, el
 -- propio atleta y el padre vinculado. Decisión del dueño (2026-07-29): sin
 -- moderación previa —se publica directo y queda auditado quién lo subió.
 --
--- El bucket y sus políticas van en v53b, SEPARADO por el riesgo de ownership
+-- El bucket y sus políticas van en v62, SEPARADO por el riesgo de ownership
 -- de storage.objects (ver la cabecera de ese archivo).
 --
 -- ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@
 -- de escritura queda congelada en las tres columnas de foto, para siempre.
 --
 -- Nota de numeración: v52 (endurecimiento pre-producción) vive en una rama
--- paralela sin mergear. v53 es aditiva y no depende de ella.
+-- paralela sin mergear. v61 es aditiva y no depende de ella.
 -- ============================================================================
 
 
@@ -156,7 +156,7 @@ BEGIN
   END IF;
 
   -- El path debe vivir en la carpeta del propio atleta y tener la forma exacta
-  -- que aceptan las políticas de v53b. Sin esto se podrían guardar filas que
+  -- que aceptan las políticas de v62. Sin esto se podrían guardar filas que
   -- apunten a objetos que ni el propio usuario puede leer.
   IF p_path IS NOT NULL
      AND (split_part(p_path, '/', 1) <> p_atleta_id::text
