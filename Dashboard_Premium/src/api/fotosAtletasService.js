@@ -12,8 +12,20 @@ import { prepararImagen } from '../lib/imagenPerfil';
 
 export const BUCKET_FOTOS = 'fotos-atletas';
 
-const TTL_FIRMA_S = 3600;            // vida de la firma en el servidor
-const MARGEN_MS = 5 * 60 * 1000;     // se da por muerta 5 min antes de que caduque
+// TTL bajado de 3600 a 600 en la revisión de seguridad (retratos de menores en
+// un bucket privado): una URL firmada es un bearer token — cualquiera que la
+// tenga ve la foto sin volver a autenticarse — y una hora entera de vigencia
+// es una hora entera de exposición si el link se filtra (un historial de
+// navegador compartido, un log de proxy, un reenvío accidental). 10 minutos
+// sigue sobrando para que el navegador la descargue y la pinte.
+const TTL_FIRMA_S = 600;             // vida de la firma en el servidor
+// Con el TTL en 1 hora, 5 min de margen eran ~8% de la vida útil. Con el TTL ya
+// en 600 s, ese mismo margen se habría comido la MITAD del caché (300 s de
+// vigencia real de 600 s), disparando el doble de refirmas sin necesidad.
+// Se ajusta a 1 min: sigue siendo margen de sobra frente a la deriva de reloj
+// y la latencia de red que este colchón existe para absorber, sin sacrificar
+// la mayor parte del TTL.
+const MARGEN_MS = 60 * 1000;         // se da por muerta 1 min antes de que caduque
 const TTL_FALLO_MS = 60 * 1000;      // negative caching corto
 const LOTE_MAX = 100;                // tope por petición de firma
 
@@ -209,16 +221,40 @@ export async function eliminarFotoAtleta(atletaId) {
  * Borra TODA la carpeta del atleta, incluidos huérfanos de subidas fallidas.
  * Llamar ANTES de eliminar la fila: al perderse foto_path el objeto quedaría
  * inalcanzable para siempre, con la cara de un menor dentro.
+ *
+ * Pagina el listado en vez de traer una sola página de 100: un atleta con más
+ * fotos que eso (histórico migrado, o simplemente muchos reemplazos a lo largo
+ * de los años — cada subida deja la anterior pendiente de este borrado si
+ * `borrarObjeto` llegó a fallar alguna vez) dejaba huérfanas, para siempre,
+ * exactamente las fotos que no cupieran en la primera página — justo lo que
+ * esta función existe para evitar.
  */
 export async function purgarFotosDeAtleta(atletaId) {
   if (!atletaId) return;
-  const { data, error } = await supabase.storage
-    .from(BUCKET_FOTOS)
-    .list(String(atletaId), { limit: 100 });
-  if (error || !data?.length) return;
 
-  const paths = data.map((o) => `${atletaId}/${o.name}`);
-  try { await supabase.storage.from(BUCKET_FOTOS).remove(paths); } catch { /* best-effort */ }
+  const limite = LOTE_MAX;
+  let offset = 0;
+  const objetos = [];
+  for (;;) {
+    const { data, error } = await supabase.storage
+      .from(BUCKET_FOTOS)
+      .list(String(atletaId), { limit: limite, offset });
+    if (error) return; // mismo comportamiento que antes: nada más que hacer
+    if (!data?.length) break;
+    objetos.push(...data);
+    if (data.length < limite) break; // última página
+    offset += limite;
+  }
+  if (!objetos.length) return;
+
+  const paths = objetos.map((o) => `${atletaId}/${o.name}`);
+  // Se borra en los mismos lotes de 100 con los que se listó: remove() no
+  // documenta un tope, pero no hay motivo para mandarle de una vez más de lo
+  // que esta misma función jamás pidió de una vez.
+  for (let i = 0; i < paths.length; i += limite) {
+    const lote = paths.slice(i, i + limite);
+    try { await supabase.storage.from(BUCKET_FOTOS).remove(lote); } catch { /* best-effort */ }
+  }
   paths.forEach(invalidarFotoUrl);
 }
 

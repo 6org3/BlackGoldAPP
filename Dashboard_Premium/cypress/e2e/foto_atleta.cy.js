@@ -1,12 +1,14 @@
 /**
- * Foto de identificación del atleta (v53).
+ * Foto de identificación del atleta (v61/v62).
  *
- * Requiere la migración v53 + v53b aplicadas: sin la RPC establecer_foto_atleta
- * y el bucket fotos-atletas, la subida falla con un error de PostgREST.
+ * Requiere las migraciones v61 (columna `foto_path` + RPC
+ * establecer_foto_atleta) y v62 (bucket fotos-atletas + políticas) aplicadas:
+ * sin ellas, la subida falla con un error de PostgREST.
  *
  * El caso negativo importante — un padre cambiando la foto de un atleta que no
- * es su hijo — NO se prueba aquí: es una regla de servidor y vive en
- * scripts/validar_rls_por_rol.js, que la ataca sin pasar por la UI.
+ * es su hijo, un coach sobre uno de otro club, o el acceso directo a Storage —
+ * NO se prueba aquí: es una regla de servidor y vive en suiteFotos(), dentro
+ * de scripts/validar_rls_por_rol.js, que la ataca sin pasar por la UI.
  */
 describe('Foto de identificación', () => {
   const ROLES_CONFIG = Cypress.env('QA_ROLES');

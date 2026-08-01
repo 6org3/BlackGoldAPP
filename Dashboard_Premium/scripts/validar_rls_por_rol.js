@@ -163,6 +163,21 @@ async function limpiarQA() {
   if (QA.comprobanteAjenoPath) {
     await svc.storage.from('comprobantes-pagos').remove([QA.comprobanteAjenoPath]);
   }
+  // v63: fotos QA en el bucket privado fotos-atletas. Igual que el
+  // comprobanteAjenoPath de arriba, borrar la fila de usuarios/atletas NO
+  // borra el blob en Storage. Se purga por CARPETA (atletaId) y no por un path
+  // exacto guardado en una variable: si suiteFotos murió a mitad de una
+  // subida no se sabe qué nombre alcanzó a tomar el objeto, y listar la
+  // carpeta entera cubre ese caso igual. Los ids son fijos desde el setup()
+  // de esta misma corrida, así que esto es seguro también en el arranque
+  // (antes de que setup() corra, listar una carpeta que aún no existe
+  // simplemente no devuelve nada).
+  for (const atletaId of [QA.atleta1?.atletaId, QA.atletaAjeno?.atletaId].filter(Boolean)) {
+    const { data: fotosQA } = await svc.storage.from('fotos-atletas').list(String(atletaId), { limit: 100 });
+    if (fotosQA?.length) {
+      await svc.storage.from('fotos-atletas').remove(fotosQA.map((o) => `${atletaId}/${o.name}`));
+    }
+  }
   // Datos REALES tocados por los asserts de aislamiento cross-club (v40): se
   // restauran aquí (finally + arranque) y no inline, para que sobrevivan a un
   // fallo a mitad de la suite.
@@ -1536,6 +1551,163 @@ async function suiteGastos() {
 }
 
 (async () => {
+// Guardarraíl: si el bucket fotos-atletas o la RPC establecer_foto_atleta no
+// existen (v61/v62 sin aplicar), un solo rojo explicativo y se sale — mismo
+// patrón que suiteGastos con la tabla `gastos`.
+//
+// Cubre las cuatro vías de escritura de v61 (RPC establecer_foto_atleta) y las
+// políticas de Storage de v62 + el helper de familia de v63: quién puede
+// cambiar la foto de QUIÉN, y quién puede leer/subir/listar en Storage.
+//
+// Semilla: dos fotos reales (PNG 1x1 válido, mismo byte a byte que usa
+// cypress/e2e/foto_atleta.cy.js) subidas directo con service_role — una en la
+// carpeta de QA.atleta1 (club CLUB) y otra en la de QA.atletaAjeno (club
+// CLUB_AJENO) — y la fila de `atletas` apuntada a mano con service_role. No se
+// usa la RPC para sembrar: sus checks de autorización miran auth.uid(), que
+// con la service_role key es NULL, así que la propia RPC rechazaría la
+// siembra igual que a un impostor.
+async function suiteFotos() {
+  console.log('\n— FOTO DE IDENTIFICACIÓN DEL ATLETA (v61/v62/v63) —');
+
+  const { error: eBucket } = await svc.storage.from('fotos-atletas').list('', { limit: 1 });
+  if (eBucket) {
+    check('el bucket fotos-atletas existe (v62 aplicada)', false,
+      `${eBucket.message} — falta aplicar 20260731120100_v62_storage_fotos_atletas.sql`);
+    return;
+  }
+  const { error: eRpcExiste } = await svc.rpc('establecer_foto_atleta', { p_atleta_id: null, p_path: null });
+  if (eRpcExiste?.code === 'PGRST202' || /does not exist|schema cache/i.test(eRpcExiste?.message || '')) {
+    check('la RPC establecer_foto_atleta existe (v61 aplicada)', false,
+      `${eRpcExiste.message} — falta aplicar 20260731120000_v61_foto_atleta.sql`);
+    return;
+  }
+
+  // PNG 1x1 válido (idéntico al de cypress/e2e/foto_atleta.cy.js): "bytes
+  // reales" y no un Buffer de texto con content-type falseado, porque el
+  // pipeline de subida real reencoda y el bucket declara allowed_mime_types.
+  const PNG_1PX = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  );
+
+  const pathPropio = `${QA.atleta1.atletaId}/QA_RLS-foto.png`;
+  const pathAjeno = `${QA.atletaAjeno.atletaId}/QA_RLS-foto.png`;
+
+  const { error: eSubePropio } = await svc.storage.from('fotos-atletas')
+    .upload(pathPropio, PNG_1PX, { contentType: 'image/png', upsert: true });
+  const { error: eSubeAjeno } = await svc.storage.from('fotos-atletas')
+    .upload(pathAjeno, PNG_1PX, { contentType: 'image/png', upsert: true });
+  if (eSubePropio || eSubeAjeno) {
+    check('se pueden sembrar las fotos QA en Storage', false, eSubePropio?.message || eSubeAjeno?.message);
+    return;
+  }
+  await svc.from('atletas').update({
+    foto_path: pathPropio, foto_actualizada_at: new Date().toISOString(),
+    foto_actualizada_por: QA.atleta1.usuarioId,
+  }).eq('id', QA.atleta1.atletaId);
+  await svc.from('atletas').update({
+    foto_path: pathAjeno, foto_actualizada_at: new Date().toISOString(),
+    foto_actualizada_por: QA.ownerAjeno.usuarioId,
+  }).eq('id', QA.atletaAjeno.atletaId);
+
+  // ── 1. ATLETA: la RPC sobre sí mismo sí, sobre otro atleta del mismo club no,
+  // y en Storage no puede subir a la carpeta de otro. ──
+  const cliAtleta = await loginComo(QA.atleta1.cedula, QA.atleta1.cedula);
+
+  const { error: eAtletaOtro } = await cliAtleta.rpc('establecer_foto_atleta', {
+    p_atleta_id: QA.atleta2.atletaId, p_path: `${QA.atleta2.atletaId}/QA_RLS-hack.png`,
+  });
+  check('atleta NO cambia la foto de OTRO atleta del mismo club (RPC v61)',
+    !!eAtletaOtro, eAtletaOtro?.message || 'sin error');
+
+  const { error: eAtletaPropio } = await cliAtleta.rpc('establecer_foto_atleta', {
+    p_atleta_id: QA.atleta1.atletaId, p_path: pathPropio,
+  });
+  check('atleta SÍ cambia SU PROPIA foto (RPC v61)', !eAtletaPropio, eAtletaPropio?.message);
+
+  const { error: eAtletaSubeOtro } = await cliAtleta.storage.from('fotos-atletas')
+    .upload(`${QA.atleta2.atletaId}/QA_RLS-hack.png`, PNG_1PX, { contentType: 'image/png' });
+  check('atleta NO sube una foto a la carpeta de OTRO atleta (Storage v62/v63)',
+    !!eAtletaSubeOtro, eAtletaSubeOtro?.message || 'sin error');
+  await cliAtleta.auth.signOut();
+
+  // ── 2. PADRE: la RPC solo sobre su hijo (ni para poner foto ni para
+  // anularla con NULL), y en Storage solo descarga la de su hijo. ──
+  const cliPadre = await loginComo(QA.padre1.cedula, QA.padre1.cedula);
+
+  const { error: ePadreOtro } = await cliPadre.rpc('establecer_foto_atleta', {
+    p_atleta_id: QA.atleta2.atletaId, p_path: `${QA.atleta2.atletaId}/QA_RLS-hack.png`,
+  });
+  check('padre NO cambia la foto de un atleta que no es su hijo (RPC v61)',
+    !!ePadreOtro, ePadreOtro?.message || 'sin error');
+
+  // Caso NULL: si v61 permite establecer_foto_atleta(id, NULL) para borrar, el
+  // mismo chequeo de autorización tiene que aplicar también cuando lo que se
+  // pide es anular en vez de reemplazar.
+  const { error: ePadreAnulaAjena } = await cliPadre.rpc('establecer_foto_atleta', {
+    p_atleta_id: QA.atletaAjeno.atletaId, p_path: null,
+  });
+  check('padre NO anula (NULL) la foto de un atleta ajeno (RPC v61)',
+    !!ePadreAnulaAjena, ePadreAnulaAjena?.message || 'sin error');
+
+  const { error: ePadrePropio } = await cliPadre.rpc('establecer_foto_atleta', {
+    p_atleta_id: QA.atleta1.atletaId, p_path: pathPropio,
+  });
+  check('padre SÍ cambia la foto de SU HIJO (RPC v61)', !ePadrePropio, ePadrePropio?.message);
+
+  const { error: ePadreDescargaAjena } = await cliPadre.storage.from('fotos-atletas').download(pathAjeno);
+  check('padre NO descarga la foto de un atleta ajeno (Storage v62/v63)',
+    !!ePadreDescargaAjena, ePadreDescargaAjena?.message || 'sin error');
+
+  const { error: ePadreDescargaPropia } = await cliPadre.storage.from('fotos-atletas').download(pathPropio);
+  check('padre SÍ descarga la foto de SU HIJO (Storage v62)', !ePadreDescargaPropia, ePadreDescargaPropia?.message);
+  await cliPadre.auth.signOut();
+
+  // ── 3. COACH: la RPC solo dentro de su club, y en Storage no descarga ni
+  // lista la carpeta de un atleta de otro club (mismo vector que v40b, ahora
+  // sobre fotos-atletas). ──
+  const cliCoach = await loginComo(QA.coach1.cedula, QA.coach1.cedula);
+
+  const { error: eCoachAjeno } = await cliCoach.rpc('establecer_foto_atleta', {
+    p_atleta_id: QA.atletaAjeno.atletaId, p_path: `${QA.atletaAjeno.atletaId}/QA_RLS-hack.png`,
+  });
+  check('coach NO cambia la foto de un atleta de OTRO club (RPC v61)',
+    !!eCoachAjeno, eCoachAjeno?.message || 'sin error');
+
+  const { error: eCoachPropio } = await cliCoach.rpc('establecer_foto_atleta', {
+    p_atleta_id: QA.atleta1.atletaId, p_path: pathPropio,
+  });
+  check('coach SÍ cambia la foto de un atleta de SU club (RPC v61)', !eCoachPropio, eCoachPropio?.message);
+
+  const { error: eCoachDescargaAjena } = await cliCoach.storage.from('fotos-atletas').download(pathAjeno);
+  check('coach NO descarga la foto de un atleta de OTRO club (Storage v62)',
+    !!eCoachDescargaAjena, eCoachDescargaAjena?.message || 'sin error');
+
+  const { error: eCoachDescargaPropia } = await cliCoach.storage.from('fotos-atletas').download(pathPropio);
+  check('coach SÍ descarga la foto de un atleta de SU club (Storage v62)',
+    !eCoachDescargaPropia, eCoachDescargaPropia?.message);
+
+  const { data: listadoAjeno } = await cliCoach.storage.from('fotos-atletas').list(String(QA.atletaAjeno.atletaId));
+  check('coach NO lista el directorio de un atleta de otro club (Storage v62)',
+    (listadoAjeno || []).length === 0, `ve ${(listadoAjeno || []).length} objetos`);
+  await cliCoach.auth.signOut();
+
+  // ── 4. ANON: el bucket es privado y las políticas son TO authenticated. ──
+  const { error: eAnonDescarga } = await anon().storage.from('fotos-atletas').download(pathPropio);
+  check('anon NO descarga ninguna foto de atletas (Storage v62)', !!eAnonDescarga, eAnonDescarga?.message || 'sin error');
+
+  // ── Limpieza propia de la suite (además del respaldo en limpiarQA): objetos
+  // y foto_path a NULL, para no dejarle una foto QA colgando a un atleta que
+  // otra suite de esta misma corrida pueda tocar. ──
+  await svc.storage.from('fotos-atletas').remove([pathPropio, pathAjeno]);
+  await svc.from('atletas')
+    .update({ foto_path: null, foto_actualizada_at: null, foto_actualizada_por: null })
+    .eq('id', QA.atleta1.atletaId);
+  await svc.from('atletas')
+    .update({ foto_path: null, foto_actualizada_at: null, foto_actualizada_por: null })
+    .eq('id', QA.atletaAjeno.atletaId);
+}
+
   console.log(`Validación RLS v24 por rol — ${URL_}\n`);
   const previos = await limpiarQA();
   if (previos) console.log(`(limpiados ${previos} usuarios QA de una corrida anterior)\n`);
@@ -1555,6 +1727,7 @@ async function suiteGastos() {
     await suiteAislamientoClubPagos();
     await suiteCorreoStaffSinAcceso();
     await suiteGastos();
+    await suiteFotos();
     await suiteTablasEscrituraH1();
   } catch (err) {
     fallo = err;
