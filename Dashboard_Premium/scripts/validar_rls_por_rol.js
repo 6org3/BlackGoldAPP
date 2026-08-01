@@ -505,16 +505,25 @@ async function suiteCoach() {
   check('coach NO puede cambiar la cédula de otra cuenta (identidad, v36b)',
     !!eCedula && cedulaOwner?.cedula === QA.owner1.cedula, eCedula?.message || 'sin error');
 
-  // Lo que el staff SÍ debe poder: corregir la ficha de un atleta suyo.
-  const { error: eFicha } = await cli.from('usuarios')
-    .update({ correo: 'qa-corregido@sinacceso.blackgoldapp.internal', fecha_nacimiento: '2012-05-11' })
+  // v56: el correo es identidad — ni el staff lo toca editando la ficha. La
+  // única vía es la Edge Function `actualizar-correo`, que mueve la tabla y
+  // Auth juntas; cambiarlo aquí a secas dejaría al atleta sin poder entrar.
+  const { error: eCorreoFicha } = await cli.from('usuarios')
+    .update({ correo: 'qa-corregido@sinacceso.blackgoldapp.internal' })
     .eq('id', QA.atleta1.usuarioId).select();
-  check('coach SÍ puede corregir correo y fecha de nacimiento de su atleta', !eFicha, eFicha?.message);
-  // Devolver la ficha a su estado: `resolver_email_login` (v19) resuelve por
-  // COALESCE(correo, cedula||@sinacceso...), así que un correo dejado a medias
-  // manda los logins posteriores de este atleta a un email que Auth no tiene.
+  check('coach NO cambia un correo editando la ficha (v56: solo la Edge Function)',
+    !!eCorreoFicha && /se cambia desde tu perfil/i.test(eCorreoFicha?.message || ''),
+    eCorreoFicha?.message || 'sin error');
+
+  // Lo que el staff SÍ conserva de la ficha: la fecha de nacimiento (mueve la
+  // categoría FEB del atleta). Se restaura para no ensuciar suites posteriores.
+  const { error: eFicha } = await cli.from('usuarios')
+    .update({ fecha_nacimiento: '2012-05-11' })
+    .eq('id', QA.atleta1.usuarioId).select();
+  check('coach SÍ corrige la fecha de nacimiento de su atleta (la ficha sigue siendo suya)',
+    !eFicha, eFicha?.message);
   await svc.from('usuarios')
-    .update({ correo: null, fecha_nacimiento: QA.atleta1.nac })
+    .update({ fecha_nacimiento: QA.atleta1.nac })
     .eq('id', QA.atleta1.usuarioId);
 
   const { data: clubesCoach } = await cli.rpc('listar_clubes_todos');
@@ -995,7 +1004,7 @@ async function suiteSolicitudes() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
     body: JSON.stringify({
-      atleta: { cedula: 'QA_RLS_FALSO1', nombre: 'QA Club Falso', fecha_nacimiento: '2012-01-01', club: 'CLUB_FALSO_QA' },
+      atleta: { cedula: 'QA_RLS_FALSO1', nombre: 'QA Club Falso', fecha_nacimiento: '2012-01-01', club: 'CLUB_FALSO_QA', correo: 'qa_rls_falso1@ejemplo.com' },
     }),
   });
   const cuerpoFalso = await resFalso.json().catch(() => ({}));
@@ -1237,15 +1246,20 @@ async function suiteCorreoStaffSinAcceso() {
     !!eCorreo && correoReal?.correo === 'qa_rls_pendiente@ejemplo.com',
     eCorreo?.message || `el correo quedó en "${correoReal?.correo}"`);
 
-  // El coach sigue corrigiendo el correo de sus atletas: el fix no le quita el
-  // trabajo. Se restaura de inmediato: dejarlo grabado rompería cualquier
-  // suite posterior que haga loginComo(QA.atleta1) — resolver_email_login
-  // (v19) resolvería a un correo que Auth no tiene, y loginComo lanza.
+  // v56 subsumió el caso legítimo de v40: ya NADIE cambia un correo desde una
+  // sesión de la app, tampoco el coach sobre sus propios atletas — el correo
+  // es identidad y solo la Edge Function `actualizar-correo` mueve la tabla y
+  // Auth juntas. El trabajo de ficha del coach vive ahora en la fecha de
+  // nacimiento (probado en la sección del coach).
+  const { data: correoAntes } = await svc.from('usuarios')
+    .select('correo').eq('id', QA.atleta1.usuarioId).single();
   const { error: eCorreoAtleta } = await cliCoach.from('usuarios')
     .update({ correo: 'qa_rls_atleta@ejemplo.com' }).eq('id', QA.atleta1.usuarioId).select();
-  check('coach SÍ corrige el correo de un atleta de su club (no se rompió el alta)',
-    !eCorreoAtleta, eCorreoAtleta?.message);
-  await svc.from('usuarios').update({ correo: null }).eq('id', QA.atleta1.usuarioId);
+  const { data: correoDespues } = await svc.from('usuarios')
+    .select('correo').eq('id', QA.atleta1.usuarioId).single();
+  check('coach NO cambia el correo ni de un atleta de su propio club (v56)',
+    !!eCorreoAtleta && correoDespues?.correo === correoAntes?.correo,
+    eCorreoAtleta?.message || `quedó en "${correoDespues?.correo}"`);
   await cliCoach.auth.signOut();
 
   await svc.from('usuarios').delete().eq('id', pendiente.id);
