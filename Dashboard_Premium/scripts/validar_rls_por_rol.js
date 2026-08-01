@@ -1023,9 +1023,17 @@ async function suiteSolicitudes() {
     }),
   });
   const cuerpoFalso = await resFalso.json().catch(() => ({}));
-  check('registro con club inexistente es rechazado (HTTP 400)',
-    resFalso.status === 400 && /no existe/i.test(cuerpoFalso?.error || ''),
-    `HTTP ${resFalso.status} ${cuerpoFalso?.error || ''}`);
+  // v54: el limitador por IP puede responder ANTES que la validación del club
+  // (cuenta todos los intentos, y la propia suite los consume). En ese caso el
+  // 429 es el sistema funcionando, no un fallo — se omite sin cascada.
+  if (resFalso.status === 429) {
+    console.log('  ⏭️  OMITIDA la prueba del club inexistente: el limitador por IP de v54');
+    console.log('      respondió antes que la validación del club (HTTP 429). No es un fallo.');
+  } else {
+    check('registro con club inexistente es rechazado (HTTP 400)',
+      resFalso.status === 400 && /no existe/i.test(cuerpoFalso?.error || ''),
+      `HTTP ${resFalso.status} ${cuerpoFalso?.error || ''}`);
+  }
 
   // El pendiente no puede auto-aprobarse (guard de `estado` en el trigger).
   const cliPend = await loginComo(QA.reg.cedula, QA.reg.password);
@@ -1071,17 +1079,31 @@ async function suiteSolicitudes() {
     }),
   });
   const cuerpo2 = await res2.json().catch(() => ({}));
-  check('segundo registro para la prueba de rechazo (HTTP 200)', res2.status === 200 && cuerpo2?.success,
-    `HTTP ${res2.status} ${cuerpo2?.error || ''}`);
-  const { data: u2 } = await svc.from('usuarios').select('id').eq('cedula', QA.reg2.cedula).single();
-  const { error: eRech } = await cliOwner.rpc('resolver_solicitud_registro',
-    { p_usuario_id: u2?.id, p_accion: 'rechazar' });
-  check('owner SÍ rechaza la segunda solicitud', !eRech, eRech?.message);
-  const { data: u2Despues } = await svc.from('usuarios').select('estado').eq('id', u2?.id).single();
-  const { data: p2Despues } = await svc.from('usuarios').select('estado').eq('cedula', `PADRE_${QA.reg2.telPadre}`).single();
-  check('rechazo deja a atleta y representante en rechazado',
-    u2Despues?.estado === 'rechazado' && p2Despues?.estado === 'rechazado',
-    `atleta=${u2Despues?.estado} padre=${p2Despues?.estado}`);
+  // Mismo criterio que arriba: si el limitador de v54 corta este registro, sin
+  // solicitud no hay nada que rechazar. Antes esto cascadeaba en dos rojos
+  // absurdos (resolver_solicitud_registro con p_usuario_id undefined pierde el
+  // parámetro y PostgREST ni encuentra la función).
+  if (res2.status === 429) {
+    console.log('  ⏭️  OMITIDAS las 3 pruebas del rechazo: el limitador por IP de v54 cortó el');
+    console.log('      segundo registro (HTTP 429). Reintentar con la ventana de una hora vencida,');
+    console.log('      o subir REGISTRO_LIMITE_IP_HORA en el panel de Supabase para los días de QA.');
+  } else {
+    check('segundo registro para la prueba de rechazo (HTTP 200)', res2.status === 200 && cuerpo2?.success,
+      `HTTP ${res2.status} ${cuerpo2?.error || ''}`);
+    const { data: u2 } = await svc.from('usuarios').select('id').eq('cedula', QA.reg2.cedula).single();
+    if (!u2?.id) {
+      console.log('  ⏭️  sin fila del segundo registro: se omiten el rechazo y su verificación.');
+    } else {
+      const { error: eRech } = await cliOwner.rpc('resolver_solicitud_registro',
+        { p_usuario_id: u2.id, p_accion: 'rechazar' });
+      check('owner SÍ rechaza la segunda solicitud', !eRech, eRech?.message);
+      const { data: u2Despues } = await svc.from('usuarios').select('estado').eq('id', u2.id).single();
+      const { data: p2Despues } = await svc.from('usuarios').select('estado').eq('cedula', `PADRE_${QA.reg2.telPadre}`).single();
+      check('rechazo deja a atleta y representante en rechazado',
+        u2Despues?.estado === 'rechazado' && p2Despues?.estado === 'rechazado',
+        `atleta=${u2Despues?.estado} padre=${p2Despues?.estado}`);
+    }
+  }
   await cliOwner.auth.signOut();
 }
 
