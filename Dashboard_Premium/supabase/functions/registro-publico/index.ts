@@ -105,6 +105,19 @@ serve(async (req) => {
     return jsonResponse({ error: 'Cédula, nombre y fecha de nacimiento del atleta son obligatorios.' }, 400);
   }
 
+  // El club es obligatorio server-side. Antes solo lo exigía el `required` del
+  // <select> del formulario (src/pages/RegistroPage.jsx): un cliente HTTP
+  // directo podía omitir el campo, `club` quedaba en null, y el paso 3 de más
+  // abajo ("Tope por club") vive entero dentro de `if (club) { ... }` — con
+  // club=null ese bloque nunca se ejecuta y el tope diario por club deja de
+  // existir para quien simplemente no lo mande. Se valida aquí, junto a las
+  // demás validaciones de forma y ANTES de tocar la base (el intento recién se
+  // anota en el paso 2): rechazar antes es más barato que rechazar después de
+  // haber gastado ya una fila de `registro_intentos`.
+  if (!(atleta?.club ?? '').trim()) {
+    return jsonResponse({ error: 'El club es obligatorio.' }, 400);
+  }
+
   // El correo del representante es OBLIGATORIO desde la entrega 3: es la única
   // dirección real de la familia y, por tanto, lo único que hace posible
   // recuperar la cuenta sin pasar por el club. El atleta menor casi nunca tiene
