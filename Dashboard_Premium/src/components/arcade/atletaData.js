@@ -10,6 +10,7 @@
    selectores no ramifiquen demo vs real.
    ============================================================ */
 import { supabase } from '../../api/supabaseClient';
+import { fetchUsuarioCompleto } from '../../api/authService';
 import { fetchMisiones, completarMision } from '../../api/misionesService';
 import { fetchConvocatoriasAtleta, fetchTableroConvocados, responderRSVP } from '../../api/eventosService';
 import { fetchSesionesAtleta } from '../../api/sesionesEntrenamientoService';
@@ -200,14 +201,26 @@ async function fetchInsignias(atletaId) {
  * romper el HUD (patrón padreData). Devuelve el objeto `data` del selector.
  */
 export async function fetchAtletaPanel(user) {
-  const [misionesRaw, convocatorias, sesiones, weeks, racha, insigniasCounts] = await Promise.all([
+  const [misionesRaw, convocatorias, sesiones, weeks, racha, insigniasCounts, frescoRaw] = await Promise.all([
     fetchMisiones(user.id).catch(() => []), // user.id = usuario_id
     fetchConvocatoriasAtleta([user.atleta_id]).catch(() => []),
     fetchSesionesAtleta(user.atleta_id).catch(() => []),
     fetchXPSemanal(user.atleta_id).catch(() => null),
     fetchRacha(user.atleta_id).catch(() => null),
     fetchInsignias(user.atleta_id).catch(() => null),
+    // Perfil RECIÉN leído (atletas + evaluaciones + readiness de hoy). Sin esto
+    // el radar, el PWR y la ficha física salían del `user` de AuthContext, que
+    // se resuelve UNA vez en el login y no se vuelve a leer (AuthContext
+    // descarta TOKEN_REFRESHED y los eventos del mismo usuario): una prueba que
+    // el coach registrara durante la sesión no aparecía nunca, ni recargando la
+    // ruta ni pulsando REINTENTAR — hacía falta cerrar sesión y volver a entrar.
+    // Degrada al `user` de siempre si falla, para no tumbar el HUD.
+    fetchUsuarioCompleto(user).catch(() => null),
   ]);
+
+  // `fetchUsuarioCompleto` reconstruye el merge usuarios+atletas exactamente
+  // igual que el login, así que `fresco` es intercambiable con `user`.
+  const fresco = frescoRaw || user;
 
   const misiones = (misionesRaw || []).map(mapMision);
   // Misión destacada: primera activa (o cualquiera sin completar).
@@ -252,25 +265,25 @@ export async function fetchAtletaPanel(user) {
     }
   });
 
-  const xp = xpInfo(user);
+  const xp = xpInfo(fresco);
   return {
     demo: false,
     profile: {
-      nombre: user.nombre || 'Atleta',
-      inicial: (user.nombre || '?').charAt(0),
-      categoria: (user.categoria || '').toUpperCase(),
+      nombre: fresco.nombre || 'Atleta',
+      inicial: (fresco.nombre || '?').charAt(0),
+      categoria: (fresco.categoria || '').toUpperCase(),
       fechaLine: null,
-      pwr: user.overall_score || 0,
-      nivelDesarrollo: user.nivel_desarrollo || 'Micro',
+      pwr: fresco.overall_score || 0,
+      nivelDesarrollo: fresco.nivel_desarrollo || 'Micro',
       racha, // racha de asistencia real (o null → chip 🔥 oculto)
       xp,
     },
-    radar: radarPilares(user),
-    // user = usuarios + atletas mergeados (authService), así que peso/talla/
+    radar: radarPilares(fresco),
+    // fresco = usuarios + atletas mergeados (authService), así que peso/talla/
     // envergadura ya vienen ahí — sin fetch extra.
-    fisico: fichaFisica(user),
+    fisico: fichaFisica(fresco),
     hoyEntrenas: hoyEntrenasDe(sesiones),
-    alertaIA: alertaReadiness(user),
+    alertaIA: alertaReadiness(fresco),
     misionDestacada,
     misiones,
     eventos,

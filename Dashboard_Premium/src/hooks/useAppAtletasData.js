@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { fetchTodosLosAtletas } from '../api/atletasService';
+import { fetchUsuarioCompleto } from '../api/authService';
 import { fetchReadinessHoy } from '../api/readinessService';
 import { calcularCategoriaFEB } from '../api/utilsAtletas';
 
@@ -65,7 +66,18 @@ export function useAppAtletasData({ user, busqueda, filtros, ordenarPor }) {
 
   const loadData = useCallback(async () => {
     if (user.rol === 'atleta') {
-      setAtletas([withCategoria(user)]);
+      // El atleta solo se ve a sí mismo, pero NO sirve reusar el `user` de
+      // AuthContext tal cual: se resuelve en el login y no se vuelve a leer, así
+      // que su radar y su overall quedaban congelados con lo que hubiera al
+      // entrar. Se relee el perfil (mismo merge que hace el login) y se cae al
+      // objeto de sesión si la consulta falla.
+      let propio = user;
+      try {
+        propio = (await fetchUsuarioCompleto(user)) || user;
+      } catch (err) {
+        console.error('No se pudo refrescar el perfil del atleta:', err);
+      }
+      setAtletas([withCategoria(propio)]);
       setHasMore(false);
       setLoading(false);
       return;
