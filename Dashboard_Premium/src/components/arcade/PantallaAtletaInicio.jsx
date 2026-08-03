@@ -5,6 +5,8 @@ import ArcadePerfilMenu from './ArcadePerfilMenu';
 import MicroLabel from './MicroLabel';
 import XPCells from './XPCells';
 import EditarPerfilModal from '../EditarPerfilModal';
+import FotoAtletaModal from '../FotoAtletaModal';
+import { useFotoUrl } from '../../hooks/useFotoUrl';
 
 /** Check-in diario (readiness). Tres estados, dirigidos por ctx.checkin:
  *  hecho (resumen del día, verde), pendiente (CTA oro — es la acción #1 de la
@@ -64,6 +66,16 @@ function TarjetaCheckin({ checkin }) {
  *  es la única salida de sesión del portal, que el shell Arcade no heredó. */
 export default function PantallaAtletaInicio({ ctx }) {
   const [editarPerfil, setEditarPerfil] = useState(false);
+  const [cambiarFoto, setCambiarFoto] = useState(false);
+  // Path en local para que la foto recién subida se vea sin recargar el ctx;
+  // se resincroniza durante el render, no en un efecto.
+  const [fotoPath, setFotoPath] = useState(ctx.heroFoto);
+  const [fotoPrevia, setFotoPrevia] = useState(ctx.heroFoto);
+  if (fotoPrevia !== ctx.heroFoto) {
+    setFotoPrevia(ctx.heroFoto);
+    setFotoPath(ctx.heroFoto);
+  }
+  const { url: fotoUrl, alFallar } = useFotoUrl(fotoPath);
 
   return (
     <div>
@@ -94,7 +106,10 @@ export default function PantallaAtletaInicio({ ctx }) {
             color={C.ink}
             glow
             style={{ fontSize: 22, filter: 'drop-shadow(0 0 14px rgba(96,165,250,.5))' }}
+            src={fotoUrl}
+            onErrorFoto={alFallar}
             onEditarPerfil={() => setEditarPerfil(true)}
+            onCambiarFoto={ctx.heroAtletaId ? () => setCambiarFoto(true) : undefined}
           />
           <div style={{ minWidth: 0, flex: 1 }}>
             <p style={{ margin: 0, fontFamily: PIXEL, fontSize: 15, color: C.text }}>{(ctx.heroNombre || '').toUpperCase()}</p>
@@ -213,6 +228,16 @@ export default function PantallaAtletaInicio({ ctx }) {
         <EditarPerfilModal
           onClose={() => setEditarPerfil(false)}
           onRefresh={() => window.location.reload()}
+        />
+      )}
+
+      {cambiarFoto && (
+        <FotoAtletaModal
+          atletaId={ctx.heroAtletaId}
+          nombre={ctx.heroNombre}
+          fotoPath={fotoPath}
+          onClose={() => setCambiarFoto(false)}
+          onGuardada={setFotoPath}
         />
       )}
     </div>

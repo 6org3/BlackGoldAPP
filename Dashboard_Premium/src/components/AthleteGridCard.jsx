@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Droplets } from 'lucide-react';
 import { recoveryPill } from '../lib/recoveryPill';
 import { tieneDatosAntropometricos } from '../api/utilsAtletas';
-import HexAvatar from './arcade/HexAvatar';
+import AvatarAtleta from './AvatarAtleta';
 import { cut } from './arcade/arcadeTokens';
 
 // Hue del avatar hexagonal por readiness (misma semántica que AtletaCard):
@@ -62,7 +62,7 @@ export default function AthleteGridCard({ atleta, onClick }) {
 
       {/* Top: Avatar hexagonal (hue por readiness) + Identity */}
       <div className="flex items-center space-x-3 mb-4">
-        <HexAvatar size={44} hue={avatarHue} initial={atleta.nombre?.charAt(0)?.toUpperCase()} />
+        <AvatarAtleta size={44} hue={avatarHue} nombre={atleta.nombre} fotoPath={atleta.foto_path} />
         <div className="min-w-0">
           <p className="font-bold text-white truncate text-sm group-hover:text-brand transition-colors">
             {atleta.nombre}

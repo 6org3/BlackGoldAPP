@@ -271,6 +271,11 @@ export async function fetchAtletaPanel(user) {
     profile: {
       nombre: fresco.nombre || 'Atleta',
       inicial: (fresco.nombre || '?').charAt(0),
+      // v61 + PR #170: la foto también viaja con los datos FRESCOS (fresco =
+      // usuarios+atletas mergeados) — el fix de los datos congelados del login
+      // aplica igual al retrato. La sesión queda solo como respaldo.
+      fotoPath: fresco.foto_path ?? user.foto_path ?? null,
+      atletaId: fresco.atleta_id ?? user.atleta_id ?? null,
       categoria: (fresco.categoria || '').toUpperCase(),
       fechaLine: null,
       pwr: fresco.overall_score || 0,

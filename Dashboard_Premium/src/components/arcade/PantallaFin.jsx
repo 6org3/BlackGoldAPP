@@ -2,7 +2,7 @@ import { C, BORDER, GRAD, cut, HEX, PIXEL, GLOW } from './arcadeTokens';
 import { AXES } from './canchaMock';
 import { xpClaseTotal } from './canchaSelectors';
 import { xpEvaluacion } from '../../../../packages/analytics-core/xp.js';
-import HexAvatar from './HexAvatar';
+import AvatarAtleta from '../AvatarAtleta';
 import MicroLabel from './MicroLabel';
 
 export default function PantallaFin({ state, actions, roster = [] }) {
@@ -72,7 +72,7 @@ export default function PantallaFin({ state, actions, roster = [] }) {
                 animation: 'bg-rise .4s ease-out',
               }}
             >
-              <HexAvatar size={34} hue={a.hue} initial={(a.name || '?').charAt(0)} />
+              <AvatarAtleta size={34} hue={a.hue} nombre={a.name} fotoPath={a.fotoPath} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{a.name}</p>
                 <p style={{ margin: '1px 0 0', fontSize: 11, color: C.text3 }}>{note}</p>

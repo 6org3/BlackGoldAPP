@@ -2,6 +2,9 @@ import { motion } from 'framer-motion';
 import { Ruler, TrendingUp, Star, Heart, Droplets } from 'lucide-react';
 import { getSubPilarScores } from '../lib/radarCalc';
 import { C, cut } from './arcade/arcadeTokens';
+import AvatarAtleta from './AvatarAtleta';
+import { puedeEditarFoto } from '../lib/fotoAtleta';
+import { useAuth } from '../AuthContext';
 
 // MicroCard solo se renderiza para Premini/Mini (ver App.jsx), así que solo esas dos
 // categorías FEB reales necesitan color; el resto usa el fallback gris de abajo.
@@ -41,6 +44,7 @@ function MiniBar({ label, value, icon: Icon, color = 'bg-brand' }) {
 }
 
 export default function MicroCard({ atleta }) {
+  const { user } = useAuth();
   const categoryColorClass = CATEGORY_COLORS[atleta.categoria] || 'text-fg-secondary border-white/20 bg-white/5';
   const indiceCormica = calcularIndiceCormica(atleta);
 
@@ -59,8 +63,18 @@ export default function MicroCard({ atleta }) {
 
       {/* Avatar + Header */}
       <div className="flex flex-col items-center text-center mb-6 relative z-10">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand/20 to-brand/5 border-2 border-brand/30 flex items-center justify-center mb-3 shadow-[0_0_20px_rgba(255,215,0,0.15)]">
-          <span className="text-3xl font-black text-brand">{atleta.nombre?.charAt(0)?.toUpperCase()}</span>
+        {/* Hexagonal como el resto del HUD; era un círculo suelto (deuda de
+            convergencia Arcade). Es la ficha de Sub-9/Sub-11: aquí la foto es
+            lo que hace que un niño se reconozca. */}
+        <div className="mb-3">
+          <AvatarAtleta
+            size={80}
+            nombre={atleta.nombre}
+            fotoPath={atleta.foto_path}
+            editable={puedeEditarFoto(user, atleta)}
+            atletaId={atleta.atleta_id}
+            style={{ filter: 'drop-shadow(0 0 20px rgba(255,215,0,.15))' }}
+          />
         </div>
         <h3 className="text-2xl font-black text-white tracking-tight">{atleta.nombre}</h3>
         <div className="flex items-center space-x-2 mt-2">

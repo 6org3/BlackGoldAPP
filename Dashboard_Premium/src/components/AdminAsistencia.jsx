@@ -6,6 +6,7 @@ import { fetchGrupos } from '../api/sesionesService';
 import { hoyLocal } from '../lib/fechasLocal';
 import CutCard from './arcade/CutCard';
 import HexAvatar from './arcade/HexAvatar';
+import AvatarAtleta from './AvatarAtleta';
 import BotonVolver from './arcade/BotonVolver';
 import MicroLabel from './arcade/MicroLabel';
 import KpiTile from './arcade/KpiTile';
@@ -287,7 +288,7 @@ export default function AdminAsistencia({ user, atletas = [] }) {
               >
                 {/* Atleta Info */}
                 <div className="flex items-center gap-3">
-                  <HexAvatar size={36}>{atleta.nombre?.charAt(0)}</HexAvatar>
+                  <AvatarAtleta size={36} nombre={atleta.nombre} fotoPath={atleta.foto_path} />
                   <div>
                     <p className="text-sm font-bold" style={{ color: C.text }}>{atleta.nombre}</p>
                     <MicroLabel style={{ margin: 0 }}>

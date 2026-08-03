@@ -7,7 +7,7 @@ import Plantel from '../components/Plantel';
 import CardFocoAtleta from '../components/CardFocoAtleta';
 import ModoCanchaArcade from '../components/arcade/ModoCanchaArcade';
 import CutCard from '../components/arcade/CutCard';
-import HexAvatar from '../components/arcade/HexAvatar';
+import AvatarAtleta from '../components/AvatarAtleta';
 import MicroLabel from '../components/arcade/MicroLabel';
 import { C, BORDER, GRAD, TINT, ROW_H, cut, PIXEL } from '../components/arcade/arcadeTokens';
 import { recoveryPill } from '../lib/recoveryPill';
@@ -70,7 +70,7 @@ const modalidadDeSesion = (s, atletas) => {
  * Ola 2 · PR 2.3 (convergencia Arcade + regla de dominio): el hero habla en
  * MODALIDAD DE SESIÓN (clase grupal por nivel de desarrollo / individualizada),
  * no en categoría FEB — las clases mezclan edades/categorías y se agrupan por
- * nivel o por grupo del club. Chrome del HUD (CutCard, MicroLabel, HexAvatar).
+ * nivel o por grupo del club. Chrome del HUD (CutCard, MicroLabel, AvatarAtleta).
  * Las cards IA (foco de desarrollo, readiness) llegan por el brain gateway.
  */
 export default function CoachHomePage() {
@@ -269,7 +269,7 @@ export default function CoachHomePage() {
                 return (
                   <li key={a.atleta_id || a.id} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="flex items-center gap-3 min-w-0">
-                      <HexAvatar size={34} initial={a.nombre?.charAt(0)} style={{ fontSize: 13 }} />
+                      <AvatarAtleta size={34} nombre={a.nombre} fotoPath={a.foto_path} style={{ fontSize: 13 }} />
                       <div className="min-w-0">
                         <p className="text-sm font-bold truncate">{a.nombre}</p>
                         <p className="text-2xs text-fg-muted truncate">{a.categoria} · {a.posicion || 'Sin posición'}</p>

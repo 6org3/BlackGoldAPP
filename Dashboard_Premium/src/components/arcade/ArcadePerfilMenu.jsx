@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User } from 'lucide-react';
+import { Camera, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../AuthContext';
 import { C, BORDER, PIXEL, cut } from './arcadeTokens';
 import HexAvatar from './HexAvatar';
@@ -32,6 +32,9 @@ export default function ArcadePerfilMenu({
   style,
   ariaLabel = 'Menú de perfil',
   onEditarPerfil,
+  onCambiarFoto,
+  src,
+  onErrorFoto,
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -91,6 +94,11 @@ export default function ArcadePerfilMenu({
     onEditarPerfil?.();
   };
 
+  const handleFoto = () => {
+    close();
+    onCambiarFoto?.();
+  };
+
   const itemStyle = {
     width: '100%',
     display: 'flex',
@@ -131,7 +139,7 @@ export default function ArcadePerfilMenu({
         className="cut-focus"
         style={{ appearance: 'none', background: 'none', border: 'none', padding: 0, cursor: 'pointer', flex: 'none', lineHeight: 0 }}
       >
-        <HexAvatar initial={initial} size={size} background={background} color={color} glow={glow} style={style} />
+        <HexAvatar initial={initial} src={src} onErrorFoto={onErrorFoto} size={size} background={background} color={color} glow={glow} style={style} />
       </button>
 
       {open &&
@@ -163,6 +171,13 @@ export default function ArcadePerfilMenu({
                   {user?.nombre || '—'}
                 </p>
               </div>
+
+              {onCambiarFoto && (
+                <button type="button" role="menuitem" onClick={handleFoto} data-testid="btn-cambiar-foto" className="cut-focus" style={itemStyle}>
+                  <Camera size={15} style={{ flex: 'none', color: C.text3 }} />
+                  <span>CAMBIAR FOTO</span>
+                </button>
+              )}
 
               {onEditarPerfil && (
                 <button type="button" role="menuitem" onClick={handleEditar} className="cut-focus" style={itemStyle}>

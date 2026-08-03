@@ -19,6 +19,7 @@ import SolicitudesPanel from './SolicitudesPanel';
 import RechazadosPanel from './RechazadosPanel';
 import ModalHUD from './arcade/ModalHUD';
 import BannerCredenciales from './BannerCredenciales';
+import { getFotoDataUrl, purgarFotosDeAtleta } from '../api/fotosAtletasService';
 import { COLORS } from '../lib/designTokens';
 import { C, BORDER, TINT, cut } from './arcade/arcadeTokens';
 
@@ -100,6 +101,10 @@ export default function AdminAtletas({ atletas, onRefresh, user, errorCarga = ''
       confirmLabel: 'Eliminar',
       onConfirm: async () => {
         setModal(null);
+        // La carpeta del bucket se purga ANTES de borrar la fila: al perderse
+        // foto_path, el objeto quedaría inalcanzable para siempre con la cara
+        // de un menor dentro (borrar la fila no borra el blob).
+        await purgarFotosDeAtleta(atleta.atleta_id);
         // Los dos deletes se comprueban: antes se ignoraba el resultado, así que
         // un fallo de RLS en el segundo dejaba el usuario huérfano en silencio.
         const { error: eAtleta } = await supabase.from('atletas').delete().eq('id', atleta.atleta_id);
@@ -243,7 +248,16 @@ export default function AdminAtletas({ atletas, onRefresh, user, errorCarga = ''
   }, [emitirPassword]);
 
   const exportPDF = useCallback(async (atleta) => {
-    setExportingAtleta(atleta);
+    // La foto se embebe como data URL y se decodifica ANTES de montar la
+    // plantilla: con una URL firmada remota, html2canvas puede capturar antes
+    // de que cargue y sacar el PDF sin cara, sin error.
+    const fotoDataUrl = await getFotoDataUrl(atleta.foto_path);
+    if (fotoDataUrl) {
+      const img = new Image();
+      img.src = fotoDataUrl;
+      try { await img.decode(); } catch { /* se cae al placeholder */ }
+    }
+    setExportingAtleta({ ...atleta, foto_url: fotoDataUrl });
     setTimeout(async () => {
       if (!reportRef.current) return;
       try {

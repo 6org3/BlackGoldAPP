@@ -1,7 +1,7 @@
 import { C, BORDER, cut, PIXEL, fmtClock } from './arcadeTokens';
 import { AXES } from './canchaMock';
 import { presentesP } from './canchaSelectors';
-import HexAvatar from './HexAvatar';
+import AvatarAtleta from '../AvatarAtleta';
 import MicroLabel from './MicroLabel';
 
 export default function PantallaCierre({ state, actions, roster = [] }) {
@@ -50,10 +50,11 @@ export default function PantallaCierre({ state, actions, roster = [] }) {
                 padding: '10px 12px',
               }}
             >
-              <HexAvatar
+              <AvatarAtleta
                 size={34}
                 hue={a.hue}
-                initial={a.name.charAt(0)}
+                nombre={a.name}
+                fotoPath={a.fotoPath}
                 onClick={() => actions.toggleDestacado(a.id)}
                 ariaLabel={`${sel ? 'Quitar de' : 'Marcar como'} destacado a ${a.name}`}
                 style={sel ? { boxShadow: '0 0 0 2px rgba(255,215,0,.5)' } : undefined}

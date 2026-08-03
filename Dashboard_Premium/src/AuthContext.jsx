@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useRef, useCallb
 import { loginUsuario, fetchUsuarioPorAuthId } from './api/authService';
 import { supabase } from './api/supabaseClient';
 import { purgarSesionLocal } from './lib/sesionLocal';
+import { limpiarCacheFotos } from './api/fotosAtletasService';
 import PageLoader from './components/PageLoader.jsx';
 
 const AuthContext = createContext(null);
@@ -19,7 +20,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [debeCambiarPassword, setDebeCambiarPassword] = useState(false);
   // Último auth id resuelto: permite ignorar eventos de Supabase Auth que no
-  // cambian de usuario (evita refetch + re-render global de toda la app).
+  // cambian de usuario (evita refetch + re-render global de toda la app), y
+  // también es la referencia contra la que cargarPerfil decide si hubo un
+  // cambio real de IDENTIDAD (ver la purga de fotos más abajo).
   const lastAuthIdRef = useRef(null);
 
   // La sesión real (JWT + refresh token) la persiste supabase-js por su
@@ -29,7 +32,25 @@ export const AuthProvider = ({ children }) => {
     let activo = true;
 
     const cargarPerfil = async (session) => {
-      lastAuthIdRef.current = session?.user?.id ?? null;
+      const uidEntrante = session?.user?.id ?? null;
+      // Purga de la caché de URLs firmadas de fotos SOLO en una transición real
+      // de identidad (uid distinto al de la última vez que se cargó perfil,
+      // incluida la caída a null). Son URLs vivas a rostros de menores: sin
+      // esto, cerrar sesión sin pasar por logout() (p. ej. que el token quede
+      // inválido y Supabase Auth dispare SIGNED_OUT por su cuenta) o que otro
+      // usuario inicie sesión en la misma pestaña dejarían accesible el
+      // retrato del usuario anterior.
+      //
+      // Por qué la comparación y no "purgar siempre que se llama a
+      // cargarPerfil": esta función corre también en cada TOKEN_REFRESHED del
+      // MISMO usuario (~cada hora, y al volver la PWA al primer plano en
+      // móvil) — purgar ahí vaciaría el caché en cada refresh y dispararía una
+      // refirma masiva de todos los avatares en pantalla sin que haya cambiado
+      // nada. Comparar contra el uid anterior es lo que distingue "cambió de
+      // usuario" de "el mismo usuario renovó su token".
+      if (uidEntrante !== lastAuthIdRef.current) limpiarCacheFotos();
+      lastAuthIdRef.current = uidEntrante;
+
       if (activo) setDebeCambiarPassword(leerMarcaPassword(session));
       if (!session) {
         if (activo) setUser(null);
@@ -100,6 +121,13 @@ export const AuthProvider = ({ children }) => {
       console.warn('No se pudo adoptar la sesión devuelta tras cambiar la contraseña.', error);
     }
     await supabase.auth.signOut().catch(() => {});
+    // Igual que en logout(): no se puede confiar en que este signOut() vaya a
+    // disparar el listener de onAuthStateChange (el mismo motivo documentado
+    // ahí — un fallo de red intermedio deja el _removeSession() de
+    // supabase-js sin correr). La cuenta que se estaba yendo bien pudo tener
+    // foto propia visible en el HUD; se purga aquí explícito, sin depender de
+    // ese evento.
+    limpiarCacheFotos();
     setUser(null);
     return false;
   }, []);
@@ -123,6 +151,10 @@ export const AuthProvider = ({ children }) => {
       console.warn('Cierre de sesión lanzó; se purga la sesión local.', error);
       purgarSesionLocal();
     } finally {
+      // Las URLs firmadas de las fotos viven en un Map de módulo: sin
+      // limpiarlas, sobrevivirían al cambio de usuario en el mismo navegador
+      // y dejarían accesibles rostros de menores de otro club.
+      limpiarCacheFotos();
       setUser(null);
       setDebeCambiarPassword(false);
     }

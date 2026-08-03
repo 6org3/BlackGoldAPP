@@ -39,7 +39,7 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
   const emptyForm = {
     usuario_id: null, correo_original: '',
     cedula: '', nombre: '', correo: '', fecha_nacimiento: '', posicion: 'N/A',
-    categoria: '', nivel_desarrollo: '', genero: 'Masculino', club: '',
+    categoria: '', nivel_desarrollo: '', genero: 'Masculino', club: '', foto_path: '',
     // Parent fields (optional)
     padre_nombre: '', padre_telefono: '', padre_correo: ''
   };
@@ -73,6 +73,9 @@ export default function useAdminAtletasForm({ onRefresh, user }) {
       nivel_desarrollo: atleta.nivel_desarrollo || '',
       genero: generoValue,
       club: dataUsuario?.club || '',
+      // La foto NO viaja con handleSubmit: se guarda por su propia RPC en
+      // cuanto se sube, así que aquí solo se lee para pintarla.
+      foto_path: atleta.foto_path || '',
       padre_nombre: '', padre_telefono: '', padre_correo: ''
     });
     setEditingId(atleta.atleta_id);
