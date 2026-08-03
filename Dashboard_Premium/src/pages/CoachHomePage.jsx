@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Droplets, FlaskConical, TrendingUp, Zap } from 'lucide-react';
 import { useAuth } from '../AuthContext';
@@ -12,6 +12,7 @@ import MicroLabel from '../components/arcade/MicroLabel';
 import { C, BORDER, GRAD, TINT, ROW_H, cut, PIXEL } from '../components/arcade/arcadeTokens';
 import { recoveryPill } from '../lib/recoveryPill';
 import { tieneSenal } from '../lib/senalesAtleta';
+import { useRefrescoEnVivo } from '../hooks/useRefrescoEnVivo';
 import { fetchTodosLosAtletas } from '../api/atletasService';
 import { fetchEvaluacionesProgramadasHoy, fetchSesionesPlanificadasHoy, fetchSesionesEnCurso } from '../api/sesionesService';
 
@@ -82,6 +83,11 @@ export default function CoachHomePage() {
   const [evaluacionesHoy, setEvaluacionesHoy] = useState([]);
   const [sesionesHoy, setSesionesHoy] = useState([]);
   const [activasCount, setActivasCount] = useState(0);
+  // Contador de refresco: este home no tenía forma de recargarse sin cambiar de
+  // usuario (deps `[user]`), así que una evaluación tomada por otro coach —o
+  // por este mismo desde otro dispositivo— no movía ni el foco de desarrollo ni
+  // las señales del día hasta recargar a mano.
+  const [refresco, setRefresco] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -99,7 +105,19 @@ export default function CoachHomePage() {
       .then((data) => { if (activo) setActivasCount((data || []).length); })
       .catch((err) => console.error('Error cargando sesiones activas:', err));
     return () => { activo = false; };
-  }, [user]);
+  }, [user, refresco]);
+
+  const refrescar = useCallback(() => setRefresco((n) => n + 1), []);
+  // Sin `filtro`: `evaluaciones_pruebas` no tiene columna de club (el club se
+  // resuelve por `club_de_atleta()`), y `postgres_changes` solo sabe comparar
+  // una columna con un valor. Filtra la RLS: `evaluaciones_staff` (v64) acota
+  // al club del coach, así que este canal no despierta la pantalla por
+  // evaluaciones ajenas. El debounce del hook agrupa una captura por lotes.
+  useRefrescoEnVivo({ tabla: 'evaluaciones_pruebas', activo: !!user?.id, onCambio: refrescar });
+  // `atletas` va aparte porque el overall/rango se recalcula en una escritura
+  // posterior a la evaluación: sin este canal, el refetch podría adelantarse al
+  // recálculo y el "foco de desarrollo" ordenaría por el score viejo.
+  useRefrescoEnVivo({ tabla: 'atletas', activo: !!user?.id, onCambio: refrescar });
 
   const conSenal = atletas.filter(tieneSenal);
   const fechaHoy = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });

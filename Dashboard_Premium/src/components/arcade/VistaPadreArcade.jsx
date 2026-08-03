@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../AuthContext';
+import { useRefrescoEnVivo } from '../../hooks/useRefrescoEnVivo';
 import { C, BORDER, GRAD, RADAR_FILL_INFO, ROW_H, cut, HEX, PIXEL, gridBackground } from './arcadeTokens';
 import ArcadePerfilMenu from './ArcadePerfilMenu';
 import AvatarAtleta from '../AvatarAtleta';
@@ -171,6 +172,22 @@ export default function VistaPadreArcade() {
       alive = false;
     };
   }, [esPadre, user, reintento]);
+
+  // Refresco en vivo: el coach evalúa desde la cancha y el padre tiene esta
+  // pantalla abierta en el teléfono. `reintento` ya es el disparador que
+  // reejecuta LOS DOS fetch (panel base + detalle del hijo), así que la vía
+  // menos invasiva es incrementarlo: no hace falta un camino de recarga nuevo
+  // ni tocar el manejo de errores.
+  const refrescar = useCallback(() => setReintento((n) => n + 1), []);
+  // Sin `filtro`: un representante puede tener varios hijos y
+  // `postgres_changes` solo admite una columna con un valor. Lo hace la RLS —
+  // `evaluaciones_select_propio` (v24) resuelve por `mis_atletas()`, así que
+  // este canal solo recibe filas de sus propios hijos.
+  useRefrescoEnVivo({ tabla: 'evaluaciones_pruebas', activo: esPadre, onCambio: refrescar });
+  // También `atletas`: el overall_score y el XP se recalculan DESPUÉS de
+  // insertar la evaluación, en una escritura aparte. Sin este segundo canal el
+  // refetch puede adelantarse al recálculo y dejar el PWR viejo en pantalla.
+  useRefrescoEnVivo({ tabla: 'atletas', activo: esPadre, onCambio: refrescar });
 
   const hijo = hijos[idx];
 

@@ -8,34 +8,41 @@ import CardDiagnosticoIA from './CardDiagnosticoIA';
 import CardReadinessIA from './CardReadinessIA';
 import { C } from './arcade/arcadeTokens';
 
-export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClose }) {
+export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClose, onDatosActualizados }) {
   const closeBtnRef = useRef(null);
   const [hasScrolled, setHasScrolled] = useState(false);
+
+  // Deps por id y no por objeto: la fila del atleta se resuelve contra la lista
+  // viva del plantel, así que cada recarga (guardar una evaluación) entrega un
+  // objeto NUEVO del mismo atleta. Con el objeto en las deps, ese refresco
+  // devolvía el foco al botón Cerrar y volvía a mostrar el hint de scroll de
+  // quien ya estaba leyendo la ficha.
+  const atletaId = selectedAtleta?.atleta_id || selectedAtleta?.id || null;
 
   // Scroll-lock del body: sin esto, en iOS/Android el scroll del modal se
   // encadena al grid de atrás y el coach pierde su posición al cerrar.
   useEffect(() => {
-    if (!selectedAtleta) return undefined;
+    if (!atletaId) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
-  }, [selectedAtleta]);
+  }, [atletaId]);
 
   // El hint de scroll se re-arma en cada apertura (o cambio de atleta): sin
   // esto, tras ver la ficha de un atleta ya "gastada" (scrolleada), la del
   // siguiente abriría sin avisar que hay más contenido debajo.
   useEffect(() => {
-    if (selectedAtleta) setHasScrolled(false);
-  }, [selectedAtleta]);
+    if (atletaId) setHasScrolled(false);
+  }, [atletaId]);
 
   // Semántica de diálogo: foco inicial en Cerrar y cierre con Escape.
   useEffect(() => {
-    if (!selectedAtleta) return undefined;
+    if (!atletaId) return undefined;
     closeBtnRef.current?.focus();
     const onKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedAtleta, onClose]);
+  }, [atletaId, onClose]);
 
   if (!selectedAtleta) return null;
 
@@ -65,7 +72,7 @@ export default function AppAthleteProfileModal({ selectedAtleta, atletas, onClos
       <div className="relative w-full max-w-none md:max-w-xl pt-16 md:pt-0 my-0 md:my-8 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:pb-0 space-y-6">
         {['Premini (Sub-9)', 'Mini (Sub-11)'].includes(selectedAtleta.categoria)
           ? <MicroCard atleta={selectedAtleta} />
-          : <AtletaCard atleta={selectedAtleta} index={0} todosLosAtletas={atletas} />
+          : <AtletaCard atleta={selectedAtleta} index={0} todosLosAtletas={atletas} onDatosActualizados={onDatosActualizados} />
         }
         {/* Cards IA del cerebro (brain-gateway) — tono técnico para staff */}
         <CardDiagnosticoIA
