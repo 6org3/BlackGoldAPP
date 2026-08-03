@@ -27,7 +27,7 @@ const HUE_READINESS = {
   'Óptimo': 'green',
 };
 
-export default function AtletaCard({ atleta, index, todosLosAtletas }) {
+export default function AtletaCard({ atleta, index, todosLosAtletas, onDatosActualizados }) {
   const { user } = useAuth();
   const conAntropometria = tieneDatosAntropometricos(atleta);
   const avatarHue = HUE_READINESS[atleta.estado_recuperacion] || 'gold';
@@ -317,10 +317,15 @@ export default function AtletaCard({ atleta, index, todosLosAtletas }) {
 
       {/* Evaluation Modal */}
       {showEvalModal && (
-        <EvaluacionModal 
-          atleta={atleta} 
-          isOpen={showEvalModal} 
-          onClose={() => setShowEvalModal(false)} 
+        <EvaluacionModal
+          atleta={atleta}
+          isOpen={showEvalModal}
+          onClose={() => setShowEvalModal(false)}
+          // El modal ya invocaba `onSaved`, pero aquí se montaba sin ella: quien
+          // guardaba la evaluación era el único que NO veía el cambio (el resto
+          // de portales se enteran por Realtime, y este es el que la escribió).
+          // Sube a quien posee los datos del plantel para que los relea.
+          onSaved={onDatosActualizados}
         />
       )}
 

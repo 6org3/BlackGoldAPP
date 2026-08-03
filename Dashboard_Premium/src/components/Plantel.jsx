@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../AuthContext';
 import { useAppAtletasData, FILTROS_INICIALES } from '../hooks/useAppAtletasData';
 import AppToolbar from './AppToolbar';
@@ -37,6 +37,7 @@ export default function Plantel({ user: userProp = null, showEditProfile = false
   const {
     atletas,
     loading,
+    loadData,
     loadMore,
     atletasFiltrados,
     atletasPaginados,
@@ -48,6 +49,17 @@ export default function Plantel({ user: userProp = null, showEditProfile = false
   const handleFiltroChange = useCallback((key, value) => {
     setFiltros(prev => ({ ...prev, [key]: value }));
   }, []);
+
+  // La ficha abierta se resuelve contra la lista viva, no contra la copia que
+  // se guardó al hacer clic: así, cuando `loadData()` trae al atleta con su
+  // evaluación recién guardada, el modal ya montado se repinta con el dato
+  // nuevo. Si el refetch lo dejó fuera (cambió de página o de filtro), se
+  // conserva la copia previa en vez de cerrar el modal en la cara del coach.
+  const atletaEnFicha = useMemo(() => {
+    if (!selectedAtleta) return null;
+    const id = selectedAtleta.atleta_id || selectedAtleta.id;
+    return atletas.find((a) => (a.atleta_id || a.id) === id) || selectedAtleta;
+  }, [selectedAtleta, atletas]);
 
   return (
     <>
@@ -84,9 +96,12 @@ export default function Plantel({ user: userProp = null, showEditProfile = false
 
       {/* Modal Perfil Específico */}
       <AppAthleteProfileModal
-        selectedAtleta={selectedAtleta}
+        selectedAtleta={atletaEnFicha}
         atletas={atletas}
         onClose={() => setSelectedAtleta(null)}
+        // Cierra el loop de quien evalúa: al guardar desde la ficha se recarga
+        // el plantel, que es de donde salen el overall, el radar y las alertas.
+        onDatosActualizados={loadData}
       />
 
       <AppSecondaryModals
