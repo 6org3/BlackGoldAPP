@@ -60,6 +60,15 @@ lerna-debug.log*
 credenciales*.json
 **/credenciales*.json
 
+# Configs de fundación de cada sede. No son secretos técnicos, pero llevan
+# datos PERSONALES de gente real (nombre, cédula, correo y teléfono del dueño
+# y del superadmin) y este repositorio es público: publicar la cédula de una
+# persona no se arregla rotando nada, a diferencia de una clave. Se ignoran
+# todos por defecto; lo versionado es el README con el procedimiento y la
+# plantilla comentada `scripts/fundacion_black_gold.config.json`, que no
+# contiene ningún dato real.
+Dashboard_Premium/scripts/fundacion/*.json
+
 # Estado local del CLI de Supabase (project ref, versiones de la instancia,
 # URL del pooler). Es material de reconocimiento sobre producción y se
 # regenera solo con `npx supabase link`.

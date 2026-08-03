@@ -68,8 +68,27 @@ if (!url || !serviceKey) {
 const db = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
 const REAL = process.env.FUNDAR_REAL === '1';
-const ARCHIVO_CONFIG = path.join(__dirname, 'fundacion_black_gold.config.json');
-const ARCHIVO_CREDENCIALES = path.join(__dirname, 'credenciales_black_gold.json');
+
+// La ruta del config es sobreescribible porque Black Gold no es UN club: son
+// varias sedes (Lago Agrio, El Coca, Sacha, Loreto) y cada una se funda por
+// separado, con su propio dueño. No es una decisión de estilo — la impone el
+// esquema: `listar_clubes_publicos()` (v33) solo devuelve clubes con un owner
+// ACTIVO, y una misma persona no puede cubrir las cuatro sedes porque cédula,
+// correo y teléfono son UNIQUE en toda la plataforma y `usuarios.club` guarda
+// un solo club por cuenta.
+//
+//   FUNDAR_CONFIG=scripts/fundacion/lago_agrio.json node scripts/fundar_black_gold.mjs
+//
+// Sin la variable se comporta igual que siempre. El archivo de credenciales
+// lleva el nombre de la sede para que dos fundaciones no se pisen el suyo —
+// cada una reparte contraseñas distintas y solo se muestran una vez.
+const ARCHIVO_CONFIG = process.env.FUNDAR_CONFIG
+  ? path.resolve(process.env.FUNDAR_CONFIG)
+  : path.join(__dirname, 'fundacion_black_gold.config.json');
+const SUFIJO_SEDE = process.env.FUNDAR_CONFIG
+  ? `_${path.basename(ARCHIVO_CONFIG, '.json')}`
+  : '';
+const ARCHIVO_CREDENCIALES = path.join(__dirname, `credenciales_black_gold${SUFIJO_SEDE}.json`);
 const PLACEHOLDER = '<REEMPLAZAR';
 
 // ===================================================================
@@ -108,7 +127,9 @@ buscarPlaceholders(configParaValidar, '', hallazgos);
 if (hallazgos.length) {
   console.error(`❌ La configuración todavía tiene ${hallazgos.length} placeholder(s) sin rellenar:`);
   for (const h of hallazgos) console.error(`   - ${h}`);
-  console.error('\n   Edita fundacion_black_gold.config.json y vuelve a correr el script.');
+  // Nombra el archivo que se está leyendo de verdad: con cuatro sedes, decir
+  // siempre "fundacion_black_gold.config.json" mandaba a editar el equivocado.
+  console.error(`\n   Edita ${path.relative(process.cwd(), ARCHIVO_CONFIG)} y vuelve a correr el script.`);
   process.exit(1);
 }
 
