@@ -81,6 +81,7 @@ const AdminEquipoPage = lazy(() => import('./pages/AdminEquipoPage.jsx'))
 const AdminGruposPage = lazy(() => import('./pages/AdminGruposPage.jsx'))
 const AdminMisionesPage = lazy(() => import('./pages/AdminMisionesPage.jsx'))
 const AdminPagosPage = lazy(() => import('./pages/AdminPagosPage.jsx'))
+const AdminCrmPage = lazy(() => import('./pages/AdminCrmPage.jsx'))
 const AdminComunicacionesPage = lazy(() => import('./pages/AdminComunicacionesPage.jsx'))
 const AdminEventosPage = lazy(() => import('./pages/AdminEventosPage.jsx'))
 const AdminAsistenciaPage = lazy(() => import('./pages/AdminAsistenciaPage.jsx'))
@@ -254,6 +255,14 @@ createRoot(document.getElementById('root')).render(
                  una pantalla que ya no puede usar. */
               <PrivateRoute roles={['superadmin', 'owner']}>
                 <AdminPagosPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/crm"
+            element={
+              <PrivateRoute roles={['superadmin', 'owner']}>
+                <AdminCrmPage />
               </PrivateRoute>
             }
           />

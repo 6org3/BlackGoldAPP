@@ -4,7 +4,7 @@ Servidor MCP de **NEGOCIO** de Black Gold (leads, cobranza, KPIs de dirección, 
 
 Mismo patrón que `blackgold-mcp`: proceso Node por stdio (`@modelcontextprotocol/sdk`), conectado a Supabase con la `service_role` key (con RLS real desde la migración v24, la `anon` key no puede leer ni escribir ninguna tabla). Las 8 tools reutilizan las consultas y reglas de negocio ya existentes en `Dashboard_Premium/src/api/*Service.js` (sobre todo `pagosService.js`, `solicitudesService.js`, `retencionService.js`) en vez de inventar cálculos nuevos.
 
-## Estado: v0.1
+## Estado: v0.2
 
 - 6 tools de LECTURA funcionan hoy contra el esquema real (leads, conversión, cobranza, comprobantes, vencidos, KPIs — con una salvedad de ocupación de cancha, ver abajo).
 - 2 tools (`registrar_gasto`, `resumen_gastos`) **requieren una tabla `gastos` que todavía NO existe** en la base. La migración está escrita (ver más abajo) pero **NO aplicada**. Hasta que Jorge la aplique, esas dos tools fallan con un error legible explicándolo.
@@ -21,7 +21,30 @@ Copiar `.env.example` a `.env` y rellenar:
 
 `.env` está en `.gitignore`. Nunca commitear credenciales reales.
 
-## Las 8 tools
+### Variables adicionales del CRM
+
+| Variable | Descripción |
+|---|---|
+| `CRM_ALLOWED_CLUBS` | **Obligatoria para las tools CRM.** Lista CSV de nombres exactos de club que este proceso puede operar, por ejemplo `Black Gold,Club Norte`. Sin ella las siete tools CRM quedan deshabilitadas; `*` no es un comodín. |
+| `CRM_ACTOR_ID` | Identificador operativo auditado por las RPC CRM, por ejemplo `lily` o `vegapunk`. No concede permisos ni sustituye `CRM_ALLOWED_CLUBS`. |
+
+## CRM de relaciones (v0.2)
+
+Cada proceso debe declarar `CRM_ALLOWED_CLUBS` de forma explícita. Es una lista
+CSV de nombres exactos de club, por ejemplo `Black Gold,Club Norte`; `*` no es
+un comodín. Sin la variable, las siete tools CRM quedan deshabilitadas.
+
+Antes de cada lectura o RPC CRM, el servidor consulta el club del contacto u
+oportunidad y rechaza recursos fuera de esa lista sin revelar si existen. Las
+operaciones con una oportunidad también comprueban que pertenezca al mismo club
+que su contacto. Mantener un proceso MCP por alcance operativo; no usar una
+lista global de todos los clubes como atajo.
+
+Se añadieron siete tools CRM basadas exclusivamente en UUID (`contact_id` y `oportunidad_id`): contexto, etapas, interacciones resumidas, preferencias, actividades, `no_contactar` y métricas agregadas. No buscan ni devuelven números de WhatsApp, correos, identificadores de canal ni datos de atletas/representantes.
+
+La migración CRM está creada localmente pero no aplicada. El ingreso inicial de WhatsApp/Web/App no es una tool MCP: lo atiende una Edge Function o adaptador privado con `service_role`, validación de origen e idempotencia. Consulta [CRM.md](CRM.md) para el contrato, la configuración de `CRM_ALLOWED_CLUBS` y `CRM_ACTOR_ID`, y el procedimiento seguro de los contactos internos.
+
+## Las 8 tools heredadas (v0.1)
 
 ### Lectura (nunca escriben)
 
@@ -75,7 +98,7 @@ Para aplicarla: `cd Dashboard_Premium && npx supabase db push` (o el flujo de de
 ```bash
 cd blackgold-negocio-mcp
 npm install          # requiere red; no se instaló en la construcción de este paquete
-cp .env.example .env # rellenar SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY
+cp .env.example .env # rellenar SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY y CRM_ALLOWED_CLUBS
 npm run inspector     # abre @modelcontextprotocol/inspector contra este servidor
 ```
 
@@ -99,7 +122,9 @@ El patrón esperado (servidor MCP por stdio, igual que cualquier otro proceso No
       "args": ["/ruta/absoluta/a/blackgold-negocio-mcp/src/index.js"],
       "env": {
         "SUPABASE_URL": "...",
-        "SUPABASE_SERVICE_ROLE_KEY": "..."
+        "SUPABASE_SERVICE_ROLE_KEY": "...",
+        "CRM_ALLOWED_CLUBS": "Black Gold",
+        "CRM_ACTOR_ID": "vegapunk"
       }
     }
   }

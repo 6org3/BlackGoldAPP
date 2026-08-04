@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp, UserCog, Boxes, LogOut } from 'lucide-react';
+import { Activity, Users, Cross, Sparkles, Plus, FlaskConical, ClipboardList, DollarSign, MessageSquare, Zap, BarChart3, CalendarDays, TrendingUp, UserCog, Boxes, LogOut, BriefcaseBusiness } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ModoCanchaArcade from './arcade/ModoCanchaArcade';
@@ -160,6 +160,14 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen, ocultar
             label="Control de Pagos"
             active={location.pathname === '/admin/pagos'}
             onClick={() => navigate('/admin/pagos')}
+          />
+        )}
+        {(user.rol === 'owner' || user.rol === 'superadmin') && (
+          <NavItem
+            icon={<BriefcaseBusiness size={18} />}
+            label="Relaciones CRM"
+            active={location.pathname === '/admin/crm'}
+            onClick={() => navigate('/admin/crm')}
           />
         )}
         {esStaff && (

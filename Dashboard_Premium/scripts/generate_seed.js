@@ -8,7 +8,7 @@ const POSICIONES = ['Base', 'Escolta', 'Alero', 'Ala-Pívot', 'Pívot'];
 const ETAPAS = ['Iniciación', 'Especialización', 'Alto Rendimiento'];
 const MENTALIDADES = ['Competitivo / Intenso', 'Estable / Resistente', 'Explosivo / Reactivo', 'Analítico / Concentrado'];
 const RECUPERACION = ['Óptimo', 'Óptimo', 'Óptimo', 'Agotamiento Activo', 'Fatiga Silenciosa']; // Weighted towards Óptimo
-const INTOLERANCIAS = ['Ninguna', 'Ninguna', 'Ninguna', 'Intolerancia a la Flexión', 'Intolerancia a la Extensión', 'Intolerancia a la Rotación con Extensión', 'Intolerancia a la Carga']; // Weighted towards Ninguna
+const INTOLERANCIAS = ['Ninguna', 'Ninguna', 'Ninguna', 'Déficit Cadena Posterior', 'Déficit Cadena Anterior', 'Intolerancia a la Rotación con Extensión', 'Intolerancia a Carga Axial']; // Weighted towards Ninguna
 
 const NOMBRES = ['Juan', 'Pedro', 'Miguel', 'Luis', 'Carlos', 'Andrés', 'Felipe', 'Santiago', 'Diego', 'Mateo', 'Sebastián', 'Alejandro', 'Daniel', 'David', 'Lucas', 'Nicolás', 'Martín', 'Gabriel', 'Tomás', 'Emiliano', 'Joaquín', 'Samuel', 'Benjamín', 'Leonardo', 'Maximiliano'];
 const APELLIDOS = ['García', 'Rodríguez', 'Martínez', 'López', 'González', 'Pérez', 'Gómez', 'Fernández', 'Ruiz', 'Díaz', 'Álvarez', 'Romero', 'Torres', 'Suárez', 'Ramírez', 'Flores', 'Vargas', 'Rojas', 'Molina', 'Castro', 'Ortiz', 'Silva', 'Ríos', 'Morales', 'Herrera'];
