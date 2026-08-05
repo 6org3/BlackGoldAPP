@@ -1,0 +1,12 @@
+[Unit]
+Description=Sincronizar señales CRM agregadas cada cuatro horas
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=4h
+RandomizedDelaySec=5min
+Persistent=true
+Unit=blackgold-crm-insights.service
+
+[Install]
+WantedBy=timers.target

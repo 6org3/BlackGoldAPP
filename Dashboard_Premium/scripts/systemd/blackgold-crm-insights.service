@@ -1,0 +1,8 @@
+[Unit]
+Description=Actualizar señales CRM agregadas para Content-OS
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/gorg3yj1n1/servicios/blackgold-crm-bridge/exportar_senales_crm_segundo_cerebro.sh /home/gorg3yj1n1/servicios/blackgold-crm-bridge/blackgold-crm-bridge.env /home/gorg3yj1n1/servicios/segundo-cerebro-crm-insights

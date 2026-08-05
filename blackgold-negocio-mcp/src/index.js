@@ -58,7 +58,12 @@ import {
 // Resuelto contra la ubicación del script, no contra process.cwd() (mismo
 // motivo que blackgold-mcp: un cliente MCP lanza este proceso con el cwd
 // del host, no el de este paquete).
-dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env") });
+// MCP usa stdout para JSON-RPC; cargar .env no puede escribir banners allí.
+// dotenv documenta `quiet: true` para suprimir ese mensaje de ejecución.
+dotenv.config({
+  path: path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env"),
+  quiet: true,
+});
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
