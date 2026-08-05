@@ -1,4 +1,4 @@
--- La clasificación de Jorge, padre y hermano se resuelve antes de que el
+-- La clasificación de CEO, Dirección y Marketing se resuelve antes de que el
 -- webhook entregue el evento a Lily. Los números viven exclusivamente en un
 -- secreto del adaptador; la base sólo conserva el rol operativo mínimo.
 ALTER TABLE public.crm_contactos
@@ -14,7 +14,7 @@ BEGIN
   ) THEN
     ALTER TABLE public.crm_contactos
       ADD CONSTRAINT crm_contactos_rol_interno_check
-      CHECK (rol_interno IS NULL OR rol_interno IN ('jorge', 'padre', 'hermano'));
+      CHECK (rol_interno IS NULL OR rol_interno IN ('ceo', 'direccion', 'marketing'));
   END IF;
 END;
 $$;
@@ -40,7 +40,7 @@ DECLARE
   v_ya_procesado boolean := false;
   v_rol_previo text;
 BEGIN
-  IF p_canal <> 'whatsapp' OR v_rol NOT IN ('jorge', 'padre', 'hermano') THEN
+  IF p_canal <> 'whatsapp' OR v_rol NOT IN ('ceo', 'direccion', 'marketing') THEN
     RAISE EXCEPTION 'Parámetros de contacto interno inválidos.';
   END IF;
 

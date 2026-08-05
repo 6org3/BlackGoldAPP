@@ -31,15 +31,15 @@ test("normaliza E.164 y no acepta identificadores ambiguos", () => {
 
 test("la allowlist interna exige exactamente los tres roles sin exponer números", () => {
   const allowlist = allowlistInternaDesdeJson(JSON.stringify([
-    { e164: "+593991234567", rol: "jorge" },
-    { e164: "+593981234567", rol: "padre" },
-    { e164: "+593971234567", rol: "hermano" },
+    { e164: "+593991234567", rol: "ceo" },
+    { e164: "+593981234567", rol: "direccion" },
+    { e164: "+593971234567", rol: "marketing" },
   ]));
   assert.ok(allowlist instanceof Map);
-  assert.equal(rolInternoParaIdentificador(allowlist, "593 99 123 4567"), "jorge");
+  assert.equal(rolInternoParaIdentificador(allowlist, "593 99 123 4567"), "ceo");
   assert.equal(rolInternoParaIdentificador(allowlist, "+593961234567"), null);
-  assert.equal(allowlistInternaDesdeJson('[{"e164":"+593991234567","rol":"jorge"}]'), null);
-  assert.equal(allowlistInternaDesdeJson('[{"e164":"+593991234567","rol":"jorge"},{"e164":"+593991234567","rol":"padre"},{"e164":"+593971234567","rol":"hermano"}]'), null);
+  assert.equal(allowlistInternaDesdeJson('[{"e164":"+593991234567","rol":"ceo"}]'), null);
+  assert.equal(allowlistInternaDesdeJson('[{"e164":"+593991234567","rol":"ceo"},{"e164":"+593991234567","rol":"direccion"},{"e164":"+593971234567","rol":"marketing"}]'), null);
 });
 
 test("solo pasa texto seguro a Lily y marca adjuntos para atención humana", () => {

@@ -44,10 +44,10 @@ export function normalizarWhatsApp(raw) {
   return /^[1-9][0-9]{7,14}$/.test(digitos) ? `+${digitos}` : null;
 }
 
-const ROLES_INTERNOS = new Set(["jorge", "padre", "hermano"]);
+const ROLES_INTERNOS = new Set(["ceo", "direccion", "marketing"]);
 
 // La allowlist vive como secreto de entorno, con forma:
-// [{"e164":"+593...","rol":"jorge"}, ...]. Nunca se devuelve el número
+// [{"e164":"+593...","rol":"ceo"}, ...]. Nunca se devuelve el número
 // desde esta función ni se incluye en mensajes de error o logs.
 export function allowlistInternaDesdeJson(raw) {
   if (typeof raw !== "string" || raw.length < 2 || raw.length > 2_000) return null;

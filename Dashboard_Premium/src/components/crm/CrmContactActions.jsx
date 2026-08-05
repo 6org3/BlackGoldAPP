@@ -261,7 +261,7 @@ function InternalContactForm({ contact, disabled, onAction }) {
     <ActionCard icon={Save} title="Contacto interno">
       <form onSubmit={submit} className="space-y-3">
         <p className="text-xs leading-relaxed" style={{ color: C.text2 }}>
-          Úsalo sólo para Jorge, su padre o su hermano tras verificar el contacto. Detiene oportunidades y seguimientos comerciales abiertos.
+          Úsalo sólo para CEO, Dirección o Marketing tras verificar el número remitente. Detiene oportunidades y seguimientos comerciales abiertos.
         </p>
         <label className="flex items-start gap-2 text-xs" style={{ color: C.text2 }}>
           <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} disabled={disabled} className="mt-1" />

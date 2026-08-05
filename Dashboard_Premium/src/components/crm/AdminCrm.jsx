@@ -13,6 +13,11 @@ const fecha = (value) => value
   : 'Sin registro';
 
 const etiquetasEtapa = (pipeline) => new Map((pipeline ?? []).map((stage) => [stage.codigo, stage.nombre]));
+const etiquetasRolInterno = {
+  ceo: 'CEO',
+  direccion: 'Dirección',
+  marketing: 'Marketing',
+};
 
 function EstadoCarga() {
   return (
@@ -116,7 +121,7 @@ function ContactWorkspace({ detail, stages, loading, saving, onAction }) {
           <div className="min-w-0">
             <h2 className="text-xl font-black break-words" style={{ color: C.text }}>{contact.nombre_preferido ?? 'Contacto sin nombre'}</h2>
             <p className="mt-1 text-xs" style={{ color: C.text3 }}>
-              {contact.tipo_relacion}{contact.rol_interno ? ` (${contact.rol_interno})` : ''} · origen {contact.origen_inicial.replaceAll('_', ' ')}
+              {contact.tipo_relacion}{contact.rol_interno ? ` (${etiquetasRolInterno[contact.rol_interno] ?? contact.rol_interno})` : ''} · origen {contact.origen_inicial.replaceAll('_', ' ')}
             </p>
           </div>
         </div>

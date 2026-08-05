@@ -64,11 +64,11 @@ vencido, de otro club o ya consumido no revela si existe un usuario.
 
 ## Contactos internos y clientes
 
-- La lista E.164 de Jorge, su padre y su hermano debe vivir como secreto de
+- La lista E.164 del CEO, Dirección y Marketing debe vivir como secreto de
   configuración del adaptador de WhatsApp bajo
   `CRM_INTERNAL_WHATSAPP_ALLOWLIST`. Su formato es un JSON con exactamente los
-  tres roles `jorge`, `padre` y `hermano`, por ejemplo
-  `[{"e164":"+...","rol":"jorge"}, ...]`. El adaptador falla cerrado si el
+  tres roles `ceo`, `direccion` y `marketing`, por ejemplo
+  `[{"e164":"+...","rol":"ceo"}, ...]`. El adaptador falla cerrado si el
   secreto falta o es inválido, clasifica el evento antes de entregarlo a Lily y
   sólo guarda el rol mínimo, nunca el número en el panel.
 - La transición comercial `ganado` no es, por sí sola, una prueba de alta en la

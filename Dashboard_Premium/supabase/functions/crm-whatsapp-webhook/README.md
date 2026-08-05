@@ -10,8 +10,8 @@ La función tiene `verify_jwt = false` porque Meta no presenta un JWT de Supabas
 - `POST`: exige `X-Hub-Signature-256` válida sobre los bytes crudos del cuerpo, con `META_WHATSAPP_APP_SECRET`.
 - No usa CORS, no recibe llamadas de navegador y limita cuerpos a 256 KiB.
 - Nunca registra ni devuelve el número de WhatsApp. El identificador normalizado va únicamente a la RPC privada del CRM.
-- Antes de enrutar, exige una allowlist secreta y completa de Jorge, padre y
-  hermano. Si falta o es inválida, falla cerrado; un interno no se entrega a
+- Antes de enrutar, exige una allowlist secreta y completa de CEO, Dirección y
+  Marketing. Si falta o es inválida, falla cerrado; un interno no se entrega a
   Lily como lead.
 - No persiste transcript, adjuntos, ubicación ni tarjetas de contacto. Texto e interacciones van a Lily en tránsito; contenido no textual se marca para atención humana.
 - Si Lily no está disponible, devuelve `503`. Meta reintenta y el CRM no duplica la interacción porque usa el ID del mensaje como clave idempotente. La pasarela de Lily debe deduplicar por `event_id`.
@@ -27,7 +27,7 @@ Configurar estos valores solo en Supabase Secrets; nunca en `.env` versionado ni
 | `LILY_INGRESS_URL` | URL HTTPS de la pasarela privada que entrega eventos a Lily. |
 | `LILY_INGRESS_ALLOWED_HOST` | Host exacto permitido para esa URL, para evitar SSRF. |
 | `LILY_INGRESS_SECRET` | Secreto HMAC usado para firmar la entrega a Lily. |
-| `CRM_INTERNAL_WHATSAPP_ALLOWLIST` | JSON secreto con exactamente `jorge`, `padre` y `hermano`: `[{"e164":"+...","rol":"jorge"}, ...]`. |
+| `CRM_INTERNAL_WHATSAPP_ALLOWLIST` | JSON secreto con exactamente `ceo`, `direccion` y `marketing`: `[{"e164":"+...","rol":"ceo"}, ...]`. |
 | `BLACK_GOLD_CLUB` | Opcional; por defecto `Black Gold`. |
 
 Supabase proporciona `SUPABASE_URL` y una clave de servidor (`SUPABASE_SECRET_KEYS` actual o `SUPABASE_SERVICE_ROLE_KEY` legado) al runtime. Esa clave no debe aparecer en el navegador ni en la configuración de Lily.

@@ -36,16 +36,16 @@ BEGIN
     'Contacto interno de prueba',
     'otro',
     'crm-local-interno-001',
-    'jorge'
+    'ceo'
   ) INTO v_interno;
   v_contacto_interno := (v_interno->>'contact_id')::uuid;
   IF v_interno->>'ruta' <> 'interno'
-     OR v_interno->>'rol_interno' <> 'jorge'
+     OR v_interno->>'rol_interno' <> 'ceo'
      OR COALESCE((v_interno->>'debe_responder')::boolean, true) THEN
     RAISE EXCEPTION 'La allowlist interna no bloqueó la ruta a Lily: %', v_interno;
   END IF;
   IF (SELECT tipo_relacion FROM public.crm_contactos WHERE id = v_contacto_interno) <> 'interno'
-     OR (SELECT rol_interno FROM public.crm_contactos WHERE id = v_contacto_interno) <> 'jorge' THEN
+     OR (SELECT rol_interno FROM public.crm_contactos WHERE id = v_contacto_interno) <> 'ceo' THEN
     RAISE EXCEPTION 'El contacto interno no conservó su rol mínimo.';
   END IF;
   SELECT count(*) INTO v_oportunidades_internas_abiertas

@@ -30,7 +30,7 @@ type RutaCrm = {
   tipo_relacion: "interno" | "lead" | "cliente" | "no_contactar";
   etapa_codigo?: string | null;
   nombre_preferido?: string | null;
-  rol_interno?: "jorge" | "padre" | "hermano" | null;
+  rol_interno?: "ceo" | "direccion" | "marketing" | null;
   ya_procesado?: boolean;
   debe_responder: boolean;
 };
