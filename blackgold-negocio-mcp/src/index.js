@@ -43,6 +43,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
 import {
+  finDiaComercialISO,
+  hoyComercialISO,
+  inicioDiaComercialISO,
+  sumarDiasCalendarioISO,
+} from "./crm-report-time.js";
+import {
   CRM_CANALES,
   CRM_ETAPAS,
   CRM_INTENCIONES,
@@ -233,17 +239,6 @@ async function obtenerOportunidadCrmAutorizada(oportunidadId) {
   }
 
   return { oportunidad };
-}
-
-function hoyISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function sumarDiasISO(fechaISO, dias) {
-  const d = new Date(fechaISO + "T00:00:00");
-  d.setDate(d.getDate() + dias);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function diasEntre(desdeISO, hastaISO) {
@@ -467,8 +462,8 @@ server.tool(
   },
   async ({ desde, hasta, club }) => {
     try {
-      const hastaEf = hasta || hoyISO();
-      const desdeEf = desde || sumarDiasISO(hastaEf, -90);
+      const hastaEf = hasta || hoyComercialISO();
+      const desdeEf = desde || sumarDiasCalendarioISO(hastaEf, -90);
       if (diasEntre(desdeEf, hastaEf) < 0) return textoError("'desde' no puede ser posterior a 'hasta'.");
 
       let q = supabase
@@ -694,8 +689,8 @@ server.tool(
       }
 
       const umbral = umbral_dias ?? 0;
-      const hoy = hoyISO();
-      const fechaCorte = sumarDiasISO(hoy, -umbral);
+      const hoy = hoyComercialISO();
+      const fechaCorte = sumarDiasCalendarioISO(hoy, -umbral);
 
       let q = supabase
         .from("pagos")
@@ -910,7 +905,7 @@ server.tool(
       }
 
       const registro = {
-        fecha: fecha || hoyISO(),
+        fecha: fecha || hoyComercialISO(),
         monto: round2(monto),
         categoria,
         descripcion: descripcion.trim(),
@@ -953,7 +948,7 @@ server.tool(
   async ({ desde, hasta, categoria, club }) => {
     try {
       const hoy = new Date();
-      const hastaEf = hasta || hoyISO();
+      const hastaEf = hasta || hoyComercialISO();
       const desdeEf = desde || `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
       if (diasEntre(desdeEf, hastaEf) < 0) return textoError("'desde' no puede ser posterior a 'hasta'.");
 
@@ -1415,31 +1410,34 @@ server.registerTool(
         return crmError("El club solicitado no está autorizado para este agente.");
       }
 
-      const hastaEf = hasta || hoyISO();
-      const desdeEf = desde || sumarDiasISO(hastaEf, -30);
+      const hastaEf = hasta || hoyComercialISO();
+      const desdeEf = desde || sumarDiasCalendarioISO(hastaEf, -30);
       if (!esFechaISO(desdeEf) || !esFechaISO(hastaEf) || diasEntre(desdeEf, hastaEf) < 0) {
         return crmError("El rango de fechas CRM es inválido.");
       }
+      const inicioRango = inicioDiaComercialISO(desdeEf);
+      const finRango = finDiaComercialISO(hastaEf);
+      const inicioHoy = inicioDiaComercialISO(hoyComercialISO());
       const [{ data: oportunidades, error: errorOportunidades }, { data: actividades, error: errorActividades }, { count: totalVencidas, error: errorVencidas }] = await Promise.all([
         supabase
           .from("crm_oportunidades")
           .select("etapa_codigo")
           .eq("club", club)
-          .gte("created_at", `${desdeEf}T00:00:00.000Z`)
-          .lte("created_at", `${hastaEf}T23:59:59.999Z`),
+          .gte("created_at", inicioRango)
+          .lte("created_at", finRango),
         supabase
           .from("crm_actividades")
           .select("estado, vencimiento_at, crm_contactos!inner(club)")
           .eq("estado", "pendiente")
           .eq("crm_contactos.club", club)
-          .gte("vencimiento_at", `${desdeEf}T00:00:00.000Z`)
-          .lte("vencimiento_at", `${hastaEf}T23:59:59.999Z`),
+          .gte("vencimiento_at", inicioRango)
+          .lte("vencimiento_at", finRango),
         supabase
           .from("crm_actividades")
           .select("id, crm_contactos!inner(club)", { count: "exact", head: true })
           .eq("estado", "pendiente")
           .eq("crm_contactos.club", club)
-          .lt("vencimiento_at", `${hoyISO()}T00:00:00.000Z`),
+          .lt("vencimiento_at", inicioHoy),
       ]);
       const queryError = errorOportunidades || errorActividades || errorVencidas;
       if (queryError) return esErrorCrmNoAplicado(queryError) ? textoErrorCrmBaseNoAplicada() : crmError(queryError.message);
