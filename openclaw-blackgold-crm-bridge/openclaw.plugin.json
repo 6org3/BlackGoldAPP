@@ -1,0 +1,50 @@
+{
+  "id": "blackgold-crm-bridge",
+  "name": "Black Gold CRM Bridge",
+  "description": "Registra ingresos de WhatsApp en el CRM privado y entrega a Lily solo el contexto mínimo.",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": false,
+        "description": "Activa la recepción CRM solo cuando la allowlist interna ya está configurada."
+      },
+      "club": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120,
+        "default": "Black Gold"
+      },
+      "lilyAgentId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80,
+        "default": "lilith"
+      },
+      "directionAgentId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80,
+        "default": "main",
+        "description": "Agente que atiende el grupo interno de Dirección. Sólo recibe contexto de roles verificados."
+      },
+      "whatsappAccountId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80,
+        "default": "direccion"
+      },
+      "credentialsFile": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512,
+        "description": "Archivo local mode 0600 con SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY y CRM_INTERNAL_WHATSAPP_ALLOWLIST."
+      }
+    }
+  }
+}

@@ -261,27 +261,35 @@ export function getRecoveryRecommendations(atleta) {
       break;
   }
 
-  // Recomendaciones por intolerancia Milo
-  if (atleta.intolerancia_milo && atleta.intolerancia_milo !== 'Ninguna') {
+  // La columna canónica es restriccion_movilidad. Conservamos el fallback
+  // legacy sólo para que perfiles aún no migrados no pierdan la recomendación.
+  const restriccionMovilidad = atleta.restriccion_movilidad ?? atleta.intolerancia_milo;
+  if (restriccionMovilidad && restriccionMovilidad !== 'Ninguna') {
     recommendations.push(
-      `Intolerancia registrada: ${atleta.intolerancia_milo}. Revisar selección de ejercicios antes de cada sesión.`,
+      `Restricción registrada: ${restriccionMovilidad}. Revisar selección de ejercicios antes de cada sesión.`,
     );
 
-    if (atleta.intolerancia_milo === 'Intolerancia a la Flexión') {
+    if (restriccionMovilidad === 'Déficit Cadena Posterior') {
       recommendations.push(
         'Incluir movilidad de cadera (90/90, Hip Flexor Stretch) en calentamiento.',
       );
     }
 
-    if (atleta.intolerancia_milo === 'Intolerancia a la Extensión') {
+    if (restriccionMovilidad === 'Déficit Cadena Anterior') {
       recommendations.push(
         'Fortalecer core anterior (Dead Bug, Plancha) para estabilizar columna neutra.',
       );
     }
 
-    if (atleta.intolerancia_milo === 'Intolerancia a la Carga') {
+    if (restriccionMovilidad === 'Intolerancia a Carga Axial') {
       recommendations.push(
         'Priorizar progresión con isometría antes de avanzar a cargas dinámicas.',
+      );
+    }
+
+    if (restriccionMovilidad === 'Intolerancia a la Rotación con Extensión') {
+      recommendations.push(
+        'Evitar rotación lumbar con extensión bajo carga y priorizar control anti-rotación.',
       );
     }
   }

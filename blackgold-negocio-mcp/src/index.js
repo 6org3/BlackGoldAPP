@@ -42,11 +42,34 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { calcularCategoriaFEB } from "../../packages/analytics-core/categoriaFEB.js";
+import {
+  finDiaComercialISO,
+  hoyComercialISO,
+  inicioDiaComercialISO,
+  sumarDiasCalendarioISO,
+} from "./crm-report-time.js";
+import {
+  CRM_CANALES,
+  CRM_ETAPAS,
+  CRM_INTENCIONES,
+  CRM_SENTIDOS,
+  CRM_TIPOS_ACTIVIDAD,
+  esActorCrmValido,
+  esClubCrmPermitido,
+  esFechaISO,
+  parsearClubesCrmPermitidos,
+  tieneActualizacionPreferencias,
+} from "./crm-utils.js";
 
 // Resuelto contra la ubicación del script, no contra process.cwd() (mismo
 // motivo que blackgold-mcp: un cliente MCP lanza este proceso con el cwd
 // del host, no el de este paquete).
-dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env") });
+// MCP usa stdout para JSON-RPC; cargar .env no puede escribir banners allí.
+// dotenv documenta `quiet: true` para suprimir ese mensaje de ejecución.
+dotenv.config({
+  path: path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env"),
+  quiet: true,
+});
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -62,7 +85,7 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const server = new McpServer({
   name: "blackgold-negocio-mcp",
-  version: "0.1.0"
+  version: "0.2.0"
 });
 
 // ============================================================================
@@ -91,6 +114,21 @@ const ESTADOS_LEAD = ["pendiente", "activo", "rechazado"];
 const ESTADOS_PAGO_ABIERTOS = ["Pendiente", "Por Verificar"];
 const ESTADOS_PAGO_PARCIALES = ["Abonado", "Vencido"];
 
+// CRM comercial: estas constantes reflejan las restricciones de la migración
+// crm_relaciones_black_gold. Los nuevos tools solo aceptan UUIDs CRM; jamás
+// reciben, buscan ni devuelven teléfonos, correos o IDs de login de la app.
+const CRM_ACTOR_ID = esActorCrmValido(process.env.CRM_ACTOR_ID)
+  ? process.env.CRM_ACTOR_ID
+  : "operador_mcp";
+const CRM_ALLOWED_CLUBS = new Set(parsearClubesCrmPermitidos(process.env.CRM_ALLOWED_CLUBS));
+
+if (CRM_ALLOWED_CLUBS.size === 0) {
+  console.error(
+    "[blackgold-negocio-mcp] Las herramientas CRM están deshabilitadas: define CRM_ALLOWED_CLUBS " +
+    "con uno o más clubes exactos antes de usarlas."
+  );
+}
+
 function textoError(mensaje) {
   return { content: [{ type: "text", text: `Error: ${mensaje}` }] };
 }
@@ -99,15 +137,108 @@ function textoOk(texto) {
   return { content: [{ type: "text", text: texto }] };
 }
 
-function hoyISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function crmError(mensaje) {
+  return { isError: true, content: [{ type: "text", text: `Error CRM: ${mensaje}` }] };
 }
 
-function sumarDiasISO(fechaISO, dias) {
-  const d = new Date(fechaISO + "T00:00:00");
-  d.setDate(d.getDate() + dias);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+function crmOk(titulo, data) {
+  return {
+    content: [{ type: "text", text: `${titulo}:\n${JSON.stringify(data, null, 2)}` }],
+    structuredContent: data,
+  };
+}
+
+function exigirClubesCrmConfigurados() {
+  if (CRM_ALLOWED_CLUBS.size > 0) return null;
+  return crmError(
+    "Las herramientas CRM no están configuradas de forma segura. Define CRM_ALLOWED_CLUBS " +
+    "con uno o más clubes exactos en el entorno del proceso MCP."
+  );
+}
+
+function recursoCrmNoDisponible() {
+  // Mismo resultado para un UUID inexistente o fuera del alcance configurado:
+  // así el MCP no se convierte en un oráculo de contactos entre clubes.
+  return crmError("El recurso CRM solicitado no está disponible para este agente.");
+}
+
+function esErrorCrmNoAplicado(error) {
+  const mensaje = String(error?.message || "");
+  return error?.code === "42P01" || error?.code === "PGRST202"
+    || /crm_(contactos|oportunidades|preferencias|actividades|interacciones)/i.test(mensaje)
+    || /crm_(recibir_contacto_canal|actualizar_etapa_oportunidad|registrar_interaccion)/i.test(mensaje);
+}
+
+function textoErrorCrmBaseNoAplicada() {
+  return crmError(
+    "El esquema CRM todavía no está disponible en la base. Aplica primero la migración " +
+    "20260804060809_crm_relaciones_black_gold.sql mediante el flujo controlado de Supabase."
+  );
+}
+
+async function obtenerContactoCrmAutorizado(contactId) {
+  const configuracion = exigirClubesCrmConfigurados();
+  if (configuracion) return { respuesta: configuracion };
+
+  const { data: contacto, error } = await supabase
+    .from("crm_contactos")
+    .select("id, club, tipo_relacion, estado, nombre_preferido")
+    .eq("id", contactId)
+    .maybeSingle();
+
+  if (error) {
+    return {
+      respuesta: esErrorCrmNoAplicado(error) ? textoErrorCrmBaseNoAplicada() : crmError(error.message),
+    };
+  }
+  if (!contacto || !esClubCrmPermitido(contacto.club, CRM_ALLOWED_CLUBS)) {
+    return { respuesta: recursoCrmNoDisponible() };
+  }
+  return { contacto };
+}
+
+async function obtenerOportunidadCrmAutorizada(oportunidadId) {
+  const configuracion = exigirClubesCrmConfigurados();
+  if (configuracion) return { respuesta: configuracion };
+
+  const { data: oportunidad, error: errorOportunidad } = await supabase
+    .from("crm_oportunidades")
+    .select("id, club, contact_id")
+    .eq("id", oportunidadId)
+    .maybeSingle();
+  if (errorOportunidad) {
+    return {
+      respuesta: esErrorCrmNoAplicado(errorOportunidad)
+        ? textoErrorCrmBaseNoAplicada()
+        : crmError(errorOportunidad.message),
+    };
+  }
+  if (!oportunidad || !esClubCrmPermitido(oportunidad.club, CRM_ALLOWED_CLUBS)) {
+    return { respuesta: recursoCrmNoDisponible() };
+  }
+
+  // Aunque la RPC crea ambas filas con el mismo club, comprobamos la relación
+  // antes de escribir para que una fila alterada fuera de ese flujo no permita
+  // saltar el aislamiento del proceso MCP.
+  const { data: contacto, error: errorContacto } = await supabase
+    .from("crm_contactos")
+    .select("id, club")
+    .eq("id", oportunidad.contact_id)
+    .maybeSingle();
+  if (errorContacto) {
+    return {
+      respuesta: esErrorCrmNoAplicado(errorContacto)
+        ? textoErrorCrmBaseNoAplicada()
+        : crmError(errorContacto.message),
+    };
+  }
+  if (!contacto
+    || contacto.club !== oportunidad.club
+    || !esClubCrmPermitido(contacto.club, CRM_ALLOWED_CLUBS)) {
+    return { respuesta: recursoCrmNoDisponible() };
+  }
+
+  return { oportunidad };
 }
 
 function diasEntre(desdeISO, hastaISO) {
@@ -331,8 +462,8 @@ server.tool(
   },
   async ({ desde, hasta, club }) => {
     try {
-      const hastaEf = hasta || hoyISO();
-      const desdeEf = desde || sumarDiasISO(hastaEf, -90);
+      const hastaEf = hasta || hoyComercialISO();
+      const desdeEf = desde || sumarDiasCalendarioISO(hastaEf, -90);
       if (diasEntre(desdeEf, hastaEf) < 0) return textoError("'desde' no puede ser posterior a 'hasta'.");
 
       let q = supabase
@@ -558,8 +689,8 @@ server.tool(
       }
 
       const umbral = umbral_dias ?? 0;
-      const hoy = hoyISO();
-      const fechaCorte = sumarDiasISO(hoy, -umbral);
+      const hoy = hoyComercialISO();
+      const fechaCorte = sumarDiasCalendarioISO(hoy, -umbral);
 
       let q = supabase
         .from("pagos")
@@ -774,7 +905,7 @@ server.tool(
       }
 
       const registro = {
-        fecha: fecha || hoyISO(),
+        fecha: fecha || hoyComercialISO(),
         monto: round2(monto),
         categoria,
         descripcion: descripcion.trim(),
@@ -817,7 +948,7 @@ server.tool(
   async ({ desde, hasta, categoria, club }) => {
     try {
       const hoy = new Date();
-      const hastaEf = hasta || hoyISO();
+      const hastaEf = hasta || hoyComercialISO();
       const desdeEf = desde || `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-01`;
       if (diasEntre(desdeEf, hastaEf) < 0) return textoError("'desde' no puede ser posterior a 'hasta'.");
 
@@ -873,6 +1004,463 @@ server.tool(
       return textoOk(JSON.stringify(resumen, null, 2));
     } catch (err) {
       return textoError(err.message);
+    }
+  }
+);
+
+// ============================================================================
+// CRM de relaciones Black Gold (v0.2)
+//
+// Estas tools son la capa de trabajo de Lily/Vegapunk sobre el CRM comercial.
+// No hay un tool de búsqueda por teléfono, creación desde WhatsApp ni envío de
+// mensajes: el primero pertenece al adaptador privado del canal y el segundo
+// exige revisión humana en el proveedor de mensajería.
+// ============================================================================
+
+const crmUuid = z.string().uuid();
+const crmContextoOutput = z.object({
+  contact_id: crmUuid,
+  club: z.string(),
+  tipo_relacion: z.enum(["interno", "lead", "cliente", "no_contactar"]),
+  estado: z.enum(["activo", "archivado"]),
+  nombre_preferido: z.string().nullable(),
+  preferencias: z.object({
+    tratamiento_preferido: z.string().nullable(),
+    canal_preferido: z.string().nullable(),
+    franja_preferida: z.string().nullable(),
+    estilo_mensaje_preferido: z.string().nullable(),
+    notas_operativas: z.string().nullable(),
+  }).nullable(),
+  oportunidad_activa: z.object({
+    oportunidad_id: crmUuid,
+    etapa_codigo: z.enum(CRM_ETAPAS),
+    interes_principal: z.string().nullable(),
+    proximo_paso_en: z.string().nullable(),
+  }).nullable(),
+  actividades_pendientes: z.array(z.object({
+    actividad_id: crmUuid,
+    tipo: z.enum(CRM_TIPOS_ACTIVIDAD),
+    asunto: z.string(),
+    vencimiento_at: z.string(),
+    asignado_a: z.string(),
+  })),
+});
+
+server.registerTool(
+  "blackgold_crm_obtener_contexto_contacto",
+  {
+    title: "Obtener contexto CRM seguro",
+    description: "Devuelve el contexto comercial y preferencias de UN contacto por su contact_id UUID. Nunca devuelve teléfonos, correos, identificadores de canal ni datos de atletas/representantes.",
+    inputSchema: z.object({
+      contact_id: crmUuid.describe("UUID CRM recibido desde el adaptador privado o una herramienta CRM anterior."),
+    }).strict(),
+    outputSchema: crmContextoOutput,
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  async ({ contact_id }) => {
+    try {
+      const acceso = await obtenerContactoCrmAutorizado(contact_id);
+      if (acceso.respuesta) return acceso.respuesta;
+      const { contacto } = acceso;
+
+      // Un no-contactar se devuelve solo como estado de seguridad: no se carga
+      // perfil ni tareas que puedan invitar al agente a continuar el contacto.
+      if (contacto.tipo_relacion === "no_contactar") {
+        return crmOk("Contacto bloqueado para seguimiento", {
+          contact_id: contacto.id,
+          club: contacto.club,
+          tipo_relacion: contacto.tipo_relacion,
+          estado: contacto.estado,
+          nombre_preferido: contacto.nombre_preferido || null,
+          preferencias: null,
+          oportunidad_activa: null,
+          actividades_pendientes: [],
+        });
+      }
+
+      const [{ data: preferencias, error: errorPreferencias }, { data: oportunidad, error: errorOportunidad }, { data: actividades, error: errorActividades }] = await Promise.all([
+        supabase
+          .from("crm_preferencias")
+          .select("tratamiento_preferido, canal_preferido, franja_preferida, estilo_mensaje_preferido, notas_operativas")
+          .eq("contact_id", contact_id)
+          .maybeSingle(),
+        supabase
+          .from("crm_oportunidades")
+          .select("id, etapa_codigo, interes_principal, proximo_paso_en")
+          .eq("contact_id", contact_id)
+          .eq("club", contacto.club)
+          .not("etapa_codigo", "in", "(ganado,perdido,no_contactar)")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("crm_actividades")
+          .select("id, tipo, asunto, vencimiento_at, asignado_a")
+          .eq("contact_id", contact_id)
+          .eq("estado", "pendiente")
+          .order("vencimiento_at", { ascending: true })
+          .limit(10),
+      ]);
+      const subError = errorPreferencias || errorOportunidad || errorActividades;
+      if (subError) return esErrorCrmNoAplicado(subError) ? textoErrorCrmBaseNoAplicada() : crmError(subError.message);
+
+      return crmOk("Contexto CRM", {
+        contact_id: contacto.id,
+        club: contacto.club,
+        tipo_relacion: contacto.tipo_relacion,
+        estado: contacto.estado,
+        nombre_preferido: contacto.nombre_preferido || null,
+        preferencias: preferencias ? {
+          tratamiento_preferido: preferencias.tratamiento_preferido || null,
+          canal_preferido: preferencias.canal_preferido || null,
+          franja_preferida: preferencias.franja_preferida || null,
+          estilo_mensaje_preferido: preferencias.estilo_mensaje_preferido || null,
+          notas_operativas: preferencias.notas_operativas || null,
+        } : null,
+        oportunidad_activa: oportunidad ? {
+          oportunidad_id: oportunidad.id,
+          etapa_codigo: oportunidad.etapa_codigo,
+          interes_principal: oportunidad.interes_principal || null,
+          proximo_paso_en: oportunidad.proximo_paso_en || null,
+        } : null,
+        actividades_pendientes: (actividades || []).map((actividad) => ({
+          actividad_id: actividad.id,
+          tipo: actividad.tipo,
+          asunto: actividad.asunto,
+          vencimiento_at: actividad.vencimiento_at,
+          asignado_a: actividad.asignado_a,
+        })),
+      });
+    } catch (error) {
+      return crmError(error.message);
+    }
+  }
+);
+
+server.registerTool(
+  "blackgold_crm_actualizar_etapa",
+  {
+    title: "Actualizar etapa de oportunidad CRM",
+    description: "Mueve una oportunidad entre etapas comerciales permitidas y deja auditoría. No envía mensajes ni revela datos de contacto.",
+    inputSchema: z.object({
+      oportunidad_id: crmUuid,
+      etapa_codigo: z.enum(CRM_ETAPAS.filter((etapa) => etapa !== "no_contactar")).describe("Usa blackgold_crm_marcar_no_contactar para bloquear el seguimiento y cancelar tareas."),
+      motivo: z.string().trim().min(1).max(500).optional().describe("Justificación operativa breve; no copies el transcript del cliente."),
+      proximo_paso_en: z.string().datetime({ offset: true }).optional().describe("Fecha y hora ISO 8601 del siguiente paso, con zona horaria."),
+    }).strict(),
+    outputSchema: z.object({
+      oportunidad_id: crmUuid,
+      contact_id: crmUuid,
+      etapa_codigo: z.enum(CRM_ETAPAS),
+      proximo_paso_en: z.string().nullable(),
+    }),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  async ({ oportunidad_id, etapa_codigo, motivo, proximo_paso_en }) => {
+    try {
+      const acceso = await obtenerOportunidadCrmAutorizada(oportunidad_id);
+      if (acceso.respuesta) return acceso.respuesta;
+
+      const { data, error } = await supabase.rpc("crm_actualizar_etapa_oportunidad", {
+        p_oportunidad_id: oportunidad_id,
+        p_etapa_codigo: etapa_codigo,
+        p_actor: CRM_ACTOR_ID,
+        p_motivo: motivo || null,
+        p_proximo_paso_en: proximo_paso_en || null,
+      });
+      if (error) return esErrorCrmNoAplicado(error) ? textoErrorCrmBaseNoAplicada() : crmError(error.message);
+      return crmOk("Etapa CRM actualizada", {
+        oportunidad_id: data.oportunidad_id,
+        contact_id: data.contact_id,
+        etapa_codigo: data.etapa_codigo,
+        proximo_paso_en: data.proximo_paso_en || null,
+      });
+    } catch (error) {
+      return crmError(error.message);
+    }
+  }
+);
+
+server.registerTool(
+  "blackgold_crm_registrar_interaccion",
+  {
+    title: "Registrar interacción CRM",
+    description: "Registra un evento comercial resumido para un contact_id. El resumen es operativo y breve: no guardar transcript, teléfono, correo, adjuntos ni otros datos sensibles.",
+    inputSchema: z.object({
+      contact_id: crmUuid,
+      oportunidad_id: crmUuid.optional(),
+      canal: z.enum(CRM_CANALES),
+      sentido: z.enum(CRM_SENTIDOS),
+      intencion: z.enum(CRM_INTENCIONES).optional(),
+      resumen_operativo: z.string().trim().min(1).max(1000).optional(),
+    }).strict(),
+    outputSchema: z.object({
+      interaccion_id: crmUuid,
+      contact_id: crmUuid,
+      oportunidad_id: crmUuid.nullable(),
+      created_at: z.string(),
+    }),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  async ({ contact_id, oportunidad_id, canal, sentido, intencion, resumen_operativo }) => {
+    try {
+      const accesoContacto = await obtenerContactoCrmAutorizado(contact_id);
+      if (accesoContacto.respuesta) return accesoContacto.respuesta;
+      if (oportunidad_id) {
+        const accesoOportunidad = await obtenerOportunidadCrmAutorizada(oportunidad_id);
+        if (accesoOportunidad.respuesta) return accesoOportunidad.respuesta;
+        if (accesoOportunidad.oportunidad.contact_id !== contact_id) return recursoCrmNoDisponible();
+      }
+
+      const { data, error } = await supabase.rpc("crm_registrar_interaccion", {
+        p_contact_id: contact_id,
+        p_oportunidad_id: oportunidad_id || null,
+        p_canal: canal,
+        p_sentido: sentido,
+        p_intencion: intencion || null,
+        p_resumen_operativo: resumen_operativo || null,
+        p_actor: CRM_ACTOR_ID,
+      });
+      if (error) return esErrorCrmNoAplicado(error) ? textoErrorCrmBaseNoAplicada() : crmError(error.message);
+      return crmOk("Interacción CRM registrada", {
+        interaccion_id: data.interaccion_id,
+        contact_id: data.contact_id,
+        oportunidad_id: data.oportunidad_id || null,
+        created_at: data.created_at,
+      });
+    } catch (error) {
+      return crmError(error.message);
+    }
+  }
+);
+
+server.registerTool(
+  "blackgold_crm_actualizar_preferencias",
+  {
+    title: "Actualizar preferencias CRM",
+    description: "Guarda preferencias de trato y comunicación de un contacto identificado por UUID. No uses este campo para transcripciones ni datos de contacto crudos.",
+    inputSchema: z.object({
+      contact_id: crmUuid,
+      tratamiento_preferido: z.string().trim().min(1).max(80).optional(),
+      canal_preferido: z.enum(CRM_CANALES).optional(),
+      franja_preferida: z.string().trim().min(1).max(120).optional(),
+      estilo_mensaje_preferido: z.string().trim().min(1).max(120).optional(),
+      notas_operativas: z.string().trim().min(1).max(1000).optional(),
+    }).strict(),
+    outputSchema: z.object({
+      contact_id: crmUuid,
+      tratamiento_preferido: z.string().nullable(),
+      canal_preferido: z.string().nullable(),
+      franja_preferida: z.string().nullable(),
+      estilo_mensaje_preferido: z.string().nullable(),
+    }),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  async ({ contact_id, tratamiento_preferido, canal_preferido, franja_preferida, estilo_mensaje_preferido, notas_operativas }) => {
+    try {
+      const cambios = { tratamiento_preferido, canal_preferido, franja_preferida, estilo_mensaje_preferido, notas_operativas };
+      if (!tieneActualizacionPreferencias(cambios)) return crmError("Indica al menos una preferencia para actualizar.");
+      const acceso = await obtenerContactoCrmAutorizado(contact_id);
+      if (acceso.respuesta) return acceso.respuesta;
+
+      const { data, error } = await supabase.rpc("crm_actualizar_preferencias", {
+        p_contact_id: contact_id,
+        p_tratamiento_preferido: tratamiento_preferido || null,
+        p_canal_preferido: canal_preferido || null,
+        p_franja_preferida: franja_preferida || null,
+        p_estilo_mensaje_preferido: estilo_mensaje_preferido || null,
+        p_notas_operativas: notas_operativas || null,
+        p_actor: CRM_ACTOR_ID,
+      });
+      if (error) return esErrorCrmNoAplicado(error) ? textoErrorCrmBaseNoAplicada() : crmError(error.message);
+      return crmOk("Preferencias CRM actualizadas", {
+        contact_id: data.contact_id,
+        tratamiento_preferido: data.tratamiento_preferido || null,
+        canal_preferido: data.canal_preferido || null,
+        franja_preferida: data.franja_preferida || null,
+        estilo_mensaje_preferido: data.estilo_mensaje_preferido || null,
+      });
+    } catch (error) {
+      return crmError(error.message);
+    }
+  }
+);
+
+server.registerTool(
+  "blackgold_crm_programar_actividad",
+  {
+    title: "Programar seguimiento CRM",
+    description: "Programa una tarea de seguimiento, llamada o prueba para un contacto. No ejecuta ni agenda un mensaje externo.",
+    inputSchema: z.object({
+      contact_id: crmUuid,
+      oportunidad_id: crmUuid.optional(),
+      tipo: z.enum(CRM_TIPOS_ACTIVIDAD),
+      asunto: z.string().trim().min(1).max(240).describe("Siguiente acción concreta; evita datos sensibles innecesarios."),
+      vencimiento_at: z.string().datetime({ offset: true }),
+      asignado_a: z.string().trim().regex(/^[a-z0-9_-]{2,64}$/).describe("ID operativo, por ejemplo lily o direccion."),
+    }).strict(),
+    outputSchema: z.object({
+      actividad_id: crmUuid,
+      contact_id: crmUuid,
+      oportunidad_id: crmUuid.nullable(),
+      vencimiento_at: z.string(),
+      estado: z.literal("pendiente"),
+    }),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  },
+  async ({ contact_id, oportunidad_id, tipo, asunto, vencimiento_at, asignado_a }) => {
+    try {
+      const accesoContacto = await obtenerContactoCrmAutorizado(contact_id);
+      if (accesoContacto.respuesta) return accesoContacto.respuesta;
+      if (oportunidad_id) {
+        const accesoOportunidad = await obtenerOportunidadCrmAutorizada(oportunidad_id);
+        if (accesoOportunidad.respuesta) return accesoOportunidad.respuesta;
+        if (accesoOportunidad.oportunidad.contact_id !== contact_id) return recursoCrmNoDisponible();
+      }
+
+      const { data, error } = await supabase.rpc("crm_programar_actividad", {
+        p_contact_id: contact_id,
+        p_oportunidad_id: oportunidad_id || null,
+        p_tipo: tipo,
+        p_asunto: asunto,
+        p_vencimiento_at: vencimiento_at,
+        p_asignado_a: asignado_a,
+        p_actor: CRM_ACTOR_ID,
+      });
+      if (error) return esErrorCrmNoAplicado(error) ? textoErrorCrmBaseNoAplicada() : crmError(error.message);
+      return crmOk("Actividad CRM programada", {
+        actividad_id: data.actividad_id,
+        contact_id: data.contact_id,
+        oportunidad_id: data.oportunidad_id || null,
+        vencimiento_at: data.vencimiento_at,
+        estado: data.estado,
+      });
+    } catch (error) {
+      return crmError(error.message);
+    }
+  }
+);
+
+server.registerTool(
+  "blackgold_crm_marcar_no_contactar",
+  {
+    title: "Bloquear seguimiento comercial",
+    description: "Marca a un contacto como no contactar, cierra oportunidades abiertas y cancela actividades pendientes. Reactivarlo requiere una decisión humana fuera del MCP.",
+    inputSchema: z.object({
+      contact_id: crmUuid,
+      motivo: z.string().trim().min(1).max(500).describe("Motivo operativo breve, por ejemplo 'solicitó no recibir seguimiento'."),
+    }).strict(),
+    outputSchema: z.object({
+      contact_id: crmUuid,
+      tipo_relacion: z.literal("no_contactar"),
+      oportunidades_cerradas: z.number().int().nonnegative(),
+      reactivacion_requiere: z.literal("decision_humana_documentada"),
+    }),
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  async ({ contact_id, motivo }) => {
+    try {
+      const acceso = await obtenerContactoCrmAutorizado(contact_id);
+      if (acceso.respuesta) return acceso.respuesta;
+
+      const { data, error } = await supabase.rpc("crm_marcar_no_contactar", {
+        p_contact_id: contact_id,
+        p_motivo: motivo,
+        p_actor: CRM_ACTOR_ID,
+      });
+      if (error) return esErrorCrmNoAplicado(error) ? textoErrorCrmBaseNoAplicada() : crmError(error.message);
+      return crmOk("Contacto bloqueado para seguimiento", {
+        contact_id: data.contact_id,
+        tipo_relacion: data.tipo_relacion,
+        oportunidades_cerradas: data.oportunidades_cerradas,
+        reactivacion_requiere: data.reactivacion_requiere,
+      });
+    } catch (error) {
+      return crmError(error.message);
+    }
+  }
+);
+
+server.registerTool(
+  "blackgold_crm_resumen_comercial",
+  {
+    title: "Resumir pipeline comercial",
+    description: "Devuelve métricas agregadas de oportunidades y actividades para dirección. No incluye nombres, teléfonos ni otra información personal.",
+    inputSchema: z.object({
+      club: z.string().trim().min(1).max(120).describe("Club exacto; debe indicarse explícitamente para preservar aislamiento."),
+      desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      hasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    }).strict(),
+    outputSchema: z.object({
+      club: z.string(),
+      rango: z.object({ desde: z.string(), hasta: z.string() }),
+      oportunidades_creadas: z.number().int().nonnegative(),
+      por_etapa: z.array(z.object({ etapa_codigo: z.enum(CRM_ETAPAS), total: z.number().int().nonnegative() })),
+      ganadas: z.number().int().nonnegative(),
+      perdidas: z.number().int().nonnegative(),
+      actividades: z.object({ pendientes_en_rango: z.number().int().nonnegative(), vencidas_hoy: z.number().int().nonnegative() }),
+    }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  async ({ club, desde, hasta }) => {
+    try {
+      const configuracion = exigirClubesCrmConfigurados();
+      if (configuracion) return configuracion;
+      if (!esClubCrmPermitido(club, CRM_ALLOWED_CLUBS)) {
+        return crmError("El club solicitado no está autorizado para este agente.");
+      }
+
+      const hastaEf = hasta || hoyComercialISO();
+      const desdeEf = desde || sumarDiasCalendarioISO(hastaEf, -30);
+      if (!esFechaISO(desdeEf) || !esFechaISO(hastaEf) || diasEntre(desdeEf, hastaEf) < 0) {
+        return crmError("El rango de fechas CRM es inválido.");
+      }
+      const inicioRango = inicioDiaComercialISO(desdeEf);
+      const finRango = finDiaComercialISO(hastaEf);
+      const inicioHoy = inicioDiaComercialISO(hoyComercialISO());
+      const [{ data: oportunidades, error: errorOportunidades }, { data: actividades, error: errorActividades }, { count: totalVencidas, error: errorVencidas }] = await Promise.all([
+        supabase
+          .from("crm_oportunidades")
+          .select("etapa_codigo")
+          .eq("club", club)
+          .gte("created_at", inicioRango)
+          .lte("created_at", finRango),
+        supabase
+          .from("crm_actividades")
+          .select("estado, vencimiento_at, crm_contactos!inner(club)")
+          .eq("estado", "pendiente")
+          .eq("crm_contactos.club", club)
+          .gte("vencimiento_at", inicioRango)
+          .lte("vencimiento_at", finRango),
+        supabase
+          .from("crm_actividades")
+          .select("id, crm_contactos!inner(club)", { count: "exact", head: true })
+          .eq("estado", "pendiente")
+          .eq("crm_contactos.club", club)
+          .lt("vencimiento_at", inicioHoy),
+      ]);
+      const queryError = errorOportunidades || errorActividades || errorVencidas;
+      if (queryError) return esErrorCrmNoAplicado(queryError) ? textoErrorCrmBaseNoAplicada() : crmError(queryError.message);
+
+      const conteos = new Map(CRM_ETAPAS.map((etapa) => [etapa, 0]));
+      for (const oportunidad of oportunidades || []) {
+        conteos.set(oportunidad.etapa_codigo, (conteos.get(oportunidad.etapa_codigo) || 0) + 1);
+      }
+      const pendientes = actividades || [];
+      return crmOk("Resumen comercial CRM", {
+        club,
+        rango: { desde: desdeEf, hasta: hastaEf },
+        oportunidades_creadas: (oportunidades || []).length,
+        por_etapa: CRM_ETAPAS.map((etapa_codigo) => ({ etapa_codigo, total: conteos.get(etapa_codigo) || 0 })),
+        ganadas: conteos.get("ganado") || 0,
+        perdidas: conteos.get("perdido") || 0,
+        actividades: {
+          pendientes_en_rango: pendientes.length,
+          vencidas_hoy: totalVencidas || 0,
+        },
+      });
+    } catch (error) {
+      return crmError(error.message);
     }
   }
 );
