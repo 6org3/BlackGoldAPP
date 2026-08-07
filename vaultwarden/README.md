@@ -25,8 +25,10 @@ Desde la PC de Jorge, abrir un túnel y mantener esa terminal abierta:
 ssh -N -L 8222:127.0.0.1:8222 gorg3yj1n1@192.168.1.13
 ```
 
-Abrir `http://127.0.0.1:8222`, crear la única cuenta con una contraseña maestra
-propia y activar 2FA. Después, en el servidor:
+Abrir `https://localhost:8222`. El certificado es privado y corresponde a este
+túnel, por lo que el navegador mostrará una advertencia la primera vez: revisar
+que la dirección sea exactamente `localhost:8222` y continuar. Crear la única
+cuenta con una contraseña maestra propia y activar 2FA. Después, en el servidor:
 
 ```sh
 sh ~/servicios/vaultwarden/scripts/lock-signups.sh
