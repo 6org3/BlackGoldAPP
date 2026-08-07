@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-KEY_FILE=${BLACKGOLD_RECOVERY_KEY_FILE:-"$HOME/servicios/secure-documents/recovery-master-key.b64"}
-SUPABASE_ENV=${BLACKGOLD_SUPABASE_ENV:-"$HOME/servicios/blackgold-supabase/docker/.env"}
+CALLER=${SUDO_USER:-gorg3yj1n1}
+CALLER_HOME=$(getent passwd "$CALLER" | cut -d: -f6)
+test -n "$CALLER_HOME"
+KEY_FILE=${BLACKGOLD_RECOVERY_KEY_FILE:-"$CALLER_HOME/servicios/secure-documents/recovery-master-key.b64"}
+SUPABASE_ENV=${BLACKGOLD_SUPABASE_ENV:-"$CALLER_HOME/servicios/blackgold-supabase/docker/.env"}
 TARGET=/etc/blackgold/secure-documents.env
 SERVICE=blackgold-secure-documents.service
 
