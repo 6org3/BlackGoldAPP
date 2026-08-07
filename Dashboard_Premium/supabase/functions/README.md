@@ -1,6 +1,6 @@
 # Edge Functions
 
-Seis funciones Deno desplegadas en Supabase. Todas corren con la `service_role`
+Funciones Deno desplegadas en Supabase. Todas las que requieren datos internos usan la `service_role`
 key, que **salta toda la RLS**: el control de acceso lo hace la función, no la
 base. Por eso el patrón de autenticación de `_shared/brainAuth.ts` no es
 opcional (ver abajo).
@@ -15,6 +15,9 @@ opcional (ver abajo).
 | `generar-misiones-ia` | `autenticar()` + alcance | Genera y asigna misiones según debilidades; la IA de último recurso para debilidades sin cobertura usa DeepSeek (`DEEPSEEK_API_KEY`; antes Gemini) |
 | `purgar-usuario-rechazado` | `autenticar()` + superadmin | Libera la cédula de un registro rechazado |
 | `registro-publico` | **ninguna, a propósito** | Alta pública desde `/registro` |
+| `crm-whatsapp-link` | `autenticar()`, sujeto del JWT | Emite un código temporal para vincular la cuenta autenticada con WhatsApp |
+| `crm-whatsapp-webhook` | Firma HMAC de Meta | Recibe WhatsApp, resuelve CRM y entrega contexto mínimo a Lily |
+| `crm-lily-send` | HMAC interno de Lily | Reserva y envía una salida mediante el outbox CRM |
 
 ## Desplegar
 

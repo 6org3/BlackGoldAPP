@@ -49,18 +49,19 @@ Para una primera conversación sin nombre, Lily inicia con una presentación
 breve y pregunta nombre + necesidad. Las respuestas web deben ir a una cola
 privada por sesión; no reutilizan el envío de WhatsApp/Meta.
 
-## Vínculo App <-> WhatsApp v1 (pendiente de implementar)
+## Vínculo App <-> WhatsApp v1 (implementado; pendiente de despliegue)
 
 No se une por coincidencia de nombre, correo o teléfono. El flujo es:
 
-1. Usuario autenticado solicita un código de un solo uso, ligado a
+1. Usuario autenticado solicita un código de un solo uso mediante `crm-whatsapp-link`, ligado a
    `usuarios.id`, club, propósito y expiración corta.
 2. La app abre WhatsApp con ese código prellenado.
 3. El webhook valida y consume el código una única vez, y vincula el canal al
    mismo `crm_contacto` dentro de una transacción auditada.
 
 Reintentos del mismo evento deben devolver un resultado idempotente. Un código
-vencido, de otro club o ya consumido no revela si existe un usuario.
+vencido, de otro club o ya consumido no revela si existe un usuario. El webhook
+entrega a Lily solo una instrucción de confirmación o reinicio; nunca el código.
 
 ## Contactos internos y clientes
 
