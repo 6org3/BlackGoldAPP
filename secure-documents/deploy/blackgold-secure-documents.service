@@ -9,7 +9,9 @@ User=blackgold-knowledge
 Group=blackgold-knowledge
 WorkingDirectory=/srv/blackgold-services/secure-documents
 EnvironmentFile=/etc/blackgold/secure-documents.env
-ExecStart=/usr/bin/node /srv/blackgold-services/secure-documents/index.js
+# MemoryDenyWriteExecute blocks V8 JIT pages; --jitless keeps the protection
+# while running this small internal service without JIT compilation.
+ExecStart=/usr/bin/node --jitless /srv/blackgold-services/secure-documents/index.js
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
