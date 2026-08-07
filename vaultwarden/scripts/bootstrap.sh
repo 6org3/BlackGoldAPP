@@ -26,5 +26,5 @@ fi
 cd "$ROOT"
 docker compose pull
 docker compose up -d
-printf '%s\n' "Vaultwarden disponible solo por loopback en http://127.0.0.1:8222"
+printf '%s\n' "Vaultwarden disponible solo por loopback en https://localhost:8222"
 printf '%s\n' "Cuando Jorge haya creado su única cuenta, ejecute lock-signups.sh."
