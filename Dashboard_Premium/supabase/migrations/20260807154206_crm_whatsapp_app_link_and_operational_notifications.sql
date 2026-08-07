@@ -232,7 +232,7 @@ BEGIN
       WHEN EXISTS (
         SELECT 1 FROM public.crm_consentimientos co
         WHERE co.contact_id = c.id AND co.alcance = 'atencion' AND co.estado = 'otorgado'
-      ) THEN 'pendiente_revision'
+      ) THEN 'autorizada'
       ELSE 'pendiente_consentimiento_operacion'
     END
   FROM public.padres_atletas pa

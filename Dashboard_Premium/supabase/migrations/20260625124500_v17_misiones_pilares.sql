@@ -36,9 +36,29 @@ ALTER TABLE usuarios
 
 -- 3a. Eliminar constraint viejo
 ALTER TABLE misiones DROP CONSTRAINT IF EXISTS misiones_tipo_check;
+ALTER TABLE misiones DROP CONSTRAINT IF EXISTS misiones_pilar_check;
 
 -- 3b. Renombrar columna tipo → pilar
-ALTER TABLE misiones RENAME COLUMN tipo TO pilar;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'misiones'
+      AND column_name = 'tipo'
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'misiones'
+      AND column_name = 'pilar'
+  ) THEN
+    ALTER TABLE public.misiones RENAME COLUMN tipo TO pilar;
+  END IF;
+END
+$$;
 
 -- 3c. Nuevo constraint con los 7 pilares + formatos de contenido
 ALTER TABLE misiones

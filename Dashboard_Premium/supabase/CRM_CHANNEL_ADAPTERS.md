@@ -76,6 +76,21 @@ entrega a Lily solo una instrucción de confirmación o reinicio; nunca el códi
   app. El paso a `cliente` exige una correlación confirmada con `usuarios.id` o
   una confirmación de alta equivalente y auditada.
 
+## Notificaciones operativas de la app
+
+El pase de lista por grupo y fecha es la decisión humana que autoriza el evento:
+al registrar `Presente`, `Ausente`, `Justificada` o `Lesionado`, el CRM crea una
+notificación por representante. Si ese representante tiene vínculo
+App↔WhatsApp y consentimiento operativo vigente, queda `autorizada` para el
+despacho; no necesita una segunda aprobación por cada atleta.
+
+El mismo contrato se reutiliza para comunicaciones aprobadas, partidos,
+recordatorios y pagos: la aplicación o el staff originan el evento, el CRM lo
+guarda en la cola operacional, n8n despacha mediante la outbox y Meta devuelve
+el resultado. Lily no improvisa estos mensajes ni recibe el historial completo.
+Los eventos sin vínculo, consentimiento o plantilla aplicable quedan retenidos
+con un motivo auditable, nunca enviados por una vía alternativa.
+
 ## Consentimiento y errores
 
 La activación de `seguimiento` o `marketing` requiere registrar versión de
