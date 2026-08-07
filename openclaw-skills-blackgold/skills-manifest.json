@@ -1,0 +1,311 @@
+{
+    "schema_version":  "blackgold.skills.v1",
+    "generated_at":  "2026-08-07T01:16:07.3457997Z",
+    "policy":  {
+                   "default_deny":  true,
+                   "main_branch_write":  false,
+                   "pii_outside_crm":  false
+               },
+    "skills":  [
+                   {
+                       "name":  "blackgold-knowledge",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "vegapunk"
+                                  ],
+                       "classification":  "interno, confidencial",
+                       "sha256":  "10da9feb581623d5a6136ac7183790c07306b05121b45d7d10fdfef1826dbd26",
+                       "path":  "skills/blackgold-knowledge/SKILL.md"
+                   },
+                   {
+                       "name":  "direccion-blackgold",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "vegapunk"
+                                  ],
+                       "classification":  "confidencial",
+                       "sha256":  "b5a00a15685f006ef08b66de24d4364726093233550c3b4ecfd8f462e942c921",
+                       "path":  "skills/direccion-blackgold/SKILL.md"
+                   },
+                   {
+                       "name":  "crm-auditoria",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "vegapunk"
+                                  ],
+                       "classification":  "restringido",
+                       "sha256":  "455ed10810d508ad25ab07205db407e7684bc6524f717f0269252dc118ec6809",
+                       "path":  "skills/crm-auditoria/SKILL.md"
+                   },
+                   {
+                       "name":  "secure-records-supervision",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "vegapunk"
+                                  ],
+                       "classification":  "restringido",
+                       "sha256":  "0c063bcc9dc6ff4ce6b2e629cf76ba4b2f19775914094f723756eba24751ad00",
+                       "path":  "skills/secure-records-supervision/SKILL.md"
+                   },
+                   {
+                       "name":  "infra-health",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "vegapunk"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "74cf35c5e807a96b056ec24e033d57e144c820ecbac0236799299aa17447dd6e",
+                       "path":  "skills/infra-health/SKILL.md"
+                   },
+                   {
+                       "name":  "personal-vault",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "shaka"
+                                  ],
+                       "classification":  "personal",
+                       "sha256":  "a45ebbd0533dd804e6dac614ac31ac7bbe8770467f97dc902a3018805bf4fa8a",
+                       "path":  "skills/personal-vault/SKILL.md"
+                   },
+                   {
+                       "name":  "blackgold-vault",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "shaka"
+                                  ],
+                       "classification":  "publico, interno, confidencial",
+                       "sha256":  "e1670d46339d3b6118a3044a7031d5648aa911b25d6a77b635be7e370aff26c3",
+                       "path":  "skills/blackgold-vault/SKILL.md"
+                   },
+                   {
+                       "name":  "cross-vault-export",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "shaka"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "e25c65f5b64553b0b88c11090a249f720cff6add6740ac623b1ab9dad1bcfe39",
+                       "path":  "skills/cross-vault-export/SKILL.md"
+                   },
+                   {
+                       "name":  "pii-filter",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "shaka"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "836939f58fed28d6fca2710f6bb3204d0f017458e3649da5444ee7c35d8c2f10",
+                       "path":  "skills/pii-filter/SKILL.md"
+                   },
+                   {
+                       "name":  "zettelkasten",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "shaka"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "7d85ef33c9eb45b607034738d9a349b34f4fbaa74243ff4bacf96b143ecc9c3a",
+                       "path":  "skills/zettelkasten/SKILL.md"
+                   },
+                   {
+                       "name":  "link-integrity",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "shaka"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "ace0ff5c5e40b0ed6424580f4247a665080dcc4c4e90a526c188e0c1451f3cbf",
+                       "path":  "skills/link-integrity/SKILL.md"
+                   },
+                   {
+                       "name":  "git-sync-safe",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "shaka"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "2948ef9c764f75b6494fb4a99368ff262389a7bf3d95008a1a2d9f3ff507903b",
+                       "path":  "skills/git-sync-safe/SKILL.md"
+                   },
+                   {
+                       "name":  "content-os",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "edison"
+                                  ],
+                       "classification":  "publico, interno",
+                       "sha256":  "8b12a4ecc260c11bde265e20cd42af16688469e60e2fc1186bf5345b6b351760",
+                       "path":  "skills/content-os/SKILL.md"
+                   },
+                   {
+                       "name":  "brand-blackgold",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "edison"
+                                  ],
+                       "classification":  "publico, interno",
+                       "sha256":  "ee5657763650d740874dda750b1735e8f4785aff16ff04a0ab8e6799564c0b51",
+                       "path":  "skills/brand-blackgold/SKILL.md"
+                   },
+                   {
+                       "name":  "blackgold-knowledge-read",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "edison"
+                                  ],
+                       "classification":  "publico, interno",
+                       "sha256":  "0180ef05e34376a36de2d20aba18c99ba038aa53a86adde277a7d42e15f4d708",
+                       "path":  "skills/blackgold-knowledge-read/SKILL.md"
+                   },
+                   {
+                       "name":  "browser-readonly",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "edison"
+                                  ],
+                       "classification":  "publico",
+                       "sha256":  "fbe27e0380bfcd598b80ca114748ef4bacdb17d3da8d3049e4d9f71097387afe",
+                       "path":  "skills/browser-readonly/SKILL.md"
+                   },
+                   {
+                       "name":  "vikunja-contenido",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "edison"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "ab60440279bce02f59d06ae9133859914e969fcdbd2f4120e39f9da8732f1f7c",
+                       "path":  "skills/vikunja-contenido/SKILL.md"
+                   },
+                   {
+                       "name":  "blackgold-kb-public",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "lilith"
+                                  ],
+                       "classification":  "publico",
+                       "sha256":  "b4aa73482e975cc14f35f947cc32fbede1124fda81b7c365211eca2a366772ac",
+                       "path":  "skills/blackgold-kb-public/SKILL.md"
+                   },
+                   {
+                       "name":  "crm-intake",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "lilith"
+                                  ],
+                       "classification":  "restringido",
+                       "sha256":  "a7a9fc97ed47ef812afaf01d9a0096077b62f7def11a7b9879e24a6ce6901c5a",
+                       "path":  "skills/crm-intake/SKILL.md"
+                   },
+                   {
+                       "name":  "crm-conversacion",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "lilith"
+                                  ],
+                       "classification":  "restringido",
+                       "sha256":  "06fbf141a65a9603af733e3f7c96971164edd4a2fac48cfedb6d738add144e7e",
+                       "path":  "skills/crm-conversacion/SKILL.md"
+                   },
+                   {
+                       "name":  "consentimiento",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "lilith"
+                                  ],
+                       "classification":  "restringido",
+                       "sha256":  "f1689ce19e8ee30cb7778dca229ada08f1ca73fe8bb35f1f44b694be028d6433",
+                       "path":  "skills/consentimiento/SKILL.md"
+                   },
+                   {
+                       "name":  "handoff-humano",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "lilith"
+                                  ],
+                       "classification":  "restringido",
+                       "sha256":  "d7fd7944e695f841a519d1170d4c6c0be536fb940ea386fc44b212ad6f6ca10e",
+                       "path":  "skills/handoff-humano/SKILL.md"
+                   },
+                   {
+                       "name":  "resumen-comercial",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "lilith"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "097fcd8bd94655b6dc048633b3b77b1a4a599d6b7b0667b2a1ef1ce94cfe4aa8",
+                       "path":  "skills/resumen-comercial/SKILL.md"
+                   },
+                   {
+                       "name":  "worker-dispatch",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "atlas"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "9cc4dedb05c283fd0cf79536b171a9c5954d46fe251c848682d0ddae0341b2ba",
+                       "path":  "skills/worker-dispatch/SKILL.md"
+                   },
+                   {
+                       "name":  "asset-manifest",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "atlas"
+                                  ],
+                       "classification":  "publico, interno",
+                       "sha256":  "deb26ed1e2aaa407aaf33d7d618a678710727e238e497bfed838b774874761ab",
+                       "path":  "skills/asset-manifest/SKILL.md"
+                   },
+                   {
+                       "name":  "finanzas-blackgold-readonly",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "pythagoras"
+                                  ],
+                       "classification":  "confidencial",
+                       "sha256":  "9b2d5e8997c3a5ac62ab65bfd46800a278c57100d3b0d04b6032cef9b06e4258",
+                       "path":  "skills/finanzas-blackgold-readonly/SKILL.md"
+                   },
+                   {
+                       "name":  "conciliacion",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "pythagoras"
+                                  ],
+                       "classification":  "confidencial",
+                       "sha256":  "edbfb97229f0aac90c0faf18dac7988699c811d7616ae9b3fac810623837d640",
+                       "path":  "skills/conciliacion/SKILL.md"
+                   },
+                   {
+                       "name":  "secure-finance-documents",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "pythagoras"
+                                  ],
+                       "classification":  "restringido",
+                       "sha256":  "5565211b65ecb35adbb436da7b51e5e875624d8371b90ab6bcbee82ef21094ba",
+                       "path":  "skills/secure-finance-documents/SKILL.md"
+                   },
+                   {
+                       "name":  "reportes",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "pythagoras"
+                                  ],
+                       "classification":  "confidencial",
+                       "sha256":  "1537f1236dfc6776f84c3ac8251df28a997772757eb7d4e4aedeec4130aecec0",
+                       "path":  "skills/reportes/SKILL.md"
+                   },
+                   {
+                       "name":  "vikunja-escalado",
+                       "version":  "1.0.0",
+                       "agents":  [
+                                      "pythagoras"
+                                  ],
+                       "classification":  "interno",
+                       "sha256":  "b0ca335c41beede862977c6ba41bea4f62f4e40f145a1916da51080954de6664",
+                       "path":  "skills/vikunja-escalado/SKILL.md"
+                   }
+               ]
+}

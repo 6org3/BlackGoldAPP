@@ -1,0 +1,26 @@
+[Unit]
+Description=Black Gold encrypted CRM documents
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=blackgold-knowledge
+Group=blackgold-knowledge
+WorkingDirectory=/srv/blackgold-services/secure-documents
+EnvironmentFile=/etc/blackgold/secure-documents.env
+ExecStart=/usr/bin/node /srv/blackgold-services/secure-documents/index.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/blackgold-services/secure-documents
+RestrictAddressFamilies=AF_INET AF_INET6
+LockPersonality=true
+MemoryDenyWriteExecute=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

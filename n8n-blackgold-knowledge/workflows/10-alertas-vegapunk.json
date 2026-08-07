@@ -1,0 +1,100 @@
+{
+  "name": "BG 10 — Alertas de automatización a Vegapunk",
+  "nodes": [
+    {
+      "id": "a0000000-0000-4000-8000-000000000001",
+      "name": "Fallo de workflow",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000002",
+      "name": "Sanitizar error sin datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -200,
+        260
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "operation",
+              "name": "operation",
+              "type": "string",
+              "value": "={{ $json.workflow.name }}"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "={{ $json.execution.error.message }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000003",
+      "name": "Avisar a Vegapunk",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        140,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000004",
+      "name": "Sin PII en alertas",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        -80
+      ],
+      "parameters": {
+        "width": 1050,
+        "height": 520,
+        "content": "## Conflictos y fallos\n\nEnvía a Vegapunk solo workflow, operación, timestamp y código resumido. No adjunta payloads, conversaciones, documentos, tokens ni datos de contactos."
+      }
+    }
+  ],
+  "connections": {
+    "Fallo de workflow": {
+      "main": [
+        [
+          {
+            "node": "Sanitizar error sin datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitizar error sin datos": {
+      "main": [
+        [
+          {
+            "node": "Avisar a Vegapunk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

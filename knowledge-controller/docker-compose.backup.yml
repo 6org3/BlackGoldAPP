@@ -1,0 +1,5 @@
+services:
+  controller:
+    volumes:
+      - /etc/blackgold/restic-password:/run/secrets/restic-password:ro
+      - /etc/blackgold/rclone.conf:/knowledge/.config/rclone/rclone.conf:ro

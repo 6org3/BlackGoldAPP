@@ -1,0 +1,107 @@
+{
+  "name": "BG 09 — Backup cifrado de conocimiento",
+  "nodes": [
+    {
+      "id": "90000000-0000-4000-8000-000000000001",
+      "name": "Cada noche 02:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -520,
+        260
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 2,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000002",
+      "name": "Backup restic cifrado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -180,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://blackgold-knowledge-controller:8095/v1/backup",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE_IN_N8N",
+          "name": "BlackGold Knowledge Controller"
+        }
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000003",
+      "name": "Registrar snapshot y verificar",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        160,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000004",
+      "name": "Recuperación",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        -80
+      ],
+      "parameters": {
+        "width": 1050,
+        "height": 520,
+        "content": "## Copias independientes\n\nBackup nocturno cifrado con restic. El destino Google Drive se configura fuera de n8n. CRM, Storage y claves envueltas requieren jobs separados. La restauración se prueba trimestralmente."
+      }
+    }
+  ],
+  "connections": {
+    "Cada noche 02:30": {
+      "main": [
+        [
+          {
+            "node": "Backup restic cifrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup restic cifrado": {
+      "main": [
+        [
+          {
+            "node": "Registrar snapshot y verificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
