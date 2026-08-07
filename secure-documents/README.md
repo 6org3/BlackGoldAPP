@@ -33,6 +33,10 @@ Después del respaldo y de guardar la clave en Vaultwarden, el activador
 tokens internos y elimina la copia temporal solo si el servicio y el acceso
 interno de Supabase responden correctamente.
 
+Si el arranque inicial requiere una corrección de unidad, ejecutar
+`scripts/finalize-secure-documents.sh` después: vuelve a comprobar ambos
+endpoints internos y elimina la copia temporal sin imprimir secretos.
+
 ## Pruebas
 
 ```sh
