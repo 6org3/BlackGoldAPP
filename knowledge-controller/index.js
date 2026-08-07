@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { bearerAuthorized, operationForPath } from "./src/auth.js";
 
+process.umask(0o027);
 const host = process.env.KNOWLEDGE_CONTROLLER_HOST ?? "0.0.0.0";
 const port = Number(process.env.KNOWLEDGE_CONTROLLER_PORT ?? "8095");
 const token = process.env.KNOWLEDGE_CONTROLLER_TOKEN ?? "";
