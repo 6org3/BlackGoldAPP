@@ -6,8 +6,13 @@ SOURCE_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 umask 077
 install -d -m 0700 "$ROOT" "$ROOT/data"
-install -m 0600 "$SOURCE_DIR/.env.example" "$ROOT/.env"
-install -m 0644 "$SOURCE_DIR/compose.yml" "$ROOT/compose.yml"
+if [ "$SOURCE_DIR" != "$ROOT" ]; then
+  install -m 0644 "$SOURCE_DIR/compose.yml" "$ROOT/compose.yml"
+fi
+if [ ! -f "$ROOT/.env" ]; then
+  install -m 0600 "$SOURCE_DIR/.env.example" "$ROOT/.env"
+fi
+chmod 0600 "$ROOT/.env"
 
 cd "$ROOT"
 docker compose pull
