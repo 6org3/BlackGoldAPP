@@ -16,6 +16,14 @@ externa antes de subir el ciphertext al bucket privado `secure-documents`.
 El servicio debe escuchar solo en `127.0.0.1`. Un proxy o gateway de agente debe
 inyectar su token privado; ningún token se entrega al modelo ni a WhatsApp.
 
+## Custodia de la clave maestra
+
+La clave se genera en la PC de Jorge, se guarda primero en Vaultwarden y luego
+se entrega de forma interactiva al servidor. Nunca se imprime en una consola,
+ni se incluye en un comando, archivo de Git, Obsidian o n8n. El script
+`scripts/capture-recovery-master-key.sh` rechaza reemplazar una clave existente
+y valida que sea una clave base64 de exactamente 32 bytes.
+
 ## Pruebas
 
 ```sh
