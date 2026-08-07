@@ -2,7 +2,10 @@ name: blackgold-knowledge-controller
 
 services:
   controller:
-    build: .
+    build:
+      context: .
+      args:
+        BLACKGOLD_KNOWLEDGE_UID: "${BLACKGOLD_KNOWLEDGE_UID}"
     container_name: blackgold-knowledge-controller
     restart: unless-stopped
     user: "${BLACKGOLD_KNOWLEDGE_UID}:${BLACKGOLD_KNOWLEDGE_GID}"
