@@ -28,6 +28,11 @@ Antes de una migración, `scripts/backup-core-encrypted.sh` transmite el dump
 PostgreSQL y el estado de Vaultwarden directamente a archivos cifrados; no deja
 un dump de CRM sin cifrar en disco.
 
+Después del respaldo y de guardar la clave en Vaultwarden, el activador
+`scripts/activate-secure-documents.sh` crea la configuración root-only, genera
+tokens internos y elimina la copia temporal solo si el servicio y el acceso
+interno de Supabase responden correctamente.
+
 ## Pruebas
 
 ```sh
