@@ -1,0 +1,84 @@
+{
+  "name": "BG 11 — Content OS: Shaka → Edison → Atlas",
+  "nodes": [
+    {
+      "id": "b1000000-0000-4000-8000-000000000001",
+      "name": "Crear brief",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-640, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b1000000-0000-4000-8000-000000000002",
+      "name": "Validar destino y datos",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-360, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b1000000-0000-4000-8000-000000000003",
+      "name": "Shaka: curar fuente y contexto",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-80, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b1000000-0000-4000-8000-000000000004",
+      "name": "Edison: estrategia y borrador",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [220, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b1000000-0000-4000-8000-000000000005",
+      "name": "Aprobación de Marketing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [520, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b1000000-0000-4000-8000-000000000006",
+      "name": "Atlas: render en PC RTX",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [800, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b1000000-0000-4000-8000-000000000007",
+      "name": "Registrar activo aprobado",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1080, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b1000000-0000-4000-8000-000000000008",
+      "name": "Manual de operación",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-660, -80],
+      "parameters": {
+        "width": 1980,
+        "height": 250,
+        "content": "## Content OS: trabajo por rol\n\n1. Marketing inicia un brief sin datos de clientes. 2. Shaka verifica fuente, destino y clasificación empresarial. 3. Edison plantea ángulo, guion, CTA y variantes. 4. Marketing aprueba. 5. Atlas recibe solo el brief aprobado y renderiza en la PC RTX. 6. El activo y su manifiesto se registran en el vault Black Gold.\n\nEste workflow es visual y manual por ahora: no ejecuta renders ni publica sin endpoint de worker y aprobación explícita."
+      }
+    }
+  ],
+  "connections": {
+    "Crear brief": { "main": [[{ "node": "Validar destino y datos", "type": "main", "index": 0 }]] },
+    "Validar destino y datos": { "main": [[{ "node": "Shaka: curar fuente y contexto", "type": "main", "index": 0 }]] },
+    "Shaka: curar fuente y contexto": { "main": [[{ "node": "Edison: estrategia y borrador", "type": "main", "index": 0 }]] },
+    "Edison: estrategia y borrador": { "main": [[{ "node": "Aprobación de Marketing", "type": "main", "index": 0 }]] },
+    "Aprobación de Marketing": { "main": [[{ "node": "Atlas: render en PC RTX", "type": "main", "index": 0 }]] },
+    "Atlas: render en PC RTX": { "main": [[{ "node": "Registrar activo aprobado", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

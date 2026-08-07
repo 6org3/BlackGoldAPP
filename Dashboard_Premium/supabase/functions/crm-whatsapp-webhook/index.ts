@@ -9,6 +9,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   allowlistInternaDesdeJson,
+  codigoVinculoAppWhatsApp,
   contenidoParaLily,
   esSolicitudNoContactar,
   equalConstante,
@@ -187,6 +188,33 @@ Deno.serve(async (req) => {
 
     const contenido = contenidoParaLily(message);
     const rolInterno = rolInternoParaIdentificador(allowlistInterna, identificador);
+    const codigoVinculo = rolInterno ? null : codigoVinculoAppWhatsApp(contenido.contenido);
+    let enlaceId: string | null = null;
+    let appUsuarioId: string | null = null;
+    let contenidoParaEntrega = contenido;
+
+    if (codigoVinculo) {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`blackgold.app-link.v1:${codigoVinculo}`));
+      const tokenHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      const { data: enlace, error: enlaceError } = await supabase.rpc("crm_resolver_enlace_app_whatsapp", {
+        p_club: club,
+        p_token_hash: tokenHash,
+        p_actor: "adaptador",
+      });
+      if (enlaceError) {
+        console.error("[crm-whatsapp-webhook] no se pudo resolver vínculo App-WhatsApp.");
+        necesitaReintento = true;
+        continue;
+      }
+      if (enlace?.estado === "pendiente" && typeof enlace.enlace_id === "string" && typeof enlace.app_usuario_id === "string") {
+        enlaceId = enlace.enlace_id;
+        appUsuarioId = enlace.app_usuario_id;
+        contenidoParaEntrega = { tipo: "app_link", contenido: "[Vínculo de cuenta confirmado. Agradece brevemente y pregunta si necesita ayuda.]" };
+      } else {
+        // No se revela si el código expiró, ya fue usado o nunca existió.
+        contenidoParaEntrega = { tipo: "app_link", contenido: "[Solicitud de vínculo no disponible. Indica que debe iniciar un nuevo vínculo desde la app.]" };
+      }
+    }
     const { data, error } = rolInterno
       ? await supabase.rpc("crm_recibir_contacto_interno_canal", {
         p_club: club,
@@ -202,9 +230,9 @@ Deno.serve(async (req) => {
         p_canal: "whatsapp",
         p_identificador_normalizado: identificador,
         p_nombre_preferido: profileName,
-        p_interes_principal: interesProbable(contenido.contenido),
+        p_interes_principal: codigoVinculo ? null : interesProbable(contenido.contenido),
         p_mensaje_externo_ref: messageId,
-        p_app_usuario_id: null,
+        p_app_usuario_id: appUsuarioId,
       });
     if (error || !data) {
       console.error("[crm-whatsapp-webhook] no se pudo registrar una entrada CRM:", error?.message ?? "respuesta vacía");
@@ -213,6 +241,18 @@ Deno.serve(async (req) => {
     }
 
     const ruta = data as RutaCrm;
+    if (enlaceId) {
+      const { error: consumoError } = await supabase.rpc("crm_consumir_enlace_app_whatsapp", {
+        p_enlace_id: enlaceId,
+        p_contact_id: ruta.contact_id,
+        p_actor: "adaptador",
+      });
+      if (consumoError) {
+        console.error("[crm-whatsapp-webhook] no se pudo consumir vínculo App-WhatsApp.");
+        necesitaReintento = true;
+        continue;
+      }
+    }
     if (
       (ruta.ruta === "lead" || ruta.ruta === "cliente")
       && esSolicitudNoContactar(contenido.contenido)
@@ -249,8 +289,8 @@ Deno.serve(async (req) => {
         relationType: ruta.tipo_relacion,
         stage: ruta.etapa_codigo ?? null,
         displayName: ruta.nombre_preferido ?? profileName,
-        messageType: contenido.tipo,
-        content: contenido.contenido,
+        messageType: contenidoParaEntrega.tipo,
+        content: contenidoParaEntrega.contenido,
         receivedAt: message.timestamp ? new Date(Number(message.timestamp) * 1000).toISOString() : null,
       });
       const { error: confirmacionError } = await supabase.rpc("crm_confirmar_entrega_lily", {

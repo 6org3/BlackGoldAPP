@@ -1,0 +1,75 @@
+{
+  "name": "BG 12 — Asistencia a WhatsApp: revisión y despacho",
+  "nodes": [
+    {
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "Revisar cola operativa",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-560, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "Leer eventos de asistencia",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-250, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "Validar vínculo y consentimiento",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [60, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000004",
+      "name": "Autorizar prueba o envío",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [370, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000005",
+      "name": "Despachar por outbox CRM",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000006",
+      "name": "Conciliar entrega Meta",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [990, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000007",
+      "name": "Límites obligatorios",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-580, -110],
+      "parameters": {
+        "width": 1860,
+        "height": 270,
+        "content": "## Notificaciones de la app\n\nLa asistencia crea un evento por representante, no un WhatsApp directo. El flujo solo puede despachar cuando el padre tiene: 1) cuenta app vinculada mediante código; 2) canal WhatsApp verificado; 3) consentimiento operativo/atención vigente; 4) plantilla Meta aprobada cuando aplique.\n\nMientras Meta no esté configurado, esta vista sirve para revisar la cola y hacer pruebas sin enviar mensajes reales. No usa transcripciones ni expone teléfonos a n8n."
+      }
+    }
+  ],
+  "connections": {
+    "Revisar cola operativa": { "main": [[{ "node": "Leer eventos de asistencia", "type": "main", "index": 0 }]] },
+    "Leer eventos de asistencia": { "main": [[{ "node": "Validar vínculo y consentimiento", "type": "main", "index": 0 }]] },
+    "Validar vínculo y consentimiento": { "main": [[{ "node": "Autorizar prueba o envío", "type": "main", "index": 0 }]] },
+    "Autorizar prueba o envío": { "main": [[{ "node": "Despachar por outbox CRM", "type": "main", "index": 0 }]] },
+    "Despachar por outbox CRM": { "main": [[{ "node": "Conciliar entrega Meta", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}
