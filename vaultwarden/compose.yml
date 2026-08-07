@@ -4,18 +4,20 @@ services:
   vaultwarden:
     image: vaultwarden/server:1.37.0-alpine
     container_name: blackgold-vaultwarden
+    user: "1000:1000"
     restart: unless-stopped
     env_file:
       - ${VAULTWARDEN_ENV_FILE:-.env}
     environment:
       DOMAIN: http://127.0.0.1:8222
+      ROCKET_PORT: "8080"
       SIGNUPS_VERIFY: "false"
       INVITATIONS_ALLOWED: "false"
       SHOW_PASSWORD_HINT: "false"
       WEBSOCKET_ENABLED: "false"
       LOG_LEVEL: warn
     ports:
-      - "127.0.0.1:8222:80"
+      - "127.0.0.1:8222:8080"
     volumes:
       - ./data:/data
     security_opt:
