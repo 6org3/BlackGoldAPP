@@ -18,6 +18,26 @@ if [ ! -d "$SKILLS_SRC" ]; then
   exit 1
 fi
 
+MANIFEST="$SCRIPT_DIR/skills-manifest.json"
+if [ ! -f "$MANIFEST" ]; then
+  echo "ERROR: falta $MANIFEST"
+  exit 1
+fi
+python3 - "$MANIFEST" "$SCRIPT_DIR" <<'PY'
+import hashlib, json, pathlib, sys
+manifest_path = pathlib.Path(sys.argv[1])
+root = pathlib.Path(sys.argv[2])
+manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+for skill in manifest.get("skills", []):
+    target = root / skill["path"]
+    if not target.is_file():
+        raise SystemExit(f"ERROR: falta skill declarada: {target}")
+    actual = hashlib.sha256(target.read_bytes()).hexdigest()
+    if actual != skill["sha256"]:
+        raise SystemExit(f"ERROR: checksum inválido: {skill['name']}")
+print(f"Manifiesto verificado: {len(manifest.get('skills', []))} skills.")
+PY
+
 # Raiz de workspaces de OpenClaw
 OC="$HOME/.openclaw"
 
