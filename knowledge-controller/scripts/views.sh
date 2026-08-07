@@ -13,6 +13,6 @@ if [ -d "$OUTPUT/lily" ] && [ -d /knowledge/lily-public ]; then
   # The target is a shared host directory owned by blackgold-lily.  Do not
   # preserve timestamps or ownership there, and keep the Lily group able to
   # replace the generated subtree on the next sync.
-  rsync -rlp --delete --chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=r,Fo= "$OUTPUT/lily/" /knowledge/lily-public/
+  rsync -rl --delete --chmod=Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=r,Fo= "$OUTPUT/lily/" /knowledge/lily-public/
 fi
 printf '%s\n' "Role views built: $STAMP"
