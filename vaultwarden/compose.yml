@@ -1,0 +1,25 @@
+name: blackgold-vaultwarden
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:1.37.0-alpine
+    container_name: blackgold-vaultwarden
+    restart: unless-stopped
+    env_file:
+      - ${VAULTWARDEN_ENV_FILE:-.env}
+    environment:
+      DOMAIN: http://127.0.0.1:8222
+      SIGNUPS_VERIFY: "false"
+      INVITATIONS_ALLOWED: "false"
+      SHOW_PASSWORD_HINT: "false"
+      WEBSOCKET_ENABLED: "false"
+      LOG_FILE: /data/vaultwarden.log
+      LOG_LEVEL: warn
+    ports:
+      - "127.0.0.1:8222:80"
+    volumes:
+      - ./data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
