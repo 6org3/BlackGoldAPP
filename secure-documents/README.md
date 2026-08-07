@@ -24,6 +24,10 @@ ni se incluye en un comando, archivo de Git, Obsidian o n8n. El script
 `scripts/capture-recovery-master-key.sh` rechaza reemplazar una clave existente
 y valida que sea una clave base64 de exactamente 32 bytes.
 
+Antes de una migración, `scripts/backup-core-encrypted.sh` transmite el dump
+PostgreSQL y el estado de Vaultwarden directamente a archivos cifrados; no deja
+un dump de CRM sin cifrar en disco.
+
 ## Pruebas
 
 ```sh
