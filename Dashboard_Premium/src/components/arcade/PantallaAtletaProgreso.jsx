@@ -32,11 +32,12 @@ function Rango({ r, extra }) {
 /** A4 · Progreso — rangos de desarrollo, radar táctil de N pilares (los de
  *  ctx.radar), filas de pilares sincronizadas, insignias y XP semanal.
  *  Dirigida por ctx.ctxProgreso. */
-export default function PantallaAtletaProgreso({ ctx }) {
+export default function PantallaAtletaProgreso({ ctx, embedded = false }) {
+  const Heading = embedded ? 'h3' : 'h1';
   return (
     <div>
       <div style={{ marginBottom: 14 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: '-.03em' }}>Progreso</h1>
+        <Heading style={{ margin: 0, fontSize: embedded ? 18 : 24, fontWeight: 900, letterSpacing: '-.03em' }}>Progreso deportivo</Heading>
         <MicroLabel color={C.text3} size={11} tracking=".06em" style={{ marginTop: 5 }}>{ctx.resumenLine}</MicroLabel>
       </div>
 

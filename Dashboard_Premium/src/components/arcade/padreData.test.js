@@ -67,6 +67,15 @@ describe('ultimasSesiones', () => {
     expect(ind.grupoNombre).toBe(null);
   });
 
+  it('conserva el nombre del coach cuando el embed está visible para el padre', () => {
+    const conCoach = [{
+      ...SESIONES[0],
+      usuarios: { nombre: 'Coach Andrea' },
+    }];
+    const r = ultimasSesiones(conCoach, HIJO, CATALOGO, 1);
+    expect(r[0].coachNombre).toBe('Coach Andrea');
+  });
+
   it('cae a "Sesión grupal" si el embed del grupo llegó null (RLS sin nombre)', () => {
     const sinNombre = [
       { id: 'grpX', fecha: '2026-07-22', atleta_id: null, grupo_id: 'G1', objetivo_tipo: 'Táctico', objetivo_descripcion: 'x', ejercicios_ids: [], grupos_entrenamiento: null },

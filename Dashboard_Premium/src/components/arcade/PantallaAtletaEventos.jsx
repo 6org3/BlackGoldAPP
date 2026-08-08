@@ -3,11 +3,12 @@ import MicroLabel from './MicroLabel';
 
 /** A5 · Eventos — convocatorias con RSVP (¿VAS?/VOY) e historial W/L.
  *  Dirigida por ctx.ctxEventos. */
-export default function PantallaAtletaEventos({ ctx }) {
+export default function PantallaAtletaEventos({ ctx, embedded = false }) {
+  const Heading = embedded ? 'h3' : 'h1';
   return (
     <div>
       <div style={{ marginBottom: 14 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: '-.03em' }}>Eventos</h1>
+        <Heading style={{ margin: 0, fontSize: embedded ? 18 : 24, fontWeight: 900, letterSpacing: '-.03em' }}>Agenda del equipo</Heading>
         <MicroLabel color={C.text3} size={11} tracking=".06em" style={{ marginTop: 5 }}>
           {ctx.eventos.length ? `${ctx.eventos.length} PRÓXIMOS · TU EQUIPO TE ESPERA` : 'SIN EVENTOS PRÓXIMOS'}
         </MicroLabel>

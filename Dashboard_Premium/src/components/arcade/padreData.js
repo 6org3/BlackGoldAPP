@@ -62,6 +62,8 @@ export function ultimasSesiones(sesiones, hijo, catalogo, limite = 3) {
         esGrupal,
         // Embed grupos_entrenamiento(nombre); si la RLS lo dejó null, fallback.
         grupoNombre: esGrupal ? s.grupos_entrenamiento?.nombre || 'Sesión grupal' : null,
+        // Puede llegar null por RLS; la vista cae entonces a "Staff del club".
+        coachNombre: s.usuarios?.nombre || null,
       };
     });
 }

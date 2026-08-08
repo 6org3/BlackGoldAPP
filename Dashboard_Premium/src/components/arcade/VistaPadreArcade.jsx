@@ -7,8 +7,8 @@ import MicroLabel from './MicroLabel';
 import RadarChart from './RadarChart';
 import FichaFisica from './FichaFisica';
 import XPCells from './XPCells';
-import ArcadeBottomNav from './ArcadeBottomNav';
 import EditarPerfilModal from '../EditarPerfilModal';
+import { PortalStoryMarker, PortalTeamCard } from './PortalStory';
 import {
   fetchPadrePanel,
   fetchHijoDetalle,
@@ -66,6 +66,10 @@ const MOCK = {
     { icon: '📣', titulo: 'Uniformes nuevos disponibles', sub: 'Retirar en secretaría · esta semana' },
     { icon: '💧', titulo: 'Traer botella de agua', sub: 'Recomendación del staff físico' },
   ],
+  clubName: 'Club Black Gold',
+  groupName: 'Sub-13 Desarrollo',
+  coachName: 'Prof. Andrade',
+  connectionActivity: 'Última actualización: sesión táctica registrada por el coach.',
 };
 
 function fechaEventoLine(ev) {
@@ -100,6 +104,8 @@ function buildVM(hijo, detalle, user, sesiones, catalogoEjercicios) {
   }));
   const comun = (detalle?.comunicaciones || []).slice(0, 2).map((c) => ({ icon: '📣', titulo: c.titulo, sub: c.mensaje }));
   const anuncios = comun.length ? comun : (detalle?.anuncios || []).slice(0, 2).map((c) => ({ icon: '📣', titulo: c.titulo, sub: c.mensaje }));
+  const sesionesRecientes = ultimasSesiones(sesiones, hijo, catalogoEjercicios, 3);
+  const ultimaSesion = sesionesRecientes[0] || null;
 
   return {
     demo: false,
@@ -130,8 +136,14 @@ function buildVM(hijo, detalle, user, sesiones, catalogoEjercicios) {
       : null,
     historial,
     mision: mision ? { titulo: mision.titulo, desc: mision.descripcion, estadoLabel: em.label, xp: mision.xpRecompensa || 0 } : null,
-    sesiones: ultimasSesiones(sesiones, hijo, catalogoEjercicios, 3),
+    sesiones: sesionesRecientes,
     comunicados: anuncios,
+    clubName: user.club || 'Black Gold',
+    groupName: hijo.grupo_nombre || ultimaSesion?.grupoNombre || hijo.categoria || 'Grupo por confirmar',
+    coachName: sesionesRecientes.find((s) => s.coachNombre)?.coachNombre || 'Staff del club',
+    connectionActivity: ultimaSesion
+      ? `Última actualización: ${ultimaSesion.objetivoTipo || 'sesión'} del ${ultimaSesion.fecha}, registrada por el staff.`
+      : 'Las sesiones, misiones y mediciones que registre el staff aparecerán aquí.',
   };
 }
 
@@ -147,7 +159,6 @@ export default function VistaPadreArcade() {
   const [baseLista, setBaseLista] = useState(false); // la carga base ya respondió
   const [reintento, setReintento] = useState(0);
   const [acciones, setAcciones] = useState({}); // { [key]: { confirmado, pagado } }
-  const [nav, setNav] = useState('base');
   const [editarPerfil, setEditarPerfil] = useState(false);
   const fileRef = useRef(null);
 
@@ -203,12 +214,6 @@ export default function VistaPadreArcade() {
   const confirmado = !!acc.confirmado || (!!vm && !vm.demo && vm.evento?.estadoRsvp === 'asiste');
   const pagado = !!acc.pagado || (!!vm && !vm.demo && !!vm.pago?.yaEnviado);
 
-  const goSection = (key) => {
-    setNav(key);
-    const el = document.getElementById(`padre-${key}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const onConfirmar = async () => {
     setAccion({ confirmado: true });
     if (vm && !vm.demo && vm.evento?.convId && user) {
@@ -253,10 +258,10 @@ export default function VistaPadreArcade() {
       {/* height 100dvh + minHeight 0: mismo marco que VistaAtletaArcade/
           VistaDuenoArcade — sin ellos el scroll se iba al body en vez del
           contenedor interno (scroller sin cota de altura). */}
-      <div style={{ position: 'relative', width: '100%', maxWidth: 480, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 720, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
         {/* <main>: landmark de contenido del portal — no lo tenía, igual que el
             del atleta antes de la auditoría. */}
-        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 96px', WebkitOverflowScrolling: 'touch' }}>
+        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '18px 16px 44px', WebkitOverflowScrolling: 'touch' }}>
           {/* Cabecera */}
           <div id="padre-base" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
             <div>
@@ -375,6 +380,22 @@ export default function VistaPadreArcade() {
                 </div>
               </div>
 
+              <PortalTeamCard
+                club={vm.clubName}
+                group={vm.groupName}
+                coach={vm.coachName}
+                activity={vm.connectionActivity}
+                accent={C.info}
+                title={`Quién acompaña a ${vm.hijoNombre.split(' ')[0]}`}
+              />
+
+              <PortalStoryMarker
+                eyebrow="AHORA"
+                title="Lo próximo en su temporada"
+                description="Convocatorias, mensualidad y misión actual, juntas para que sepas qué necesita de ti."
+                accent={C.info}
+              />
+
               {/* Próximo evento */}
               <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">PRÓXIMO EVENTO</MicroLabel>
               {vm.evento ? (
@@ -470,6 +491,13 @@ export default function VistaPadreArcade() {
                 </div>
               )}
 
+              <PortalStoryMarker
+                eyebrow="ACOMPAÑAMIENTO"
+                title="El trabajo con su coach"
+                description="Cada registro de entrenamiento llega desde el staff y queda visible para la familia."
+                accent={C.cyan}
+              />
+
               {/* Últimas sesiones registradas por el coach, con sus ejercicios resueltos */}
               <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">ÚLTIMAS SESIONES</MicroLabel>
               {vm.sesiones.length > 0 ? (
@@ -495,6 +523,13 @@ export default function VistaPadreArcade() {
                 </div>
               )}
 
+              <PortalStoryMarker
+                eyebrow="EVOLUCIÓN"
+                title="Cómo está creciendo"
+                description="Pilares y ficha física en un mismo bloque para leer avances sin lenguaje técnico innecesario."
+                accent={C.gold}
+              />
+
               {/* Pilares (radar de N ejes según el view-model) */}
               <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">{`SUS ${vm.radar.length} PILARES`}</MicroLabel>
               <div style={{ background: C.card, border: `1px solid ${BORDER.gold}`, clipPath: cut(12), padding: '10px 14px 4px', marginBottom: 14, textAlign: 'center' }}>
@@ -518,6 +553,13 @@ export default function VistaPadreArcade() {
                 emptyText="Aún sin medición — el coach la registra en la evaluación antropométrica."
               />
 
+              <PortalStoryMarker
+                eyebrow="CLUB"
+                title="Lo que la familia debe saber"
+                description="Avisos publicados por el club para mantener alineados a familia, atleta y staff."
+                accent={C.info}
+              />
+
               {/* Comunicados */}
               <MicroLabel color={C.text3} size={11} style={{ margin: '0 0 8px' }} as="p">COMUNICADOS DEL CLUB</MicroLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -539,7 +581,6 @@ export default function VistaPadreArcade() {
           )}
         </main>
 
-        <ArcadeBottomNav variant="padre" active={nav} onNavigate={goSection} />
       </div>
 
       {editarPerfil && (

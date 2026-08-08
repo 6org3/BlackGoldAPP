@@ -4,11 +4,12 @@ import Pill from './Pill';
 
 /** A2 · Misiones — resumen, filtros por lugar y lista con estado + botón
  *  contextual (aceptar propuesta / abrir quiz / ver en revisión). */
-export default function PantallaAtletaMisiones({ ctx }) {
+export default function PantallaAtletaMisiones({ ctx, embedded = false }) {
+  const Heading = embedded ? 'h3' : 'h1';
   return (
     <div>
       <div style={{ marginBottom: 14 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: '-.03em' }}>Misiones</h1>
+        <Heading style={{ margin: 0, fontSize: embedded ? 18 : 24, fontWeight: 900, letterSpacing: '-.03em' }}>Misiones activas</Heading>
         <MicroLabel color={C.text3} size={11} tracking=".06em" style={{ marginTop: 5 }}>{ctx.resumen}</MicroLabel>
       </div>
 

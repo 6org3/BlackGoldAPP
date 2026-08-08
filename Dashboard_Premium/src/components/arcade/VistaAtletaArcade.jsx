@@ -4,13 +4,13 @@ import { C, BORDER, GRAD, cut, PIXEL, gridBackground } from './arcadeTokens';
 import useAtleta from './useAtleta';
 import { buildAtletaCtx } from './atletaSelectors';
 import MicroLabel from './MicroLabel';
-import ArcadeBottomNav from './ArcadeBottomNav';
 import PantallaAtletaInicio from './PantallaAtletaInicio';
 import PantallaAtletaMisiones from './PantallaAtletaMisiones';
 import PantallaAtletaDetalle from './PantallaAtletaDetalle';
 import PantallaAtletaProgreso from './PantallaAtletaProgreso';
 import PantallaAtletaEventos from './PantallaAtletaEventos';
 import ReadinessModal from '../ReadinessModal';
+import { PortalStoryMarker, PortalTeamCard } from './PortalStory';
 
 function footerStyle(footer) {
   if (footer.tone === 'ai') return { background: 'rgba(168,85,247,.12)', color: C.ai, border: '1px solid rgba(168,85,247,.4)' };
@@ -28,15 +28,34 @@ function footerStyle(footer) {
 export default function VistaAtletaArcade() {
   const { user } = useAuth();
   const { state, data, actions, loading, error, reintentar } = useAtleta(user);
-  const ctx = data ? buildAtletaCtx(state, data, actions) : null;
+  const scrollToChapter = (chapter) => {
+    const el = document.getElementById(`atleta-${chapter}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const storyActions = {
+    ...actions,
+    goTab: scrollToChapter,
+    back: () => {
+      actions.back();
+      requestAnimationFrame(() => scrollToChapter('misiones'));
+    },
+  };
+  const ctx = data ? buildAtletaCtx(state, data, storyActions) : null;
+  const chapterCtx = data
+    ? {
+        inicio: buildAtletaCtx({ ...state, aDetalle: false, aTab: 'inicio' }, data, storyActions),
+        misiones: buildAtletaCtx({ ...state, aDetalle: false, aTab: 'misiones' }, data, storyActions),
+        progreso: buildAtletaCtx({ ...state, aDetalle: false, aTab: 'progreso' }, data, storyActions),
+        eventos: buildAtletaCtx({ ...state, aDetalle: false, aTab: 'eventos' }, data, storyActions),
+      }
+    : null;
 
-  const showNav = ctx ? ctx.showNav : true;
   const showHeader = ctx ? ctx.showFlowHeader : false;
-  const scrollPad = ctx?.isDetalle ? '16px 16px 24px' : '18px 16px 26px';
+  const scrollPad = ctx?.isDetalle ? '16px 16px 24px' : '18px 16px 44px';
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', justifyContent: 'center', background: C.bgApp }}>
-      <div style={{ position: 'relative', width: '100%', maxWidth: 480, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 720, height: '100dvh', display: 'flex', flexDirection: 'column', color: C.text, ...gridBackground }}>
         {/* Header de flujo (detalle de misión) */}
         {showHeader && (
           <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 12px', borderBottom: '1px solid rgba(255,215,0,.1)', background: 'rgba(5,5,7,.6)' }}>
@@ -83,16 +102,54 @@ export default function VistaAtletaArcade() {
             <div style={{ padding: '40px 0', textAlign: 'center' }}>
               <MicroLabel color={C.text3} size={11} tracking=".1em" style={{ animation: 'bg-blink 1.3s infinite' }}>CARGANDO…</MicroLabel>
             </div>
-          ) : ctx.isInicio ? (
-            <PantallaAtletaInicio ctx={ctx} />
-          ) : ctx.isMisiones ? (
-            <PantallaAtletaMisiones ctx={ctx} />
           ) : ctx.isDetalle ? (
             <PantallaAtletaDetalle ctx={ctx} />
-          ) : ctx.isProgreso ? (
-            <PantallaAtletaProgreso ctx={ctx} />
-          ) : ctx.isEventos ? (
-            <PantallaAtletaEventos ctx={ctx} />
+          ) : chapterCtx ? (
+            <>
+              <section id="atleta-inicio">
+                <PantallaAtletaInicio ctx={chapterCtx.inicio} />
+              </section>
+
+              <PortalTeamCard
+                club={data.profile.club}
+                group={data.profile.grupoNombre || data.profile.categoria}
+                coach={data.profile.coachNombre || (data.profile.tieneCoach ? 'Coach del club' : 'Staff del club')}
+                activity={data.hoyEntrenas
+                  ? `Próximo registro compartido: ${[data.hoyEntrenas.titulo, data.hoyEntrenas.sub].filter(Boolean).join(' · ')}.`
+                  : 'Tu coach actualiza aquí sesiones, misiones, evaluaciones y recomendaciones.'}
+                title="Tu equipo te acompaña"
+              />
+
+              <div id="atleta-misiones" style={{ scrollMarginTop: 16 }}>
+                <PortalStoryMarker
+                  eyebrow="PLAN"
+                  title="Lo que estás construyendo"
+                  description="Misiones propuestas por el staff y tareas que convierten el entrenamiento en progreso visible."
+                  accent={C.ai}
+                />
+                <PantallaAtletaMisiones ctx={chapterCtx.misiones} embedded />
+              </div>
+
+              <div id="atleta-progreso" style={{ scrollMarginTop: 16 }}>
+                <PortalStoryMarker
+                  eyebrow="EVOLUCIÓN"
+                  title="Tu temporada en movimiento"
+                  description="Mediciones del coach, pilares, rangos e insignias reunidos en una sola lectura."
+                  accent={C.gold}
+                />
+                <PantallaAtletaProgreso ctx={chapterCtx.progreso} embedded />
+              </div>
+
+              <div id="atleta-eventos" style={{ scrollMarginTop: 16 }}>
+                <PortalStoryMarker
+                  eyebrow="EQUIPO"
+                  title="Dónde te necesita el club"
+                  description="Convocatorias, confirmaciones y resultados que conectan tu trabajo individual con el equipo."
+                  accent={C.ok}
+                />
+                <PantallaAtletaEventos ctx={chapterCtx.eventos} embedded />
+              </div>
+            </>
           ) : null}
         </main>
 
@@ -109,9 +166,6 @@ export default function VistaAtletaArcade() {
             </button>
           </div>
         )}
-
-        {/* Nav inferior del atleta */}
-        {showNav && <ArcadeBottomNav variant="atleta" active={ctx ? ctx.navActive : 'inicio'} onNavigate={actions.goTab} />}
 
         {/* Check-in diario: se auto-abre al entrar mientras no haya registro de
             hoy, y la tarjeta de la Base lo vuelve a abrir. Solo con atleta real

@@ -69,6 +69,10 @@ export const ATLETA_MOCK = {
     fechaLine: null, // el selector arma la fecha de hoy
     pwr: 64,
     nivelDesarrollo: 'Desarrollo',
+    club: 'Club Black Gold',
+    grupoNombre: 'Sub-16 Desarrollo',
+    coachNombre: 'Prof. Andrade',
+    tieneCoach: true,
     racha: 4,
     xp: { current: 1340, required: 1500, percentage: 89, filled: 9, faltan: 160, nextLevelName: 'Élite', esMax: false },
   },

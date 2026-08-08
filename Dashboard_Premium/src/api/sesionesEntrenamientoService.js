@@ -8,7 +8,7 @@ import { supabase } from './supabaseClient';
 export const fetchSesionesAtleta = async (atletaId) => {
   const { data, error } = await supabase
     .from('sesiones_entrenamiento')
-    .select('*')
+    .select('*, usuarios!sesiones_entrenamiento_coach_id_fkey(nombre)')
     .eq('atleta_id', atletaId)
     .order('fecha', { ascending: false })
     .limit(10);
