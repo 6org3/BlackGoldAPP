@@ -1,0 +1,112 @@
+{
+  "name": "BG 08 — Vistas de conocimiento por rol",
+  "nodes": [
+    {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "name": "Regenerar vistas",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000002",
+      "name": "Generar vistas por rol",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -200,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://blackgold-knowledge-controller:8095/v1/views",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE_IN_N8N",
+          "name": "BlackGold Knowledge Controller"
+        }
+      }
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000003",
+      "name": "Lily — solo público",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        160,
+        100
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000004",
+      "name": "Agentes — mínimo por función",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        160,
+        320
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "80000000-0000-4000-8000-000000000005",
+      "name": "Default deny",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        -100
+      ],
+      "parameters": {
+        "width": 1100,
+        "height": 600,
+        "content": "## Vistas materiales por rol\n\nLily recibe una copia separada de notas públicas; no puede recorrer el vault. Edison y Atlas reciben sus áreas. Pythagoras recibe finanzas. Vegapunk supervisa la empresa completa. No se distribuye PII."
+      }
+    }
+  ],
+  "connections": {
+    "Regenerar vistas": {
+      "main": [
+        [
+          {
+            "node": "Generar vistas por rol",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar vistas por rol": {
+      "main": [
+        [
+          {
+            "node": "Lily — solo público",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Agentes — mínimo por función",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

@@ -4,6 +4,7 @@ import { webcrypto } from "node:crypto";
 import {
   allowlistInternaDesdeJson,
   contenidoParaLily,
+  codigoVinculoAppWhatsApp,
   esSolicitudNoContactar,
   firmaMetaValida,
   hmacSha256Hex,
@@ -58,6 +59,13 @@ test("identifica solo solicitudes explícitas de no contactar", () => {
   assert.equal(esSolicitudNoContactar("Quiero darme de baja"), true);
   assert.equal(esSolicitudNoContactar("No quiero una prueba ahora"), false);
   assert.equal(esSolicitudNoContactar("¿Cómo cancelo una clase?"), false);
+});
+
+test("solo reconoce el comando completo de vínculo emitido por la app", () => {
+  assert.equal(codigoVinculoAppWhatsApp("VINCULAR BGV-ABCDEFGHJK"), "BGV-ABCDEFGHJK");
+  assert.equal(codigoVinculoAppWhatsApp(" vincular bgv-23456789ab "), "BGV-23456789AB");
+  assert.equal(codigoVinculoAppWhatsApp("¿Cómo vincular WhatsApp?"), null);
+  assert.equal(codigoVinculoAppWhatsApp("VINCULAR BGV-ABCDEFGHJI"), null);
 });
 
 test("extrae mensajes pero ignora cambios de estado sin mensajes", () => {

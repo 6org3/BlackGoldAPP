@@ -120,6 +120,14 @@ export function esSolicitudNoContactar(contenido) {
     || /\bno\s+quiero\s+(?:recibir\s+)?(?:mas\s+)?(?:mensajes|informacion|contacto)\b/.test(texto);
 }
 
+// El vínculo solo se reconoce como un comando completo, generado desde la
+// sesión autenticada de la app. Una frase normal nunca opera identidad.
+export function codigoVinculoAppWhatsApp(contenido) {
+  if (typeof contenido !== "string") return null;
+  const match = contenido.trim().toUpperCase().match(/^VINCULAR\s+(BGV-[A-HJ-NP-Z2-9]{10})$/);
+  return match?.[1] ?? null;
+}
+
 export function interesProbable(contenido) {
   const texto = contenido.toLocaleLowerCase("es");
   if (/\binscri(?:bir|pción|pcion)/.test(texto)) return "inscripcion";

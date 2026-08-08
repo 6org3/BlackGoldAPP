@@ -1,0 +1,75 @@
+{
+  "name": "BG 12 — Notificaciones operativas WhatsApp",
+  "nodes": [
+    {
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "Evento operativo autorizado",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-560, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "Leer cola operacional",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [-250, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "Validar vínculo y consentimiento",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [60, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000004",
+      "name": "Preparar plantilla por evento",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [370, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000005",
+      "name": "Despachar por outbox CRM",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [680, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000006",
+      "name": "Conciliar entrega Meta",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [990, 260],
+      "parameters": {}
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000007",
+      "name": "Límites obligatorios",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-580, -110],
+      "parameters": {
+        "width": 1860,
+        "height": 270,
+        "content": "## Notificaciones operativas de la app\n\nEl pase de lista por grupo y fecha es la autorización humana: cada estado (Presente, Ausente, Justificada o Lesionado) crea un evento por representante, no un WhatsApp directo. El flujo solo despacha si el padre tiene: 1) cuenta vinculada mediante código; 2) canal WhatsApp verificado; 3) consentimiento operativo/atención vigente; 4) plantilla Meta aprobada cuando aplique.\n\nEl mismo patrón sirve para partidos, comunicaciones y pagos. Mientras Meta no esté configurado, esta vista permite probar la cola sin enviar mensajes reales. No usa transcripciones ni expone teléfonos a n8n."
+      }
+    }
+  ],
+  "connections": {
+    "Evento operativo autorizado": { "main": [[{ "node": "Leer cola operacional", "type": "main", "index": 0 }]] },
+    "Leer cola operacional": { "main": [[{ "node": "Validar vínculo y consentimiento", "type": "main", "index": 0 }]] },
+    "Validar vínculo y consentimiento": { "main": [[{ "node": "Preparar plantilla por evento", "type": "main", "index": 0 }]] },
+    "Preparar plantilla por evento": { "main": [[{ "node": "Despachar por outbox CRM", "type": "main", "index": 0 }]] },
+    "Despachar por outbox CRM": { "main": [[{ "node": "Conciliar entrega Meta", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

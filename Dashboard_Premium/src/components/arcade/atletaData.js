@@ -280,6 +280,10 @@ export async function fetchAtletaPanel(user) {
       fechaLine: null,
       pwr: fresco.overall_score || 0,
       nivelDesarrollo: fresco.nivel_desarrollo || 'Micro',
+      club: fresco.club || user.club || 'Black Gold',
+      grupoNombre: fresco.grupo_nombre || null,
+      coachNombre: sesiones.find((s) => s.usuarios?.nombre)?.usuarios?.nombre || null,
+      tieneCoach: sesiones.some((s) => !!s.coach_id),
       racha, // racha de asistencia real (o null → chip 🔥 oculto)
       xp,
     },

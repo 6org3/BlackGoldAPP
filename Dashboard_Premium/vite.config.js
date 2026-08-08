@@ -86,7 +86,13 @@ export default defineConfig({
         //   - '**/index.es-*.js'  → canvg. OJO: es 'index.es-*', NO 'index-*'
         //     (ese es el chunk del entry y NO debe excluirse del precache).
         //   - '**/purify.es-*.js' → dompurify
-        globIgnores: ['**/jspdf*.js', '**/html2canvas*.js', '**/index.es-*.js', '**/purify.es-*.js'],
+        // Un build local antiguo dejó en dist dos copias mal nombradas
+        // (192x192.png.png / 512x512.png.png) de 4,65 MB. Vite 8 no las
+        // retiró ni con --emptyOutDir y Workbox las tomó por assets válidos,
+        // bloqueando closeBundle. Ningún icono del manifest usa doble
+        // extensión: excluir ese patrón evita que un residuo vuelva a romper
+        // el precaché, mientras los pwa-*.png reales siguen incluidos.
+        globIgnores: ['**/*.png.png', '**/jspdf*.js', '**/html2canvas*.js', '**/index.es-*.js', '**/purify.es-*.js'],
         // runtimeCaching vuelve, pero solo para los assets con hash excluidos
         // arriba: las fuentes siguen auto-hospedadas (@fontsource, ver
         // src/index.css) y van en el precache normal, así que no necesitan

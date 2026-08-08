@@ -1,0 +1,101 @@
+{
+  "name": "BG 06 — Escaneo de pull requests del vault",
+  "nodes": [
+    {
+      "id": "60000000-0000-4000-8000-000000000001",
+      "name": "Pull request recibido",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        240
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "blackgold-vault-pr-scan",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000002",
+      "name": "Validar vault sin PII",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://blackgold-knowledge-controller:8095/v1/validate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE_IN_N8N",
+          "name": "BlackGold Knowledge Controller"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000003",
+      "name": "Bloquear o habilitar revisión",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        120,
+        240
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000004",
+      "name": "Pre-merge",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        -80
+      ],
+      "parameters": {
+        "width": 1050,
+        "height": 500,
+        "content": "## Barrera antes del merge\n\nValida metadatos, IDs, teléfonos, correos privados, secretos, binarios, repos anidados, rutas incompatibles y contiene_pii: false. GitHub Actions sigue siendo la autoridad de CI."
+      }
+    }
+  ],
+  "connections": {
+    "Pull request recibido": {
+      "main": [
+        [
+          {
+            "node": "Validar vault sin PII",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar vault sin PII": {
+      "main": [
+        [
+          {
+            "node": "Bloquear o habilitar revisión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

@@ -1,0 +1,364 @@
+schema_version: agent-registry.v1
+
+approval_levels:
+  A: lectura o supervisión sin mutación
+  B: cambio local reversible
+  C: escritura operacional acotada
+  D: acción externa o comercial con aprobación vigente
+
+entities:
+  - id: vegapunk
+    kind: agent
+    label: Vegapunk
+    boundary: Personal
+  - id: shaka
+    kind: agent
+    label: Shaka
+    boundary: Conocimiento
+  - id: edison
+    kind: agent
+    label: Edison
+    boundary: Black Gold privado
+  - id: atlas
+    kind: agent
+    label: Atlas
+    boundary: Infraestructura
+  - id: lily
+    kind: agent
+    label: Lily
+    boundary: Black Gold público
+  - id: pythagoras
+    kind: agent
+    label: Pythagoras
+    boundary: Personal
+  - id: york
+    kind: agent
+    label: York
+    boundary: Black Gold privado
+  - id: openclaw-main
+    kind: service
+    label: Gateway principal
+    boundary: Infraestructura
+  - id: blackgold-lily
+    kind: service
+    label: Gateway Lily aislado
+    boundary: Black Gold público
+  - id: openwa
+    kind: service
+    label: Canal OpenWA
+    boundary: Black Gold público
+  - id: blackgold-crm-bridge
+    kind: service
+    label: Puente CRM
+    boundary: Black Gold privado
+  - id: blackgold-crm
+    kind: service
+    label: CRM privado
+    boundary: Black Gold privado
+  - id: blackgold-n8n
+    kind: service
+    label: n8n
+    boundary: Infraestructura
+  - id: blackgold-app
+    kind: service
+    label: PWA Black Gold
+    boundary: Black Gold público
+  - id: knowledge-vault
+    kind: system
+    label: Vault Obsidian
+    boundary: Conocimiento
+
+relations:
+  - id: openwa-to-bridge
+    from: openwa
+    to: blackgold-crm-bridge
+    type: handoff
+    allowed_data: channel-event-metadata
+    approval: D
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-08
+    confidence: medium
+    status_kind: declared
+  - id: bridge-to-lily
+    from: blackgold-crm-bridge
+    to: lily
+    type: handoff
+    allowed_data: minimum-intake-context
+    approval: C
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-08
+    confidence: medium
+    status_kind: declared
+  - id: bridge-to-main
+    from: blackgold-crm-bridge
+    to: vegapunk
+    type: handoff
+    allowed_data: personal-route-context
+    approval: B
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-08
+    confidence: medium
+    status_kind: declared
+  - id: lily-to-crm
+    from: lily
+    to: blackgold-crm
+    type: writes
+    allowed_data: minimum-crm-fields
+    approval: C
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    confidence: high
+    status_kind: declared
+  - id: vegapunk-to-crm
+    from: vegapunk
+    to: blackgold-crm
+    type: reads
+    allowed_data: sanitized-audit-aggregate
+    approval: A
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    confidence: high
+    status_kind: observed
+  - id: vegapunk-supervises-lily
+    from: vegapunk
+    to: lily
+    type: supervises
+    allowed_data: internal-audit-summary
+    approval: A
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    confidence: high
+    status_kind: declared
+  - id: shaka-to-vault
+    from: shaka
+    to: knowledge-vault
+    type: writes
+    allowed_data: note-structure-only
+    approval: B
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    confidence: medium
+    status_kind: declared
+  - id: edison-to-atlas
+    from: edison
+    to: atlas
+    type: handoff
+    allowed_data: approved-production-brief
+    approval: D
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    confidence: medium
+    status_kind: declared
+
+claims:
+  - id: vegapunk-lifecycle
+    subject_id: vegapunk
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-14T00:00:00Z
+    confidence: high
+    status_kind: declared
+  - id: shaka-lifecycle
+    subject_id: shaka
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-14T00:00:00Z
+    confidence: high
+    status_kind: declared
+  - id: edison-lifecycle
+    subject_id: edison
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-14T00:00:00Z
+    confidence: high
+    status_kind: declared
+  - id: atlas-lifecycle
+    subject_id: atlas
+    predicate: lifecycle
+    value: on-demand
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-14T00:00:00Z
+    confidence: high
+    status_kind: declared
+  - id: lily-lifecycle
+    subject_id: lily
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-14T00:00:00Z
+    confidence: high
+    status_kind: declared
+  - id: pythagoras-lifecycle
+    subject_id: pythagoras
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-07
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-14T00:00:00Z
+    confidence: medium
+    status_kind: declared
+  - id: york-lifecycle
+    subject_id: york
+    predicate: lifecycle
+    value: planned
+    source: Áreas/Sistem OS/Blueprint.md
+    source_date: 2026-08-08
+    observed_at: null
+    freshness_class: decision
+    valid_until: null
+    confidence: high
+    status_kind: declared
+  - id: openclaw-main-lifecycle
+    subject_id: openclaw-main
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-06
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-13T00:00:00Z
+    confidence: high
+    status_kind: observed
+  - id: blackgold-lily-lifecycle
+    subject_id: blackgold-lily
+    predicate: lifecycle
+    value: idle
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-06
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-13T00:00:00Z
+    confidence: high
+    status_kind: observed
+  - id: openwa-lifecycle
+    subject_id: openwa
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-08
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-15T00:00:00Z
+    confidence: medium
+    status_kind: declared
+  - id: blackgold-crm-bridge-lifecycle
+    subject_id: blackgold-crm-bridge
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-06
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-13T00:00:00Z
+    confidence: high
+    status_kind: observed
+  - id: blackgold-crm-lifecycle
+    subject_id: blackgold-crm
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-06
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-13T00:00:00Z
+    confidence: high
+    status_kind: observed
+  - id: blackgold-n8n-deployment
+    subject_id: blackgold-n8n
+    predicate: deployment_state
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-06
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-13T00:00:00Z
+    confidence: high
+    status_kind: observed
+  - id: blackgold-n8n-lifecycle
+    subject_id: blackgold-n8n
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-06
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-13T00:00:00Z
+    confidence: high
+    status_kind: observed
+  - id: blackgold-app-lifecycle
+    subject_id: blackgold-app
+    predicate: lifecycle
+    value: active
+    source: Áreas/Sistem OS/Estado Operativo.md
+    source_date: 2026-08-08
+    observed_at: null
+    freshness_class: deployment
+    valid_until: 2026-08-15T00:00:00Z
+    confidence: high
+    status_kind: observed
+
+workflow_occurrences:
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/04-vault-github-servidor.json
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/05-export-personal-blackgold.json
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/06-escanear-pr-vault.json
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/07-actualizar-indice-conocimiento.json
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/08-vistas-conocimiento-por-rol.json
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/09-backup-vault-cifrado.json
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/10-alertas-vegapunk.json
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/11-content-os-operacion-visual.json
+  - root_id: repo
+    relative_path: n8n-blackgold-knowledge/workflows/12-notificaciones-operativas-whatsapp.json
+  - root_id: vault
+    relative_path: Proyectos/Black Gold/Infraestructura/n8n-hibrido/workflows/01-inventario-hibrido.json
+  - root_id: vault
+    relative_path: Proyectos/Black Gold/Infraestructura/n8n-hibrido/workflows/02-lily-whatsapp-crm.json
+  - root_id: vault
+    relative_path: Proyectos/Black Gold/Infraestructura/n8n-hibrido/workflows/03-content-os-hibrido.json
+  - root_id: vault
+    relative_path: tmp/bg-app-patch/n8n-blackgold-knowledge/workflows/04-vault-github-servidor.json
+  - root_id: vault
+    relative_path: tmp/bg-app-patch/n8n-blackgold-knowledge/workflows/05-export-personal-blackgold.json
+  - root_id: vault
+    relative_path: tmp/bg-app-patch/n8n-blackgold-knowledge/workflows/06-escanear-pr-vault.json
+  - root_id: vault
+    relative_path: tmp/bg-app-patch/n8n-blackgold-knowledge/workflows/07-actualizar-indice-conocimiento.json
+  - root_id: vault
+    relative_path: tmp/bg-app-patch/n8n-blackgold-knowledge/workflows/08-vistas-conocimiento-por-rol.json
+  - root_id: vault
+    relative_path: tmp/bg-app-patch/n8n-blackgold-knowledge/workflows/09-backup-vault-cifrado.json
+  - root_id: vault
+    relative_path: tmp/bg-app-patch/n8n-blackgold-knowledge/workflows/10-alertas-vegapunk.json
+  - root_id: vault
+    relative_path: tmp/black-gold-vault-staging/Áreas/Infraestructura/n8n-hibrido/workflows/01-inventario-hibrido.json
+  - root_id: vault
+    relative_path: tmp/black-gold-vault-staging/Áreas/Infraestructura/n8n-hibrido/workflows/02-lily-whatsapp-crm.json
+  - root_id: vault
+    relative_path: tmp/black-gold-vault-staging/Áreas/Infraestructura/n8n-hibrido/workflows/03-content-os-hibrido.json

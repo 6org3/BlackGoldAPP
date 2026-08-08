@@ -1,0 +1,3 @@
+[mcp_servers.blackgold-mcp]
+command = "node"
+args = ["blackgold-mcp/src/index.js"]

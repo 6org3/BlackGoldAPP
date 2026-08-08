@@ -1,0 +1,126 @@
+{
+  "name": "BG 05 — Exportación curada personal a empresa",
+  "nodes": [
+    {
+      "id": "50000000-0000-4000-8000-000000000001",
+      "name": "Proponer exportación",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000002",
+      "name": "Notas compartir_blackgold",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000003",
+      "name": "Filtro PII y secretos",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000004",
+      "name": "Crear rama y pull request",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        200,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000005",
+      "name": "Shaka o Vegapunk revisa",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        480,
+        260
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "50000000-0000-4000-8000-000000000006",
+      "name": "Transferencia curada",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        -100
+      ],
+      "parameters": {
+        "width": 1450,
+        "height": 540,
+        "content": "## Personal → Black Gold\n\nSe ejecuta en la PC de Jorge. Solo procesa notas marcadas, genera un ID empresarial, conserva source_id y abre PR. Teléfonos, correos, secretos, conversaciones o datos de menores bloquean el proceso.\n\nSe activará cuando el worker de la PC exponga su endpoint autenticado."
+      }
+    }
+  ],
+  "connections": {
+    "Proponer exportación": {
+      "main": [
+        [
+          {
+            "node": "Notas compartir_blackgold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notas compartir_blackgold": {
+      "main": [
+        [
+          {
+            "node": "Filtro PII y secretos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro PII y secretos": {
+      "main": [
+        [
+          {
+            "node": "Crear rama y pull request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear rama y pull request": {
+      "main": [
+        [
+          {
+            "node": "Shaka o Vegapunk revisa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

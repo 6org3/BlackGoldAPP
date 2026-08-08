@@ -1,0 +1,28 @@
+name: blackgold-vaultwarden
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:1.37.0-alpine
+    container_name: blackgold-vaultwarden
+    user: "1000:1000"
+    restart: unless-stopped
+    env_file:
+      - ${VAULTWARDEN_ENV_FILE:-.env}
+    environment:
+      DOMAIN: https://localhost:8222
+      ROCKET_PORT: "8080"
+      ROCKET_TLS: '{certs="/ssl/localhost.crt",key="/ssl/localhost.key"}'
+      SIGNUPS_VERIFY: "false"
+      INVITATIONS_ALLOWED: "false"
+      SHOW_PASSWORD_HINT: "false"
+      WEBSOCKET_ENABLED: "false"
+      LOG_LEVEL: warn
+    ports:
+      - "127.0.0.1:8222:8080"
+    volumes:
+      - ./data:/data
+      - ./certs:/ssl:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

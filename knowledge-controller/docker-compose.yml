@@ -1,0 +1,47 @@
+name: blackgold-knowledge-controller
+
+services:
+  controller:
+    build:
+      context: .
+      args:
+        BLACKGOLD_KNOWLEDGE_UID: "${BLACKGOLD_KNOWLEDGE_UID}"
+    container_name: blackgold-knowledge-controller
+    restart: unless-stopped
+    user: "${BLACKGOLD_KNOWLEDGE_UID}:${BLACKGOLD_KNOWLEDGE_GID}"
+    group_add:
+      - "${BLACKGOLD_PUBLIC_GID}"
+    env_file:
+      - .env
+    environment:
+      KNOWLEDGE_CONTROLLER_HOST: 0.0.0.0
+      KNOWLEDGE_CONTROLLER_PORT: "8095"
+      HOME: /knowledge
+    volumes:
+      - /srv/blackgold-knowledge/vault:/knowledge/vault
+      - /srv/blackgold-knowledge/role-views:/knowledge/role-views
+      - /srv/blackgold-lily/knowledge-public:/knowledge/lily-public
+      - /srv/blackgold-knowledge/.ssh/deploy_key:/run/secrets/deploy_key:ro
+      - /srv/blackgold-knowledge/.ssh/known_hosts:/run/secrets/known_hosts:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1770
+    mem_limit: 256m
+    cpus: 0.75
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8095/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - orchestration
+
+networks:
+  orchestration:
+    name: blackgold-orchestration
+    external: true
