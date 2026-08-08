@@ -1,0 +1,18 @@
+{
+  "name": "@black-gold/sistem-os-control-plane",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Control plane local, read-only y derivado para Sistem OS.",
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100",
+    "collect": "node src/bin.mjs collect",
+    "validate": "node src/bin.mjs validate",
+    "render": "node src/bin.mjs render",
+    "all": "node src/bin.mjs all"
+  },
+  "dependencies": {
+    "yaml": "^2.8.2"
+  }
+}

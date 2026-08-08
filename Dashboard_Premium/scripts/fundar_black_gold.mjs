@@ -54,6 +54,7 @@ import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import { resolverRutaConfigFundacion, validarConfigFundacionReal } from './fundacion-config.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.join(__dirname, '..', '.env.local'));
@@ -68,7 +69,13 @@ if (!url || !serviceKey) {
 const db = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
 const REAL = process.env.FUNDAR_REAL === '1';
-const ARCHIVO_CONFIG = path.join(__dirname, 'fundacion_black_gold.config.json');
+const ARCHIVO_CONFIG_PLANTILLA = path.join(__dirname, 'fundacion_black_gold.config.json');
+const ARCHIVO_CONFIG_LOCAL = path.join(__dirname, 'fundacion_black_gold.config.local.json');
+const ARCHIVO_CONFIG = resolverRutaConfigFundacion({
+  plantilla: ARCHIVO_CONFIG_PLANTILLA,
+  privada: ARCHIVO_CONFIG_LOCAL,
+  existe: fs.existsSync,
+});
 const ARCHIVO_CREDENCIALES = path.join(__dirname, 'credenciales_black_gold.json');
 const PLACEHOLDER = '<REEMPLAZAR';
 
@@ -77,7 +84,13 @@ const PLACEHOLDER = '<REEMPLAZAR';
 // ===================================================================
 if (!fs.existsSync(ARCHIVO_CONFIG)) {
   console.error(`❌ No existe ${ARCHIVO_CONFIG}.`);
-  console.error('   Copia la plantilla que trae este repo (fundacion_black_gold.config.json) y rellena los placeholders.');
+  console.error('   Copia la plantilla fundacion_black_gold.config.json a un archivo .local.json y rellena los placeholders.');
+  process.exit(1);
+}
+try {
+  validarConfigFundacionReal({ real: REAL, ruta: ARCHIVO_CONFIG, plantilla: ARCHIVO_CONFIG_PLANTILLA });
+} catch (error) {
+  console.error(`❌ ${error.message}`);
   process.exit(1);
 }
 const config = JSON.parse(fs.readFileSync(ARCHIVO_CONFIG, 'utf8'));
@@ -108,7 +121,7 @@ buscarPlaceholders(configParaValidar, '', hallazgos);
 if (hallazgos.length) {
   console.error(`❌ La configuración todavía tiene ${hallazgos.length} placeholder(s) sin rellenar:`);
   for (const h of hallazgos) console.error(`   - ${h}`);
-  console.error('\n   Edita fundacion_black_gold.config.json y vuelve a correr el script.');
+  console.error(`\n   Edita ${ARCHIVO_CONFIG} y vuelve a correr el script.`);
   process.exit(1);
 }
 
@@ -183,6 +196,22 @@ async function crearCuentaStaff({ cedula, nombre, rol, club, correo, telefono })
   return { id: fila.id, correo, password, creada: true };
 }
 
+async function habilitarRegistroPublico() {
+  if (!REAL) {
+    console.log(`  · La allowlist pública se habilitaría para "${CLUB}".`);
+    return;
+  }
+  const { error } = await db.from('club_registro_config').upsert({
+    club: CLUB,
+    habilitado: true,
+    es_demo: false,
+  }, { onConflict: 'club' });
+  if (error) {
+    throw new Error(`club_registro_config: ${error.message}. Despliega primero la migración v67.`);
+  }
+  console.log(`  ✅ Registro público habilitado para "${CLUB}".`);
+}
+
 // ===================================================================
 // 3. Fundación
 // ===================================================================
@@ -218,7 +247,7 @@ async function fundar() {
   });
 
   // ── 3. Owner(s) ──────────────────────────────────────────────────
-  console.log('\n── 3. Dueño(s) de Black Gold ──');
+  console.log(`\n── 3. Dueño(s) de ${CLUB} ──`);
   const oo = config.owner_original;
   const ownerOriginal = await crearCuentaStaff({
     cedula: oo.cedula, nombre: oo.nombre, rol: 'owner', club: CLUB,
@@ -249,7 +278,12 @@ async function fundar() {
   }
 
   // ── 4. Grupos de entrenamiento ────────────────────────────────────
-  console.log('\n── 4. Grupos de entrenamiento ──');
+  // Un owner administra el club, pero esta allowlist decide si una familia lo
+  // puede elegir desde /registro. Nunca se abre el registro por inferencia.
+  console.log('\n── 4. Registro público ──');
+  await habilitarRegistroPublico();
+
+  console.log('\n── 5. Grupos de entrenamiento ──');
   for (const g of config.grupos_entrenamiento) {
     const { data: ya } = await db.from('grupos_entrenamiento').select('id').eq('club', CLUB).eq('nombre', g.nombre).maybeSingle();
     if (ya) {
@@ -386,4 +420,4 @@ console.log(`Credenciales guardadas en ${path.basename(ARCHIVO_CREDENCIALES)} (c
 console.log('\nChecklist:');
 console.log('  [ ] El dueño puede iniciar sesión (verificado arriba si se pudo probar) y cambia su contraseña.');
 console.log(`  [ ] "${CLUB}" aparece en el selector de clubes del registro público (verificado arriba).`);
-console.log('  [ ] Una familia de prueba puede registrarse eligiendo Black Gold y queda "pendiente" hasta que el dueño la apruebe.');
+console.log('  [ ] Una familia de prueba puede registrarse eligiendo el club configurado y queda "pendiente" hasta que el dueño la apruebe.');

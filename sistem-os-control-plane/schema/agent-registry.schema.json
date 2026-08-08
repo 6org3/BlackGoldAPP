@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blackgoldec.local/schemas/agent-registry.v1.json",
+  "title": "agent-registry.v1",
+  "type": "object",
+  "required": ["schema_version", "entities", "relations", "claims", "workflow_occurrences"],
+  "properties": {
+    "schema_version": { "const": "agent-registry.v1" },
+    "entities": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
+    "relations": { "type": "array", "items": { "$ref": "#/$defs/relation" } },
+    "claims": { "type": "array", "items": { "$ref": "#/$defs/claim" } },
+    "workflow_occurrences": { "type": "array", "items": { "$ref": "#/$defs/workflowOccurrence" } }
+  },
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "required": ["id", "kind", "label", "boundary"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "kind": { "enum": ["agent", "service", "system"] },
+        "label": { "type": "string" },
+        "boundary": { "type": "string" }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "required": ["id", "from", "to", "type", "allowed_data", "approval", "source", "source_date", "confidence", "status_kind"],
+      "properties": {
+        "approval": { "enum": ["A", "B", "C", "D"] },
+        "status_kind": { "enum": ["declared", "observed", "discovered", "unknown"] }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["id", "subject_id", "predicate", "value", "source", "source_date", "observed_at", "freshness_class", "valid_until", "confidence", "status_kind"],
+      "properties": {
+        "freshness_class": { "enum": ["static", "decision", "deployment", "runtime"] },
+        "status_kind": { "enum": ["declared", "observed", "discovered", "unknown"] }
+      }
+    },
+    "workflowOccurrence": {
+      "type": "object",
+      "required": ["root_id", "relative_path"],
+      "properties": {
+        "root_id": { "enum": ["vault", "repo"] },
+        "relative_path": { "type": "string", "pattern": "^(?![A-Za-z]:|/).+" }
+      }
+    }
+  }
+}

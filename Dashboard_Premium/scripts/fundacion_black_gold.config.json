@@ -1,7 +1,7 @@
 {
   "_comentario_general": "Plantilla de configuración para fundar_black_gold.mjs. Todo valor que empiece con \"<REEMPLAZAR\" hay que cambiarlo antes de correr el script con FUNDAR_REAL=1 — el script ABORTA si detecta alguno sin rellenar (busca ese prefijo en el JSON entero, ignorando owner_secundario si su \"activo\" es false). Las claves \"_comentario*\" son solo documentación para quien llena esto: el script las ignora al leer la configuración.",
 
-  "club": "Black Gold",
+  "club": "Black Gold Lago Agrio",
 
   "superadmin_plataforma": {
     "_comentario": "Cuenta de PLATAFORMA, no del club: rol 'superadmin', usuarios.club = 'Global' — la misma convención que tenían los 2 superadmin de prueba que se purgaron. Ve todos los clubes (listar_clubes_todos, v34) y hace lo que ningún owner puede: mover un atleta de club, liberar una cédula rechazada (purgar_usuario_rechazado, v45), etc. Puede ser la misma persona que el owner_original si Jorge va a operar ambos roles.",
@@ -12,7 +12,7 @@
   },
 
   "owner_original": {
-    "_comentario": "El dueño fundador de Black Gold. Nace con creado_por = NULL — lo pone solo el trigger sellar_creado_por (v36) al ver que el INSERT no viene de una sesión de usuario (llega por la service_role key de este script, igual que 'script/seed' en el propio comentario de la migración). Ese NULL es la marca de 'dueño original' que usa el resto de la RLS (v36/v36b) para decidir quién puede invitar co-dueños.",
+    "_comentario": "El dueño fundador de Black Gold Lago Agrio. Nace con creado_por = NULL — lo pone solo el trigger sellar_creado_por (v36) al ver que el INSERT no viene de una sesión de usuario (llega por la service_role key de este script, igual que 'script/seed' en el propio comentario de la migración). Ese NULL es la marca de 'dueño original' que usa el resto de la RLS (v36/v36b) para decidir quién puede invitar co-dueños.",
     "nombre": "<REEMPLAZAR: nombre completo>",
     "cedula": "<REEMPLAZAR: cédula, 10 dígitos>",
     "correo": "<REEMPLAZAR: correo real>",
@@ -30,7 +30,7 @@
 
   "cuenta_bancaria": {
     "_comentario": "Alimenta club_config — la fila que ve cada familia como instrucciones de pago en la pantalla de cobros. whatsapp_club va en formato E.164 SIN el '+' (ej. 593999999999), igual que el resto del esquema.",
-    "cuenta_bancaria_texto": "<REEMPLAZAR: Banco ... · Ahorros/Corriente ... · Black Gold · RUC ...>",
+    "cuenta_bancaria_texto": "<REEMPLAZAR: Banco ... · Ahorros/Corriente ... · Black Gold Lago Agrio · RUC ...>",
     "whatsapp_club": "<REEMPLAZAR: 593XXXXXXXXX>",
     "dia_vencimiento": 5,
     "descuento_hermanos_pct": 10
@@ -38,8 +38,8 @@
 
   "grupos_entrenamiento": [
     {
-      "_comentario": "grupos_entrenamiento NO tiene columna 'categoría' en el esquema: el valor de 'categoria' de abajo se guarda dentro de la descripción del grupo (legible en el panel), no en una columna aparte. 'precio_mensual' es OPCIONAL y nace en null A PROPÓSITO en esta plantilla — léelo antes de dejarlo así: generar_pagos_mes (v42) NO inventa un precio para un grupo sin uno puesto ('grupo básico sin precio → SIN mensualidad'). Si Black Gold cobra la mensualidad POR GRUPO (como hacían los clubes de prueba), rellena precio_mensual aquí. Si en cambio cobra por el catálogo de 'servicios' de más abajo (catalogo_servicios/servicio_tarifas — el módulo de add-ons, v39), déjalo en null a propósito: son dos módulos de cobro distintos y generar_pagos_mes solo lee este campo, nunca el catálogo de servicios.",
-      "nombre": "<REEMPLAZAR: p.ej. Black Gold Sub-12>",
+      "_comentario": "grupos_entrenamiento NO tiene columna 'categoría' en el esquema: el valor de 'categoria' de abajo se guarda dentro de la descripción del grupo (legible en el panel), no en una columna aparte. 'precio_mensual' es OPCIONAL y nace en null A PROPÓSITO en esta plantilla — léelo antes de dejarlo así: generar_pagos_mes (v42) NO inventa un precio para un grupo sin uno puesto ('grupo básico sin precio → SIN mensualidad'). Si Black Gold Lago Agrio cobra la mensualidad POR GRUPO (como hacían los clubes de prueba), rellena precio_mensual aquí. Si en cambio cobra por el catálogo de 'servicios' de más abajo (catalogo_servicios/servicio_tarifas — el módulo de add-ons, v39), déjalo en null a propósito: son dos módulos de cobro distintos y generar_pagos_mes solo lee este campo, nunca el catálogo de servicios.",
+      "nombre": "<REEMPLAZAR: p.ej. Black Gold Lago Agrio Sub-12>",
       "categoria": "<REEMPLAZAR: p.ej. Sub-12 (9-10 años)>",
       "horario": "<REEMPLAZAR: p.ej. Lun y Mié 15:00-16:15>",
       "dias_semana": ["Lunes", "Miércoles"],
